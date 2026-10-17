@@ -1,0 +1,59 @@
+:root {
+  color-scheme: light;
+  --paper: #f7f3e9;
+  --ink: #202923;
+  --accent: #ffd366;
+  font-family: system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.6; }
+[hidden] { display: none !important; }
+a { color: inherit; text-underline-offset: .2em; }
+img { display: block; width: 100%; height: auto; }
+:focus-visible { outline: 3px solid currentColor; outline-offset: 5px; }
+.wrap { width: min(68rem, 100% - 3rem); margin-inline: auto; }
+.section { padding-block: clamp(3rem, 8vw, 7rem); }
+.eyebrow { font-size: .85rem; font-weight: 700; letter-spacing: .08em; }
+h1, h2 { line-height: 1.08; text-wrap: balance; letter-spacing: -.04em; }
+h1 { max-width: 15ch; font-size: clamp(2.8rem, 7vw, 6rem); margin-block: .4em; }
+h2 { max-width: 23ch; font-size: clamp(2rem, 4vw, 3.5rem); margin-top: 0; }
+p { max-width: 65ch; }
+.lead { font-size: 1.3rem; max-width: 46ch; }
+
+.skip-link { position: absolute; top: .5rem; left: .5rem; transform: translateY(-200%); }
+.skip-link:focus { transform: none; padding: .6rem; background: white; }
+.hero { min-height: 80svh; display: grid; align-items: center; }
+.actions, .footer { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
+.actions { margin-top: 2rem; }
+.button {
+  display: inline-block;
+  padding: .9rem 1.3rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  text-decoration: none;
+}
+.button:hover { text-decoration: underline; }
+.breakdown { background: white; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+.calculator { background: var(--ink); color: var(--paper); }
+fieldset { border: 0; padding: 0; margin: 2rem 0; min-width: 0; }
+legend { margin-bottom: 1rem; font-weight: 700; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+label { display: grid; gap: .5rem; }
+input { width: 100%; min-width: 0; padding: .8rem; font: inherit; color: var(--ink); background: white; border: 0; border-radius: 0; }
+.result { display: flex; flex-wrap: wrap; gap: 2rem 4rem; border-top: 1px solid; }
+output { display: block; font-size: clamp(2rem, 5vw, 4rem); font-weight: 700; color: var(--accent); }
+.offer { background: var(--accent); }
+.offer .button { margin-top: 1rem; }
+details { padding-block: 1.2rem; border-bottom: 1px solid; }
+summary { cursor: pointer; font-size: 1.15rem; font-weight: 700; }
+.footer { padding-block: 2rem; }
+
+@media (max-width: 45rem) {
+  .split, .fields { grid-template-columns: 1fr; }
+  .hero { min-height: auto; }
+}

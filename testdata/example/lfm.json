@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "url": "https://example.com/tagungskosten/",
+  "language": "de",
+  "title": "Was kostet deine Tagung pro Kopf?",
+  "description": "Berechne Raummiete und Verpflegung als Gesamtpreis und pro Person. So vergleichst du Tagungsangebote auf derselben Grundlage.",
+  "socialImage": {
+    "src": "assets/images/share.webp",
+    "alt": "Tagungskosten: Raummiete plus Verpflegung ergibt den Gesamtpreis."
+  },
+  "urls": {
+    "checkout": "https://example.com/checkout",
+    "contact": "mailto:hello@example.com",
+    "calculator": "#rechner",
+    "relatedHotels": "https://example.com/tagungshotels/"
+  },
+  "links": {
+    "related": [
+      {
+        "urlKey": "relatedHotels",
+        "label": "Passende Tagungshotels finden"
+      }
+    ]
+  },
+  "jsonld": {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "url": "{{.url}}",
+    "name": "{{.title}}",
+    "description": "{{.description}}",
+    "inLanguage": "{{.language}}"
+  },
+  "build": {
+    "browserData": [
+      "data.calculator"
+    ],
+    "validation": {
+      "rules": {}
+    }
+  },
+  "data": {
+    "eyebrow": "Tagungsplanung 🧮",
+    "showCostBreakdown": true,
+    "offer": {
+      "priceLabel": "49 €",
+      "buttonLabel": "Angebot prüfen lassen"
+    },
+    "calculator": {
+      "locale": "de-DE",
+      "currency": "EUR",
+      "defaultParticipants": 20,
+      "defaultRoomCost": 600,
+      "defaultCateringPerPerson": 45
+    }
+  }
+}

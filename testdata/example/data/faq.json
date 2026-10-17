@@ -1,0 +1,17 @@
+[
+  {
+    "id": "netto-oder-brutto",
+    "question": "Soll ich Netto- oder Bruttopreise eintragen?",
+    "answer": "Verwende für alle Positionen dieselbe Grundlage. Der Rechner addiert deine Eingaben und rechnet keine Steuern um."
+  },
+  {
+    "id": "mehrere-tage",
+    "question": "Wie rechne ich eine Veranstaltung mit mehreren Tagen?",
+    "answer": "Trage die gesamte Raummiete und die gesamte Verpflegung pro Person für alle Tage ein. Der Rechner teilt den Gesamtpreis durch die eingegebene Personenzahl."
+  },
+  {
+    "id": "weitere-kosten",
+    "question": "Sind Technik und Übernachtungen enthalten?",
+    "answer": "Der Rechner berücksichtigt ausschließlich Raummiete und Verpflegung. Prüfe Technik, Übernachtungen und weitere Positionen zusätzlich im Angebot."
+  }
+]

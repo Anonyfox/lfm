@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="{{ .language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .title }}</title>
+  <meta name="description" content="{{ .description }}">
+  <link rel="canonical" href="{{ .url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ .title }}">
+  <meta property="og:description" content="{{ .description }}">
+  <meta property="og:url" content="{{ .url }}">
+  <meta property="og:image" content="{{ .socialImage.src }}">
+  <meta property="og:image:alt" content="{{ .socialImage.alt }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  {{style "assets/styles/main.css"}}
+</head>
+<body>
+  <a class="skip-link" href="{{ .urls.calculator }}">Zum Rechner</a>
+  <main>
+    <!-- HERO: edit composition and prose directly. -->
+    <header class="section hero">
+      <div class="wrap">
+        <p class="eyebrow">{{ .data.eyebrow }}</p>
+        <h1>{{ .title }}</h1>
+        <p class="lead">Ein Raum, zwanzig Gäste, viele Einzelpreise.
+          Bring dein Angebot auf zwei Zahlen: insgesamt und pro Person.</p>
+        <div class="actions">
+          <a class="button" href="{{ .urls.calculator }}">Kosten ausrechnen</a>
+          <a href="{{ .urls.checkout }}">{{ .data.offer.buttonLabel }} · {{ .data.offer.priceLabel }}</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- EXPLANATION: a custom section controlled by one boolean. -->
+    {{ if .data.showCostBreakdown }}
+    <section class="section breakdown" id="kosten" aria-labelledby="kosten-title">
+      <div class="wrap split">
+        <div>
+          <p class="eyebrow">01 / Auseinanderziehen</p>
+          <h2 id="kosten-title">Einmal für den Raum. Für jeden Gast die Verpflegung.</h2>
+          <p>Trage die Raummiete für die gesamte Veranstaltung ein und die
+            Verpflegungskosten pro Person für denselben Zeitraum.</p>
+          <p>Vergleiche durchgehend Bruttopreise oder durchgehend Nettopreise.
+            Weitere Posten wie Technik und Übernachtungen ergänzt dieser Rechner nicht.</p>
+        </div>
+        <img src="assets/images/cost-breakdown.svg" width="600" height="360"
+          alt="Raummiete plus Verpflegung pro Person mal Gäste ergibt den Gesamtpreis."
+          loading="lazy">
+      </div>
+    </section>
+    {{ end }}
+
+    <!-- CALCULATOR: HTML inputs; behavior lives in main.js. -->
+    <section class="section calculator" id="rechner" aria-labelledby="rechner-title">
+      <div class="wrap">
+        <p class="eyebrow">02 / Durchrechnen</p>
+        <h2 id="rechner-title">Deine Zahlen, auf einen Blick.</h2>
+        <p>Gesamtpreis = Raummiete + Personen × Verpflegung pro Person.</p>
+        <form data-calculator>
+          <fieldset disabled>
+            <legend>Angaben zur Veranstaltung</legend>
+            <div class="fields">
+              <label>Personen
+                <input name="participants" type="number" min="1" max="100000" step="1"
+                  value="{{ .data.calculator.defaultParticipants }}" required>
+              </label>
+              <label>Raummiete ({{ .data.calculator.currency }})
+                <input name="roomCost" type="number" min="0" max="100000000" step="0.01"
+                  value="{{ .data.calculator.defaultRoomCost }}" required>
+              </label>
+              <label>Verpflegung pro Person ({{ .data.calculator.currency }})
+                <input name="cateringPerPerson" type="number" min="0" max="1000000" step="0.01"
+                  value="{{ .data.calculator.defaultCateringPerPerson }}" required>
+              </label>
+            </div>
+          </fieldset>
+          <div class="result" data-result aria-live="polite" aria-atomic="true" hidden>
+            <p>Gesamtpreis <output data-total></output></p>
+            <p>Pro Person <output data-per-person></output></p>
+          </div>
+        </form>
+        <noscript><p>Für die Berechnung im Browser aktiviere JavaScript.
+          Die Formel oben kannst du auch direkt verwenden.</p></noscript>
+      </div>
+    </section>
+
+    <!-- OFFER: the checkout destination is shared with the hero. -->
+    <section class="section offer" id="angebot" aria-labelledby="angebot-title">
+      <div class="wrap">
+        <p class="eyebrow">03 / Genauer hinsehen</p>
+        <h2 id="angebot-title">Die Summe steht. Sind alle Leistungen drin?</h2>
+        <p>Lass dein Hotelangebot auf unklare Positionen, Zusatzkosten und offene
+          Rückfragen prüfen. Du erhältst eine konkrete Fragenliste per E-Mail.</p>
+        <a class="button" href="{{ .urls.checkout }}">
+          {{ .data.offer.buttonLabel }} · {{ .data.offer.priceLabel }}
+        </a>
+      </div>
+    </section>
+
+    <!-- FAQ: one data file, ordinary HTML, no JavaScript required. -->
+    <section class="section faq" id="fragen" aria-labelledby="fragen-title">
+      <div class="wrap">
+        <h2 id="fragen-title">Noch eine Frage?</h2>
+        {{ range .data.faq }}
+        <details id="{{ .id }}">
+          <summary>{{ .question }}</summary>
+          <p>{{ .answer }}</p>
+        </details>
+        {{ end }}
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer">
+    <a href="{{ .urls.contact }}">Kontakt</a>
+    {{ range .links.related }}
+    <a href="{{ index $.urls .urlKey }}">{{ .label }}</a>
+    {{ end }}
+  </footer>
+  <!-- Compiler inserts #product-data from build.browserData before scripts. -->
+  {{script "assets/scripts/main.js"}}
+</body>
+</html>

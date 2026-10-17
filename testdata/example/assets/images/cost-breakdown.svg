@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="360" viewBox="0 0 600 360">
+  <rect width="600" height="360" fill="#f7f3e9"/>
+  <g fill="#202923" font-family="system-ui, sans-serif" font-size="22">
+    <text x="36" y="58">Einmal</text>
+    <text x="252" y="58">Pro Person × Gäste</text>
+    <rect x="36" y="82" width="168" height="84"/>
+    <rect x="252" y="82" width="312" height="84" fill="#ffd366"/>
+    <text x="48" y="133" fill="#f7f3e9">Raum</text>
+    <text x="268" y="133">Verpflegung</text>
+    <text x="218" y="133">+</text>
+    <path d="M36 200h528" stroke="#202923" stroke-width="2"/>
+    <text x="36" y="252" font-size="34" font-weight="700">Dein Gesamtpreis</text>
+    <text x="36" y="302">÷ Gäste = Preis pro Person</text>
+  </g>
+</svg>
