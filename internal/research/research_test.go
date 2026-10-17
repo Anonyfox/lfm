@@ -180,8 +180,28 @@ func TestBalance(t *testing.T) {
 		}
 	}
 	ongoing := strings.Replace(b.String(), "· from zero ·", "· ongoing: new reviews ·", 1)
-	if found(Check(map[string][]byte{VoicesFile: []byte(ongoing)}, "research", today), RuleBalance, "") {
+	if r := Check(map[string][]byte{VoicesFile: []byte(ongoing)}, "research", today); found(r, RuleBalance, "voices from") || found(r, RuleBalance, "come from") || found(r, RuleBalance, "posted on") {
 		t.Error("balance applies only once research started from zero")
+	}
+}
+
+func TestResearchNeedsBothFilesAndCalendarDates(t *testing.T) {
+	voices := "# Human voices: X\n\n## Batch 2026-10-18 · ongoing: launch · queries: \"q\" · unreachable: none\n\n### V001 · Reddit · buyer · posted 2026-10-01 · fetched 2026-10-18 · via fetch\n> a voice\n<https://example.com/1>\n"
+	peersOnlyHeading := "# Competitor analysis: X\n\n## Batch 2026-10-18 · from zero\n"
+	// today is a moment late on the 17th in UTC; the 18th is already today further east.
+	late := time.Date(2026, 10, 17, 23, 30, 0, 0, time.UTC)
+	r := Check(map[string][]byte{VoicesFile: []byte(voices), CompetitorsFile: []byte("# Competitor analysis: X\n")}, "research", late)
+	if found(r, RuleSubstance, "future") {
+		t.Error("a fetch dated tomorrow in UTC is today somewhere:", r.Diagnostics)
+	}
+	if !found(r, RuleBalance, "no competitor") {
+		t.Error("voices without peers must be reported:", r.Diagnostics)
+	}
+	if r := Check(map[string][]byte{CompetitorsFile: []byte(peersOnlyHeading)}, "research", late); !found(r, RuleBalance, "0 peers") {
+		t.Error("an empty from-zero competitor batch must report its minimum:", r.Diagnostics)
+	}
+	if r := Check(map[string][]byte{VoicesFile: []byte(strings.ReplaceAll(voices, "2026-10-18", "2026-10-20"))}, "research", late); !found(r, RuleSubstance, "future") {
+		t.Error("two days ahead is the future everywhere")
 	}
 }
 

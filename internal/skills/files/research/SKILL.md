@@ -37,7 +37,8 @@ competitors already do, into two files that every later design decision cites by
 Look at the tools you actually have; do not assume. For each source use the first option that works, and
 before collecting say in one line which access you have:
 
-1. A connector or API for the platform (social, reviews, analytics). Record `via connector`.
+1. A connector installed in your session for the platform (social, reviews, analytics). Record
+   `via connector`. A public API you call yourself counts as fetching.
 2. Opening a page or public feed directly, found by web search or already known. Record `via fetch`.
 3. A browser, for pages that need JavaScript or load comments late. Record `via browser`.
 4. Sources the user pastes or exports into the conversation. Record `via user`.
@@ -91,7 +92,8 @@ already has) and list gaps no peer uses.
 
 **Minimums from zero:** [[.MinVoices]] voices from [[.MinPlatforms]] platforms, including an image or video
 platform when one is reachable, and [[.MinPeers]] peers. **Stop** when the minimums hold and your last 10
-voices brought no new platform, problem or wish. If the minimums cannot be met, add `shortfall: <what and
+voices brought no new platform and no new kind of problem or wish (a new detail of a known problem does
+not count), or at twice the minimums, whichever comes first. If the minimums cannot be met, add `shortfall: <what and
 why>` to the batch heading. Ongoing batches have no minimum; they end when the trigger is covered.
 
 ## [[.Voices]] format
@@ -115,6 +117,7 @@ Observer note: <only when there is something to observe>
   (a subreddit, a video title, an app's review page). This keeps platform counts meaningful.
 - Author: `buyer` would buy this; `adjacent` lives close to the problem (a partner, a colleague in another
   role); `creator`, `brand` and `expert` speak about it publicly.
+- Fetched: today's date where you are.
 - Posted: as precise as the source shows. "5 years ago" seen on 2026-10-17 becomes `2021`; never add a day
   or month the source does not give.
 - Every line of a quote starts with `> `, blank ones with `>`, so the text may contain anything. Fields
@@ -156,7 +159,9 @@ Observer note: <only when there is something to observe>
 - <a value no peer uses>
 ```
 
-Every peer has all ten facts, one per line; write `none` when a page shows nothing. The grid has one row
+Every peer has all ten facts, one per line; write `none` when a page shows nothing. Decline optional
+cookies and record the page behind the banner. Group free-text values into grid buckets you name; the
+fact lines keep the exact values. The grid has one row
 per value, and the counts of each fact add up to the number of peers in the file.
 
 ## Validate before saving
@@ -182,7 +187,9 @@ rather than write anything else.
 - Search result snippets are not the post. Open the page; snippets are cut and reordered.
 - Comment threads often load late. Use a browser, or record the platform as unreachable.
 - If a tool loses characters such as emoji or line breaks, reopen the source another way; if none
-  preserves them, keep the item and say so in its observer note.
+  preserves them, keep the item and say so in its observer note. Emoji shown as images carry the
+  character in their alt text.
+- A comment without its own link uses the URL of the page that shows it; the place names the thread.
 - Quoting your own summary of a page as a voice is fabrication with extra steps.
 - The same post often appears on several sites. Keep the original and skip the copies.
 

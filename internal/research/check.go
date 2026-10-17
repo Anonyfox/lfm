@@ -75,6 +75,16 @@ func Check(files map[string][]byte, dir string, today time.Time) Report {
 		checkCompetitors(c, today, func(rule string, line int, message, hint string) { report(CompetitorsFile, rule, line, message, hint) })
 		competitors = &c
 	}
+	// Each file is checked alone above; research from zero needs both, so a
+	// filled file beside an empty or missing one is reported at the empty one.
+	hasVoices := voices != nil && len(voices.Entries) > 0
+	hasPeers := competitors != nil && len(competitors.Entries) > 0
+	if hasVoices && !hasPeers {
+		report(CompetitorsFile, RuleBalance, 1, "Voices are collected but no competitor is analyzed yet.", "Visit the pages buyers compare against and record them; design needs both files.")
+	}
+	if hasPeers && !hasVoices {
+		report(VoicesFile, RuleBalance, 1, "Competitors are analyzed but no voice is collected yet.", "Collect verbatim buyer voices; design needs both files.")
+	}
 	r.Summary = summarize(voices, competitors)
 	r.Voices, r.Competitors = voices, competitors
 	return r
@@ -98,6 +108,10 @@ func checkSequence(ids []int, lines []int, prefix string, add reporter) {
 // checkDates reports implausible posted/fetched dates relative to the batch.
 // A posted period counts as plausible if its first day is.
 func checkDates(posted, fetched, batch, today time.Time, line int, add reporter) {
+	// Dates are calendar days. A source opened "today" somewhere east of here
+	// is already tomorrow, so the limit is the end of tomorrow.
+	y, m, d := today.Date()
+	today = time.Date(y, m, d, 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
 	if !fetched.IsZero() && fetched.After(today) {
 		add(RuleSubstance, line, "Fetched date "+fetched.Format(time.DateOnly)+" is in the future.", "Use the day the source was opened.")
 	}
@@ -150,7 +164,7 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 			add(RuleSubstance, b.Line, "Template placeholder "+p+" left in a batch heading.", "Write the actual queries and unreachable platforms.")
 		}
 	}
-	if !fromZero(v.Batches) || len(v.Entries) == 0 {
+	if !fromZero(v.Batches) {
 		return
 	}
 	platforms := map[string]int{}
@@ -222,6 +236,9 @@ func checkCompetitors(c Competitors, today time.Time, add reporter) {
 		}
 	}
 	checkSequence(ids, lines, "P", add)
+	if fromZero(c.Batches) && len(c.Entries) < MinPeers {
+		add(RuleBalance, c.Batches[0].Line, fmt.Sprintf("%d peers; research from zero needs %d.", len(c.Entries), MinPeers), "Add pages the buyer compares against, including some that rank in search.")
+	}
 	if len(c.Entries) == 0 {
 		return
 	}
@@ -243,9 +260,6 @@ func checkCompetitors(c Competitors, today time.Time, add reporter) {
 	}
 	if len(c.Gaps) == 0 {
 		add(RuleFormat, c.Entries[len(c.Entries)-1].Line, "Peers without gaps.", "Add \"### Gaps\" listing values no peer uses.")
-	}
-	if fromZero(c.Batches) && len(c.Entries) < MinPeers {
-		add(RuleBalance, c.Batches[0].Line, fmt.Sprintf("%d peers; research from zero needs %d.", len(c.Entries), MinPeers), "Add pages the buyer compares against, including some that rank in search.")
 	}
 }
 
