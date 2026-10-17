@@ -34,6 +34,10 @@ func TestConceptFidelity(t *testing.T) {
 	if got := fidelity(t, facts, clean); len(got) != 0 {
 		t.Fatalf("clean page reported: %+v", got)
 	}
+	tokens := strings.Replace(clean, `h1{font-family:"Recursive",sans-serif;`, `:root{--display:"Recursive",sans-serif}h1{font-family:var(--display);`, 1)
+	if got := fidelity(t, facts, tokens); len(got) != 0 {
+		t.Fatalf("a face set through a custom property is used: %+v", got)
+	}
 	for name, tc := range map[string]struct{ body, want string }{
 		"undeclared face":  {strings.Replace(clean, `"Recursive"`, `"Inter"`, 1), `"inter" is used`},
 		"unused face":      {strings.Replace(clean, `font-family:"Recursive",sans-serif;`, "", 1), `"recursive" is declared in concept.md but never used`},
@@ -50,6 +54,15 @@ func TestConceptFidelity(t *testing.T) {
 				t.Fatalf("no finding containing %q: %+v", tc.want, fidelity(t, facts, tc.body))
 			}
 		})
+	}
+	three := *facts
+	three.Imagery = 3
+	if got := fidelity(t, &three, clean); len(got) != 1 || !strings.Contains(got[0].Message, "plans 3 images, but the page shows 1") {
+		t.Fatalf("counted imagery: %+v", got)
+	}
+	reused := strings.Replace(clean, `<img src=a.png alt="">`, `<img src=a.png alt=""><img src=a.png alt=""><div style="background:url('b.webp')"></div><svg viewBox="0 0 10 10" width="200"></svg>`, 1)
+	if got := fidelity(t, &three, reused); len(got) != 0 {
+		t.Fatalf("a.png once, b.webp and a drawing are three: %+v", got)
 	}
 	if got := fidelity(t, nil, clean); got != nil {
 		t.Fatal("without a concept the rule is silent")

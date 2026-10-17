@@ -2,9 +2,9 @@ package release
 
 import (
 	"context"
-	"encoding/json"
 	"crypto/sha256"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,7 +63,7 @@ type frameState struct {
 	Legible bool    `json:"legible"`
 	Faint   bool    `json:"faint"`
 	Y       float64 `json:"y"`
-	Seen    []int `json:"seen"`
+	Seen    []int   `json:"seen"`
 	Covered []struct {
 		ID   int    `json:"id"`
 		Text string `json:"text"`

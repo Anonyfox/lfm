@@ -346,7 +346,12 @@ func (c checker) sections(d Document) Summary {
 				c.add(RuleFormat, row.N, "Imagery row needs an image, its job, its art direction and how it is made.", "| <image> | <job> | <art direction> | <generated, photographed, drawn, rendered> |")
 			}
 		}
-		sum.Imagery = len(rows)
+		// rows waiting for the owner are not yet expected on the page
+		for _, row := range rows {
+			if !strings.Contains(strings.Join(row.Cells, " "), "Open: ") {
+				sum.Imagery++
+			}
+		}
 	}
 	if s := d.Sections["Motion"]; s != nil {
 		for _, field := range []string{"Moment", "Feedback", "Reduced motion"} {

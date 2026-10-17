@@ -3,6 +3,7 @@ package diagnostic
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -80,6 +81,7 @@ func Summarize(issues []Diagnostic) Summary {
 		}
 		return a.Path < b.Path
 	})
+	result.Diagnostics = collapse(result.Diagnostics)
 	for _, issue := range result.Diagnostics {
 		if issue.Severity == Error {
 			result.Errors++
@@ -88,6 +90,40 @@ func Summarize(issues []Diagnostic) Summary {
 		}
 	}
 	return result
+}
+
+var index = regexp.MustCompile(`\[[0-9]+\]`)
+
+// collapse merges findings that one mistake repeats at one place, such as a
+// binding inside a range reported for every item: same rule, severity,
+// location and hint, and the same message apart from list indexes. Input is
+// sorted, so repeats are adjacent.
+func collapse(issues []Diagnostic) []Diagnostic {
+	if len(issues) < 2 {
+		return issues
+	}
+	key := func(d Diagnostic) string {
+		return d.Rule + "\x00" + string(d.Severity) + "\x00" + d.Location.File + fmt.Sprintf("\x00%d:%d:%d\x00", d.Location.Offset, d.Location.Line, d.Location.Column) + d.Hint + "\x00" + index.ReplaceAllString(d.Message, "[]")
+	}
+	out := issues[:1]
+	counts := []int{1}
+	last := key(issues[0])
+	for _, d := range issues[1:] {
+		k := key(d)
+		if k == last {
+			counts[len(counts)-1]++
+			continue
+		}
+		last = k
+		out = append(out, d)
+		counts = append(counts, 1)
+	}
+	for i, n := range counts {
+		if n > 1 {
+			out[i].Message += fmt.Sprintf(" (%d times here)", n)
+		}
+	}
+	return out
 }
 
 func HardOnly(issues []Diagnostic) []Diagnostic {

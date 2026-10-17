@@ -76,6 +76,23 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 			declared[name] = true
 		}
 	}
+	// custom properties, so a family set through a token (font-family:
+	// var(--body)) counts as used where the token is used
+	custom := map[string][]string{}
+	for _, r := range m.rules {
+		for _, dcl := range r.decls {
+			if strings.HasPrefix(dcl.prop, "--") {
+				custom[dcl.prop] = append(custom[dcl.prop], dcl.value)
+			}
+		}
+	}
+	for _, decls := range m.inline {
+		for _, dcl := range decls {
+			if strings.HasPrefix(dcl.prop, "--") {
+				custom[dcl.prop] = append(custom[dcl.prop], dcl.value)
+			}
+		}
+	}
 	visit := func(selector string, decls []cssDecl) {
 		for _, dcl := range decls {
 			if dcl.prop == "font-family" || dcl.prop == "font" || strings.HasPrefix(dcl.prop, "--") && strings.Contains(dcl.prop, "font") {
@@ -83,7 +100,7 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 				if strings.HasPrefix(prop, "--") {
 					prop = "font-family"
 				}
-				for _, name := range families(prop, dcl.value) {
+				for _, name := range families(prop, expandVars(dcl.value, custom, 0)) {
 					u := usedFamilies[name]
 					if u == nil {
 						u = &use{selector: selector}
@@ -140,14 +157,36 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 		}
 		issues = append(issues, d.Whole(Warning, fmt.Sprintf("%d colors are not in the concept palette: %s.", len(keys), strings.Join(list, ", ")), "Use the declared palette roles, or add a color to the Palette table with its role and source; tints of a declared color and translucent black or white are fine."))
 	}
-	if facts.Imagery > 0 && !hasImagery(d) {
-		issues = append(issues, d.Whole(Warning, fmt.Sprintf("concept.md plans %d images, but the page shows none.", facts.Imagery), "Produce the planned images and place them where the concept gives them a job."))
+	if shown := imageryCount(d); shown < facts.Imagery {
+		what := "none"
+		if shown > 0 {
+			what = fmt.Sprintf("%d", shown)
+		}
+		issues = append(issues, d.Whole(Warning, fmt.Sprintf("concept.md plans %d images, but the page shows %s.", facts.Imagery, what), "Produce the missing images and place them where the concept gives them a job. An image that waits for the owner gets an \"Open:\" line in its Imagery row; a changed plan is changed in concept.md first."))
 	}
 	return issues
 }
 
 // declaredColor accepts a declared color in any opacity, a tint close to one
 // (OKLab distance under 0.04), and translucent black or white as shading.
+var varRef = regexp.MustCompile(`var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,([^()]*))?\)`)
+
+// expandVars replaces var(--x, fallback) with every value declared for --x,
+// joined as one stack, or with the fallback when --x is never declared.
+func expandVars(value string, custom map[string][]string, depth int) string {
+	if depth > 4 || !strings.Contains(value, "var(") {
+		return value
+	}
+	return varRef.ReplaceAllStringFunc(value, func(ref string) string {
+		m := varRef.FindStringSubmatch(ref)
+		values := custom[m[1]]
+		if len(values) == 0 {
+			return m[2]
+		}
+		return expandVars(strings.Join(values, ", "), custom, depth+1)
+	})
+}
+
 func declaredColor(c color.Color, palette []color.Color) bool {
 	if c.Alpha < 1 && c.Chroma() < 0.02 && (c.L < 0.05 || c.L > 0.97) {
 		return true
@@ -160,32 +199,56 @@ func declaredColor(c color.Color, palette []color.Color) bool {
 	return false
 }
 
-func hasImagery(d *Document) bool {
+// imageryCount counts the distinct images a visitor sees: img and video
+// sources, canvases, standalone SVG drawings of 64 px or more, and background
+// image URLs. An image reused in several places counts once.
+func imageryCount(d *Document) int {
+	seen := map[string]bool{}
+	canvases := 0
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if inTemplate(n) || !designVisible(n) {
 			continue
 		}
 		switch n.Data {
-		case "img", "picture", "video", "canvas":
-			return true
+		case "img", "video":
+			key := Attr(n, "src")
+			if key == "" {
+				key = Attr(n, "poster")
+			}
+			if key == "" {
+				key = fmt.Sprintf("%p", n)
+			}
+			seen[key] = true
+		case "canvas":
+			canvases++
 		case "svg":
 			if n.Namespace == "svg" && n.Parent != nil && n.Parent.Namespace != "svg" && (Attr(n, "viewBox") != "" || Attr(n, "width") != "") {
-				w := sizeAttr(Attr(n, "width"))
-				if w == 0 || w >= 64 {
-					return true
+				if w := sizeAttr(Attr(n, "width")); w == 0 || w >= 64 {
+					seen[fmt.Sprintf("%p", n)] = true
 				}
 			}
 		}
 	}
-	for _, r := range d.styles().rules {
-		for _, dcl := range r.decls {
-			if strings.HasPrefix(dcl.prop, "background") && strings.Contains(strings.ToLower(dcl.value), "url(") {
-				return true
+	m := d.styles()
+	backgrounds := func(decls []cssDecl) {
+		for _, dcl := range decls {
+			if strings.HasPrefix(dcl.prop, "background") {
+				for _, u := range cssURL.FindAllStringSubmatch(dcl.value, -1) {
+					seen["url:"+u[1]] = true
+				}
 			}
 		}
 	}
-	return false
+	for _, r := range m.rules {
+		backgrounds(r.decls)
+	}
+	for _, decls := range m.inline {
+		backgrounds(decls)
+	}
+	return len(seen) + canvases
 }
+
+var cssURL = regexp.MustCompile(`url\(\s*['"]?([^'")]+)`)
 
 func sizeAttr(v string) int {
 	n := 0
