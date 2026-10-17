@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/compile"
+	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
@@ -103,6 +104,7 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	fmt.Fprintln(w, line)
 	renderFiles(w, s, r)
 	renderResearch(w, s, r.Research)
+	renderConcept(w, s, r.Concept)
 	renderRelease(w, s, r.Release)
 }
 
@@ -212,4 +214,22 @@ func renderResearch(w io.Writer, s term.Style, r research.Summary) {
 	if len(detail) > 0 {
 		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(detail, " · ")))
 	}
+}
+
+// renderConcept summarizes the decisions the page is held to.
+func renderConcept(w io.Writer, s term.Style, c concept.Summary) {
+	if !c.Present {
+		return
+	}
+	chosen := c.Chosen
+	if chosen == "" {
+		chosen = "no direction chosen yet"
+	}
+	if r := []rune(chosen); len(r) > 70 {
+		chosen = string(r[:70]) + "…"
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("concept", 12), chosen)
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(fmt.Sprintf("cites %s from %s and %s · %s · %s · %s",
+		term.Plural(c.Voices, "voice"), term.Plural(c.Platforms, "platform"), term.Plural(c.Peers, "peer"),
+		term.Plural(c.Colors, "color"), term.Plural(c.Faces, "typeface"), term.Plural(c.Imagery, "planned image"))))
 }

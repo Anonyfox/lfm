@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
 	"github.com/Anonyfox/lfm/internal/htmlcompact"
@@ -69,6 +70,7 @@ type Result struct {
 	Images     []imaging.Decision  `json:"images,omitempty"`
 	Fonts      []fontcheck.Info    `json:"fonts,omitempty"`
 	Research   research.Summary    `json:"research"`
+	Concept    concept.Summary     `json:"concept"`
 	FontHints  int                 `json:"fontHintRepairs,omitempty"`
 	Inputs     []string            `json:"-"` // resolved source files, for watchers
 	Duration   time.Duration       `json:"duration"`
@@ -160,7 +162,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	loaded := project.Load(p, ruleCheck)
 	c := loaded.Config
 	result.PageURL = c.URL
-	findings := checkResearch(p, &result, c.Build.Validation.Rules)
+	findings, facts := checkResearch(p, &result, c.Build.Validation.Rules)
 
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
@@ -218,7 +220,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		URL: c.URL, RenderedSource: prepared.HTML, InlineSources: b.inlineSources,
 		ExternalCSSBytes: result.Cost.ExternalCSSBytes, ExternalJSBytes: result.Cost.ExternalJSBytes,
 		Rules: c.Build.Validation.Rules, Images: result.Images, FontAssets: b.fonts,
-		Stylesheets: b.cssAssets(), Commerce: prepared.Commerce,
+		Stylesheets: b.cssAssets(), Commerce: prepared.Commerce, Concept: facts,
 	})
 	result.Validation = summarize("html", append(append(preliminary.Diagnostics, analysis.Diagnostics...), diagnostic.Apply(b.notices, c.Build.Validation.Rules)...))
 	result.Validation.Stats = analysis.Stats
@@ -401,9 +403,10 @@ func diagnostics(r Result) []diagnostic.Diagnostic {
 	return r.Validation.Diagnostics
 }
 
-// checkResearch checks the research files that exist. They are never build
-// inputs; their findings join the report so research stays exact as it grows.
-func checkResearch(p project.Project, result *Result, rules map[string]diagnostic.Severity) []diagnostic.Diagnostic {
+// checkResearch checks the research files and concept.md that exist. They are
+// never build inputs; their findings join the report so both stay exact as
+// they grow, and the concept's decisions become facts the page is held to.
+func checkResearch(p project.Project, result *Result, rules map[string]diagnostic.Severity) ([]diagnostic.Diagnostic, *check.ConceptFacts) {
 	files := map[string][]byte{}
 	for _, name := range []string{research.VoicesFile, research.CompetitorsFile} {
 		if raw, err := p.Read(project.ResearchDir + "/" + name); err == nil {
@@ -412,5 +415,14 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	}
 	r := research.Check(files, project.ResearchDir, time.Now())
 	result.Research = r.Summary
-	return diagnostic.Apply(r.Diagnostics, rules)
+	findings := r.Diagnostics
+	raw, err := p.Read(concept.File)
+	if err != nil {
+		return diagnostic.Apply(findings, rules), nil
+	}
+	c := concept.Check(string(raw), r.Voices, r.Competitors)
+	result.Concept = c.Summary
+	findings = append(findings, c.Diagnostics...)
+	facts := &check.ConceptFacts{Colors: c.Summary.DeclaredColors, Families: c.Summary.Families, Imagery: c.Summary.Imagery}
+	return diagnostic.Apply(findings, rules), facts
 }

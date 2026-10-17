@@ -228,5 +228,8 @@ func DefaultRules() []Rule {
 		rule("design.defaults", "Several generator-default design signals combining on one page",
 			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified.",
 			designDefaultsRule),
+		rule("concept.fidelity", "The page uses the typefaces, palette and imagery concept.md declares",
+			"When the project has a concept.md, every font family on the page must be declared in its Type table and every declared one used, every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading, and planned imagery must appear. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
+			conceptFidelityRule),
 	}
 }

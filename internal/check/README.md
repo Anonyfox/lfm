@@ -129,6 +129,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.proof` | Warnings: generic "trusted by / as seen on / join 10,000+ teams" claims; placeholder image services (pravatar, randomuser, ui-avatars, picsum, placeholder hosts). "Most popular" badges and tilted 3D product mockups are weak. |
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
 | `design.defaults` | Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
+| `concept.fidelity` | Warning: with a concept.md, font families not declared in its Type table or declared and unused, CSS colors outside the palette (tints and translucent black/white allowed), planned imagery missing from the page. |
 
 Size thresholds use decimal bytes conservatively, following the current
 [Googlebot limit](https://developers.google.com/search/docs/crawling-indexing/googlebot).

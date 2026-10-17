@@ -49,6 +49,7 @@ type Options struct {
 	Stylesheets                       map[string][]byte // exact emitted CSS keyed by final URL
 	Assets                            map[string][]byte // exact sidecar bytes keyed by emitted filename; no filesystem/network reads
 	Commerce                          commercecheck.Facts
+	Concept                           *ConceptFacts // decisions of concept.md, when the project has one
 }
 
 type Report struct {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
+	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/research"
 	"github.com/Anonyfox/lfm/internal/templatecheck"
@@ -19,6 +20,7 @@ func Rules() []diagnostic.RuleInfo {
 	rules = append(rules, diagnostic.OperationalRules()...)
 	rules = append(rules, urlcheck.Catalog()...)
 	rules = append(rules, research.Rules()...)
+	rules = append(rules, concept.Rules()...)
 	for _, rule := range check.DefaultRules() {
 		rules = append(rules, rule.RuleInfo)
 	}

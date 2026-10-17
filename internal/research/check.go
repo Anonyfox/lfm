@@ -41,6 +41,8 @@ func Rules() []diagnostic.RuleInfo {
 type Report struct {
 	Diagnostics []diagnostic.Diagnostic
 	Summary     Summary
+	Voices      *Voices      // nil when the file is absent
+	Competitors *Competitors // nil when the file is absent
 }
 
 // Check parses and checks the research files present in files (keyed by
@@ -74,6 +76,7 @@ func Check(files map[string][]byte, dir string, today time.Time) Report {
 		competitors = &c
 	}
 	r.Summary = summarize(voices, competitors)
+	r.Voices, r.Competitors = voices, competitors
 	return r
 }
 
