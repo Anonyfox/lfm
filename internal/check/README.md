@@ -38,7 +38,7 @@ fragment discovery extends them in the final DOM gate.
 - `rules_fonts.go`: cached final CSS/font/preload analysis; exact emitted sidecars
   and already-read asset metadata supplied through Options. [Scope](../fontcheck/README.md).
 - Matching `_test.go` files: small fixtures, individual rules, boundaries and fuzz seeds.
-- `internal/build/validation_test.go`: publication safety and actionable asset remedies.
+- `internal/compile/validation_test.go`: publication safety and actionable asset remedies.
 
 Each rule is `Rule{RuleInfo{ID, Summary, Help}, Check func(*Document) []Diagnostic}`.
 Register it in `DefaultRules` (`catalog.go`) with its one-line Summary and a 2 to 5
@@ -65,7 +65,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | ID | Default findings |
 | --- | --- |
 | `links.syntax` | Errors for broken URL syntax/protocols; warnings for browser repairs and suspicious spelling |
-| `links.declared` | Errors for rendered destinations missing from the workbench URL registry |
+| `links.declared` | Errors for rendered destinations missing from the project URL registry |
 | `links.behavior` | Warnings for crawlability, mixed content, ineffective downloads and full same-page fragment targets |
 | `links.fragments` | Warnings: linked same-document targets blocked by explicit `hidden` on themselves/ancestors; one per target with link/blocker locations. Native closed details and `hidden=until-found` remain allowed. |
 | `html.syntax` | Errors: malformed attributes/tokens, duplicate attributes, invalid head content, structural browser repairs |
@@ -74,7 +74,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `html.ids` | Errors: duplicate/empty/whitespace IDs in the active document |
 | `html.references` | Errors: missing static ID references; unresolved fragment navigation warns |
 | `html.json` | Errors: invalid JSON, JSON-LD, import maps or speculation-rules JSON |
-| `jsonld.block` | Errors: handwritten/extra JSON-LD blocks in workbenches; one optional generated block |
+| `jsonld.block` | Errors: handwritten/extra JSON-LD blocks in projects; one optional generated block |
 | `jsonld.structure` | Errors: invalid JSON-LD expansion/keyword shapes, bounded input limits or processor failure |
 | `jsonld.context` | Warnings: expansion coverage skipped for an unbundled remote context; no network requests |
 | `jsonld.dropped` | Warnings: undefined properties discarded by expansion or no resulting node data |
@@ -144,7 +144,7 @@ Compression does not change the HTML size gate.
 
 ## Generator-default audit
 
-Implements the deterministic subset of [UI/UX generator defaults](../../../guides/ui-ux.md#generator-defaults).
+Implements the deterministic subset of UI/UX generator defaults.
 `style.go` builds one small cascade from every final stylesheet (inline and emitted sidecars):
 Cascadia matching, specificity/source order, `!important`, inline styles, inheritance of
 typographic properties and simple `var()` lookups. It resolves the desktop/base context and
@@ -164,8 +164,8 @@ OKLab. No layout, rendering or browser is involved.
 
 ## SEO/GEO audit coverage
 
-The [SEO/GEO guide](../../../guides/seo-geo.md) defines the authoring contract;
-[Content/copy](../../../guides/content-copy.md) owns wording. Normal builds enforce
+The SEO/GEO guide defines the authoring contract;
+Content/copy owns wording. Normal builds enforce
 the reliable local subset on final bytes without rewriting content or adding knobs.
 
 | Guide requirement | Automatic coverage / remaining review |
@@ -193,7 +193,7 @@ Contracts: [Open Graph fields/arrays](https://ogp.me/),
 
 ## UI/UX audit coverage
 
-The [UI/UX guide](../../../guides/ui-ux.md) owns interaction/accessibility requirements.
+The UI/UX guide owns interaction/accessibility requirements.
 Every normal build checks the reliable HTML subset below, without changing authored
 behavior, adding a browser dependency or expanding CLI/config syntax.
 
@@ -226,7 +226,7 @@ Contracts: [ARIA 1.2](https://www.w3.org/TR/wai-aria-1.2/),
 
 ## Sharing/distribution audit coverage
 
-The [sharing guide](../../../guides/sharing-distribution.md) owns platform design.
+The sharing guide owns platform design.
 Normal builds validate declared integrations only; they do not require a social
 SDK, account or extra metadata for platforms a product does not use.
 
@@ -260,9 +260,9 @@ X's observed compatibility boundaries and examples remain in the sharing guide.
 
 ## Commerce audit coverage
 
-Commerce coverage follows [Commerce](../../../guides/commerce.md#automatic-commerce-checks).
+Commerce coverage follows Commerce.
 Config-stage `commerce.config`, `commerce.price` and `commerce.fields` are registered
-alongside final rules in `micro rules`; the same overrides apply before rendering.
+alongside final rules in `lfm rules`; the same overrides apply before rendering.
 The optional `data.commerce.offers` convention keeps unknown fields, quote/variable
 prices, custom domains and handwritten layouts available. Compiler-consumed operational
 fields do not produce unused-value noise. No Stripe requests or Caddy file generation
@@ -275,7 +275,7 @@ Everything runs automatically. Optional config under `build.validation.rules`
 maps rule IDs to `"off"`, `"warn"` or `"error"`; unknown IDs/levels fail configuration.
 An override changes all findings from that rule. Required config/template execution
 checks accept only `error`; advisory template checks can also be tuned. Omitting it keeps default levels.
-Use `micro rules` for the catalog and CONFIG syntax; `micro build` always reports diagnostics.
+Use `lfm rules` for the catalog and lfm.json syntax; `lfm compile` always reports diagnostics.
 
 Lifecycle notices obey the same controls. `"release.browser": "off"` suppresses
 that setup advisory; setting it to `error` rejects a release before output replacement.
@@ -288,10 +288,10 @@ scores/manual checks. Unknown fixed IDs and invalid levels remain config errors.
 ```
 
 ```sh
-go test ./internal/validate -run TestSyntax
-go test ./internal/build -run TestValidationGateAndExactBytes
-go test ./internal/validate -fuzz FuzzAnalyze -fuzztime 10s
-go test ./internal/validate -run '^$' -bench Analyze -benchmem
+go test ./internal/check -run TestSyntax
+go test ./internal/compile -run TestValidationGateAndExactBytes
+go test ./internal/check -fuzz FuzzAnalyze -fuzztime 10s
+go test ./internal/check -run '^$' -bench Analyze -benchmem
 ```
 
 ## Scope and source evidence

@@ -42,7 +42,7 @@ those values into `urls` just to satisfy a check. Duplicate JSON keys are hard e
   escaping that invalidates/changes the configured destination. Warn: browser repairs, whitespace/percent encoding, suspicious hostname, credentials, unknown application scheme, likely missing protocol, mailto/tel mistakes and pre-escaped ampersands. |
 | `links.registry` | Error: empty name. Warn: awkward identifiers, duplicate normalized destinations and URL literals in visible copy. |
 | `links.literal` | Error: hardcoded destinations in template attributes, URL-like JSON fields or inline CSS, even when the same URL is declared in config. Checks inactive branches and parsed partials too. |
-| `links.declared` | Error: final destination does not match a named URL after browser URL resolution. Requires the workbench registry; isolated HTML checks can omit it. |
+| `links.declared` | Error: final destination does not match a named URL after browser URL resolution. Requires the project registry; isolated HTML checks can omit it. |
 | `links.behavior` | Warn: handler/role-based links without href, script/placeholder navigation, mixed HTTP resources, cross-origin download attributes and unresolved full same-document fragments. |
 | `links.fragments` | Final DOM warnings for explicitly hidden same-document destinations; see the [HTML gate](../validate/README.md#default-rules). |
 
@@ -121,8 +121,8 @@ CSS descriptor conformance and opaque embedded media are outside this link gate.
 
 ```sh
 go test ./internal/urlcheck
-go test ./internal/validate -run 'TestFinalURL|TestDeclaredURL|TestURLBehavior'
-go test ./internal/build -run 'TestNamedURL|TestURL|TestMultipleNamedURL'
+go test ./internal/check -run 'TestFinalURL|TestDeclaredURL|TestURLBehavior'
+go test ./internal/compile -run 'TestNamedURL|TestURL|TestMultipleNamedURL'
 go test ./internal/urlcheck -run '^$' -fuzz FuzzURLPolicy -fuzztime 15s
 go test ./internal/urlcheck -run '^$' -fuzz FuzzHTMLReferences -fuzztime 15s
 ```

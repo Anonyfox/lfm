@@ -14,9 +14,9 @@ No source files, package manifests or dependency trees are deployed.
 ```
 
 One string argument; config bindings work too. Existing local files resolve first
-from the source template/partial; bare paths also try the workbench root. Explicit
+from the source template/partial; bare paths also try the project root. Explicit
 `./` and `../` remain source-relative. Remaining specifiers use esbuild's native
-package resolver. Paths may live anywhere inside the workbench; `assets/` is only
+package resolver. Paths may live anywhere inside the project; `assets/` is only
 a convention. Absolute paths are accepted only inside that same source boundary.
 Sources may import each other normally; nothing is copied to synthetic source files.
 
@@ -33,10 +33,10 @@ import helper from "./vendor/helper.cjs"; // vendored file
 import "../styles/main.css";
 ```
 
-- Optional `package.json` + lockfile at workbench root; run `npm ci` during setup
+- Optional `package.json` + lockfile at project root; run `npm ci` during setup
   (`npm install` to create/update the lockfile). The compiler does not install,
   download or run package scripts. No Node executable is needed to build afterward.
-- Relative imports resolve vendored files anywhere in the workbench; package imports resolve
+- Relative imports resolve vendored files anywhere in the project; package imports resolve
   local `node_modules/`. Nested dependencies/scoped packages, `exports`, `browser`,
   `module`/`main`, JSON, TS/TSX/JSX, `.mjs`/`.cjs` and `.mts`/`.cts` use esbuild's
   resolver/loaders. Browser platform defaults and production minification are shared.
@@ -45,7 +45,7 @@ import "../styles/main.css";
   choose a browser build. JSX uses esbuild defaults; framework macros need their
   own precompilation. ES2020 remains the syntax target (no top-level await).
 - Imported package fonts/images follow the same inline/file rules as local assets.
-  Symlinks must remain inside the workbench; external workspace links need local
+  Symlinks must remain inside the project; external workspace links need local
   vendoring/copies. Only actually emitted dependency assets become sidecars.
 - HTTP/site-root/existing data references remain explicit external references.
   Remote SDKs/stylesheets are not downloaded or magically merged into local blobs.
@@ -159,12 +159,12 @@ Dependency attribution and browser-observed critical-resource tuning remain open
 
 ## Optional release pass
 
-`micro build --release workbench` uses installed Chrome/Chromium through native Go
+`lfm compile --release` uses installed Chrome/Chromium through native Go
 CDP. `LFM_CHROME` can point to a nonstandard executable. Normal builds do no
 browser work. Missing/broken optional browsers warn and retain ordinary output.
 Separate release navigation checks enable application JS; installed Lighthouse
 adds real lab scores/actionable findings. See the
-[release/reporting contract](../../README.md#optional-release-pass).
+[release/reporting contract](../../docs/compiling.md#release).
 
 - Only one ordinary local sheet is eligible; keep native boundaries, authored CSP,
   remote dependencies and small sheets (<8 KiB) unchanged.
@@ -218,4 +218,4 @@ After automatic packing/favicon/audit integration: 10,410 B example HTML plus
 321 B favicon and 26,682 B social preview; 25 warm CLI checks measured 17.68 ms
 median / 18.70 ms p95 wall time. Integrated optional release took 10.97 s and
 reported Lighthouse 100/100/100/100, no startup problems, one delivery-compression
-diagnostic and 11 manual checks. See [current evidence](../../../guides/technical-excellence.md#local-evidence).
+diagnostic and 11 manual checks. See current evidence.

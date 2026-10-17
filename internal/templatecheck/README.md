@@ -42,7 +42,7 @@ printed; paths, key names and types provide the evidence.
 
 `build.validation.rules` supports `off`/`warn`/`error` for advisory rules. Required
 rules accept only `error`; they protect execution rather than style preferences.
-`micro rules` lists every stage, marks required checks and includes CONFIG opt-out syntax.
+`lfm rules` lists every stage, marks required checks and includes lfm.json opt-out syntax.
 
 ## Usage and emptiness
 
@@ -89,7 +89,7 @@ configuration, browser execution or arbitrary custom Go function environment.
 
 ```sh
 go test ./internal/templatecheck -run TestScopesAndUsage
-go test ./internal/build -run 'TestMapping|TestConfigProblems'
+go test ./internal/compile -run 'TestMapping|TestConfigProblems'
 go test ./internal/templatecheck -run '^$' -fuzz FuzzBindingsMatchGo -fuzztime 15s
 go test ./internal/templatecheck -run '^$' -bench Preflight -benchmem
 ```

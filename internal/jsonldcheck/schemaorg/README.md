@@ -16,4 +16,4 @@ as [documented upstream](https://schema.org/docs/developers.html).
 
 Updates are explicit: choose a release, replace the snapshot, update provenance/
 checksum and rerun expansion, race and integration tests. Never fetch `latest`
-during ordinary builds. The binary embeds the snapshot; workbenches need no copy.
+during ordinary builds. The binary embeds the snapshot; projects need no copy.
