@@ -31,7 +31,7 @@ func commerceDoc(t *testing.T, content, data string, options Options) *Document 
 }
 
 func commerceFindings(d *Document, id string) []Diagnostic {
-	return Run(d, []Rule{{ID: id, Check: commerceRule(id)}}, nil).Diagnostics
+	return Run(d, []Rule{testRule(id, commerceRule(id))}, nil).Diagnostics
 }
 
 func TestCommerceGraphAliasesReferencesAndPrecision(t *testing.T) {

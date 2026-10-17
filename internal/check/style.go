@@ -27,11 +27,11 @@ type cssDecl struct {
 }
 
 type cssRule struct {
-	selector string       // authored complex selector
-	state    string       // dynamic pseudo-class stripped from the selector (hover, focus…)
-	pseudo   string       // pseudo-element stripped from the selector (before, after…)
-	narrow   bool         // inside a max-width-only media query
-	alt      bool         // print, reduced motion, dark scheme or other alternate context
+	selector string // authored complex selector
+	state    string // dynamic pseudo-class stripped from the selector (hover, focus…)
+	pseudo   string // pseudo-element stripped from the selector (before, after…)
+	narrow   bool   // inside a max-width-only media query
+	alt      bool   // print, reduced motion, dark scheme or other alternate context
 	decls    []cssDecl
 	order    int
 	spec     cascadia.Specificity
@@ -486,7 +486,9 @@ func (c okColor) hue() float64 {
 	}
 	return h
 }
-func (c okColor) dist(o okColor) float64 { return math.Sqrt((c.L-o.L)*(c.L-o.L) + (c.a-o.a)*(c.a-o.a) + (c.b-o.b)*(c.b-o.b)) }
+func (c okColor) dist(o okColor) float64 {
+	return math.Sqrt((c.L-o.L)*(c.L-o.L) + (c.a-o.a)*(c.a-o.a) + (c.b-o.b)*(c.b-o.b))
+}
 
 func srgbToOK(r, g, b, alpha float64) okColor {
 	lin := func(c float64) float64 {

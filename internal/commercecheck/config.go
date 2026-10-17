@@ -29,9 +29,21 @@ type Facts struct {
 
 func Catalog() []diagnostic.RuleInfo {
 	return []diagnostic.RuleInfo{
-		{ID: "commerce.config", Description: "Optional offer shapes, unique SKUs, named checkout references and Stripe object IDs"},
-		{ID: "commerce.price", Description: "Exact nonnegative minor-unit amounts, currency pairs and Stripe charge conventions"},
-		{ID: "commerce.fields", Description: "Declared Stripe custom-field counts, keys, labels, options, bounds and defaults"},
+		{
+			ID:      "commerce.config",
+			Summary: "Offers in data.commerce.offers have a SKU, name, checkout URL key and valid Stripe IDs",
+			Help:    "Checks each declared offer: empty keys, missing sku, name or checkoutUrlKey, duplicate SKUs, a checkoutUrlKey that names no entry in urls, misspelled field casing, Stripe IDs without the expected prefix, and distinct offers sharing one checkout link. A wrong reference sends buyers to the wrong product or to nothing. Store the hosted Stripe link once under urls, point checkoutUrlKey at it, and copy IDs exactly from Stripe; omit commerce.offers on pages that sell nothing.",
+		},
+		{
+			ID:      "commerce.price",
+			Summary: "Offer prices are exact minor-unit integers paired with a known three-letter currency",
+			Help:    "price needs both amountMinor and currency; amountMinor must be a nonnegative JSON integer in minor units (cents), currency a three-letter code, and ISK/UGX amounts divisible by 100 as Stripe expects. A decimal or display string here makes the published price disagree with what checkout charges. Copy the amount from the Stripe Price object, not the formatted display price, or omit price for quote and variable offers.",
+		},
+		{
+			ID:      "commerce.fields",
+			Summary: "Declared Stripe checkout custom fields stay within Stripe's types, counts and bounds",
+			Help:    "Checks an offer's stripe.customFields snapshot against Stripe's rules: at most three fields, unique alphanumeric keys, custom labels, text, numeric or dropdown types, lengths from 0 to 255, defaults within bounds, and 1 to 200 unique dropdown options. A field Stripe rejects breaks the Payment Link setup or asks buyers the wrong question. Copy the Payment Link's custom_fields array and fix the reported field, or omit the optional snapshot.",
+		},
 	}
 }
 

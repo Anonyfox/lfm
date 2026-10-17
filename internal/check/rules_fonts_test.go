@@ -77,7 +77,7 @@ func TestFontBudgetsDedupAndRuleOverrides(t *testing.T) {
 	}
 	for _, level := range []Severity{Off, Warning, Error} {
 		d, _ := Parse([]byte(`<style>@font-face{font-family:X;src:url(./a)}</style>`), opts)
-		r := Run(d, []Rule{{"perf.fonts", "faces", fontsRule}, {"perf.font-assets", "assets", fontAssetsRule}}, map[string]Severity{"perf.fonts": level, "perf.font-assets": Off})
+		r := Run(d, []Rule{testRule("perf.fonts", fontsRule), testRule("perf.font-assets", fontAssetsRule)}, map[string]Severity{"perf.fonts": level, "perf.font-assets": Off})
 		if level == Off && len(r.Diagnostics) != 0 || level == Warning && r.Warnings != 1 || level == Error && r.Errors != 1 {
 			t.Fatal(r)
 		}

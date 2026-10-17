@@ -230,7 +230,7 @@ func TestAccessibilityReportLocationsImmutabilityAndOverrides(t *testing.T) {
 	raw := []byte("<main>\n<div aria-hidden=true><button>Go</button></div>\n<label for=x>Amount</label><div id=x></div>\n</main>")
 	d, _ := Parse(raw, Options{})
 	before := bytes.Clone(raw)
-	rules := []Rule{{"a11y.focus", "", focusRule}, {"a11y.relationships", "", relationshipsRule}}
+	rules := []Rule{testRule("a11y.focus", focusRule), testRule("a11y.relationships", relationshipsRule)}
 	first := Run(d, rules, nil)
 	if first.Errors != 1 || first.Warnings != 1 || !reflect.DeepEqual(first, Run(d, rules, nil)) || !bytes.Equal(before, raw) {
 		t.Fatal(first)

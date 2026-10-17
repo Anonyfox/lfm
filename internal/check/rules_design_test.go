@@ -73,7 +73,9 @@ func TestDesignCardsAndStats(t *testing.T) {
 	plain := `<article class="c"><h3>Fast</h3><p>Two lines.</p></article>`
 	expectDesign(t, "design.cards", 0, `<div>`+strings.Repeat(plain, 3)+`</div>`)
 	expectDesign(t, "design.cards", 0, `<nav>`+strings.Repeat(card, 3)+`</nav>`)
-	stat := func(n string) string { return `<div class="s"><strong>` + n + `</strong><span>happy users</span></div>` }
+	stat := func(n string) string {
+		return `<div class="s"><strong>` + n + `</strong><span>happy users</span></div>`
+	}
 	expectDesign(t, "design.stats", 1, `<div>`+stat("10k+")+stat("99.9%")+stat("24/7")+`</div>`)
 	expectDesign(t, "design.stats", 0, `<form><div>`+stat("10k+")+stat("99.9%")+stat("50+")+`</div></form>`)
 	expectDesign(t, "design.stats", 0, `<div>`+stat("118")+stat("45")+stat("3")+`</div>`)

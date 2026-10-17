@@ -44,7 +44,7 @@ func TestDeclaredURLsAndGeneratedAssets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	report := Run(doc, []Rule{{ID: "links.declared", Check: linksDeclaredRule}}, nil)
+	report := Run(doc, []Rule{testRule("links.declared", linksDeclaredRule)}, nil)
 	if report.Errors != 1 || report.Diagnostics[0].Element != "a" {
 		t.Fatal(report)
 	}

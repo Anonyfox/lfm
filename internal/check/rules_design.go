@@ -21,8 +21,8 @@ import (
 const designGuide = "guides/ui-ux.md#generator-defaults"
 
 var (
-	reDesign6 = regexp.MustCompile(`(?i)^(window-?(dots|controls)|traffic-?lights|browser-?dots)$`)
-	reDesign8 = regexp.MustCompile(`(?i)badge|pill|chip|tag`)
+	reDesign6  = regexp.MustCompile(`(?i)^(window-?(dots|controls)|traffic-?lights|browser-?dots)$`)
+	reDesign8  = regexp.MustCompile(`(?i)badge|pill|chip|tag`)
 	reDesign10 = regexp.MustCompile(`(?i)icon`)
 	reDesign17 = regexp.MustCompile(`^backdrop-blur`)
 	reDesign18 = regexp.MustCompile(`^bg-(gradient|linear)-`)
@@ -215,7 +215,7 @@ func shownText(n *html.Node) string {
 
 func (a *designAnalysis) cardLike(g []*html.Node) bool {
 	for _, k := range g {
-		surface := a.prop(k, "background") != "" || a.prop(k, "background-color") != "" || a.prop(k, "box-shadow") != "" || a.prop(k, "border") != "" || lengthPx(strings.Fields(a.prop(k, "border-radius")+" 0")[0]) >= 6
+		surface := a.prop(k, "background") != "" || a.prop(k, "background-color") != "" || a.prop(k, "box-shadow") != "" || a.prop(k, "border") != "" || lengthPx(strings.Fields(a.prop(k, "border-radius") + " 0")[0]) >= 6
 		heading := false
 		for _, e := range descendants(k) {
 			if isHeading(e) {
@@ -280,6 +280,7 @@ var stockAccents = []namedColor{
 	named("Tailwind violet-400 #a78bfa", "#a78bfa"), named("Tailwind violet-500 #8b5cf6", "#8b5cf6"), named("Tailwind violet-600 #7c3aed", "#7c3aed"), named("Tailwind violet-700 #6d28d9", "#6d28d9"),
 	named("Tailwind purple-400 #c084fc", "#c084fc"), named("Tailwind purple-500 #a855f7", "#a855f7"), named("Tailwind purple-600 #9333ea", "#9333ea"), named("Tailwind purple-700 #7e22ce", "#7e22ce"),
 }
+
 func init() {
 	// Tailwind v4 redefined the palette in OKLCH; keep both generations.
 	for _, v := range []struct{ name, value string }{

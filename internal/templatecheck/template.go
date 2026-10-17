@@ -19,18 +19,73 @@ import (
 
 func Catalog() []diagnostic.RuleInfo {
 	return []diagnostic.RuleInfo{
-		{ID: "config.invalid", Description: "Config/data cannot be loaded safely", Required: true},
-		{ID: "config.duplicate-key", Description: "JSON keys must have a single definition", Required: true},
-		{ID: "template.syntax", Description: "Parse every template/partial and report syntax errors", Required: true},
-		{ID: "template.bindings", Description: "Missing values, wrong shapes, invalid operations and recursive calls", Required: true},
-		{ID: "template.browser-data", Description: "Validate every runtime-data selection path", Required: true},
-		{ID: "template.render", Description: "Report contextual HTML escaping/render failures safely", Required: true},
-		{ID: "template.inactive", Description: "Potential binding failures in currently inactive branches"},
-		{ID: "template.empty", Description: "Empty rendered values and empty ranges/with sections"},
-		{ID: "template.value", Description: "Structured interpolation, printf issues and definition overrides"},
-		{ID: "template.unused", Description: "Unused authored config/data fields and template definitions"},
-		{ID: "jsonld.bindings", Description: "Resolve structured JSON-LD placeholders once, preserving JSON types", Required: true},
-		{ID: "jsonld.empty", Description: "Empty values selected by JSON-LD placeholders"},
+		{
+			ID:       "config.invalid",
+			Summary:  "lfm.json and data/*.json load as valid JSON matching the config schema",
+			Help:     "Triggered by malformed JSON, unknown or misspelled reserved fields, a missing title, description or language, a url that is not an absolute HTTPS directory URL ending in /, invalid build settings, or a data key defined in both lfm.json and a data file. The compiler cannot render a trustworthy page from ambiguous input, so nothing is built. Fix the field at the reported path; product-specific values belong under data.",
+			Required: true,
+		},
+		{
+			ID:       "config.duplicate-key",
+			Summary:  "Every JSON key in lfm.json and data files is defined only once",
+			Help:     "The same key appears twice in one JSON object. encoding/json would silently keep the last value, so the page could show content you did not mean to ship. Keep one definition; both locations are reported.",
+			Required: true,
+		},
+		{
+			ID:       "template.syntax",
+			Summary:  "index.html.tmpl and every partial parse as Go html/template source",
+			Help:     "Triggered by a missing entry template, unbalanced actions, unknown functions, undefined variables or other parse errors, reported once per file. A template that does not parse cannot render at all. Fix the reported line; Go's parser stops at the first error in each file, so recompile after each fix.",
+			Required: true,
+		},
+		{
+			ID:       "template.bindings",
+			Summary:  "Active template paths exist in the config and have the shape each action expects",
+			Help:     "Raised when a reachable action reads a missing field, ranges over a non-collection, calls an undefined template, applies an invalid operation, recurses without progress or exceeds the analysis limits. Rendering this would print blanks or fail for visitors. Fix the spelling, add the value to lfm.json or data, or guard an optional value with if/with.",
+			Required: true,
+		},
+		{
+			ID:       "template.browser-data",
+			Summary:  "Every build.browserData entry selects a path that exists in the config",
+			Help:     "build.browserData lists config paths that are serialized for page scripts, and one of them names a path that does not exist. Scripts reading it would get undefined at runtime. Correct the path or add the value under data; all bad paths are reported together.",
+			Required: true,
+		},
+		{
+			ID:       "template.render",
+			Summary:  "The final html/template render completes without escaping or execution errors",
+			Help:     "Rendering failed because a value does not fit its HTML context, an expression errored at execution time, or html/template replaced an unsafe URL or value with ZgotmplZ. Shipping that output would break links or styles, so partial HTML is discarded. Fix the binding at the reported location to use the expected type and a permitted URL scheme.",
+			Required: true,
+		},
+		{
+			ID:      "template.inactive",
+			Summary: "Binding problems inside branches the current config does not render",
+			Help:    "A branch that is skipped with today's data, or a short-circuited argument, reads a missing value or misuses one. It renders fine now and breaks the day the condition flips. Fix the binding the same way as an active one, or delete the dead branch.",
+		},
+		{
+			ID:      "template.empty",
+			Summary: "Rendered empty values, missing index keys and empty range or with sections",
+			Help:    "An action outputs an empty string or null, index selects a missing map key, or a range or with section renders nothing. Visitors see a gap, and bindings inside an empty section cannot be checked. Supply the content, or guard intentionally optional values with if/with; false and zero count as content. Turn this off only if empty sections are product policy.",
+		},
+		{
+			ID:      "template.value",
+			Summary: "Objects or arrays printed directly, printf failure markers and template overrides",
+			Help:    "Triggered when an object or array is interpolated straight into HTML, when output contains a Go formatting marker such as %!d, or when a later define replaces an earlier nonempty template. Visitors would see raw map[...] dumps or %!s(...) text. Render fields with range/with, fix the printf verb, pass structured data to scripts through build.browserData, and keep an override only if it is intentional.",
+		},
+		{
+			ID:      "template.unused",
+			Summary: "Authored config and data values or template definitions that nothing uses",
+			Help:    "A config or data leaf is never read by the template, JSON-LD or browserData, or a nonempty define or partial is never called. Stale copy and prices tend to hide here and drift out of date. Remove the value or definition, reference it in the template, or list runtime-only values in build.browserData.",
+		},
+		{
+			ID:       "jsonld.bindings",
+			Summary:  "Placeholders in the lfm.json jsonld block resolve to existing values of a JSON type",
+			Help:     "JSON-LD string values may contain plain field selections such as {{.title}}; this fails for missing or misspelled paths, missing index keys, references into jsonld itself, control flow, functions, pipelines, or values that cannot be serialized. Broken structured data means search engines and assistants get wrong or no facts about the page. Select an existing config or data path, declare intentionally absent keys as null, and keep logic in the HTML template.",
+			Required: true,
+		},
+		{
+			ID:      "jsonld.empty",
+			Summary: "JSON-LD placeholders that select null or an empty string",
+			Help:    "A jsonld placeholder resolves to null or an empty string. Search engines and assistants then read a blank fact about the page instead of no claim at all. Supply the value, or keep the explicit empty value only when it is intended.",
+		},
 	}
 }
 

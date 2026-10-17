@@ -12,7 +12,7 @@ func TestJSONLDExactBytesAndIndividualRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issues := Run(doc, []Rule{{"jsonld.structure", "", jsonldRule("jsonld.structure")}}, nil).Diagnostics
+	issues := Run(doc, []Rule{testRule("jsonld.structure", jsonldRule("jsonld.structure"))}, nil).Diagnostics
 	if len(issues) != 1 || issues[0].Location.Line != 2 || issues[0].Location.File != "index.html" || issues[0].Severity != Error {
 		t.Fatal(issues)
 	}

@@ -16,7 +16,8 @@ fragment discovery extends them in the final DOM gate.
 ## Architecture
 
 - `document.go`: one final DOM, source tokens/byte locations, selectors and shared facts.
-- `validate.go`: rule catalog, overrides, deterministic diagnostics and failure status.
+- `catalog.go`: the rule catalog with every rule's summary and help.
+- `validate.go`: overrides, deterministic diagnostics and failure status.
 - The catalog also registers build/bundle/hint/compaction/release notices; an AST
   regression test catches uncatalogued emitted IDs. Lighthouse owns a dynamic
   `lighthouse.<audit-id>` namespace, described by the `lighthouse.*` family entry.
@@ -39,8 +40,10 @@ fragment discovery extends them in the final DOM gate.
 - Matching `_test.go` files: small fixtures, individual rules, boundaries and fuzz seeds.
 - `internal/build/validation_test.go`: publication safety and actionable asset remedies.
 
-Each rule is `Rule{ID, Description, Check func(*Document) []Diagnostic}`. Register
-it in `DefaultRules`; adding a rule does not change the build pipeline. Findings
+Each rule is `Rule{RuleInfo{ID, Summary, Help}, Check func(*Document) []Diagnostic}`.
+Register it in `DefaultRules` (`catalog.go`) with its one-line Summary and a 2 to 5
+sentence Help (trigger, why it matters, how to resolve); `lfm rules <id>` prints both
+and a test rejects missing or malformed help. Adding a rule does not change the build pipeline. Findings
 carry severity, stable rule ID, file, UTF-8 byte offset/column, line, element,
 explanation and fix. No source/data-URL payloads are dumped into diagnostics.
 
