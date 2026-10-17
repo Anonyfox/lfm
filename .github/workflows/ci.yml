@@ -41,6 +41,11 @@ jobs:
         with:
           go-version-file: go.mod
       # Runners ship Chrome, so browser-backed tests run too; they skip where it is missing.
+      # Ubuntu 24.04 restricts the user namespaces Chrome's sandbox needs; the runner's
+      # Chrome has no AppArmor profile that would allow them.
+      - name: allow Chrome's sandbox
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: test
         run: go test -race -timeout 15m ./...
 

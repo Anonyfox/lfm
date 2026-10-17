@@ -17,8 +17,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Test
-        run: go test -race ./...
+      - name: allow Chrome's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: test
+        run: go test -race -timeout 15m ./...
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
