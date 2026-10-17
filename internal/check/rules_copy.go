@@ -3,9 +3,9 @@ package check
 import (
 	"crypto/sha256"
 	"fmt"
-	"strconv"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"golang.org/x/net/html"
