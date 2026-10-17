@@ -192,7 +192,12 @@ var copyBlocks = words("address article aside button caption dd details dialog d
 // copySegments returns the visible text of the body block by block. Quotations
 // (blockquote, q) are someone else's words; decorative, hidden, inert and
 // explicitly justified subtrees are skipped.
-func copySegments(d *Document) []copySegment {
+func copySegments(d *Document) []copySegment { return segments(d, false) }
+
+// visibleSegments is copySegments with quotations included.
+func visibleSegments(d *Document) []copySegment { return segments(d, true) }
+
+func segments(d *Document, quotes bool) []copySegment {
 	var body *html.Node
 	for _, n := range d.Elements {
 		if n.Data == "body" && n.Namespace == "" {
@@ -219,7 +224,8 @@ func copySegments(d *Document) []copySegment {
 			case html.TextNode:
 				b.WriteString(c.Data)
 			case html.ElementNode:
-				if c.Namespace != "" || skipCopy(c) {
+				quotation := quotes && (c.Data == "blockquote" || c.Data == "q") && !HasAttr(c, "hidden") && Attr(c, "aria-hidden") != "true"
+				if c.Namespace != "" || skipCopy(c) && !quotation {
 					continue
 				}
 				if copyBlocks[c.Data] {

@@ -98,7 +98,8 @@ Work through the sections in order; each builds on the one before.
     (protagonist, proof, atmosphere, explanation, share preview), with art direction taken from what the
     buyers photograph and film. Decide one orchestrated motion moment, the feedback motion, and what the
     page shows with reduced motion.
-13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices.
+13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices. Write the
+    exact phrases as `Use: "…"` and `Avoid: "…"` lines; `lfm compile` holds the page to them.
 
 ## [[.ConceptFile]] format
 
@@ -176,7 +177,9 @@ Feedback: <motion that answers the visitor …>
 Reduced motion: <what shows instead …>
 
 ## Copy
-- <words to use, tone or words to avoid …> V002
+- Use: "<the buyers' exact phrase …>", "<another …>" V002
+- Avoid: "<word the page must not say …>" V030
+- <tone and other rules …> V005
 
 ## Qualities
 - <approved quality implementation must keep …>

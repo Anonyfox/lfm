@@ -71,7 +71,22 @@ type Summary struct {
 	DeclaredColors []color.Color
 	Families       []string
 	Imagery        int
-	Open           int // open questions
+	Open           int      // open questions
+	Use, Avoid     []string // exact phrases the Copy section requires or forbids
+}
+
+var quotedPhrase = regexp.MustCompile(`"([^"]+)"|“([^”]+)”`)
+
+// quoted returns the phrases in straight or typographic double quotes.
+func quoted(text string) []string {
+	var out []string
+	for _, m := range quotedPhrase.FindAllStringSubmatch(text, -1) {
+		phrase := strings.TrimSpace(m[1] + m[2])
+		if phrase != "" {
+			out = append(out, phrase)
+		}
+	}
+	return out
 }
 
 // proseWords never appear in a font family name; their presence means the
@@ -374,6 +389,21 @@ func (c checker) sections(d Document) Summary {
 		for _, it := range items {
 			if len(ids(it.Text, 'V')) == 0 {
 				c.add(RuleFormat, it.N, "Copy rule without a voice ID.", "Cite the voices whose words or tone it follows.")
+			}
+			for _, field := range []string{"Use", "Avoid"} {
+				rest, ok := strings.CutPrefix(it.Text, field+": ")
+				if !ok {
+					continue
+				}
+				phrases := quoted(rest)
+				if len(phrases) == 0 {
+					c.add(RuleFormat, it.N, field+" names no quoted phrase.", "Write the exact words in quotes: "+field+": \"word\", \"two words\" V012.")
+				}
+				if field == "Use" {
+					sum.Use = append(sum.Use, phrases...)
+				} else {
+					sum.Avoid = append(sum.Avoid, phrases...)
+				}
 			}
 		}
 	}

@@ -12,9 +12,10 @@ import (
 
 // ConceptFacts are the decisions of concept.md the final page must honor.
 type ConceptFacts struct {
-	Colors   []color.Color
-	Families []string // as written: a family or a stack
-	Imagery  int      // planned images
+	Colors     []color.Color
+	Families   []string // as written: a family or a stack
+	Imagery    int      // planned images
+	Use, Avoid []string // exact phrases the Copy section requires or forbids
 }
 
 // genericFamilies are keywords, not typefaces anyone declares.
@@ -172,7 +173,35 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 		}
 		issues = append(issues, d.Whole(Warning, fmt.Sprintf("concept.md plans %d images, but the page shows %s.", facts.Imagery, what), "Produce the missing images and place them where the concept gives them a job. An image that waits for the owner gets an \"Open:\" line in its Imagery row; a changed plan is changed in concept.md first."))
 	}
+	if len(facts.Use)+len(facts.Avoid) > 0 {
+		own, all := copySegments(d), visibleSegments(d)
+		for _, phrase := range facts.Avoid {
+			re := phraseMatcher(phrase)
+			for _, s := range own {
+				if re.MatchString(normalizeQuotes(s.text)) {
+					issues = append(issues, d.At(s.node, Warning, fmt.Sprintf("concept.md says to avoid %q; the page uses it.", phrase), "Say it in the buyers' words the Copy section gives; quotes of real buyers in <blockquote> or <q> are exempt."))
+					break
+				}
+			}
+		}
+		for _, phrase := range facts.Use {
+			re, found := phraseMatcher(phrase), false
+			for _, s := range all {
+				if found = re.MatchString(normalizeQuotes(s.text)); found {
+					break
+				}
+			}
+			if !found {
+				issues = append(issues, d.Whole(Warning, fmt.Sprintf("concept.md says to use %q; the page never does.", phrase), "Use the buyers' phrase where it fits the section's job, or change the Copy section if the decision changed."))
+			}
+		}
+	}
 	return issues
+}
+
+// phraseMatcher matches a phrase case-insensitively as whole words.
+func phraseMatcher(phrase string) *regexp.Regexp {
+	return regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}])` + regexp.QuoteMeta(normalizeQuotes(phrase)) + `(?:$|[^\p{L}\p{N}])`)
 }
 
 // declaredColor accepts a declared color in any opacity, a tint close to one

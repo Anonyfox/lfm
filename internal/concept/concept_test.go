@@ -153,7 +153,7 @@ Paper slips on a dark ground, square corners, no shadows.
 
 ## Copy
 
-- Say "zombie day" V011 V012
+- Use: "zombie day", “rota” V011 V012
 - Joke about the rota, never about patients V022
 - Avoid wellness language V030
 
@@ -207,6 +207,16 @@ func TestFormatFindings(t *testing.T) {
 				t.Fatalf("no finding containing %q: %v", tc.want, messages(r))
 			}
 		})
+	}
+}
+
+func TestCopyPhrases(t *testing.T) {
+	r := check(t, good)
+	if strings.Join(r.Summary.Use, "|") != "zombie day|rota" {
+		t.Fatal(r.Summary.Use)
+	}
+	if r := check(t, strings.Replace(good, `- Use: "zombie day", “rota” V011 V012`, "- Use: zombie day V011", 1)); !has(r, RuleFormat, "Use names no quoted phrase") {
+		t.Fatal(messages(r))
 	}
 }
 

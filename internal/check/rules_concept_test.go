@@ -107,3 +107,24 @@ func TestMonoDeclaredInConceptIsADecision(t *testing.T) {
 		t.Fatalf("a declared mono face is the concept's choice: %+v", got)
 	}
 }
+
+func TestConceptCopyPhrases(t *testing.T) {
+	facts := &ConceptFacts{Use: []string{"zombie day", "rota"}, Avoid: []string{"self-care", "wellness"}}
+	page := `</head><body><h1>Survive the zombie day</h1><p>Plan the rota.</p><blockquote>My self-care is sleep</blockquote><p>Unwellness is a word we avoid.</p></body></html>`
+	if got := fidelity(t, facts, page); len(got) != 0 {
+		t.Fatalf("used phrases present, avoided ones only quoted or inside other words: %+v", got)
+	}
+	bad := strings.Replace(page, "Plan the rota.", "A Wellness plan.", 1)
+	bad = strings.Replace(bad, "zombie day", "night", 1)
+	got := fidelity(t, facts, bad)
+	var messages []string
+	for _, d := range got {
+		messages = append(messages, d.Message)
+	}
+	joined := strings.Join(messages, "\n")
+	for _, want := range []string{`avoid "wellness"; the page uses it`, `use "zombie day"; the page never does`, `use "rota"; the page never does`} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in %s", want, joined)
+		}
+	}
+}

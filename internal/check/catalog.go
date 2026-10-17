@@ -247,8 +247,8 @@ func DefaultRules() []Rule {
 			"Warns for lorem ipsum, TODO, TBD and FIXME markers, \"your headline here\" and [insert …] filler in visible text, alternative text, the title and description metadata; and, once the starter page of lfm init has been replaced, for its starter description, social image alt text and social image. Filler shipped reads as an unfinished or generated page, and search and share previews show it first. Replace each with the real content.",
 			placeholderRule),
 
-		rule("concept.fidelity", "The page uses the typefaces, palette and imagery concept.md declares",
-			"When the project has a concept.md, every font family on the page must be declared in its Type table and every declared one used, every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading, and planned imagery must appear. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
+		rule("concept.fidelity", "The page uses the typefaces, palette, imagery and phrases concept.md declares",
+			"Once the starter page is replaced and the project has a concept.md, every font family on the page (also through var() tokens) must be declared in its Type table and every declared one used; every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading; the page must show as many distinct images as the Imagery table plans, minus rows waiting on Open:; the Copy section's Use: phrases must appear and its Avoid: phrases must not, outside quotations. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
 			conceptFidelityRule),
 	}
 }

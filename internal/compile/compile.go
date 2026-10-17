@@ -437,6 +437,6 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	if page, err := p.Read(project.TemplateFile); err == nil && scaffold.IsStarterPage(page) {
 		return diagnostic.Apply(findings, rules), nil
 	}
-	facts := &check.ConceptFacts{Colors: c.Summary.DeclaredColors, Families: c.Summary.Families, Imagery: c.Summary.Imagery}
+	facts := &check.ConceptFacts{Colors: c.Summary.DeclaredColors, Families: c.Summary.Families, Imagery: c.Summary.Imagery, Use: c.Summary.Use, Avoid: c.Summary.Avoid}
 	return diagnostic.Apply(findings, rules), facts
 }
