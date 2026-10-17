@@ -190,3 +190,33 @@ func TestHiddenStart(t *testing.T) {
 		})
 	}
 }
+
+func TestAltText(t *testing.T) {
+	for name, tc := range map[string]struct {
+		body string
+		want string
+	}{
+		"described":   {`<img src=a.png alt="Basil on a sunny rail">`, ""},
+		"decorative":  {`<img src=a.png alt="">`, ""},
+		"file name":   {`<img src=a.png alt="IMG_2041.jpg">`, "says nothing"},
+		"camera name": {`<img src=a.png alt="DSC 0042">`, "says nothing"},
+		"generic":     {`<img src=a.png alt="Photo">`, "says nothing"},
+		"german":      {`<img src=a.png alt="Bild">`, "says nothing"},
+		"shared":      {`<img src=a.png alt="Herb"><img src=b.png alt="Herb">`, "2 different images share"},
+		"same image":  {`<img src=a.png alt="Herb"><img src=a.png alt="Herb">`, ""},
+		"word in alt": {`<img src=a.png alt="Photo of a balcony at 7 am">`, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := runOn(t, imageAltRule, "", tc.body, Options{})
+			if tc.want == "" {
+				if len(got) != 0 {
+					t.Fatalf("unexpected: %+v", got)
+				}
+				return
+			}
+			if len(got) != 1 || !strings.Contains(got[0].Message, tc.want) {
+				t.Fatalf("want %q, got %+v", tc.want, got)
+			}
+		})
+	}
+}

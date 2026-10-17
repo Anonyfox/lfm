@@ -94,7 +94,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `sharing.snapchat` | Errors: invalid public sticker URL or known emitted sticker format/byte/dimension violations. Remote/uninspectable media warns. Transparency/animation and native-client tapping need review. |
 | `seo.headings` | Warnings: missing visible h1, unreadable headings or skipped levels; hidden/inert headings do not establish the hierarchy. Multiple h1 remains allowed. |
 | `seo.content` | Warnings: absent/multiple visible main landmarks, no detectable initial primary text, or all such text excluded by supported data-nosnippet containers. No length/quality score. |
-| `a11y.images` | Warnings: absent alt; intentional `alt=""` is allowed |
+| `a11y.images` | Warnings: absent alt; alt that is a file name or a generic word (image, photo, Bild…); one alt text on several different image sources. Intentional `alt=""` is allowed. |
 | `a11y.controls` | Warnings: unnamed native/custom controls, summaries, dialogs, frames and supported informative roles; native labels, ARIA references, image alternatives and SVG titles considered. |
 | `a11y.relationships` | Errors: known non-labelable for targets, extra/mismatched controls inside labels, wrong form/list/popover/table-header target types. Missing IDs belong to html.references; form-associated custom elements are not rejected. |
 | `a11y.aria` | Warnings: focused ARIA token/numeric grammar, ranges and missing checked/slider/combobox state. Native state/defaults, optional empty states, unknown/new attributes and indeterminate progress remain allowed. |

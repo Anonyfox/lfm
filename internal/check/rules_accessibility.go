@@ -1,13 +1,22 @@
 package check
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
 )
 
+// genericAlt words describe that something is an image, not what it shows.
+var genericAlt = words("image picture photo photograph graphic img icon illustration placeholder untitled bild foto grafik abbildung")
+
+var fileAlt = regexp.MustCompile(`(?i)^\S+\.(jpe?g|png|webp|avif|gif|svg|heic)$|^(img|dsc|dscn|pxl|screenshot)[_ -]?\d`)
+
 func imageAltRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
+	bySource := map[string]map[string]*html.Node{} // alt → src → first image
+	var order []string
 	for _, n := range d.activeNodes("img, area, input") {
 		if n.Namespace != "" {
 			continue
@@ -17,7 +26,34 @@ func imageAltRule(d *Document) []Diagnostic {
 		}
 		if !HasAttr(n, "alt") {
 			issues = append(issues, d.At(n, Warning, "Image has no alt attribute.", "Describe informative images; use alt=\"\" for decorative images. An absent alt and an intentionally empty alt are different."))
+			continue
 		}
+		alt := strings.Join(strings.Fields(Attr(n, "alt")), " ")
+		switch {
+		case alt == "":
+		case fileAlt.MatchString(alt), genericAlt[strings.ToLower(strings.Trim(alt, ".!"))]:
+			issues = append(issues, d.At(n, Warning, fmt.Sprintf("Alt text %q says nothing about what the image shows.", alt), "Describe what the visitor would miss without the image, in a short phrase; use alt=\"\" when it is purely decorative."))
+		case n.Data == "img" && Attr(n, "src") != "":
+			if bySource[alt] == nil {
+				bySource[alt] = map[string]*html.Node{}
+				order = append(order, alt)
+			}
+			if bySource[alt][Attr(n, "src")] == nil {
+				bySource[alt][Attr(n, "src")] = n
+			}
+		}
+	}
+	for _, alt := range order {
+		if len(bySource[alt]) < 2 {
+			continue
+		}
+		var first *html.Node
+		for _, n := range bySource[alt] {
+			if first == nil || d.positions[n] < d.positions[first] {
+				first = n
+			}
+		}
+		issues = append(issues, d.At(first, Warning, fmt.Sprintf("%d different images share the alt text %q.", len(bySource[alt]), alt), "Describe what each image shows; a repeated description hides what differs between them."))
 	}
 	return issues
 }

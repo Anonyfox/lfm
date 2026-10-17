@@ -117,8 +117,8 @@ func DefaultRules() []Rule {
 			snapchatRule),
 
 		// a11y
-		rule("a11y.images", "Images, image maps and image inputs have an alt attribute",
-			"Warns when an img, area or input type=image has no alt attribute at all. Screen readers then read the file name, and the image contributes nothing to search. Describe informative images in alt, and use alt=\"\" for decorative ones; an empty alt is a deliberate choice and passes.",
+		rule("a11y.images", "Images, image maps and image inputs have an alt attribute that describes them",
+			"Warns when an img, area or input type=image has no alt attribute at all, when the alt text is a file name or a word like \"image\" or \"photo\", and when different images share one alt text. Screen readers then read the file name or the same words for different pictures, and the images contribute nothing to search. Describe what each informative image shows, and use alt=\"\" for decorative ones; an empty alt is a deliberate choice and passes.",
 			imageAltRule),
 		rule("a11y.controls", "Buttons, links, fields, dialogs and informative roles have an accessible name",
 			"Warns for native or custom controls, summaries, dialogs, frames and informative roles without a detectable name from visible text, a label, aria-label, aria-labelledby, image alt or an SVG title. Screen-reader and voice-control users cannot find or operate an unnamed control. Add visible text or an associated label; placeholders and current values do not count as names.",
