@@ -66,7 +66,7 @@ func DefaultRules() []Rule {
 		rule("commerce.checkout", "Checkout links are public HTTPS hosted pages with valid Stripe parameters",
 			"Errors for checkout URLs that are not public HTTPS, Stripe API or Dashboard URLs, and unparsable queries; warnings for test-mode links, expiring Checkout Session URLs, unexpected Payment Link paths, unsupported, repeated or invalid prefill parameters, amount prefill on fixed prices, and checkout used as a form target or download. Each of these can stop a buyer from paying, or charge them in test mode. Copy the live Payment Link URL from Stripe into urls and link to it with a plain <a href>.",
 			commerceRule("commerce.checkout")),
-		rule("commerce.discovery", "Declared offers have a visible checkout link, a visible price and a Schema.org Offer when fixed-price",
+		rule("commerce.discovery", "Declared offers show a checkout link, a fixed price and its Schema.org Offer",
 			"Warns when an offer's checkout URL never appears as an initially usable <a href> (it is missing, hidden, inert, in a template or aria-disabled), when a fixed price is not written with its currency in the initial text, or when a fixed-price offer has no identifiable Offer in the JSON-LD. Buyers need a direct path to pay, and search engines need the Offer to show the price. Render an anchor to urls[checkoutUrlKey] outside hidden views and describe the offer in lfm.json jsonld with the same sku.",
 			commerceRule("commerce.discovery")),
 		rule("commerce.structured-data", "JSON-LD Offer prices and BuyAction targets agree with the declared offers",
