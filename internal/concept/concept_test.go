@@ -102,7 +102,9 @@ Delivery: PDF by email within minutes
 1. App screenshot hero V001 → struck: the market baseline
 2. Calm moon and stars V002 → struck: topic cliché
 3. Fridge rota countdown V001 V002 → chosen
+  Pushed: the rota flips day by day toward the zombie day V011
 4. Trophy wall of blackout rooms V005 → struck: slows the first value
+  Pushed: a wall the visitor adds their own room to
 5. Zombie day survival log V011 → struck: too narrow
 6. Household negotiation script V003 → struck: not the buyer's job
 7. Shift clock dial V013 → struck: survives a peer swap

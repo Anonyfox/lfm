@@ -168,6 +168,21 @@ func listItem(line string) (string, bool) {
 	return "", false
 }
 
+// Head returns the first line of the item starting at line n, without its
+// list marker and continuation lines.
+func (s *Section) Head(n int) string {
+	if s == nil {
+		return ""
+	}
+	for _, l := range s.Lines {
+		if l.N == n {
+			text, _ := listItem(l.Text)
+			return text
+		}
+	}
+	return ""
+}
+
 // Numbered reports whether every item line of the section is numbered.
 func (s *Section) Numbered() bool {
 	if s == nil {

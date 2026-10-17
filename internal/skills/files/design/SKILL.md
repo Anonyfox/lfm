@@ -45,6 +45,8 @@ whole brief for implementation, so a decision missing from it is a decision nobo
     affected sections), shift (an axis moves because the balance of evidence flipped, not because new
     items are vivid: redo only the decisions on that axis), or reset (the buyer or the core job was wrong:
     start a new concept). Keep the `## Qualities` intact unless the evidence says otherwise, and log it.
+  - **Reformat**: `lfm compile` reports format findings in a concept that was valid before (a newer lfm).
+    Move the content into the current format without re-deriving decisions, and log it.
 
 ## Workflow
 
@@ -90,7 +92,8 @@ Work through the sections in order; each builds on the one before.
     each, list about eight candidates of your own, estimate the chance a typical generator picks each, and
     choose one below roughly 10% that serves the spine. Cite a voice, peer or fact for it: type and form
     rarely appear in voices, so derive them from facts and the topic's own artifacts (signs, labels, tools,
-    documents) and cite those. Declare every color the page will use; the compiler checks that a text and
+    documents) and cite those. The facts narrow the field; the final face among the fitting ones is a
+    choice, so say what the face must do and pick one that does it. Declare every color the page will use; the compiler checks that a text and
     ground pair reaches 4.5:1. Plan the images by job
     (protagonist, proof, atmosphere, explanation, share preview), with art direction taken from what the
     buyers photograph and film. Decide one orchestrated motion moment, the feedback motion, and what the
@@ -123,7 +126,7 @@ Rejected: <alternative …>: <why …>
 
 ## Offer
 Product: <what the buyer pays for …>
-Price: <amount and currency, or Open: <question …>>
+Price: <amount and currency …>
 Delivery: <how and when it arrives …>
 
 ## Facts
@@ -138,7 +141,8 @@ Delivery: <how and when it arrives …>
 - <recurring detail no peer uses …> V011 V023
 
 ## Directions
-1. <direction …> V011 → struck: <reason …>
+1. <name>: <direction …> V011 → struck: <reason …>
+  <the direction pushed further …>
 2. <name>: <direction …> V023 → chosen
   <the direction pushed further …>
 
@@ -183,8 +187,10 @@ Reduced motion: <what shows instead …>
 
 - Citations are bare IDs anywhere in the text: `V003`, `P012`. Every ID must exist in the research files.
 - A deliberately imageless page writes `None: <reason>` under Imagery instead of the table.
-- `Open: <question>` may stand on its own line in any section; `lfm compile` lists each one.
-- Notes may follow a table; the table itself stays as shown.
+- `Open: <question>` is a question for the owner, on its own line in any section or as the value of an
+  Offer field (`Price: Open: <question>`); `lfm compile` lists each one. Write notes as plain text.
+- The verdict ends a direction's first line; the pushed version continues below it.
+- Plain-text notes may follow a table; the table itself stays as shown.
 - Every list item stays on one line or continues on lines indented by two spaces.
 
 ## Validate before finishing
@@ -194,7 +200,8 @@ across voices, platforms and peers, and the generator defaults in palette, type 
 findings stay until the owner answers them; hand them over with the file. Then
 reread [[.ConceptFile]] as the implementer will:
 
-- Could someone build the page from this file alone, without asking you anything?
+- Could someone build the page from this file alone, asking only the `Open:` questions? A mechanism that
+  needs data the research lacks will have them; that is expected, inventing the data is not.
 - Does every axis's chosen position show up in the spine, the visual system or the copy?
 - Would the concept still work with a competitor's product swapped in? Then it is a theme; go back to the
   directions.

@@ -264,7 +264,8 @@ func (c checker) sections(d Document) Summary {
 		c.need(s, len(items) >= MinDirections && s.Numbered(), fmt.Sprintf("Directions lists %d numbered directions; write at least %d.", len(items), MinDirections), "Write directions fast, push each further, then strike.")
 		chosen := 0
 		for i, it := range items {
-			body, verdict, ok := strings.Cut(it.Text, " → ")
+			// the verdict ends the item's first line; continuation lines push the direction further
+			body, verdict, ok := strings.Cut(s.Head(it.N), " → ")
 			switch {
 			case !ok:
 				c.add(RuleFormat, it.N, "Direction has no verdict.", "End it with \" → chosen\" or \" → struck: <reason>\".")
