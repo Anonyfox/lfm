@@ -1,12 +1,11 @@
 name: Pages
 
-# Deploys lfm.cash. site/ is a static placeholder until the compiler lands;
-# then this job builds site/ with the repo's own lfm and deploys its output.
+# Deploys lfm.cash. site/ is an lfm project, compiled by the lfm built from this commit.
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "cmd/**", "internal/**", "go.mod", "go.sum", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,9 +25,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: compile site with lfm
+        run: |
+          go build -o "$RUNNER_TEMP/lfm" ./cmd/lfm
+          "$RUNNER_TEMP/lfm" compile site
+          cp site/CNAME site/output/CNAME
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: site/output
       - id: deployment
         uses: actions/deploy-pages@v4

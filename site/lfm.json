@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "url": "https://lfm.cash/",
+  "language": "en",
+  "title": "lfm: looking for money",
+  "description": "Onepagers that sell, built by agents on rails.",
+  "socialImage": {
+    "src": "assets/images/share.png",
+    "alt": "A trade chat line in orange on black: LFM, need 1 more buyer."
+  },
+  "urls": {
+    "repository": "https://github.com/Anonyfox/lfm"
+  },
+  "build": {
+    "validation": {
+      "rules": {
+        "seo.indexability": "off"
+      }
+    }
+  }
+}

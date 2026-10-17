@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{.language}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.title}}</title>
+<meta name="description" content="{{.description}}">
+<link rel="canonical" href="{{.url}}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{.url}}">
+<meta property="og:title" content="{{.title}}">
+<meta property="og:description" content="{{.description}}">
+<meta property="og:image" content="{{.socialImage.src}}">
+<meta property="og:image:alt" content="{{.socialImage.alt}}">
+<meta name="twitter:card" content="summary_large_image">
+{{style "assets/styles/main.css"}}
+</head>
+<body>
+<main>
+<h1 class="chat" data-design-reason="the page is a game trade-chat line; monospace is the joke"><span class="who">[Trade] [Anonyfox]:</span> LFM, need 1 more buyer. {{.description}} PST.</h1>
+<p>This page is under construction. It is compiled by <code>lfm</code> itself.</p>
+<p><a href="{{.urls.repository}}">github.com/Anonyfox/lfm</a></p>
+</main>
+</body>
+</html>
