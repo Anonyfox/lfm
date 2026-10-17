@@ -55,26 +55,33 @@ func CSSReferences(raw []byte, offset int) []Reference {
 			if opening < 0 {
 				continue
 			}
-			value = strings.TrimSpace(strings.TrimSuffix(text[opening+1:], ")"))
-			position += opening + 1
+			inner := strings.TrimSuffix(text[opening+1:], ")")
+			value = strings.TrimLeft(inner, cssSpace)
+			position += opening + 1 + len(inner) - len(value)
+			value = strings.TrimRight(value, cssSpace)
 			if len(value) >= 2 && (value[0] == '\'' || value[0] == '"') && value[len(value)-1] == value[0] {
-				value = value[1 : len(value)-1]
-			}
-			importing = false
-		} else if kind == css.StringToken && (importing || imageSet > 0) && !namespace {
-			value = string(data)
-			if len(value) >= 2 {
 				value = value[1 : len(value)-1]
 				position++
 			}
 			importing = false
+		} else if kind == css.StringToken && (importing || imageSet > 0) && !namespace {
+			value = string(data)
+			if len(value) >= 2 && value[len(value)-1] == value[0] {
+				value = value[1 : len(value)-1]
+			} else {
+				value = value[1:] // unterminated at end of input
+			}
+			position++
+			importing = false
 		} else {
 			continue
 		}
-		refs = append(refs, Reference{Tag: "style", Attribute: "CSS URL", Value: cssUnescape(value), Offset: offset + position, End: offset + input.Offset(), Resource: true})
+		refs = append(refs, Reference{Tag: "style", Attribute: "CSS URL", Value: cssUnescape(value), Offset: offset + position, End: offset + position + len(value), Resource: true})
 	}
 	return refs
 }
+
+const cssSpace = " \t\r\n\f"
 
 // CSS escaped-code-point decoding, after the library has validated/tokenized
 // the string or URL. HTML entity decoding does not apply inside <style> text.

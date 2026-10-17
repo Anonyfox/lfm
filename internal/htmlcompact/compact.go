@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/tdewolff/parse/v2"
 	htmllex "github.com/tdewolff/parse/v2/html"
@@ -66,9 +67,7 @@ func compactSyntax(raw []byte) ([]byte, error) {
 	for {
 		kind := z.Next()
 		if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
-			original := bytes.Clone(z.Raw()) // TagName may mutate its buffer.
-			name, _ := z.TagName()
-			tag, err := compactTag(original, len(name))
+			tag, err := compactTag(z.Raw(), rawNameLength(z.Raw()))
 			if err != nil {
 				return nil, err
 			}
@@ -83,6 +82,16 @@ func compactSyntax(raw []byte) ([]byte, error) {
 			return out.Bytes(), nil
 		}
 	}
+}
+
+// rawNameLength measures the tag name as written. TagName is no substitute:
+// it lowercases and replaces NUL with a longer U+FFFD.
+func rawNameLength(tag []byte) int {
+	n := 1
+	for n < len(tag) && strings.IndexByte(" \t\n\f\r/>", tag[n]) < 0 {
+		n++
+	}
+	return n - 1
 }
 
 func compactTag(raw []byte, nameLength int) ([]byte, error) {

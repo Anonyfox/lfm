@@ -72,6 +72,9 @@ func Expand(raw []byte, base string) (expanded []any, findings []Finding) {
 	if !bounded(input, 0, new(int)) {
 		return nil, []Finding{{Rule: "jsonld.structure", Message: "JSON-LD exceeds depth 128 or 100,000 values.", Hint: "Reduce nesting/data volume so expansion remains bounded."}}
 	}
+	if unexpandable(input) {
+		return nil, []Finding{{Rule: "jsonld.structure", Message: "JSON-LD contains an empty property name or a malformed @protected/@container value.", Hint: "Name every property; @protected must be true or false and @container a keyword string or array of them."}}
+	}
 	loader := &offlineLoader{}
 	options := ld.NewJsonLdOptions(base)
 	options.DocumentLoader = loader
@@ -118,6 +121,43 @@ func bounded(value any, depth int, count *int) bool {
 			if !bounded(item, depth+1, count) {
 				return false
 			}
+		}
+	}
+	return true
+}
+
+// unexpandable rejects shapes JSON-goLD mishandles instead of reporting them:
+// with no @type alias it reads an empty key as @type, and it type-asserts
+// @protected and @container values without checking. Runs after bounded, so
+// its recursion depth is limited.
+func unexpandable(value any) bool {
+	switch v := value.(type) {
+	case map[string]any:
+		for key, item := range v {
+			if key == "" || key == "@protected" && !isBool(item) || key == "@container" && !stringOrStrings(item) || unexpandable(item) {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range v {
+			if unexpandable(item) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isBool(value any) bool { _, ok := value.(bool); return ok }
+
+func stringOrStrings(value any) bool {
+	items, ok := value.([]any)
+	if !ok {
+		items = []any{value}
+	}
+	for _, item := range items {
+		if _, ok := item.(string); !ok {
+			return false
 		}
 	}
 	return true

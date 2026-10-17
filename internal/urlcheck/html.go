@@ -229,7 +229,11 @@ func jsonReferences(raw []byte, offset int, isURL func(string, string) bool) []R
 	var walk func(string, bool) error
 	walk = func(key string, vocab bool) error {
 		vocab = vocab || key == "@context" || key == "@type" || key == "@vocab"
+		// InputOffset stops before the separator preceding this value.
 		start := int(decoder.InputOffset())
+		for start < len(raw) && strings.IndexByte(" \t\r\n,:", raw[start]) >= 0 {
+			start++
+		}
 		token, err := decoder.Token()
 		if err != nil {
 			return err
@@ -333,16 +337,17 @@ func AllReferences(raw []byte) []Reference {
 				}
 			}
 		}
+		// Raw, not Text: Text normalizes newlines, which would shift every offset.
 		if kind == html.TextToken && jsonText {
 			if platformText {
-				refs = append(refs, platformJSONReferences(z.Text(), start)...)
+				refs = append(refs, platformJSONReferences(z.Raw(), start)...)
 			} else {
-				refs = append(refs, JSONReferences(z.Text(), start)...)
+				refs = append(refs, JSONReferences(z.Raw(), start)...)
 			}
 			jsonText = false
 		}
 		if kind == html.TextToken && styleText {
-			refs = append(refs, CSSReferences(z.Text(), start)...)
+			refs = append(refs, CSSReferences(z.Raw(), start)...)
 			styleText = false
 		}
 		if kind == html.EndTagToken {
