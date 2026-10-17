@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // The fixed layout. Everything else inside the root is free-form; assets/ is a
@@ -23,7 +24,15 @@ const (
 
 // Project is a resolved project root. The zero value is not usable.
 type Project struct {
-	Root string // absolute, symlinks resolved
+	Root     string // absolute, symlinks resolved
+	resolved *sync.Map
+}
+
+// resolution is a memoized Path result. Open a Project per compile: it lives for one compile, so
+// every source path costs its symlink walk once instead of once per reference.
+type resolution struct {
+	path string
+	err  error
 }
 
 // Open resolves dir to a real directory.
@@ -46,7 +55,7 @@ func Open(dir string) (Project, error) {
 	if !info.IsDir() {
 		return Project{}, fmt.Errorf("%s is not a directory", dir)
 	}
-	return Project{Root: root}, nil
+	return Project{Root: root, resolved: &sync.Map{}}, nil
 }
 
 // Output is the directory a successful compile replaces.
@@ -70,6 +79,18 @@ func (p Project) Path(name string) (string, error) {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(p.Root, path)
 	}
+	if p.resolved == nil {
+		return p.resolve(name, path)
+	}
+	if r, ok := p.resolved.Load(path); ok {
+		return r.(resolution).path, r.(resolution).err
+	}
+	real, err := p.resolve(name, path)
+	p.resolved.Store(path, resolution{real, err})
+	return real, err
+}
+
+func (p Project) resolve(name, path string) (string, error) {
 	if !p.permitted(path) {
 		return "", fmt.Errorf("%s: sources must stay inside the project and outside %s/", name, OutputDir)
 	}

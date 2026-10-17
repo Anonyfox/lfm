@@ -90,13 +90,22 @@ func (d *Document) styles() *styleModel {
 			m.inline[n] = inlineDecls(v)
 		}
 	}
+	index := newElementIndex(d.Elements)
+	parsed := map[string]cascadia.Sel{}
 	for _, r := range m.rules {
-		sel, err := cascadia.Parse(r.selector)
-		if err != nil {
+		sel, seen := parsed[r.selector]
+		if !seen {
+			var err error
+			if sel, err = cascadia.Parse(r.selector); err != nil {
+				sel = nil
+			}
+			parsed[r.selector] = sel
+		}
+		if sel == nil {
 			continue
 		}
 		r.sel, r.spec = sel, sel.Specificity()
-		r.matches = cascadia.QueryAll(d.Root, sel)
+		r.matches = index.match(d.Root, r.selector, sel)
 		if r.state == "" && r.pseudo == "" && !r.alt && !r.narrow {
 			for _, n := range r.matches {
 				m.base[n] = append(m.base[n], r)
@@ -114,6 +123,145 @@ func (d *Document) styles() *styleModel {
 	}
 	d.styleModel = m
 	return m
+}
+
+// elementIndex finds the candidates of a selector the way browsers do: by the
+// id, class or tag its rightmost compound requires. Only candidates are tested
+// with the full selector, instead of every element for every rule.
+type elementIndex struct {
+	ids, classes, tags map[string][]*html.Node
+}
+
+func newElementIndex(elements []*html.Node) *elementIndex {
+	x := &elementIndex{ids: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
+	for _, n := range elements {
+		x.tags[strings.ToLower(n.Data)] = append(x.tags[strings.ToLower(n.Data)], n)
+		for _, a := range n.Attr {
+			switch a.Key {
+			case "id":
+				x.ids[a.Val] = append(x.ids[a.Val], n)
+			case "class":
+				seen := map[string]bool{}
+				for _, c := range strings.Fields(a.Val) {
+					if !seen[c] {
+						seen[c] = true
+						x.classes[c] = append(x.classes[c], n)
+					}
+				}
+			}
+		}
+	}
+	return x
+}
+
+// match returns the elements matching sel in document order, like
+// cascadia.QueryAll(root, sel).
+func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel) []*html.Node {
+	var candidates []*html.Node
+	switch kind, name := keySelector(selector); kind {
+	case '#':
+		candidates = x.ids[name]
+	case '.':
+		candidates = x.classes[name]
+	case 't':
+		candidates = x.tags[name]
+	default:
+		return cascadia.QueryAll(root, sel)
+	}
+	var out []*html.Node
+	for _, n := range candidates {
+		if sel.Match(n) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// keySelector returns the id ('#'), class ('.') or tag ('t') that every match
+// of the selector's rightmost compound must carry, or 0 when there is none or
+// the compound uses syntax this scan does not read (escapes, namespaces,
+// nesting). Ids win over classes over tags, being rarer.
+func keySelector(selector string) (byte, string) {
+	depth, start := 0, 0
+	for i := len(selector) - 1; i >= 0; i-- {
+		switch c := selector[i]; c {
+		case ')', ']':
+			depth++
+		case '(', '[':
+			depth--
+		case ' ', '>', '+', '~', '\t', '\n':
+			if depth == 0 {
+				start = i + 1
+				i = -1
+			}
+		}
+	}
+	compound := selector[start:]
+	if compound == "" || strings.ContainsAny(compound, "\\|&") {
+		return 0, ""
+	}
+	var id, class, tag string
+	ident := func(i int) (string, int) {
+		j := i
+		for j < len(compound) {
+			c := compound[j]
+			if c == '-' || c == '_' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= 0x80 {
+				j++
+				continue
+			}
+			break
+		}
+		return compound[i:j], j
+	}
+	for i := 0; i < len(compound); {
+		switch c := compound[i]; {
+		case c == '#' || c == '.':
+			name, j := ident(i + 1)
+			if c == '#' && id == "" {
+				id = name
+			} else if c == '.' && class == "" {
+				class = name
+			}
+			if j == i+1 {
+				return 0, ""
+			}
+			i = j
+		case c == '[' || c == ':':
+			// skip attribute selectors and pseudo-classes with their arguments
+			depth := 0
+			for i < len(compound) {
+				switch compound[i] {
+				case '[', '(':
+					depth++
+				case ']', ')':
+					depth--
+				}
+				i++
+				if depth == 0 && i < len(compound) && (compound[i] == '#' || compound[i] == '.' || compound[i] == '[' || compound[i] == ':') {
+					break
+				}
+			}
+		case c == '*':
+			i++
+		default:
+			if i != 0 {
+				return 0, ""
+			}
+			tag, i = ident(0)
+			if tag == "" {
+				return 0, ""
+			}
+		}
+	}
+	switch {
+	case id != "":
+		return '#', id
+	case class != "":
+		return '.', class
+	case tag != "":
+		return 't', strings.ToLower(tag)
+	}
+	return 0, ""
 }
 
 func readRules(raw []byte) []*cssRule {

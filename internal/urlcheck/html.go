@@ -63,21 +63,74 @@ func resourceRel(rel string) bool {
 // exactly once. Every offset refers to the original byte slice; lex a clone because
 // parse/v2 normalizes attribute names in its backing buffer.
 func References(raw []byte) []Reference {
-	var refs []Reference
+	refs, _ := scan(raw, false)
+	return refs
+}
+
+// scan reads every URL reference of a document in one tokenizer pass:
+// attribute URLs always, and with all also style attributes, <style> text and
+// JSON script text. The second list holds those extra references, kept apart
+// so AllReferences returns them after the attribute references as before.
+func scan(raw []byte, all bool) (refs, extra []Reference) {
 	z := html.NewTokenizer(bytes.NewReader(raw))
 	offset := 0
+	jsonText, styleText, platformText := false, false, false
 	for {
 		kind := z.Next()
-		part := bytes.Clone(z.Raw())
 		start := offset
-		offset += len(part)
+		offset += len(z.Raw())
 		if kind == html.ErrorToken {
 			break
+		}
+		if all {
+			// Raw, not Text: Text normalizes newlines, which would shift every offset.
+			if kind == html.TextToken && jsonText {
+				if platformText {
+					extra = append(extra, platformJSONReferences(z.Raw(), start)...)
+				} else {
+					extra = append(extra, JSONReferences(z.Raw(), start)...)
+				}
+			}
+			if kind == html.TextToken && styleText {
+				extra = append(extra, CSSReferences(z.Raw(), start)...)
+			}
+			if kind != html.StartTagToken && kind != html.SelfClosingTagToken {
+				jsonText, styleText = false, false
+			}
 		}
 		if kind != html.StartTagToken && kind != html.SelfClosingTagToken {
 			continue
 		}
+		// only tags are lexed again; the lexer may modify its input, so it gets a copy
+		part := bytes.Clone(z.Raw())
 		token := z.Token()
+		if all {
+			platformText = false
+			jsonText = false
+			styleText = token.Data == "style"
+			if token.Data == "script" {
+				for _, a := range token.Attr {
+					if a.Key == "id" && a.Val == "discord:component-embed" {
+						platformText = true
+					}
+					if a.Key == "type" {
+						value := strings.ToLower(strings.TrimSpace(a.Val))
+						jsonText = value == "application/ld+json" || value == "application/json" || value == "application/vnd.discord.component-embed+json"
+					}
+				}
+			}
+			for _, a := range token.Attr {
+				if a.Key == "style" { // Attribute positions are tag-relative after entity decoding.
+					for _, ref := range CSSReferences([]byte(a.Val), start) {
+						ref.Tag = token.Data
+						ref.Attribute = "style CSS URL"
+						ref.Offset = start
+						ref.End = offset
+						extra = append(extra, ref)
+					}
+				}
+			}
+		}
 		attrs := map[string]string{}
 		for _, a := range token.Attr {
 			attrs[a.Key] = a.Val
@@ -150,7 +203,7 @@ func References(raw []byte) []Reference {
 			}
 		}
 	}
-	return refs
+	return refs, extra
 }
 
 type Candidate struct {
@@ -298,64 +351,8 @@ func Apply(issues []diagnostic.Diagnostic, rules map[string]diagnostic.Severity)
 // AllReferences includes URL-like values in embedded JSON/JSON-LD in addition
 // to URL-bearing HTML attributes. It never inspects executable JS as HTML.
 func AllReferences(raw []byte) []Reference {
-	refs := References(raw)
-	z := html.NewTokenizer(bytes.NewReader(raw))
-	offset := 0
-	jsonText, styleText, platformText := false, false, false
-	for {
-		kind := z.Next()
-		start := offset
-		offset += len(z.Raw())
-		if kind == html.ErrorToken {
-			break
-		}
-		if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
-			token := z.Token()
-			jsonText = false
-			platformText = false
-			styleText = token.Data == "style"
-			if token.Data == "script" {
-				for _, a := range token.Attr {
-					if a.Key == "id" && a.Val == "discord:component-embed" {
-						platformText = true
-					}
-					if a.Key == "type" {
-						value := strings.ToLower(strings.TrimSpace(a.Val))
-						jsonText = value == "application/ld+json" || value == "application/json" || value == "application/vnd.discord.component-embed+json"
-					}
-				}
-			}
-			for _, a := range token.Attr {
-				if a.Key == "style" { // Attribute positions are tag-relative after entity decoding.
-					for _, ref := range CSSReferences([]byte(a.Val), start) {
-						ref.Tag = token.Data
-						ref.Attribute = "style CSS URL"
-						ref.Offset = start
-						ref.End = offset
-						refs = append(refs, ref)
-					}
-				}
-			}
-		}
-		// Raw, not Text: Text normalizes newlines, which would shift every offset.
-		if kind == html.TextToken && jsonText {
-			if platformText {
-				refs = append(refs, platformJSONReferences(z.Raw(), start)...)
-			} else {
-				refs = append(refs, JSONReferences(z.Raw(), start)...)
-			}
-			jsonText = false
-		}
-		if kind == html.TextToken && styleText {
-			refs = append(refs, CSSReferences(z.Raw(), start)...)
-			styleText = false
-		}
-		if kind == html.EndTagToken {
-			jsonText = false
-			styleText = false
-		}
-	}
-	return refs
+	refs, extra := scan(raw, true)
+	return append(refs, extra...)
 }
 
 func jsonURLLike(key, value string) bool {
