@@ -42,25 +42,36 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
     markup, move over only what the concept keeps, delete the rest.
   - **Grow**: [[.ConceptFile]] gained a changelog entry. Change only the sections its entry names, then run
     the full review, because local changes shift the whole page.
-- Say in one line which capabilities you have: image generation, a browser that can screenshot at a set
-  viewport, Stripe access. The rounds below name a fallback for each.
+- Say in one line which capabilities you have: image generation, Chrome for `lfm compile --release`, a
+  way to view images, Stripe access. The rounds below name a fallback for each.
+- **Done** means: every part of [[.ConceptFile]] is built except those waiting on an `Open:` line, the
+  compile is clean apart from `concept.open`, and the review below passed. Something you cannot produce
+  (an owner's photo, data no source gives) becomes an `Open:` line in [[.ConceptFile]], never a stand-in.
 
 ## Round 1: the working spine
 
 Make the core loop work with real content before any polish.
 
 1. **Facts into config.** Product values go into `lfm.json` under `data` (offer, price, inputs, delivery,
-   FAQ answers); every destination into `urls`. The template renders them; it never repeats a literal.
+   FAQ answers); every destination into `urls`, except same-page `#fragment` links. The template renders
+   them; it never repeats a literal. Templates are Go `html/template`: config numbers compare by value
+   (`{{if ge .data.hours 6}}`) but there is no arithmetic, so store the values the first screen shows in
+   `data`, and compute the rest in the script. `build.browserData` lists the `data` paths the script needs;
+   it reads them with `JSON.parse(document.getElementById("product-data").textContent)`.
 2. **One section per spine item**, in order, each doing the job [[.ConceptFile]] gives it. Headings name
    what the section answers; one `h1`. Semantic landmarks, native controls, real `href`s.
 3. **The mechanism first.** The tool, sample, configurator or game works with real data before anything is
    styled, and the initial HTML already shows a meaningful starting case (a worked example, filled defaults,
-   a real excerpt), never an empty box, a zero result or a disabled button.
+   a real excerpt), never an empty box, a zero result or a disabled button. Assumptions behind a result
+   (a pot size, a household) are shown next to it and editable where they matter.
 4. **Tokens from the concept.** Declare the palette as custom properties named by role, the typefaces of
    the Type table and the Form rules (corners, edges, elevation) once; components use the tokens only.
-   Body text meets 4.5:1 against its actual ground, including over images.
-5. **Offer and checkout.** The Offer of [[.ConceptFile]]: price, what arrives, how and when, beside a native `<a href>` to the hosted
-   checkout (see Commerce). Findable from the first screen without scrolling the whole story.
+   Body text meets 4.5:1 against its actual ground, including over images. Font files are WOFF2 in the
+   project (from the foundry or an open font host such as Fontsource, with the licence), a small set of
+   weights, the variable file when the concept uses an axis such as width.
+5. **Offer and checkout.** The Offer of [[.ConceptFile]]: price, what arrives, how and when, beside a native
+   `<a href>` to the hosted checkout (see Commerce). The spine decides where the offer section sits; the
+   first screen still links to it, so a ready buyer never scrolls the whole story.
 
 Compile now and fix everything before continuing.
 
@@ -113,43 +124,60 @@ with values matching the visible page; the compiler emits and checks the block.
 
 **Sharing.** Decide the shared object (a result, comparison, plan or challenge), who receives it and what
 they do next. Put only public state in the URL with `URLSearchParams`, restore it on load and handle bad
-input; the canonical never changes. The social image shows the offer at thumbnail size with its alt text.
+input; the canonical never changes. The social image shows the offer at thumbnail size with its alt text;
+a card drawn in HTML keeps its source in the project (for example `assets/share/card.html`) so it can be
+rendered again at 1200×630.
 Offer the share after value appears, show what will be shared, and never gate a promised result behind it.
 Add platform cards (X player, Discord, Farcaster, Snapchat) only when the audience is there; the compiler
 checks their metadata.
 
 **Commerce.** One Stripe Payment Link per fixed offer, opened by a native link; no Stripe.js, no backend.
-Record each offer under `data.commerce.offers` with SKU, name, `checkoutUrlKey` naming a `urls` entry, the
-price in minor units with currency and the Stripe IDs read back from Stripe; add a `BuyAction` to the offer in
-`jsonld`. Delivery-critical inputs are collected in Stripe (at most three custom fields). Never put secret
-keys in the project. Without Stripe access, ask the user for the link and IDs; do not invent them.
+Record each offer in `lfm.json` as an object keyed by a plain name, and render its values everywhere:
+
+```json
+"urls": { "buyPlan": "https://buy.stripe.com/…" },
+"data": { "commerce": { "offers": { "plan": {
+  "sku": "plan", "name": "…", "checkoutUrlKey": "buyPlan",
+  "price": { "amountMinor": 900, "currency": "EUR" },
+  "stripe": { "productId": "prod_…", "priceId": "price_…", "paymentLinkId": "plink_…" } } } } }
+```
+
+Stripe IDs are copied from Stripe, or left out when you have no access; never invented. The offer in
+`jsonld` takes its name and price from these values and carries a `BuyAction` whose target is the checkout
+URL. Delivery-critical inputs are collected in Stripe (at most three custom fields). No secret keys in the
+project.
 
 ## Round 4: review and fix
 
-Run `lfm compile --release`: it adds headless Chrome checks (runtime errors, the layout of every half
-viewport at phone and desktop widths, Lighthouse when installed). Then review by looking:
+Run `lfm compile --release`. In headless Chrome it records runtime errors, scrolls the page by half a
+screen at [[.Screens]],
+reports empty stretches, sideways scrolling, covered text and split values, and saves every frame; the
+`frames` line of the report names the folder. Then review by looking:
 
-1. **Frames.** Screenshot every half viewport, top to bottom, at 390×844, 1280×680 and 1440×900, with the
-   default state untouched, and read each at full size. Every frame shows legible content or an obvious
-   continuation. Then exercise the mechanism: empty, extreme and invalid input, back, reload, a shared URL.
-2. **Passes**, each over the whole page:
-   - *Conversion*: in five seconds a visitor knows who it is for, what they get and what to do; first
-     value without hunting; price, delivery and the next step findable; objections met at the decision.
-   - *Research fidelity*: go through the Axes table of [[.ConceptFile]] row by row; each chosen position is
-     visible beyond the first screen. Each spark used is traceable. Nothing resembles the market baseline.
-   - *Coherence*: every section speaks the concept; none falls back to a template layout; the concept
-     never blocks the task or the purchase.
-   - *Specificity*: swap a competitor's product into each section; if it still works, it is a theme.
-   - *Detail*: the failure modes below, all states, keyboard and focus, 200% zoom.
+1. **Frames.** Open the saved frames in order, every one at full size, phone first. Every frame shows
+   legible content or an obvious continuation. Then exercise the mechanism yourself: empty, extreme and
+   invalid input, back, reload, a shared URL, reduced motion, keyboard only, 200% zoom.
+2. **Passes.** Answer each question with the frame that shows it; a "no" is a finding.
+   - *Conversion*: does the first phone frame say who it is for, what they get and what to do? Is the
+     first value reached without scrolling past it? Are price, delivery and the next step in one frame?
+     Does each objection of the decision path appear in the frame where the visitor decides?
+   - *Research fidelity*: for each row of the Axes table, name a frame below the first screen where the
+     chosen position is visible. For each spark used, name its frame.
+   - *Coherence*: which frame could belong to another site? Which one falls back to plain text on a plain
+     field when the concept says otherwise?
+   - *Specificity*: in which section would a competitor's product fit unchanged?
+   - *Detail*: the failure modes below, in every frame and state.
 3. **Findings.** At most five, ranked by buyer impact, each with frame, cause and the quality to keep.
-   Fix causes, recompile, rerun every frame. Repeat until no finding is above detail level, usually one or
-   two rounds. With a second agent available, let it review without your build context: it reads the
-   research, [[.ConceptFile]] and the frames, and nothing else.
-4. **Ceiling.** One last pass that raises the signature moment and the weakest section by one level, then
-   a final full review.
+   Fix causes, recompile, read every frame again. Repeat until no finding is above detail level, usually
+   one or two rounds. With a second agent available, let it review without your build context: it reads
+   the research, [[.ConceptFile]] and the frames, and nothing else.
+4. **Ceiling.** Pick the weakest frame and the signature moment. For each, make one concrete change that
+   adds substance, not decoration: real data where text describes it, a state that answers the visitor,
+   an image doing a job the concept gives it, or a cut that lets the strongest element breathe. Then a
+   final full review.
 
-Without a browser that screenshots, rely on `lfm compile --release` findings, ask the user for phone and
-desktop screenshots, and report the visual review as not done rather than passed.
+Without Chrome, ask the user for phone and desktop screenshots of the whole page, and report the visual
+review as not done rather than passed.
 
 ## Detail failure modes
 
@@ -171,8 +199,8 @@ These ship on pages that looked finished in chosen screenshots; check each in th
 ## Gotchas
 
 - `lfm serve --open` recompiles on save; the preview is the compiled output, not the template.
-- Every rendered link must be a named `urls` entry; add the URL to `lfm.json`, not to the markup.
-- Fonts: WOFF2 files with `font-display`, a small set of weights; the concept's faces, nothing else.
+- Every rendered link except a same-page `#fragment` is a named `urls` entry in `lfm.json`.
+- Set fonts through tokens (`font-family: var(--body)`); the compiler follows them to the concept's faces.
 - Values that change with input use tabular numerals and units in the same element.
 - A warning you cannot fix without breaking the concept means the concept needs a change; edit
   [[.ConceptFile]] first, then the page.

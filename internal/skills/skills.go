@@ -16,6 +16,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/project"
+	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
 )
 
@@ -35,6 +36,7 @@ type Data struct {
 	Methods      string // allowed fetch methods, "a | b"
 	ConceptFile  string // the design handover
 	Design       Design // minimums concept.md must meet
+	Screens      string // the screen sizes of the release layout audit
 }
 
 // Design holds the minimums the compiler checks in concept.md.
@@ -56,12 +58,25 @@ func NewData(version string) Data {
 		Authors:      strings.Join(research.Authors, " | "),
 		Methods:      strings.Join(research.Methods, " | "),
 		ConceptFile:  concept.File,
+		Screens:      screens(),
 		Design: Design{
 			MinVoiceNotes: concept.MinVoiceNotes, MinPathSteps: concept.MinPathSteps, MinRejected: concept.MinRejected,
 			MinFacts: concept.MinFacts, MinAxes: concept.MinAxes, MinSparks: concept.MinSparks, MaxSparks: concept.MaxSparks,
 			MinDirections: concept.MinDirections, MinSpine: concept.MinSpine, MinColors: concept.MinColors, MinCopy: concept.MinCopy,
 		},
 	}
+}
+
+// screens lists the release audit sizes as prose: "390×844, 1280×680 and 1440×900".
+func screens() string {
+	var names []string
+	for _, s := range release.Screens {
+		names = append(names, s.String())
+	}
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
 // Skill is one rendered skill.
