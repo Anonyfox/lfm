@@ -11,6 +11,7 @@ import (
 	"github.com/tdewolff/parse/v2"
 	htmllex "github.com/tdewolff/parse/v2/html"
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 	htmltext "html"
 )
 
@@ -101,68 +102,64 @@ func scan(raw []byte, all bool) (refs, extra []Reference) {
 		if kind != html.StartTagToken && kind != html.SelfClosingTagToken {
 			continue
 		}
-		// only tags are lexed again; the lexer may modify its input, so it gets a copy
+		// Tags are lexed once more with positions. The lexer appends to its input,
+		// so it gets a copy; its attributes also give the policy values, so no
+		// attribute is copied out of the tokenizer.
+		name, _ := z.TagName()
+		tag := atom.Lookup(name).String()
+		if tag == "" {
+			tag = string(name)
+		}
 		part := bytes.Clone(z.Raw())
-		token := z.Token()
-		if all {
-			platformText = false
-			jsonText = false
-			styleText = token.Data == "style"
-			if token.Data == "script" {
-				for _, a := range token.Attr {
-					if a.Key == "id" && a.Val == "discord:component-embed" {
-						platformText = true
-					}
-					if a.Key == "type" {
-						value := strings.ToLower(strings.TrimSpace(a.Val))
-						jsonText = value == "application/ld+json" || value == "application/json" || value == "application/vnd.discord.component-embed+json"
-					}
-				}
-			}
-			for _, a := range token.Attr {
-				if a.Key == "style" { // Attribute positions are tag-relative after entity decoding.
-					for _, ref := range CSSReferences([]byte(a.Val), start) {
-						ref.Tag = token.Data
-						ref.Attribute = "style CSS URL"
-						ref.Offset = start
-						ref.End = offset
-						extra = append(extra, ref)
-					}
-				}
-			}
-		}
-		attrs := map[string]string{}
-		for _, a := range token.Attr {
-			attrs[a.Key] = a.Val
-		}
-		if token.Data == "svg" || token.Data == "math" {
-			for i := 1; i <= len(token.Data) && i < len(part); i++ {
+		if tag == "svg" || tag == "math" {
+			for i := 1; i <= len(tag) && i < len(part); i++ {
 				part[i] = 'x'
 			}
 		}
-		input := parse.NewInputBytes(part)
-		lexer := htmllex.NewLexer(input)
-		for {
-			kind, _ := lexer.Next()
-			if kind == htmllex.ErrorToken {
-				break
+		attributes := tagAttributes(part)
+		attrs := map[string]string{}
+		for _, a := range attributes {
+			if _, seen := attrs[a.key]; !seen && policyAttribute[a.key] {
+				attrs[a.key] = a.text()
 			}
-			if kind != htmllex.AttributeToken {
-				continue
+		}
+		if all {
+			platformText = false
+			jsonText = false
+			styleText = tag == "style"
+			if tag == "script" {
+				if attrs["id"] == "discord:component-embed" {
+					platformText = true
+				}
+				if value, ok := attrs["type"]; ok {
+					value = strings.ToLower(strings.TrimSpace(value))
+					jsonText = value == "application/ld+json" || value == "application/json" || value == "application/vnd.discord.component-embed+json"
+				}
 			}
-			attribute := strings.ToLower(string(lexer.AttrKey()))
-			yes, resource := URLAttribute(token.Data, attribute, attrs)
+			if value, ok := attrs["style"]; ok { // Attribute positions are tag-relative after entity decoding.
+				for _, ref := range CSSReferences([]byte(value), start) {
+					ref.Tag = tag
+					ref.Attribute = "style CSS URL"
+					ref.Offset = start
+					ref.End = offset
+					extra = append(extra, ref)
+				}
+			}
+		}
+		for _, a := range attributes {
+			attribute := a.key
+			yes, resource := URLAttribute(tag, attribute, attrs)
 			if !yes {
 				continue
 			}
-			value := lexer.AttrVal()
-			position := start + input.Offset() - len(value)
+			value := a.value
+			position := start + a.end - len(value)
 			if len(value) >= 2 && (value[0] == '"' || value[0] == '\'') {
 				value = value[1 : len(value)-1]
 				position++
 			}
 			text := htmltext.UnescapeString(string(value))
-			ref := Reference{Tag: token.Data, Attribute: attribute, Value: text, Offset: position, End: position + len(value), Resource: resource}
+			ref := Reference{Tag: tag, Attribute: attribute, Value: text, Offset: position, End: position + len(value), Resource: resource}
 			switch attribute {
 			case "content":
 				if strings.EqualFold(attrs["http-equiv"], "refresh") {
@@ -177,7 +174,7 @@ func scan(raw []byte, all bool) (refs, extra []Reference) {
 					// Attribute entity decoding changes internal byte positions. Keep
 					// the containing attribute's accurate source location for each URL.
 					for _, nested := range platformJSONReferences([]byte(text), 0) {
-						nested.Tag, nested.Offset, nested.End = token.Data, position, ref.End
+						nested.Tag, nested.Offset, nested.End = tag, position, ref.End
 						nested.Attribute = "platform " + nested.Attribute
 						refs = append(refs, nested)
 					}
@@ -204,6 +201,40 @@ func scan(raw []byte, all bool) (refs, extra []Reference) {
 		}
 	}
 	return refs, extra
+}
+
+// policyAttribute names the attributes whose values decide how a tag's URLs
+// are read; only these are decoded into strings.
+var policyAttribute = map[string]bool{"rel": true, "name": true, "property": true, "http-equiv": true, "id": true, "type": true, "style": true}
+
+type tagAttribute struct {
+	key   string // lowercase
+	value []byte // raw, with quotes
+	end   int    // offset after the value within the tag
+}
+
+func (a tagAttribute) text() string {
+	v := a.value
+	if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') {
+		v = v[1 : len(v)-1]
+	}
+	return htmltext.UnescapeString(string(v))
+}
+
+// tagAttributes lexes one tag and returns its attributes in source order.
+func tagAttributes(part []byte) []tagAttribute {
+	input := parse.NewInputBytes(part)
+	lexer := htmllex.NewLexer(input)
+	var out []tagAttribute
+	for {
+		kind, _ := lexer.Next()
+		if kind == htmllex.ErrorToken {
+			return out
+		}
+		if kind == htmllex.AttributeToken {
+			out = append(out, tagAttribute{strings.ToLower(string(lexer.AttrKey())), lexer.AttrVal(), input.Offset()})
+		}
+	}
 }
 
 type Candidate struct {
