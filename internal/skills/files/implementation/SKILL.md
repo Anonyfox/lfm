@@ -157,11 +157,12 @@ they are an `Open:` line for the owner, not URL parameters. No secret keys in th
 
 ## Round 4: review and fix
 
-Run `lfm compile --release`. In headless Chrome it records runtime errors, scrolls the page by half a
-screen at [[.Screens]],
-and reports a first screen without heading or control, empty stretches, sideways scrolling, covered,
-tiny or low-contrast text, split values and motion that ignores reduced motion. It saves every frame; the `frames` line names the folder and,
-from the second run on, the frames that changed. Then review by looking:
+Run `lfm compile --release`. In headless Chrome it records runtime errors and scrolls the page by half a
+screen at [[.Screens]].
+It reports a first screen without heading or control, empty stretches, sideways scrolling, covered, tiny
+or low-contrast text, split values, motion that ignores reduced motion and text missing without
+JavaScript. It saves every frame; the `frames` line names the folder and, from the second run on, the
+frames that changed. Then review by looking:
 
 1. **Frames.** The first time, open every frame in order at full size, phone first; afterwards the changed
    ones and their neighbours. Every frame shows legible content or an obvious continuation. Then, with a
@@ -179,8 +180,8 @@ from the second run on, the frames that changed. Then review by looking:
    - *Specificity*: in which section would a competitor's product fit unchanged?
    - *Detail*: the failure modes below, in every frame and state.
 3. **Findings.** At most five, ranked by buyer impact, each with frame, cause and the quality to keep.
-   Fix causes, recompile, read every frame again. Repeat until no finding is above detail level, usually
-   one or two rounds. With a second agent available, let it review without your build context: it reads
+   Fix causes, recompile with `--release`, read the changed frames and their neighbours. Repeat until no
+   finding is above detail level, usually one or two rounds. With a second agent available, let it review without your build context: it reads
    the research, [[.ConceptFile]] and the frames, and nothing else.
 4. **Ceiling.** Pick the weakest frame and the signature moment. For each, make one concrete change that
    adds substance, not decoration: real data where text describes it, a state that answers the visitor,
