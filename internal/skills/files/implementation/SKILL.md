@@ -181,8 +181,8 @@ frames that changed. Then review by looking:
    - *Detail*: the failure modes below, in every frame and state.
 3. **Findings.** At most five, ranked by buyer impact, each with frame, cause and the quality to keep.
    Fix causes, recompile with `--release`, read the changed frames and their neighbours. Repeat until no
-   finding is above detail level, usually one or two rounds. With a second agent available, let it review without your build context: it reads
-   the research, [[.ConceptFile]] and the frames, and nothing else.
+   finding is above detail level, usually one or two rounds. With a second agent available, let it review
+   without your build context: it reads the research, [[.ConceptFile]] and the frames, and nothing else.
 4. **Ceiling.** Pick the weakest frame and the signature moment. For each, make one concrete change that
    adds substance, not decoration: real data where text describes it, a state that answers the visitor,
    an image doing a job the concept gives it, or a cut that lets the strongest element breathe. Then a
