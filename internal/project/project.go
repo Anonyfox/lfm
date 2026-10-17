@@ -58,8 +58,9 @@ func (p Project) Rel(path string) string {
 }
 
 // Path resolves name (relative to the root, or absolute) to a real source file
-// path. Sources must stay inside the root, outside output/, also after
-// following symlinks, so generated files can never feed back into a build.
+// path. Sources must stay inside the root and outside output/ (and the
+// output.next-* folders of a publish in progress), also after following
+// symlinks, so generated files can never feed back into a build.
 func (p Project) Path(name string) (string, error) {
 	path := name
 	if !filepath.IsAbs(path) {
@@ -84,7 +85,7 @@ func (p Project) permitted(path string) bool {
 		return false
 	}
 	first, _, _ := strings.Cut(filepath.ToSlash(rel), "/")
-	return first != OutputDir
+	return first != OutputDir && !strings.HasPrefix(first, OutputDir+".next-")
 }
 
 // Read reads a contained source file.

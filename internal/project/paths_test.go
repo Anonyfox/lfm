@@ -76,8 +76,9 @@ func TestPathKeepsSourcesInsideTheProject(t *testing.T) {
 	if raw, err := p.Read("assets/a.css"); err != nil || string(raw) != "a{}" {
 		t.Fatalf("Read: %q %v", raw, err)
 	}
-	if _, err := p.Path("output.next-123/x"); err == nil {
-		write(t, p.Root, "output.next-123/x", "")
+	write(t, p.Root, "output.next-123/x.css", "half-published")
+	if _, err := p.Path("output.next-123/x.css"); err == nil {
+		t.Fatal("an interrupted publish became a source")
 	}
 }
 
