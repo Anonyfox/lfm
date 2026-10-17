@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -23,7 +24,8 @@ var initCommand = command{
 	summary: "Create a new project that compiles cleanly",
 	details: `
 Writes the starter files into the directory (default: the current one),
-creating it when needed. Existing files are never overwritten.`,
+creating it when needed. Unrelated files may exist; if any starter file is
+already there, nothing is written at all.`,
 	run: func(_ context.Context, env Env, p parsed) error {
 		dir, err := p.directory("init")
 		if err != nil {
@@ -60,13 +62,17 @@ installed. Missing tools are reported and skipped, never installed.
 Chrome is found on PATH and in standard locations, or via LFM_CHROME.
 Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.`,
 	flags: []flagSpec{{name: "release", usage: "also run browser-backed optimization and audits"}},
-	run: func(_ context.Context, env Env, p parsed) error {
+	run: func(ctx context.Context, env Env, p parsed) error {
 		dir, err := p.directory("compile")
 		if err != nil {
 			return err
 		}
-		result, err := compile.Compile(dir, compile.Options{Publish: true, Release: p.has("release")})
-		renderResult(env.Stdout, term.For(env.Stdout), result, err)
+		s := term.For(env.Stdout)
+		result, err := compile.Compile(ctx, dir, compile.Options{Publish: true, Release: p.has("release"), Waiting: waiting(env.Stdout, s)})
+		if result.Root == "" || errors.Is(err, context.Canceled) {
+			return err // nothing was compiled: a missing directory or Ctrl-C
+		}
+		renderResult(env.Stdout, s, result, err)
 		if err != nil {
 			return errReported
 		}
@@ -100,6 +106,7 @@ good page. A busy default port falls back to a free one; --port 0 picks one.`,
 		s := term.For(env.Stdout)
 		return serve.Serve(ctx, dir, serve.Options{
 			Port: port, ExplicitPort: p.has("port"), Open: p.has("open"), Log: env.Stdout,
+			Waiting: waiting(env.Stdout, s),
 			OnBuild: func(r compile.Result, err error) { renderResult(env.Stdout, s, r, err); fmt.Fprintln(env.Stdout) },
 		})
 	},
@@ -170,7 +177,7 @@ func printRules(w io.Writer, filter string) error {
 		}
 	}
 	if len(families) == 0 {
-		return fmt.Errorf("no rule or family named %q; run 'lfm rules' for the list", filter)
+		return usageError("no rule or family named %q; run 'lfm rules' for the list", filter)
 	}
 	names := make([]string, 0, len(families))
 	for family := range families {
@@ -208,9 +215,18 @@ func printRule(w io.Writer, s term.Style, rule diagnostic.RuleInfo, id string) {
 	fmt.Fprintf(w, "Required: no. Change its level (off, warn or error) in lfm.json:\n\n  \"build\": {\"validation\": {\"rules\": {%q: \"off\"}}}\n", id)
 }
 
+// quote makes a path safe to paste into a POSIX shell.
 func quote(path string) string {
-	if strings.ContainsAny(path, " '\"$`\\") {
-		return strconv.Quote(path)
+	path = filepath.Clean(path)
+	for _, r := range path {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("._/-", r)) {
+			return "'" + strings.ReplaceAll(path, "'", `'\''`) + "'"
+		}
 	}
-	return filepath.Clean(path)
+	return path
+}
+
+// waiting announces that another compile of the project holds the lock.
+func waiting(w io.Writer, s term.Style) func() {
+	return func() { fmt.Fprintln(w, s.Dim("waiting for another compile of this project to finish…")) }
 }

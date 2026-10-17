@@ -2,7 +2,9 @@ package compile
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -104,7 +106,7 @@ func parsePage(t *testing.T, value string) []*html.Node {
 
 func TestInlineBuild(t *testing.T) {
 	root := fixture(t)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +181,7 @@ func TestInlineBuild(t *testing.T) {
 		t.Fatal("output must be readable by the deployment server")
 	}
 	first := page
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != first {
@@ -192,7 +194,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "output/stale.txt", "old")
 	write(t, root, "output/old/nested.txt", "old")
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +224,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "<h1>", "<h1 id=changed>", 1))
-	if _, err := Compile(root, Options{}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -279,7 +281,7 @@ func TestFailuresPreserveOutput(t *testing.T) {
 			root := fixture(t)
 			write(t, root, "output/sentinel.txt", "last good build")
 			test.change(t, root)
-			report, err := Compile(root, Options{Publish: true})
+			report, err := Compile(context.Background(), root, Options{Publish: true})
 			message := ""
 			if err != nil {
 				message = err.Error()
@@ -306,7 +308,7 @@ func TestOutputSymlinkAndBuildLock(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root, "output")); err != nil {
 		t.Skip(err)
 	}
-	if _, err := Compile(root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "symlink") {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "symlink") {
 		t.Fatalf("got %v", err)
 	}
 	if read(t, outside, "keep.txt") != "safe" {
@@ -320,21 +322,40 @@ func TestOutputSymlinkAndBuildLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	unlock, err := lock(real)
+	unlock, err := lock(context.Background(), real, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	waited := make(chan struct{}, 1)
 	done := make(chan error, 1)
-	go func() { _, err := Compile(root, Options{Publish: true}); done <- err }()
+	go func() {
+		_, err := Compile(context.Background(), root, Options{Publish: true, Waiting: func() { waited <- struct{}{} }})
+		done <- err
+	}()
 	select {
 	case err := <-done:
 		t.Fatalf("compile ran while the project was locked: %v", err)
-	case <-time.After(300 * time.Millisecond):
+	case <-waited:
+	case <-time.After(5 * time.Second):
+		t.Fatal("waiting was not announced")
 	}
 	unlock()
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
+	// Cancelling a waiting compile stops it without publishing.
+	unlock, err = lock(context.Background(), real, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() { _, err := Compile(ctx, root, Options{Publish: true}); done <- err }()
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled compile returned %v", err)
+	}
+	unlock()
 	assertClean(t, root)
 }
 
@@ -360,7 +381,7 @@ func TestRemoteResourcesAndClassicGlobals(t *testing.T) {
 	write(t, root, "index.html.tmpl", `<!doctype html><html><head><link rel="canonical" href="{{.url}}"><link rel="stylesheet" href="{{.urls.stylesheet}}"></head><body>
 <img src="{{.urls.image}}"><script src="{{.urls.sdk}}"></script>
 <script>function publishedHandler() { return "</scr" + "ipt>"; }</script></body></html>`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -399,7 +420,7 @@ func TestExample(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,5 +433,53 @@ func TestExample(t *testing.T) {
 	}
 	if !bytes.Contains([]byte(page), []byte("data:image/svg+xml,")) && !bytes.Contains([]byte(page), []byte("data:image/svg+xml;base64,")) {
 		t.Fatal("example diagram missing")
+	}
+}
+
+func TestCancelledCompileNeverPublishes(t *testing.T) {
+	root := fixture(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	r, err := Compile(ctx, root, Options{Publish: true})
+	if !errors.Is(err, context.Canceled) || r.Published {
+		t.Fatalf("%v %+v", err, r)
+	}
+	if _, err := os.Stat(filepath.Join(root, "output")); !os.IsNotExist(err) {
+		t.Fatal("a cancelled compile wrote output")
+	}
+	if r.Validation != nil && r.Errors() > 0 {
+		t.Fatal("cancellation must not be reported as a build failure")
+	}
+}
+
+func TestMissingProjectIsAPlainError(t *testing.T) {
+	r, err := Compile(context.Background(), filepath.Join(t.TempDir(), "absent"), Options{Publish: true})
+	if err == nil || r.Validation != nil {
+		t.Fatalf("%v %+v", err, r.Validation)
+	}
+}
+
+func TestPublishSurvivesCleanupFailureAndRollsBack(t *testing.T) {
+	root := fixture(t)
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
+		t.Fatal(err)
+	}
+	// A read-only old output cannot be deleted after the swap; that is not a failure.
+	if err := os.Chmod(filepath.Join(root, "output"), 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		filepath.Walk(root, func(path string, _ os.FileInfo, _ error) error { return os.Chmod(path, 0o755) })
+	})
+	r, err := Compile(context.Background(), root, Options{Publish: true})
+	if err != nil || !r.Published {
+		t.Fatalf("successful swap reported as failure: %v", err)
+	}
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
+		t.Fatal(err)
+	}
+	matches, _ := filepath.Glob(filepath.Join(root, "output.next-*"))
+	for _, m := range matches {
+		os.Chmod(m, 0o755)
 	}
 }

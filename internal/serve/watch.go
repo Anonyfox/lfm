@@ -33,31 +33,36 @@ func newMonitor(root string) *monitor {
 // with no platform processes or watcher limits. A file is read and hashed only
 // when its size, mode or modification time changed, or while that time is
 // recent enough that a coarse-grained file system could hide a same-size edit.
+// stamp describes one file. ok is false for files that are not regular.
+func (m *monitor) stamp(path string) (s stamp, ok bool) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return stamp{Error: err.Error()}, true
+	}
+	if !info.Mode().IsRegular() {
+		return stamp{}, false
+	}
+	s = stamp{Size: info.Size(), Time: info.ModTime().UnixNano(), Mode: info.Mode()}
+	settled := time.Since(info.ModTime()) > 2*time.Second
+	if old, cached := m.cache[path]; cached && old.Error == "" && old.Size == s.Size && old.Time == s.Time && old.Mode == s.Mode && settled {
+		s.Hash = old.Hash
+		return s, true
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		s.Error = err.Error()
+	} else {
+		s.Hash = sha256.Sum256(raw)
+	}
+	return s, true
+}
+
 func (m *monitor) snapshot() map[string]stamp {
 	current := map[string]stamp{}
 	add := func(path string) {
-		info, err := os.Stat(path)
-		if err != nil {
-			current[path] = stamp{Error: err.Error()}
-			return
+		if s, ok := m.stamp(path); ok {
+			current[path] = s
 		}
-		if !info.Mode().IsRegular() {
-			return
-		}
-		s := stamp{Size: info.Size(), Time: info.ModTime().UnixNano(), Mode: info.Mode()}
-		settled := time.Since(info.ModTime()) > 2*time.Second
-		if old, ok := m.cache[path]; ok && old.Error == "" && old.Size == s.Size && old.Time == s.Time && old.Mode == s.Mode && settled {
-			s.Hash = old.Hash
-			s.Error = old.Error
-		} else {
-			raw, err := os.ReadFile(path)
-			if err != nil {
-				s.Error = err.Error()
-			} else {
-				s.Hash = sha256.Sum256(raw)
-			}
-		}
-		current[path] = s
 	}
 	err := filepath.WalkDir(m.root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -119,7 +124,8 @@ func (m *monitor) snapshot() map[string]stamp {
 	return current
 }
 
-func (m *monitor) include(inputs []string) {
+// include watches resolved package files and returns the ones that are new.
+func (m *monitor) include(inputs []string) (added []string) {
 	for _, path := range inputs {
 		rel, err := filepath.Rel(m.root, path)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
@@ -128,15 +134,22 @@ func (m *monitor) include(inputs []string) {
 		if !strings.Contains(filepath.ToSlash(rel), "node_modules/") {
 			continue
 		}
-		m.dependencies[path] = true
+		watch := []string{path}
 		// Resolution can change through package.json, even when source bytes don't.
 		for parent := filepath.Dir(path); parent != m.root; parent = filepath.Dir(parent) {
-			m.dependencies[filepath.Join(parent, "package.json")] = true
+			watch = append(watch, filepath.Join(parent, "package.json"))
 			if parent == filepath.Dir(parent) {
 				break
 			}
 		}
+		for _, p := range watch {
+			if !m.dependencies[p] {
+				m.dependencies[p] = true
+				added = append(added, p)
+			}
+		}
 	}
+	return added
 }
 
 func changed(a, b map[string]stamp) bool {

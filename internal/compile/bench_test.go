@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"os"
 	"testing"
 )
@@ -15,7 +16,7 @@ func BenchmarkCompile(b *testing.B) {
 		}
 	}
 	for b.Loop() {
-		if _, err := Compile(dir, Options{Publish: true}); err != nil {
+		if _, err := Compile(context.Background(), dir, Options{Publish: true}); err != nil {
 			b.Fatal(err)
 		}
 	}

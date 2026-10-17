@@ -23,6 +23,9 @@ func main() {
 		version = info.Main.Version // installed with go install
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// The first signal cancels the running command; restoring the default
+	// handler lets a second one end the process at once.
+	go func() { <-ctx.Done(); stop() }()
 	code := cli.Run(ctx, cli.Env{Stdout: os.Stdout, Stderr: os.Stderr, Build: cli.Build{Version: version, Commit: commit, Date: date}}, os.Args[1:])
 	stop()
 	os.Exit(code)

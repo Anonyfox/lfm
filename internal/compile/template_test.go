@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 
 func TestMappingGateCollectsHardErrorsAndPreservesOutput(t *testing.T) {
 	root := fixture(t)
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
@@ -17,7 +18,7 @@ func TestMappingGateCollectsHardErrorsAndPreservesOutput(t *testing.T) {
 		c["build"].(map[string]any)["browserData"] = []string{"data.missingOne", "data.missingTwo"}
 	})
 	write(t, root, "index.html.tmpl", `<img src="assets/images/does-not-exist.svg">{{.data.firstMissing}}{{.data.secondMissing}}{{.data.unpublished}}`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Published || report.Validation == nil || report.Validation.Stage != "template" || report.Validation.Errors != 4 || report.Validation.Warnings != 0 || report.Validation.Stats.HTMLBytes != 0 {
 		t.Fatalf("%+v %v", report, err)
 	}
@@ -35,7 +36,7 @@ func TestMappingWarningsMergeWithHTMLGate(t *testing.T) {
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["data"].(map[string]any)["blank"] = "" })
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<p>{{.data.blank}}</p><img src="assets/images/picture.svg"></body>`, 1))
-	report, err := Compile(root, Options{})
+	report, err := Compile(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +59,7 @@ func TestMappingPoliciesAndRuntimeOnlyConsumption(t *testing.T) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"template.unused": "off", "template.inactive": "off"}}
 	})
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `{{if false}}{{.data.dormantMissing}}{{end}}</body>`, 1))
-	report, err := Compile(root, Options{})
+	report, err := Compile(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +71,7 @@ func TestMappingPoliciesAndRuntimeOnlyConsumption(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"template.bindings": "off"}}
 	})
-	report, err = Compile(root, Options{})
+	report, err = Compile(context.Background(), root, Options{})
 	if err == nil || report.Validation.Errors != 1 || !strings.Contains(report.Validation.Diagnostics[0].Message, "required safety") {
 		t.Fatal(report, err)
 	}
@@ -79,7 +80,7 @@ func TestEveryTemplateSyntaxFailureReported(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", `{{if}}`)
 	write(t, root, "partials/bad.html.tmpl", `{{range .data}}`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation.Errors != 2 || report.Validation.Warnings != 0 {
 		t.Fatal(report, err)
 	}
@@ -93,7 +94,7 @@ func TestDuplicateJSONRejectedBeforeBinding(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "lfm.json", strings.Replace(read(t, root, "lfm.json"), `"enabled":true`, `"enabled":true,"enabled":false`, 1))
 	write(t, root, "data/faq.json", `[{"id":"one","id":"two","question":"Q","answer":"A"}]`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation.Errors != 2 || report.Validation.Warnings != 0 {
 		t.Fatal(report, err)
 	}
@@ -106,7 +107,7 @@ func TestDuplicateJSONRejectedBeforeBinding(t *testing.T) {
 func TestContextualEscapingFailureIsUniform(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", `{{if .data.enabled}}<a href="{{end}}{{.title}}`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation.Errors != 1 || report.Validation.Diagnostics[0].Rule != "template.render" || report.Validation.Warnings != 0 {
 		t.Fatal(report, err)
 	}
@@ -123,7 +124,7 @@ func TestConfigProblemsCollectedWithLocations(t *testing.T) {
 	})
 	write(t, root, "data/bad1.json", `{"a":`)
 	write(t, root, "data/bad2.json", `[1,]`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation.Errors != 7 || report.Validation.Warnings != 0 {
 		t.Fatalf("%+v %v", report.Validation, err)
 	}
@@ -143,7 +144,7 @@ func TestReservedConfigCaseAndUnknowns(t *testing.T) {
 		c["other"] = true
 		c["build"].(map[string]any)["wrong"] = 1
 	})
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation.Errors != 3 || report.Validation.Warnings != 0 {
 		t.Fatalf("%+v %v", report.Validation, err)
 	}

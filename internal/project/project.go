@@ -32,6 +32,9 @@ func Open(dir string) (Project, error) {
 		return Project{}, err
 	}
 	root, err = filepath.EvalSymlinks(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return Project{}, fmt.Errorf("%s: no such directory", dir)
+	}
 	if err != nil {
 		return Project{}, err
 	}

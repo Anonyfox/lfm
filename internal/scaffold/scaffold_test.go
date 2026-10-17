@@ -1,6 +1,7 @@
 package scaffold
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,7 +26,7 @@ func TestCreatedProjectCompilesWithoutFindings(t *testing.T) {
 	if !strings.Contains(string(config), `"title": "Tea shop"`) || !strings.Contains(string(config), "https://example.com/tea-shop/") {
 		t.Fatalf("placeholders not filled:\n%s", config)
 	}
-	result, err := compile.Compile(dir, compile.Options{Publish: true})
+	result, err := compile.Compile(context.Background(), dir, compile.Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}

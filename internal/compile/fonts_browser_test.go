@@ -36,7 +36,7 @@ func TestBrowserFontPackingAndPreloadReuse(t *testing.T) {
 	source := helperHTML("", `<link rel="preload" as="font" href="demo.woff2"><style>@font-face{font-family:Demo;src:local("Lykos absent font"),url(./demo.woff2) format(woff2);font-display:swap;font-weight:400;unicode-range:U+0-FF;size-adjust:105%}body{margin:16px;font:20px Demo,serif}h1{font-weight:400}</style>`)
 	source = strings.Replace(source, `<img src="assets/images/picture.svg" srcset="data:image/png;base64,aGVsbG8= 1x, assets/images/picture.svg 2x" alt="diagram">`, "", 1)
 	write(t, root, "index.html.tmpl", source)
-	r, err := Compile(root, Options{Publish: true})
+	r, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}

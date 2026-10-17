@@ -2,6 +2,7 @@ package compile
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"net/url"
 	"strings"
@@ -37,7 +38,7 @@ func TestSVGEncodingSurvivesBundlingAndPacking(t *testing.T) {
 	raw := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><defs><linearGradient id="paint"><stop stop-color="#f00"/></linearGradient></defs><path fill="url(#paint)" d="M0,0h20v20z"/><text xml:space="preserve">  café 🐺 &amp; 50% </text></svg>`
 	write(t, root, "assets/images/picture.svg", raw)
 	write(t, root, "assets/styles/main.css", `.hero{background:url('../images/picture.svg#paint')}`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +81,7 @@ func TestSVGSidecarRewritePreservesFragments(t *testing.T) {
 	raw := `<svg xmlns="http://www.w3.org/2000/svg"><!--` + strings.Repeat("many repeated source bytes ", 300) + `--><view id="crop" viewBox="0 0 10 10"/><path d="M0 0h10v10z"/></svg>`
 	write(t, root, "assets/images/picture.svg", raw)
 	write(t, root, "index.html.tmpl", `<!doctype html><html lang="{{.language}}"><head><link rel="canonical" href="{{.url}}"><title>{{.title}}</title><style>.a{background:url('assets/images/picture.svg#crop')}</style></head><body><h1>{{.title}}</h1>`+strings.Repeat(`<img src="assets/images/picture.svg#crop" alt="diagram">`, 5)+`</body></html>`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}

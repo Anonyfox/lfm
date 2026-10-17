@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"os"
@@ -70,7 +71,7 @@ func TestPackagesVendorFormatsAndTreeShaking(t *testing.T) {
 			write(t, root, "assets/scripts/vendor/typed.ts", `export const number:number=7;`)
 			write(t, root, "assets/images/unused.webp", "UNUSED_ASSET_MARKER")
 			write(t, root, "assets/scripts/app.js", `import {value,mode} from "fixture-pkg"; import old from "./vendor/old.cjs"; import modern from "./vendor/modern.mjs"; import {number} from "./vendor/typed.ts"; import unused from "../images/unused.webp"; import "fixture-pkg/styles.css"; window.result=[value,old(),modern,number,mode];`)
-			report, err := Compile(root, Options{Publish: true})
+			report, err := Compile(context.Background(), root, Options{Publish: true})
 			if err != nil {
 				t.Fatalf("%v %+v", err, report.Validation)
 			}
@@ -112,7 +113,7 @@ func TestMultipleEntriesShareOneGraph(t *testing.T) {
 	write(t, root, "assets/scripts/app.js", `import {value} from "./shared.mjs";window.events.push("first:"+value);`)
 	write(t, root, "assets/scripts/second.cjs", `const {value}=require("./shared.mjs");window.events.push("second:"+value);`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<script src="assets/scripts/second.cjs"></script></body>`, 1))
-	if report, err := Compile(root, Options{Publish: true}); err != nil {
+	if report, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
 	blobs := executableBlobs(t, root)
@@ -130,7 +131,7 @@ func TestUntypedModuleEntriesWork(t *testing.T) {
 		root := fixture(t)
 		write(t, root, "assets/scripts/app.js", source)
 		write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, `type="module" src="assets/scripts/app.js"`, `src="assets/scripts/app.js"`, 1))
-		if report, err := Compile(root, Options{Publish: true}); err != nil {
+		if report, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 			t.Fatalf("%v %+v", err, report.Validation)
 		}
 		result := runModule(t, executableBlobs(t, root)[0])
@@ -145,7 +146,7 @@ func TestCSSMediaOrderAndNativeBoundaries(t *testing.T) {
 	write(t, root, "assets/styles/second.css", `.hero{color:blue}.never-in-static-html{display:block}`)
 	write(t, root, "assets/styles/alternate.css", `.hero{color:green}`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</head>", `<style>.hero{color:red}</style><link rel="stylesheet" href="assets/styles/second.css" media="print"><link rel="alternate stylesheet" title="Green" href="assets/styles/alternate.css"><link id="switchable" rel="stylesheet" href="assets/styles/second.css" media="screen" disabled></head>`, 1))
-	if report, err := Compile(root, Options{Publish: true}); err != nil {
+	if report, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
 	var css string
@@ -171,7 +172,7 @@ func TestDeferredClassicKeepsNativeSource(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "assets/scripts/global.js", `function globalHandler(){return 42}`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, `<script type="module" src="assets/scripts/app.js"></script>`, `<script defer src="assets/scripts/global.js"></script>`, 1))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	found := false
@@ -187,12 +188,12 @@ func TestDeferredClassicKeepsNativeSource(t *testing.T) {
 
 func TestPackageFailurePreservesOutput(t *testing.T) {
 	root := fixture(t)
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
 	write(t, root, "assets/scripts/app.js", `import value from "not-installed-package";window.value=value;`)
-	if _, err := Compile(root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "npm ci") {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "npm ci") {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -207,7 +208,7 @@ func TestPackageFailurePreservesOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, root, "assets/scripts/app.js", `import "escape";`)
-	if _, err := Compile(root, Options{Publish: true}); err == nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil {
 		t.Fatal("package symlink escaped the project")
 	}
 }
@@ -217,7 +218,7 @@ func TestLegacyUMDAndClassicGlobalsRemainAvailable(t *testing.T) {
 	write(t, root, "package.json", `{"type":"module"}`)
 	write(t, root, "assets/scripts/legacy.js", `(function(root,factory){if(typeof module==="object" && module.exports)module.exports=factory();else root.Legacy=factory()})(window,function(){return {answer:42}});`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, `<script type="module" src="assets/scripts/app.js"></script>`, `<script data-lfm-classic src="assets/scripts/legacy.js"></script><script>function publishedHandler(){return window.Legacy.answer}window.result=publishedHandler()</script>`, 1))
-	if report, err := Compile(root, Options{Publish: true}); err != nil {
+	if report, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
 	page := read(t, root, "output/index.html")
@@ -250,7 +251,7 @@ func TestHTMLTemplateBundlesStayDormant(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "assets/scripts/dormant.js", `window.dormant=true;`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<template id="result"><style>.dormant{color:red}</style><div class="dormant">Future</div><script type="module" src="assets/scripts/dormant.js"></script></template></body>`, 1))
-	if report, err := Compile(root, Options{Publish: true}); err != nil {
+	if report, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
 	styles, scripts := 0, 0

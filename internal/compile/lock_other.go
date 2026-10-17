@@ -2,5 +2,7 @@
 
 package compile
 
+import "context"
+
 // Without flock, concurrent compiles of one project are not serialized.
-func lock(string) (func(), error) { return func() {}, nil }
+func lock(context.Context, string, func()) (func(), error) { return func() {}, nil }

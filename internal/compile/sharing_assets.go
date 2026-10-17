@@ -138,9 +138,10 @@ func (b *builder) socialImageSizes(doc *html.Node) {
 		}
 	})
 	for _, g := range groups {
-		u, err := url.Parse(htmlx.Attr(g.root, "content"))
-		if err != nil {
-			continue
+		content := htmlx.Attr(g.root, "content")
+		u, err := url.Parse(content)
+		if err != nil || !strings.HasPrefix(content, b.config.URL) {
+			continue // only images this compile emitted sit under the page URL
 		}
 		file, ok := b.files[strings.ToLower(path.Base(u.Path))]
 		if !ok {

@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,7 +29,7 @@ func TestHelpersLocalPartialPackageAndRepeatedDeclarations(t *testing.T) {
 	write(t, root, "theme.css", `@import './base.css';.hero{color:blue}`)
 	write(t, root, "base.css", `body{margin:0}`)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "features/main.ts"}}{{template "widget" .}}{{script "demo"}}{{script "./features/main.ts"}}{{script "demo"}}`, `{{style "theme.css"}}{{style "demo/theme.css"}}{{style "./theme.css"}}`))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -61,13 +62,13 @@ func TestHelpersLocalPartialPackageAndRepeatedDeclarations(t *testing.T) {
 func TestHelperErrorsAggregatedBeforeStaging(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "missing-a.js"}}{{script "missing-b.js"}}`, `{{style ""}}`))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation == nil || report.Validation.Errors != 3 {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
 	assertClean(t, root)
 	write(t, root, "index.html.tmpl", helperHTML(`{{if false}}{{script "missing.js"}}{{end}}{{script "assets/scripts/app.js"}}`, `{{style "assets/styles/main.css"}}`))
-	report, err = Compile(root, Options{Publish: true})
+	report, err = Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +91,7 @@ func TestHelperContextsDormancyAndFileOverrides(t *testing.T) {
 		c["build"].(map[string]any)["assets"].(map[string]any)["overrides"] = map[string]any{"app.js": "file", "theme.css": "file"}
 	})
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "app.js"}}<template>{{script "app.js"}}{{style "theme.css"}}{{script "app.js"}}</template>`, `{{style "theme.css"}}`))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -104,7 +105,7 @@ func TestHelperContextsDormancyAndFileOverrides(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	write(t, root, "index.html.tmpl", helperHTML(`<p title='{{script "app.js"}}'>Bad</p>`, `{{style "theme.css"}}`))
-	if _, err := Compile(root, Options{Publish: true}); err == nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil {
 		t.Fatal("helper in attribute accepted")
 	}
 	if read(t, root, "output/index.html") != before {
@@ -117,7 +118,7 @@ func TestCSSModulesImportedFromHelperEntry(t *testing.T) {
 	write(t, root, "ui.module.css", `.card{color:rebeccapurple}.unused{color:green}`)
 	write(t, root, "ui.js", `import classes from './ui.module.css';window.cssClass=classes.card;`)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "ui.js"}}`, `{{style "assets/styles/main.css"}}`))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	result := runModule(t, executableBlobs(t, root)[0])
@@ -125,11 +126,11 @@ func TestCSSModulesImportedFromHelperEntry(t *testing.T) {
 		t.Fatal(result)
 	}
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "ui.js"}}`, `{{style "ui.module.css"}}`))
-	if _, err := Compile(root, Options{Publish: true}); err == nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil {
 		t.Fatal("CSS module accepted without class mapping")
 	}
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "ui.js"}}`, `<link rel="stylesheet" href="ui.module.css">`))
-	if _, err := Compile(root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "import .module.css") {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "import .module.css") {
 		t.Fatalf("native CSS module entry: %v", err)
 	}
 }
@@ -141,7 +142,7 @@ func TestIndependentCSSModuleGraphsCannotSilentlyCollide(t *testing.T) {
 	write(t, root, "first.js", `import css from './first.module.css';window.first=css.card`)
 	write(t, root, "second.js", `import css from './second.module.css';window.second=css.card`)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "first.js"}}{{script "second.js"}}`, `{{style "assets/styles/main.css"}}`))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
@@ -152,7 +153,7 @@ func TestIndependentCSSModuleGraphsCannotSilentlyCollide(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["assets"].(map[string]any)["overrides"] = map[string]any{"second.js": "file"}
 	})
-	if _, err := Compile(root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "CSS Modules must share") {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "CSS Modules must share") {
 		t.Fatalf("%v", err)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -168,7 +169,7 @@ func TestHelperPathsCannotEscapeOrReadGeneratedSources(t *testing.T) {
 				write(t, root, name, `window.bad=true`)
 			}
 			write(t, root, "index.html.tmpl", helperHTML(fmt.Sprintf(`{{script %q}}`, name), `{{style "assets/styles/main.css"}}`))
-			if _, err := Compile(root, Options{Publish: true}); err == nil {
+			if _, err := Compile(context.Background(), root, Options{Publish: true}); err == nil {
 				t.Fatal("forbidden source accepted")
 			}
 		})
@@ -182,14 +183,14 @@ func TestHelperConfigBindingsLoopsAndPipelines(t *testing.T) {
 		c["data"].(map[string]any)["css"] = "assets/styles/main.css"
 	})
 	write(t, root, "index.html.tmpl", helperHTML(`{{range .data.scripts}}{{. | script}}{{end}}`, `{{style .data.css}}`))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if len(executableBlobs(t, root)) != 1 {
 		t.Fatal("loop did not deduplicate helpers")
 	}
 	changeConfig(t, root, func(c map[string]any) { c["data"].(map[string]any)["css"] = 42 })
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation == nil || report.Validation.Errors != 1 {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}

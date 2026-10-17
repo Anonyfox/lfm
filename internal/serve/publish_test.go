@@ -2,6 +2,8 @@ package serve
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/compile"
@@ -30,5 +32,30 @@ func TestPublishReloadsOnlyWhenTheShownPageChanges(t *testing.T) {
 	p.publish(same, nil)
 	if v := p.snapshot(); v.Version != 3 || v.Problem != "" {
 		t.Fatalf("recovery must reload: %+v", v)
+	}
+}
+
+func TestNewDependenciesJoinTheBaseline(t *testing.T) {
+	root := t.TempDir()
+	dep := filepath.Join(root, "node_modules", "pkg", "index.js")
+	if err := os.MkdirAll(filepath.Dir(dep), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dep, []byte("export default 1"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m := newMonitor(root)
+	previous := m.snapshot()
+	added := m.include([]string{dep})
+	if len(added) == 0 || len(m.include([]string{dep})) != 0 {
+		t.Fatalf("include must report each path once: %v", added)
+	}
+	for _, path := range added {
+		if s, ok := m.stamp(path); ok {
+			previous[path] = s
+		}
+	}
+	if changed(previous, m.snapshot()) {
+		t.Fatal("watching a new dependency looked like an edit")
 	}
 }

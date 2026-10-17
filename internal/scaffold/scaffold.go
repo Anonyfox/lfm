@@ -32,6 +32,9 @@ func Create(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if info, err := os.Stat(abs); err == nil && !info.IsDir() {
+		return nil, fmt.Errorf("%s is a file, not a directory", dir)
+	}
 	name := filepath.Base(abs)
 	replacer := strings.NewReplacer("__TITLE__", Title(name), "__SLUG__", Slug(name))
 	planned := map[string][]byte{}

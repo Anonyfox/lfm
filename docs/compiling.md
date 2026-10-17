@@ -41,7 +41,9 @@ stay exactly as written. Each compacted result is parsed and compared with the o
 configured `url`. It is replaced as a whole; there are no stale files, sources or reports in it.
 
 Compiles of the same project are serialized across processes by locking the project directory; no lock
-file is created. Nothing is ever written into the project except `output/`.
+file is created, and a second compile waits and says so. Nothing is written into the project except
+`output/` and, only while publishing, a sibling `output.next-*` folder that the swap removes again.
+Ctrl-C stops a compile between stages; a stopped compile never publishes.
 
 ## Release
 

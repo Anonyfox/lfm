@@ -2,6 +2,7 @@ package compile
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"image/png"
@@ -28,7 +29,7 @@ func TestAutomaticPackingUsesRolesAndWholeDocument(t *testing.T) {
 	page := read(t, root, "index.html.tmpl")
 	page = strings.Replace(page, "</body>", `<img src="tiny.svg" alt="tiny" width="10" height="10"><img src="large.png" alt="large" width="10" height="10"><img src="lazy.webp" loading="lazy" alt="lazy" width="10" height="10"><img src="small.webp" srcset="small.webp 1x, tiny.svg 2x" alt="responsive" width="10" height="10"></body>`, 1)
 	write(t, root, "index.html.tmpl", page)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -52,7 +53,7 @@ func TestAutomaticPackingUsesRolesAndWholeDocument(t *testing.T) {
 		t.Fatal(report.Cost)
 	}
 	before := output
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -69,7 +70,7 @@ func TestPackingTargetAndPins(t *testing.T) {
 		imgs.WriteString(`<img width="10" height="10" alt="image" src="` + name + `">`)
 	}
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", imgs.String()+"</body>", 1))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -85,7 +86,7 @@ func TestPackingTargetAndPins(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["assets"] = map[string]any{"overrides": map[string]any{"A.png": "inline"}}
 	})
-	report, err = Compile(root, Options{Publish: true})
+	report, err = Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +108,7 @@ func TestPackingRewritesGeneratedCodeButPreservesInertAndVisibleData(t *testing.
 	page := helperHTML(`{{script "app.js"}}`, `{{style "theme.css"}}`)
 	page = strings.Replace(page, "</body>", `<p title="`+uri+`">`+uri+`</p><script type="application/json">{"original":"{{.urls.original}}"}</script></body>`, 1)
 	write(t, root, "index.html.tmpl", page)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -161,7 +162,7 @@ func TestIdenticalAssetAliasesHonorInlinePin(t *testing.T) {
 		c["build"].(map[string]any)["assets"] = map[string]any{"overrides": map[string]any{"b.png": "inline"}}
 	})
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", `<img src="a.png" alt="a"><img src="b.png" alt="b"></body>`, 1))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +174,7 @@ func TestIdenticalAssetAliasesHonorInlinePin(t *testing.T) {
 func TestFaviconFallbackAndAuthoredIdentity(t *testing.T) {
 	root := autoFixture(t)
 	write(t, root, "index.html.tmpl", helperHTML("", ""))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	var icon *html.Node
@@ -195,7 +196,7 @@ func TestFaviconFallbackAndAuthoredIdentity(t *testing.T) {
 	}
 	write(t, root, "custom.png", string(raw))
 	write(t, root, "index.html.tmpl", helperHTML("", `<link rel="shortcut icon" id="live-icon" href="custom.png">`))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	count := 0
@@ -223,7 +224,7 @@ func TestLocalHintsFollowCompiledFilesAndDropInlineResources(t *testing.T) {
 	})
 	head := `<link rel="preload" as="font" href="font.woff2"><link rel="preload" as="image" href="tiny.png"><link rel="modulepreload" href="one.js"><style>@font-face{font-family:Example;src:url('./font.woff2')}</style>`
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "one.js"}}{{script "two.js"}}`, head))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -265,7 +266,7 @@ func TestAutomaticSidecarsEscapeCSSAndResolveBasenameCollisions(t *testing.T) {
 	write(t, root, "two/same(a).png", strings.Repeat("b", 30000))
 	write(t, root, "theme.css", `.one{background:url('./one/same(a).png')}.two{background:url('./two/same(a).png')}`)
 	write(t, root, "index.html.tmpl", helperHTML("", `{{style "theme.css"}}`))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -290,7 +291,7 @@ func TestAutomaticCodePackingPreservesNativeInlineBoundaries(t *testing.T) {
 	write(t, root, "app.js", `window.moduleValue="`+large+`"`)
 	page := helperHTML(`{{script "app.js"}}<script>window.classicValue="`+large+`"</script>`, "")
 	write(t, root, "index.html.tmpl", page)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,7 +325,7 @@ func TestUnusedLargeAutomaticImportDoesNotEmitSidecar(t *testing.T) {
 	write(t, root, "unused.png", strings.Repeat("x", 100000))
 	write(t, root, "app.js", `import unused from './unused.png';window.answer=42`)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "app.js"}}`, ""))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,7 +345,7 @@ func TestSmallLinkedDocumentKeepsNavigableFileURL(t *testing.T) {
 	root := autoFixture(t)
 	write(t, root, "assets/free.pdf", "small PDF fixture")
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", `<a href="assets/free.pdf">Read the document</a></body>`, 1))
-	_, err := Compile(root, Options{Publish: true})
+	_, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +368,7 @@ func TestAutomaticFileNamesFollowContent(t *testing.T) {
 	write(t, root, "index.html.tmpl", page)
 	names := func() []string {
 		t.Helper()
-		r, err := Compile(root, Options{Publish: true})
+		r, err := Compile(context.Background(), root, Options{Publish: true})
 		if err != nil {
 			t.Fatal(err, r.Validation)
 		}

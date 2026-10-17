@@ -19,6 +19,7 @@ package compile
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -39,8 +40,9 @@ import (
 
 // Options select the optional lifecycle stages.
 type Options struct {
-	Release bool // browser-backed optimize and audit stages
-	Publish bool // replace output/ on success
+	Release bool   // browser-backed optimize and audit stages
+	Publish bool   // replace output/ on success
+	Waiting func() // called when another compile of the project holds the lock
 }
 
 // File is one emitted output file.
@@ -125,29 +127,34 @@ type builder struct {
 	names           map[string]string // source path -> emitted file name
 }
 
-// Compile runs the lifecycle on the project in dir.
-func Compile(dir string, options Options) (result Result, err error) {
-	start := time.Now()
-	defer func() {
-		result.Duration = time.Since(start)
-		if err != nil && result.Errors() == 0 {
-			// Operational failures (unreadable files, bundler errors) join the
-			// same report as quality findings, as one required rule.
-			result.Validation = summarize("build", append(diagnostics(result), diagnostic.Diagnostic{
-				Rule: "build.failed", Severity: diagnostic.Error,
-				Location: diagnostic.Location{File: project.TemplateFile, Line: 1, Column: 1},
-				Message:  err.Error(),
-				Hint:     "Fix the named source, path or bundler error and compile again; the previous output is kept.",
-			}))
-		}
-	}()
-
-	// 1. load
+// Compile runs the lifecycle on the project in dir. Cancelling ctx stops it
+// between stages; a cancelled compile never publishes.
+func Compile(ctx context.Context, dir string, options Options) (result Result, err error) {
 	p, err := project.Open(dir)
 	if err != nil {
 		return result, err
 	}
 	result.Root, result.Output = p.Root, p.Output()
+	unlock, err := lock(ctx, p.Root, options.Waiting)
+	if err != nil {
+		return result, err
+	}
+	defer unlock()
+	start := time.Now()
+	defer func() {
+		result.Duration = time.Since(start)
+		if err != nil && !errors.Is(err, context.Canceled) && result.Errors() == 0 {
+			// Operational failures (unreadable files, bundler errors) join the
+			// same report as quality findings, as one required rule.
+			result.Validation = summarize("build", append(diagnostics(result), diagnostic.Diagnostic{
+				Rule: "build.failed", Severity: diagnostic.Error,
+				Message: err.Error(),
+				Hint:    "Fix the named source, path or bundler error and compile again; the previous output is kept.",
+			}))
+		}
+	}()
+
+	// 1. load
 	loaded := project.Load(p, ruleCheck)
 	c := loaded.Config
 	result.PageURL = c.URL
@@ -158,11 +165,9 @@ func Compile(dir string, options Options) (result Result, err error) {
 	if err != nil {
 		return result, err
 	}
-	unlock, err := lock(p.Root)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return result, err
 	}
-	defer unlock()
 
 	// 3. assemble
 	b := &builder{project: p, root: p.Root, outDir: p.Output(), config: c, files: map[string]emitted{}, external: map[string]bool{}, inlineSources: map[[32]byte][]string{}, helpers: prepared.Helpers}
@@ -172,6 +177,10 @@ func Compile(dir string, options Options) (result Result, err error) {
 		return result, fmt.Errorf("HTML: %w", err)
 	}
 	if err := b.assemble(doc, loaded.Values, prepared, &result); err != nil {
+		return result, err
+	}
+
+	if err := ctx.Err(); err != nil {
 		return result, err
 	}
 
@@ -218,7 +227,7 @@ func Compile(dir string, options Options) (result Result, err error) {
 	}
 
 	// 7. audit
-	if options.Release {
+	if options.Release && ctx.Err() == nil {
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
@@ -233,6 +242,9 @@ func Compile(dir string, options Options) (result Result, err error) {
 	}
 
 	// 8. publish
+	if err := ctx.Err(); err != nil {
+		return result, err
+	}
 	if options.Publish {
 		if err := publish(p, result.Artifact); err != nil {
 			return result, err

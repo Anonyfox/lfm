@@ -35,9 +35,13 @@ func commands() []command {
 }
 
 // Run executes args and returns the process exit code: 0 success, 1 failure,
-// 2 a mistake in the command line.
+// 2 a mistake in the command line, 130 interrupted.
 func Run(ctx context.Context, env Env, args []string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+		if len(args) > 2 {
+			fmt.Fprintln(env.Stderr, "lfm: help takes at most one command")
+			return 2
+		}
 		if len(args) > 1 {
 			if c, ok := find(args[1]); ok {
 				printCommandHelp(env.Stdout, c)
@@ -73,6 +77,9 @@ func Run(ctx context.Context, env Env, args []string) int {
 		return 2
 	case errors.Is(err, errReported):
 		return 1
+	case errors.Is(err, context.Canceled):
+		fmt.Fprintln(env.Stderr, "lfm: interrupted")
+		return 130
 	default:
 		fmt.Fprintf(env.Stderr, "lfm: %v\n", err)
 		return 1

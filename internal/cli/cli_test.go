@@ -53,6 +53,7 @@ func TestUsageErrorsExitTwo(t *testing.T) {
 		{[]string{"serve", "--port", "http"}, "--port needs a number"},
 		{[]string{"serve", "--open", "--open"}, "--open given twice"},
 		{[]string{"version", "x"}, "takes no arguments"},
+		{[]string{"help", "compile", "extra"}, "at most one command"},
 	} {
 		code, out, errs := run(t, tc.args...)
 		if code != 2 || out != "" || !strings.Contains(errs, tc.want) {
@@ -118,7 +119,7 @@ func TestRulesListsExplainsAndRejects(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "Required") {
 		t.Fatalf("required: %d %q", code, out)
 	}
-	if code, _, errs := run(t, "rules", "nope"); code != 1 || !strings.Contains(errs, `no rule or family named "nope"`) {
+	if code, _, errs := run(t, "rules", "nope"); code != 2 || !strings.Contains(errs, `no rule or family named "nope"`) {
 		t.Fatalf("unknown: %d %q", code, errs)
 	}
 }
@@ -156,4 +157,39 @@ func FuzzParseNeverPanics(f *testing.F) {
 			}
 		}
 	})
+}
+
+func TestCompileMissingDirectory(t *testing.T) {
+	code, out, errs := run(t, "compile", filepath.Join(t.TempDir(), "absent"))
+	if code != 1 || out != "" || !strings.Contains(errs, "absent: no such directory") {
+		t.Fatalf("%d %q %q", code, out, errs)
+	}
+}
+
+func TestInitOnAFile(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "notes.txt")
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, _, errs := run(t, "init", file); code != 1 || !strings.Contains(errs, "is a file, not a directory") {
+		t.Fatalf("%d %q", code, errs)
+	}
+}
+
+func TestQuoteIsShellSafe(t *testing.T) {
+	for in, want := range map[string]string{
+		"site":        "site",
+		"a/b-c_d.e":   "a/b-c_d.e",
+		"./site/":     "site",
+		"my site":     "'my site'",
+		"a;b":         "'a;b'",
+		"x$HOME":      "'x$HOME'",
+		"it's":        `'it'\''s'`,
+		"$(rm -rf ~)": "'$(rm -rf ~)'",
+		"café":        "'café'",
+	} {
+		if got := quote(in); got != want {
+			t.Errorf("quote(%q) = %q, want %q", in, got, want)
+		}
+	}
 }

@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
@@ -10,7 +11,7 @@ func TestFileLoaderPreservesResourceSuffixes(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "assets/styles/main.css", `.hero{background:url('../images/picture.svg?v=1#shape')}`)
 	write(t, root, "assets/scripts/extra.css", `.from-js{background:url('../images/picture.svg?v=2#other')}`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -25,7 +26,7 @@ func TestFileLoaderEncodesAssetNames(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "assets/images/a b#c.webp", "asset")
 	write(t, root, "assets/scripts/app.js", `import asset from "../images/a b#c.webp";window.asset=asset;`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}

@@ -1,4 +1,4 @@
-// Package preview serves immutable generated artifacts with automatic rebuilds.
+// Package serve previews compiled pages and recompiles them on every change.
 // Only HTTP responses receive the reload client; deployable output stays untouched.
 package serve
 
@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -30,6 +31,7 @@ type Options struct {
 	ExplicitPort bool
 	Open         bool
 	Log          io.Writer
+	Waiting      func() // another compile of the project holds its lock
 	OnBuild      func(compile.Result, error)
 }
 
@@ -58,8 +60,13 @@ func Serve(ctx context.Context, directory string, options Options) error {
 		return err
 	}
 	root := p0.Root
+	log := options.Log
+	if log == nil {
+		log = io.Discard
+	}
 	listener, err := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(options.Port)))
 	if err != nil && !options.ExplicitPort {
+		fmt.Fprintf(log, "port %d is busy, using a free one\n", options.Port)
 		listener, err = net.Listen("tcp4", "127.0.0.1:0")
 	}
 	if err != nil {
@@ -71,16 +78,21 @@ func Serve(ctx context.Context, directory string, options Options) error {
 		return err
 	}
 	p := &preview{subscribers: map[chan state]bool{}, prefix: "/__lfm_" + hex.EncodeToString(token), host: listener.Addr().String(), ctx: ctx, current: state{Path: "/"}}
-	log := options.Log
-	if log == nil {
-		log = io.Discard
-	}
 	monitor := newMonitor(root)
 	previous := monitor.snapshot()
 	cspReported := false
 	rebuild := func() {
-		report, err := compile.Compile(root, compile.Options{Publish: true})
-		monitor.include(report.Inputs)
+		report, err := compile.Compile(ctx, root, compile.Options{Publish: true, Waiting: options.Waiting})
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		// Newly resolved package files join the baseline, so watching them
+		// does not look like an edit on the next tick.
+		for _, path := range monitor.include(report.Inputs) {
+			if s, ok := monitor.stamp(path); ok {
+				previous[path] = s
+			}
+		}
 		if options.OnBuild != nil {
 			options.OnBuild(report, err)
 		}

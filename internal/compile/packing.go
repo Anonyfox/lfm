@@ -433,9 +433,6 @@ func inspectedFont(raw []byte) bool {
 	return i.Issue == "" && i.Unknown == ""
 }
 
-// Auto resources use one source-derived name in HTML and esbuild's file loader.
-// This prevents basename collisions BEFORE esbuild reconciles imported assets,
-// and stays stable when content changes. Explicit file policy retains basenames.
 // resourceName names the emitted file of a source. Automatically packed files
 // get a suffix hashed from their project path and content: the URL changes
 // whenever the bytes do, so hosts can cache files forever, and two sources with

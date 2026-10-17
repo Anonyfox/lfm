@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -14,7 +15,7 @@ func TestJSONLDCompilation(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"] = map[string]any{"@context": "https://schema.org", "@type": "WebPage", "url": "{{.url}}", "name": "{{.title}}", "description": "{{.description}}", "inLanguage": "{{.language}}", "identifier": "{{.data.quiz.prompt}}"}
 	})
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v: %+v", err, report.Validation)
 	}
@@ -69,7 +70,7 @@ func TestJSONLDFailuresPreserveOutput(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			root := fixture(t)
-			if _, err := Compile(root, Options{Publish: true}); err != nil {
+			if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 				t.Fatal(err)
 			}
 			before := read(t, root, "output/index.html")
@@ -77,7 +78,7 @@ func TestJSONLDFailuresPreserveOutput(t *testing.T) {
 			if tc.template != "" {
 				write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", tc.template+"</body>", 1))
 			}
-			report, err := Compile(root, Options{Publish: true})
+			report, err := Compile(context.Background(), root, Options{Publish: true})
 			if err == nil || report.Validation == nil || report.Published {
 				t.Fatalf("%+v %v", report, err)
 			}
@@ -105,7 +106,7 @@ func TestJSONLDUnknownContextAndDisabledBlock(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"] = map[string]any{"@context": "https://custom.example/context", "@type": "Custom", "name": "Name"}
 	})
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -119,7 +120,7 @@ func TestJSONLDUnknownContextAndDisabledBlock(t *testing.T) {
 		t.Fatal("missing offline context coverage advisory")
 	}
 	changeConfig(t, root, func(config map[string]any) { config["jsonld"] = nil })
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(read(t, root, "output/index.html"), "application/ld+json") {
@@ -136,7 +137,7 @@ func TestJSONLDEntityIdentifiersFollowURLPolicy(t *testing.T) {
 			map[string]any{"@id": "{{.urls.legacyEntity}}", "@type": "Thing", "name": "Legacy"},
 		}}
 	})
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -148,7 +149,7 @@ func TestJSONLDEntityIdentifiersFollowURLPolicy(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"].(map[string]any)["@graph"].([]any)[0].(map[string]any)["@id"] = "#undeclared"
 	})
-	report, err = Compile(root, Options{Publish: true})
+	report, err = Compile(context.Background(), root, Options{Publish: true})
 	if err == nil {
 		t.Fatal("undeclared fragment ID bypassed named URL policy")
 	}

@@ -48,7 +48,9 @@ func publish(p project.Project, files map[string][]byte) error {
 		return err
 	}
 	if previous != "" {
-		return os.RemoveAll(previous)
+		// The new output is live. A leftover previous tree is removed by the
+		// next publish and must not turn this success into a failure.
+		os.RemoveAll(previous)
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package compile
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"hash/crc32"
@@ -37,7 +38,7 @@ func imageProject(t *testing.T, body, styles string) string {
 func TestImageInferencePreservesAuthoredSizing(t *testing.T) {
 	body := `<img id="plain" src="assets/images/photo.png" alt=""><img id="width" src="assets/images/photo.png" width="006" alt=""><img id="height" src="assets/images/photo.png" height="4" alt=""><img id="both" src="assets/images/photo.png" width="5" height="7" alt=""><img id="zero" src="assets/images/photo.png" width="0" alt=""><img id="empty" src="assets/images/photo.png" width="" alt=""><img id="relative" src="assets/images/photo.png" width="50%" alt=""><img id="fraction" src="assets/images/photo.png" width="5" alt=""><template><img id="dormant" src="assets/images/photo.png" alt=""></template>`
 	root := imageProject(t, body, "")
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -89,7 +90,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 				body = "<" + test.wrapper + ">" + body + "</" + test.wrapper + ">"
 			}
 			root := imageProject(t, body, test.style)
-			report, err := Compile(root, Options{Publish: true})
+			report, err := Compile(context.Background(), root, Options{Publish: true})
 			if err != nil {
 				t.Fatal(err, report.Validation)
 			}
@@ -100,7 +101,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 		})
 	}
 	root := imageProject(t, `<img src="assets/images/photo.png" style="width:100%;height:auto" alt="">`, "")
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil || len(report.Images[0].Added) != 2 {
 		t.Fatal(err, report.Images)
 	}
@@ -112,7 +113,7 @@ func TestImageInferenceHandlesInlineFilesSVGAndResponsiveSelection(t *testing.T)
 	root := imageProject(t, body, "")
 	write(t, root, "fixed.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60"><view id="crop" viewBox="0 0 10 10"/></svg>`)
 	write(t, root, "ratio.svg", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60"/>`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -154,7 +155,7 @@ func TestOversizedImageWarningsAreActionableAndDeduplicated(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "large.png"), raw, 0644); err != nil {
 		t.Fatal(err)
 	}
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}

@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
@@ -11,7 +12,7 @@ import (
 
 func TestValidationGateAndExactBytes(t *testing.T) {
 	root := fixture(t)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +29,7 @@ func TestValidationGateAndExactBytes(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", tc.fragment+"</body>", 1))
-			report, err := Compile(root, Options{Publish: true})
+			report, err := Compile(context.Background(), root, Options{Publish: true})
 			var failure *Failure
 			if !errors.As(err, &failure) || report.Published || report.Validation == nil {
 				t.Fatalf("%+v %v", report, err)
@@ -52,7 +53,7 @@ func TestValidationGateAndExactBytes(t *testing.T) {
 
 func TestOversizedArtifactGivesSourceAndFileRemedy(t *testing.T) {
 	root := fixture(t)
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
@@ -60,7 +61,7 @@ func TestOversizedArtifactGivesSourceAndFileRemedy(t *testing.T) {
 	// final HTML accounting, not image codec validity.
 	write(t, root, "assets/images/large.png", strings.Repeat("a", 1_550_000))
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<img src="assets/images/large.png" width=1 height=1 alt=""></body>`, 1))
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation.Stats.HTMLBytes <= check.HTMLLimit {
 		t.Fatalf("%+v %v", report, err)
 	}
@@ -82,7 +83,7 @@ func TestOversizedArtifactGivesSourceAndFileRemedy(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["build"].(map[string]any)["assets"].(map[string]any)["overrides"] = map[string]any{"assets/images/large.png": "file"}
 	})
-	report, err = Compile(root, Options{Publish: true})
+	report, err = Compile(context.Background(), root, Options{Publish: true})
 	if err != nil || report.Validation.Stats.HTMLBytes > check.HTMLWarning || !report.Published {
 		t.Fatalf("file remedy failed: %+v %v", report, err)
 	}
@@ -97,13 +98,13 @@ func TestRuleConfiguration(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"html.ids": "warn"}}
 	})
-	if report, err := Compile(root, Options{Publish: true}); err != nil || !report.Published {
+	if report, err := Compile(context.Background(), root, Options{Publish: true}); err != nil || !report.Published {
 		t.Fatalf("warn override: %+v %v", report, err)
 	}
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"html.ids": "off"}}
 	})
-	report, err := Compile(root, Options{})
+	report, err := Compile(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +116,7 @@ func TestRuleConfiguration(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"typo": "off"}}
 	})
-	if _, err := Compile(root, Options{}); err == nil || !strings.Contains(err.Error(), "unknown rule") {
+	if _, err := Compile(context.Background(), root, Options{}); err == nil || !strings.Contains(err.Error(), "unknown rule") {
 		t.Fatalf("%v", err)
 	}
 }
@@ -124,7 +125,7 @@ func TestIdenticalEmbeddedSourcesStayDeterministic(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "assets/images/copy.svg", read(t, root, "assets/images/picture.svg"))
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<img src="assets/images/copy.svg" alt=""></body>`, 1))
-	report, err := Compile(root, Options{})
+	report, err := Compile(context.Background(), root, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +147,7 @@ func TestOperationalNoticesObeyConfigAndPreserveOutput(t *testing.T) {
 	root := fixture(t)
 	write(t, root, "unused.svg", `<svg xmlns="http://www.w3.org/2000/svg"/>`)
 	write(t, root, "index.html.tmpl", helperHTML("", `<link rel="preload" as="image" href="unused.svg">`))
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	original := read(t, root, "output/index.html")
@@ -154,7 +155,7 @@ func TestOperationalNoticesObeyConfigAndPreserveOutput(t *testing.T) {
 		changeConfig(t, root, func(c map[string]any) {
 			c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"assets.hint": level}}
 		})
-		r, err := Compile(root, Options{Publish: true})
+		r, err := Compile(context.Background(), root, Options{Publish: true})
 		if level == "error" {
 			if err == nil || r.Published || read(t, root, "output/index.html") != original {
 				t.Fatal("promoted lifecycle notice bypassed gate", err, r.Validation)
@@ -174,7 +175,7 @@ func TestOperationalNoticesObeyConfigAndPreserveOutput(t *testing.T) {
 
 func TestReleaseNoticesObeyConfigBeforePublishing(t *testing.T) {
 	root := fixture(t)
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	original := read(t, root, "output/index.html")
@@ -184,7 +185,7 @@ func TestReleaseNoticesObeyConfigBeforePublishing(t *testing.T) {
 		changeConfig(t, root, func(c map[string]any) {
 			c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"release.browser": level, "release.lighthouse": "off"}}
 		})
-		r, err := Compile(root, Options{Publish: true, Release: true})
+		r, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
 		if level == "off" {
 			if err != nil {
 				t.Fatal(err)
@@ -202,7 +203,7 @@ func TestReleaseNoticesObeyConfigBeforePublishing(t *testing.T) {
 
 func TestSEOFinalGateAggregatesAndPreservesOutput(t *testing.T) {
 	root := fixture(t)
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
@@ -212,7 +213,7 @@ func TestSEOFinalGateAggregatesAndPreservesOutput(t *testing.T) {
 	page := strings.Replace(fixtureHTML, "</head>", `<meta property="og:url" content="{{.urls.badSocial}}"><meta name="robots" content="nosnippet"></head>`, 1)
 	page = strings.Replace(page, "</body>", `<h3>Skipped level</h3><a href="{{.urls.closed}}">Answer</a><section id="closed" hidden>Hidden answer</section></body>`, 1)
 	write(t, root, "index.html.tmpl", page)
-	r, err := Compile(root, Options{Publish: true})
+	r, err := Compile(context.Background(), root, Options{Publish: true})
 	var failure *Failure
 	if !errors.As(err, &failure) || r.Published || r.Validation == nil {
 		t.Fatalf("%+v %v", r, err)
@@ -239,7 +240,7 @@ func TestSEOFinalGateAggregatesAndPreservesOutput(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"seo.social": "off", "seo.snippets": "error", "links.fragments": "off"}}
 	})
-	r, err = Compile(root, Options{Publish: true})
+	r, err = Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal("promoted SEO warning bypassed publication gate")
 	}
@@ -251,14 +252,14 @@ func TestSEOFinalGateAggregatesAndPreservesOutput(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"].(map[string]any)["rules"].(map[string]any)["seo.snippets"] = "warn"
 	})
-	if r, err = Compile(root, Options{Publish: true}); err != nil || !r.Published {
+	if r, err = Compile(context.Background(), root, Options{Publish: true}); err != nil || !r.Published {
 		t.Fatalf("deliberate override failed: %+v %v", r, err)
 	}
 }
 
 func TestAccessibilityAndInteractionFinalGate(t *testing.T) {
 	root := fixture(t)
-	if _, err := Compile(root, Options{Publish: true}); err != nil {
+	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
@@ -268,7 +269,7 @@ func TestAccessibilityAndInteractionFinalGate(t *testing.T) {
 <div role=slider tabindex=0 aria-label=Volume aria-valuenow=NaN></div>
 <form><button>Local step</button></form>`
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", fragment+"</body>", 1))
-	r, err := Compile(root, Options{Publish: true})
+	r, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || r.Published || r.Validation == nil || read(t, root, "output/index.html") != before {
 		t.Fatal("accessibility rejection replaced output", err)
 	}
@@ -289,13 +290,13 @@ func TestAccessibilityAndInteractionFinalGate(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"a11y.relationships": "off", "ux.disclosures": "off", "a11y.focus": "error"}}
 	})
-	if r, err = Compile(root, Options{Publish: true}); err == nil || r.Published || read(t, root, "output/index.html") != before {
+	if r, err = Compile(context.Background(), root, Options{Publish: true}); err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal("promoted focus warning bypassed gate")
 	}
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"].(map[string]any)["rules"].(map[string]any)["a11y.focus"] = "warn"
 	})
-	if r, err = Compile(root, Options{Publish: true}); err != nil || !r.Published {
+	if r, err = Compile(context.Background(), root, Options{Publish: true}); err != nil || !r.Published {
 		t.Fatal("intentional overrides failed", err)
 	}
 	for _, issue := range r.Validation.Diagnostics {

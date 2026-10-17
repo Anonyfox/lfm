@@ -53,7 +53,7 @@ func TestBrowserInferredImageSizesPreserveLoadedLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, root, "fixed.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60" viewBox="0 0 2 1"><rect fill="#cc0011" width="2" height="1"/></svg>`)
-	report, err := Compile(root, Options{Publish: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
