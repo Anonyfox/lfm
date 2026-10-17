@@ -2,8 +2,8 @@ package check
 
 import (
 	"fmt"
-	"slices"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -389,7 +389,7 @@ func motionKeyframes(css string) map[string]bool {
 		if open < 0 {
 			return out
 		}
-		name := strings.Trim(strings.TrimSpace(lower[at+len("keyframes") : at+open]), `"'`)
+		name := strings.Trim(strings.TrimSpace(lower[at+len("keyframes"):at+open]), `"'`)
 		depth, end := 0, len(lower)
 		for j := at + open; j < len(lower); j++ {
 			if lower[j] == '{' {
