@@ -265,7 +265,7 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
 		}
 	}
-	r.Findings = append(r.Findings, sizes.findings("small", "Text too small to read: %s.", "Set text at 10 px or more where it renders, including SVG labels scaled down with their drawing; small print stays readable at 12 px.")...)
+	r.Findings = append(r.Findings, sizes.findings("small", "Text too small to read: %s.", "Set text at 9 px or more where it renders, including SVG labels scaled down with their drawing; small print reads well from 12 px.")...)
 	r.Findings = append(r.Findings, contrasts.findings("contrast", "Text below the WCAG contrast minimum: %s.", "Darken the text or lighten its ground until it reaches the ratio; large text (24 px, or 18.7 px bold) needs 3:1, other text 4.5:1.")...)
 	return r, nil
 }

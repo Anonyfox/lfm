@@ -152,10 +152,19 @@
   // ancestor backgrounds are flat colours, nothing else is painted between them
   // and the text, and no ancestor is translucent. Anything else is skipped.
   const lowContrast = new Map(); // element → finding, across frames
+  // Computed colours come as rgb()/rgba() with 0–255 channels, or as
+  // color(srgb r g b / a) with 0–1 channels (color-mix, relative colours).
+  // Any other space (oklch, lab, display-p3) is left unmeasured.
   const rgba = (v) => {
-    const m = v.match(/[\d.]+/g);
+    let scale = 1;
+    if (v.startsWith("color(srgb ")) {
+      scale = 255;
+    } else if (!v.startsWith("rgb")) {
+      return null;
+    }
+    const m = v.match(/-?[\d.]+(e-?\d+)?/g);
     if (!m || m.length < 3) return null;
-    return [+m[0], +m[1], +m[2], m.length > 3 ? +m[3] : 1];
+    return [+m[0] * scale, +m[1] * scale, +m[2] * scale, m.length > 3 ? +m[3] : 1];
   };
   const over = (top, bottom) => {
     const a = top[3];
@@ -171,6 +180,11 @@
     for (let e = el; e; e = e.parentElement) {
       const cs = getComputedStyle(e);
       if (parseFloat(cs.opacity) < 1 || cs.backgroundImage !== "none" || cs.mixBlendMode !== "normal" || cs.filter !== "none" || cs.backdropFilter && cs.backdropFilter !== "none") return null;
+      // a generated box with its own paint may sit behind the text unseen by hit tests
+      for (const pseudo of ["::before", "::after"]) {
+        const ps = getComputedStyle(e, pseudo);
+        if (ps.content !== "none" && ps.content !== "normal" && (ps.backgroundImage !== "none" || (rgba(ps.backgroundColor) || [0, 0, 0, 0])[3] > 0)) return null;
+      }
       const bg = rgba(cs.backgroundColor);
       if (bg && bg[3] > 0) {
         layers.push(bg);
@@ -331,7 +345,7 @@
       return { heading: !!h1, control };
     },
 
-    // small lists text rendered under 10 CSS px: computed size times the
+    // small lists text rendered under 9 CSS px: computed size times the
     // element's scale, which for SVG text is its screen transform.
     small() {
       const out = [], seen = new Set();
@@ -348,7 +362,7 @@
           const m = el.getScreenCTM();
           if (m) size *= Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
         }
-        if (size > 0 && size < 10) out.push({ selector: describe(el), size: Math.round(size * 10) / 10, text: n.data.trim().slice(0, 30) });
+        if (size > 0 && size < 9) out.push({ selector: describe(el), size: Math.round(size * 10) / 10, text: n.data.trim().replace(/\s+/g, " ").slice(0, 30) });
       }
       return out;
     },
@@ -367,7 +381,8 @@
       const out = [];
       for (const el of document.body.querySelectorAll("*")) {
         const r = el.getBoundingClientRect();
-        if (r.width === 0 || (r.right <= width + 1 && r.left >= -1)) continue;
+        // only overflow to the right scrolls; off-screen skip links sit left of 0
+        if (r.width === 0 || r.right <= width + 1) continue;
         if (out.some((o) => o.el.contains(el)) || clipped(el)) continue;
         out.push({ el, right: Math.round(r.right), left: Math.round(r.left) });
       }
