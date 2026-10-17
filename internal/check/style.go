@@ -478,5 +478,4 @@ func firstFamily(v string) string {
 // decides which values apply.
 type okColor = color.Color
 
-func hexColor(h string) (okColor, bool) { return color.ParseHex(h) }
-func colorsIn(v string) []okColor       { return color.Parse(v) }
+func colorsIn(v string) []okColor { return color.Parse(v) }
