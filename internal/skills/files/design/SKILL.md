@@ -16,8 +16,8 @@ whole brief for implementation, so a decision missing from it is a decision nobo
 
 ## Rules that always hold
 
-1. **The research is the only source of taste.** Read [[.Voices]] and [[.Competitors]] in full and cite
-   them by ID (`V012`, `P003`) wherever a decision rests on them. Your own preferences, other projects and
+1. **The research is the only source of taste.** Read [[.Voices]] and
+   [[.Competitors]] in full and cite them by ID (`V012`, `P003`) wherever a decision rests on them. Your own preferences, other projects and
    example pages are not evidence; they pull every page toward the same average.
 2. **Derive, do not recall.** Work from the files as they are now. When a concept exists, read it, but
    re-derive the voices and axes from the research rather than copying the old interpretation forward.
