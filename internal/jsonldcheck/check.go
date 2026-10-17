@@ -29,14 +29,89 @@ var contextOnce = sync.OnceValue(func() any {
 	return document
 })
 
-type offlineLoader struct{ unavailable bool }
+// schemaTerms splits the bundled context once: string entries (@vocab and
+// prefixes) always apply; object entries are term definitions.
+var schemaTerms = sync.OnceValues(func() (prefixes map[string]any, terms map[string]any) {
+	root, _ := contextOnce().(map[string]any)
+	all, _ := root["@context"].(map[string]any)
+	prefixes, terms = map[string]any{}, map[string]any{}
+	for k, v := range all {
+		if _, ok := v.(string); ok {
+			prefixes[k] = v
+		} else {
+			terms[k] = v
+		}
+	}
+	return prefixes, terms
+})
+
+// pruned returns the Schema.org context reduced to the term definitions the
+// document can use: every object key and string value of the document that
+// names a term, and the terms those definitions refer to, to a fixpoint.
+// Expansion only consults definitions of terms that occur, so the result is
+// the same as with the full context, while JSON-goLD no longer processes
+// three thousand definitions per page.
+func pruned(used map[string]bool) any {
+	prefixes, terms := schemaTerms()
+	context := make(map[string]any, len(prefixes)+len(used))
+	for k, v := range prefixes {
+		context[k] = v
+	}
+	queue := make([]string, 0, len(used))
+	for k := range used {
+		queue = append(queue, k)
+	}
+	for len(queue) > 0 {
+		k := queue[len(queue)-1]
+		queue = queue[:len(queue)-1]
+		def, ok := terms[k]
+		if !ok {
+			continue
+		}
+		if _, done := context[k]; done {
+			continue
+		}
+		context[k] = def
+		eachString(def, func(s string) {
+			if _, known := context[s]; !known {
+				queue = append(queue, s)
+			}
+		})
+	}
+	return map[string]any{"@context": context}
+}
+
+// eachString calls f with every object key and string value in v.
+func eachString(v any, f func(string)) {
+	switch x := v.(type) {
+	case string:
+		f(x)
+	case map[string]any:
+		for k, item := range x {
+			f(k)
+			eachString(item, f)
+		}
+	case []any:
+		for _, item := range x {
+			eachString(item, f)
+		}
+	}
+}
+
+type offlineLoader struct {
+	unavailable bool
+	used        map[string]bool // keys and string values of the document
+}
 
 func (l *offlineLoader) LoadDocument(uri string) (*ld.RemoteDocument, error) {
 	switch uri {
 	case "http://schema.org", "https://schema.org", "http://schema.org/", "https://schema.org/",
 		"http://schema.org/docs/jsonldcontext.json", "https://schema.org/docs/jsonldcontext.json",
 		"http://schema.org/docs/jsonldcontext.jsonld", "https://schema.org/docs/jsonldcontext.jsonld":
-		return &ld.RemoteDocument{DocumentURL: "https://schema.org/docs/jsonldcontext.jsonld", Document: ld.CloneDocument(contextOnce())}, nil
+		if l.used == nil {
+			return &ld.RemoteDocument{DocumentURL: "https://schema.org/docs/jsonldcontext.jsonld", Document: ld.CloneDocument(contextOnce())}, nil
+		}
+		return &ld.RemoteDocument{DocumentURL: "https://schema.org/docs/jsonldcontext.jsonld", Document: pruned(l.used)}, nil
 	}
 	l.unavailable = true
 	return nil, fmt.Errorf("context is unavailable offline")
@@ -52,6 +127,12 @@ func Check(raw []byte, base string) []Finding {
 // Expand exposes the same cached-by-caller offline expansion for focused
 // semantic rules. An unavailable/invalid context yields no usable graph.
 func Expand(raw []byte, base string) (expanded []any, findings []Finding) {
+	return expand(raw, base, false)
+}
+
+// expand with fullContext processes the complete Schema.org context; tests use
+// it to prove the pruned context expands identically.
+func expand(raw []byte, base string, fullContext bool) (expanded []any, findings []Finding) {
 	defer func() {
 		if recover() != nil {
 			expanded = nil
@@ -75,7 +156,12 @@ func Expand(raw []byte, base string) (expanded []any, findings []Finding) {
 	if unexpandable(input) {
 		return nil, []Finding{{Rule: "jsonld.structure", Message: "JSON-LD contains an empty property name or a malformed @protected/@container value.", Hint: "Name every property; @protected must be true or false and @container a keyword string or array of them."}}
 	}
-	loader := &offlineLoader{}
+	used := map[string]bool{}
+	eachString(input, func(s string) { used[s] = true })
+	loader := &offlineLoader{used: used}
+	if fullContext {
+		loader.used = nil
+	}
 	options := ld.NewJsonLdOptions(base)
 	options.DocumentLoader = loader
 	options.Ordered = true  // stable diagnostic order, independent of Go map order

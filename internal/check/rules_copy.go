@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"regexp"
-	"slices"
 	"sort"
 	"strings"
 
@@ -17,72 +16,72 @@ import (
 // a match is the phrase itself, not an ordinary use of one of its words: a
 // knitting page may say "seamless", it will not say "seamless experience".
 // Repeated constructions only count from their threshold on, because one use is
-// ordinary language and the habit is the tell.
+// ordinary language and the habit is the tell. Every pattern names literal
+// keywords one of which any match contains, so the regular expression only
+// runs on the few text blocks that contain one.
 type tell struct {
-	re  *regexp.Regexp
-	min int // occurrences on the page before the construction counts
+	min  int      // occurrences on the page before the construction counts
+	keys []string // lowercase literals, one of which every match contains
+	re   *regexp.Regexp
 }
 
-func tells(min int, patterns ...string) []tell {
-	out := make([]tell, len(patterns))
-	for i, p := range patterns {
-		out[i] = tell{regexp.MustCompile(`(?i)\b(?:` + p + `)\b`), min}
+type tellSource struct {
+	min     int
+	keys    []string
+	pattern string
+}
+
+var copyTells = func() []tell {
+	sources := []tellSource{
+		{1, []string{"today"}, `in today'?s (?:fast[- ]paced|digital|modern|ever[- ](?:changing|evolving)|competitive|busy) (?:world|age|landscape|era|economy)`},
+		{1, []string{"ever"}, `in (?:an|the|this) ever[- ](?:evolving|changing) (?:world|landscape|field|market)`},
+		{1, []string{"unlock"}, `unlock (?:the (?:full )?(?:power|potential)|your (?:full |true )?potential)`},
+		{1, []string{"unleash"}, `unleash (?:the|your) (?:full )?(?:power|potential|creativity|inner)`},
+		{1, []string{"elevate"}, `elevate your (?:\w+ )?(?:game|experience|brand|business|skills|workflow|routine|style)`},
+		{1, []string{"next level"}, `take (?:your|it) (?:\w+ ){0,3}to the next level`},
+		{1, []string{"game"}, `game[- ]chang(?:er|ing)`},
+		{1, []string{"look no further"}, `look no further`},
+		{1, []string{"goodbye"}, `say goodbye to`},
+		{1, []string{"delv"}, `delv(?:e|es|ing) (?:into|deeper)`},
+		{1, []string{"testament"}, `(?:is|stands as|serves as) a testament to`},
+		{1, []string{"seamless"}, `seamless(?:ly)? (?:experience|integration|integrat\w+|workflow|journey|solution|blend)`},
+		{1, []string{"harness"}, `harness(?:es|ing)? the (?:full )?(?:power|potential)`},
+		{1, []string{"embark"}, `embark (?:on|upon) (?:a|an|your) (?:\w+ )?(?:journey|adventure|quest)`},
+		{1, []string{"navigat"}, `navigat(?:e|ing) the (?:complexities|intricacies|ins and outs)`},
+		{1, []string{"realm"}, `in the realm of`},
+		{1, []string{"note", "remember", "mention"}, `it'?s (?:important|worth|crucial|essential) to (?:note|remember|mention)`},
+		{1, []string{"whether"}, `whether you'?re an? [^.,;:!?]{1,30} or an?`},
+		{1, []string{"cutting"}, `cutting[- ]edge (?:technology|solutions?|tools?|platform|features?|ai)`},
+		{1, []string{"state"}, `state[- ]of[- ]the[- ]art (?:technology|solutions?|platform)`},
+		{1, []string{"the way you"}, `(?:revolutioni[sz]e|transform) the way you`},
+		{1, []string{"supercharge"}, `supercharge your`},
+		{1, []string{"empower"}, `empower(?:s|ing)? (?:you|your|businesses|teams|individuals) to`},
+		{1, []string{"we understand"}, `we understand (?:how|that) [^.!?]{0,40}(?:overwhelming|frustrating|stressful|daunting|challenging)`},
+		{1, []string{"nestled"}, `nestled (?:in|among|between) the`},
+		{1, []string{"tapestry"}, `(?:rich|vibrant|intricate) tapestry`},
+		{1, []string{"dive"}, `(?:let'?s|ready to) dive (?:in|into|deeper)`},
+		{1, []string{". no "}, `no (?:\w+)\. no (?:\w+)\. (?:just|only)`},
+		{1, []string{"heutigen"}, `in der heutigen (?:schnelllebigen |digitalen |modernen )?(?:welt|zeit)`},
+		{1, []string{"zeitalter"}, `im (?:digitalen|heutigen) zeitalter`},
+		{1, []string{"in der"}, `in einer (?:welt|zeit), in der`},
+		{1, []string{"tauchen"}, `tauchen sie (?:tiefer )?ein`},
+		{1, []string{"level", "stufe"}, `(?:auf das|aufs|auf ein|auf die) (?:nächste|neues|nächstes) (?:level|stufe)`},
+		{1, []string{"nahtlos"}, `nahtlos(?:e|en|er)? (?:integration|integriert|erlebnis|zusammenarbeit|übergang|einfügen)`},
+		{1, []string{"es ist"}, `es ist (?:wichtig|erwähnenswert|entscheidend) zu (?:beachten|erwähnen|wissen)`},
+		{1, []string{"oder"}, `ob (?:anfänger|einsteiger|neuling) oder (?:profi|experte|fortgeschrittene)`},
+		{1, []string{"entfesseln"}, `entfesseln sie`},
+		{1, []string{"potenzial"}, `(?:schöpfen sie|entfalten sie) (?:das|ihr) (?:volle[sn]? )?potenzial`},
+		{1, []string{". kein"}, `kein(?:e)? [a-zäöüß]+\. kein(?:e)? [a-zäöüß]+\. (?:nur|einfach|sondern)`},
+		{2, []string{"not "}, `not (?:just|only|merely) (?:a |an |the )?[^.!?;:]{1,60}?[,;—–-]? but`},
+		{2, []string{"not "}, `(?:it'?s|this is|that'?s) not (?:just )?(?:about )?[^.!?;:]{1,50}?[.,;—–]\s*(?:it'?s|this is|that'?s)`},
+		{3, []string{"nicht nur"}, `nicht nur [^.!?;:]{1,60}?,? sondern (?:auch)?`},
+	}
+	out := make([]tell, len(sources))
+	for i, src := range sources {
+		out[i] = tell{src.min, src.keys, regexp.MustCompile(`(?i)\b(?:` + src.pattern + `)\b`)}
 	}
 	return out
-}
-
-var copyTells = slices.Concat(
-	tells(1,
-		// English openers, verbs and filler
-		`in today'?s (?:fast[- ]paced|digital|modern|ever[- ](?:changing|evolving)|competitive|busy) (?:world|age|landscape|era|economy)`,
-		`in (?:an|the|this) ever[- ](?:evolving|changing) (?:world|landscape|field|market)`,
-		`unlock (?:the (?:full )?(?:power|potential)|your (?:full |true )?potential)`,
-		`unleash (?:the|your) (?:full )?(?:power|potential|creativity|inner)`,
-		`elevate your (?:\w+ )?(?:game|experience|brand|business|skills|workflow|routine|style)`,
-		`take (?:your|it) (?:\w+ ){0,3}to the next level`,
-		`game[- ]chang(?:er|ing)`,
-		`look no further`,
-		`say goodbye to`,
-		`delv(?:e|es|ing) (?:into|deeper)`,
-		`(?:is|stands as|serves as) a testament to`,
-		`seamless(?:ly)? (?:experience|integration|integrat\w+|workflow|journey|solution|blend)`,
-		`harness(?:es|ing)? the (?:full )?(?:power|potential)`,
-		`embark (?:on|upon) (?:a|an|your) (?:\w+ )?(?:journey|adventure|quest)`,
-		`navigat(?:e|ing) the (?:complexities|intricacies|ins and outs)`,
-		`in the realm of`,
-		`it'?s (?:important|worth|crucial|essential) to (?:note|remember|mention)`,
-		`whether you'?re an? [^.,;:!?]{1,30} or an?`,
-		`cutting[- ]edge (?:technology|solutions?|tools?|platform|features?|ai)`,
-		`state[- ]of[- ]the[- ]art (?:technology|solutions?|platform)`,
-		`(?:revolutioni[sz]e|transform) the way you`,
-		`supercharge your`,
-		`empower(?:s|ing)? (?:you|your|businesses|teams|individuals) to`,
-		`we understand (?:how|that) [^.!?]{0,40}(?:overwhelming|frustrating|stressful|daunting|challenging)`,
-		`nestled (?:in|among|between) the`,
-		`(?:rich|vibrant|intricate) tapestry`,
-		`(?:let'?s|ready to) dive (?:in|into|deeper)`,
-		`no (?:\w+)\. no (?:\w+)\. (?:just|only)`,
-		// German
-		`in der heutigen (?:schnelllebigen |digitalen |modernen )?(?:welt|zeit)`,
-		`im (?:digitalen|heutigen) zeitalter`,
-		`in einer (?:welt|zeit), in der`,
-		`tauchen sie (?:tiefer )?ein`,
-		`(?:auf das|aufs|auf ein|auf die) (?:nächste|neues|nächstes) (?:level|stufe)`,
-		`nahtlos(?:e|en|er)? (?:integration|integriert|erlebnis|zusammenarbeit|übergang|einfügen)`,
-		`es ist (?:wichtig|erwähnenswert|entscheidend) zu (?:beachten|erwähnen|wissen)`,
-		`ob (?:anfänger|einsteiger|neuling) oder (?:profi|experte|fortgeschrittene)`,
-		`entfesseln sie`,
-		`(?:schöpfen sie|entfalten sie) (?:das|ihr) (?:volle[sn]? )?potenzial`,
-		`kein(?:e)? [a-zäöüß]+\. kein(?:e)? [a-zäöüß]+\. (?:nur|einfach|sondern)`,
-	),
-	tells(2,
-		`not (?:just|only|merely) (?:a |an |the )?[^.!?;:]{1,60}?[,;—–-]? but`,
-		`(?:it'?s|this is|that'?s) not (?:just )?(?:about )?[^.!?;:]{1,50}?[.,;—–]\s*(?:it'?s|this is|that'?s)`,
-	),
-	tells(3,
-		`nicht nur [^.!?;:]{1,60}?,? sondern (?:auch)?`,
-	),
-)
+}()
 
 // minDashes and dashesPer100 bound em-dash density: four or more, and more than
 // one per hundred words. Human sales copy rarely reaches both.
@@ -100,6 +99,7 @@ func copyTellsRule(d *Document) []Diagnostic {
 	var firstDash *html.Node
 	for _, s := range segments {
 		text := normalizeQuotes(s.text)
+		lower := strings.ToLower(text)
 		words += len(strings.Fields(text))
 		if n := proseDashes(text); n > 0 {
 			if firstDash == nil {
@@ -108,6 +108,9 @@ func copyTellsRule(d *Document) []Diagnostic {
 			dashes += n
 		}
 		for i, t := range copyTells {
+			if !containsAny(lower, t.keys) {
+				continue
+			}
 			for _, m := range t.re.FindAllString(text, -1) {
 				if hits[i].count == 0 {
 					hits[i].first, hits[i].text = s.node, m
@@ -164,6 +167,15 @@ func proseDashes(s string) int {
 
 func endsDigit(s string) bool   { return s != "" && s[len(s)-1] >= '0' && s[len(s)-1] <= '9' }
 func startsDigit(s string) bool { return s != "" && s[0] >= '0' && s[0] <= '9' }
+
+func containsAny(s string, keys []string) bool {
+	for _, k := range keys {
+		if strings.Contains(s, k) {
+			return true
+		}
+	}
+	return false
+}
 
 func normalizeQuotes(s string) string {
 	return strings.NewReplacer("’", "'", "‘", "'", " ", " ").Replace(s)
@@ -249,68 +261,57 @@ var motionProps = words("transform translate rotate scale offset offset-path off
 // count as motion; transitions count only when they move something slowly
 // enough to be a choreographed move rather than hover feedback.
 func reducedMotionRule(d *Document) []Diagnostic {
-	sheets, scripts := d.styleSources(), d.scriptSources()
-	for _, s := range sheets {
-		if strings.Contains(strings.ToLower(s.text), "prefers-reduced-motion") {
-			return nil
-		}
+	if d.mentions("prefers-reduced-motion") {
+		return nil
 	}
-	for _, s := range scripts {
-		if strings.Contains(s, "prefers-reduced-motion") {
-			return nil
-		}
-	}
-	moving := map[string]bool{}
+	m := d.styles()
 	type use struct {
-		node  *html.Node
-		what  string
-		value string
+		node *html.Node
+		what string
 	}
 	var uses []use
-	for _, s := range sheets {
-		for name, k := range keyframes(s.text) {
-			if k.moves {
-				moving[name] = true
-			}
-		}
-	}
-	for _, s := range sheets {
-		for _, r := range readRules([]byte(s.text)) {
-			for _, dcl := range r.decls {
-				v := strings.ToLower(dcl.value)
-				switch dcl.prop {
-				case "animation", "animation-name":
-					for _, name := range cssIdents(v) {
-						if moving[name] {
-							uses = append(uses, use{s.node, fmt.Sprintf("@keyframes %s moves `%s`", name, r.selector), name})
-							break
-						}
+	visit := func(node *html.Node, selector string, decls []cssDecl) {
+		for _, dcl := range decls {
+			v := strings.ToLower(dcl.value)
+			switch dcl.prop {
+			case "animation", "animation-name":
+				for _, name := range cssIdents(v) {
+					if d.keyframes()[name].moves {
+						uses = append(uses, use{node, fmt.Sprintf("@keyframes %s moves `%s`", name, selector)})
+						break
 					}
-				case "animation-timeline", "view-timeline-name", "scroll-timeline-name":
-					if v != "auto" && v != "none" {
-						uses = append(uses, use{s.node, fmt.Sprintf("scroll-driven animation on `%s`", r.selector), v})
-					}
-				case "scroll-behavior":
-					if v == "smooth" {
-						uses = append(uses, use{s.node, "smooth scrolling on `" + r.selector + "`", v})
-					}
-				case "transition", "transition-property":
-					if slowMove(r.decls, v) {
-						uses = append(uses, use{s.node, fmt.Sprintf("slow transform transition on `%s`", r.selector), v})
-					}
+				}
+			case "animation-timeline", "view-timeline-name", "scroll-timeline-name":
+				if v != "auto" && v != "none" {
+					uses = append(uses, use{node, fmt.Sprintf("scroll-driven animation on `%s`", selector)})
+				}
+			case "scroll-behavior":
+				if v == "smooth" {
+					uses = append(uses, use{node, "smooth scrolling on `" + selector + "`"})
+				}
+			case "transition", "transition-property":
+				if slowMove(decls, v) {
+					uses = append(uses, use{node, fmt.Sprintf("slow transform transition on `%s`", selector)})
 				}
 			}
 		}
 	}
-	for _, s := range scripts {
+	for _, r := range m.rules {
+		visit(r.sheet, r.selector, r.decls)
+	}
+	for n, decls := range m.inline {
+		visit(n, "<"+elementLabel(n)+" style>", decls)
+	}
+	for _, s := range d.scriptSources() {
 		if strings.Contains(s, ".animate(") && (strings.Contains(s, "transform") || strings.Contains(s, "translate")) {
-			uses = append(uses, use{nil, "element.animate() with transforms in a script", ""})
+			uses = append(uses, use{nil, "element.animate() with transforms in a script"})
 			break
 		}
 	}
 	if len(uses) == 0 {
 		return nil
 	}
+	sort.SliceStable(uses, func(i, j int) bool { return d.positions[uses[i].node] < d.positions[uses[j].node] })
 	var list []string
 	seen := map[string]bool{}
 	for _, u := range uses {
@@ -325,6 +326,34 @@ func reducedMotionRule(d *Document) []Diagnostic {
 	return []Diagnostic{d.At(uses[0].node, Warning,
 		"The page moves things but never checks prefers-reduced-motion: "+strings.Join(list, "; ")+".",
 		"Add @media (prefers-reduced-motion: reduce) { … } that shows the reduced state: stop or shorten the movement and keep the content and state changes; or test matchMedia(\"(prefers-reduced-motion: reduce)\") in the script that moves things.")}
+}
+
+// mentions reports whether any stylesheet or script contains text.
+func (d *Document) mentions(text string) bool {
+	for _, s := range d.styleSources() {
+		if strings.Contains(strings.ToLower(s.text), text) {
+			return true
+		}
+	}
+	for _, s := range d.scriptSources() {
+		if strings.Contains(s, text) {
+			return true
+		}
+	}
+	return false
+}
+
+// keyframes indexes the @keyframes of every stylesheet once per document.
+func (d *Document) keyframes() map[string]keyframe {
+	if d.keyframeIndex == nil {
+		d.keyframeIndex = map[string]keyframe{}
+		for _, s := range d.styleSources() {
+			for name, k := range keyframes(s.text) {
+				d.keyframeIndex[name] = k
+			}
+		}
+	}
+	return d.keyframeIndex
 }
 
 // slowMove reports whether a transition moves an element over at least 400 ms.
@@ -454,8 +483,14 @@ type styleSource struct {
 	text string
 }
 
+// styleSources returns the stylesheets of the page: inline <style> and emitted
+// linked sheets. Style attributes hold no at-rules and are read from the style
+// model instead.
 func (d *Document) styleSources() []styleSource {
-	var out []styleSource
+	if d.sheets != nil {
+		return d.sheets
+	}
+	out := []styleSource{}
 	for _, n := range d.activeNodes("style, link") {
 		if n.Namespace != "" {
 			continue
@@ -468,11 +503,7 @@ func (d *Document) styleSources() []styleSource {
 			}
 		}
 	}
-	for _, n := range d.Elements {
-		if v := Attr(n, "style"); v != "" && !inTemplate(n) {
-			out = append(out, styleSource{n, "x{" + v + "}"})
-		}
-	}
+	d.sheets = out
 	return out
 }
 
@@ -639,14 +670,6 @@ func hiddenStartRule(d *Document) []Diagnostic {
 		return nil
 	}
 	m := d.styles()
-	hiding := map[string]bool{}
-	for _, s := range d.styleSources() {
-		for name, k := range keyframes(s.text) {
-			if k.hidden {
-				hiding[name] = true
-			}
-		}
-	}
 	for n := h1; n != nil && n.Type == html.ElementNode && n.Data != "body" && n.Data != "html"; n = n.Parent {
 		if HasAttr(n, "data-design-reason") {
 			return nil
@@ -660,7 +683,7 @@ func hiddenStartRule(d *Document) []Diagnostic {
 		default:
 			for _, prop := range []string{"animation", "animation-name"} {
 				for _, name := range cssIdents(strings.ToLower(m.value(n, prop))) {
-					if hiding[name] {
+					if d.keyframes()[name].hidden {
 						cause = "the animation " + name + " starts invisible"
 					}
 				}

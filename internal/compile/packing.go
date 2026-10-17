@@ -97,6 +97,7 @@ type Cost struct {
 func measureCost(page []byte, doc *html.Node, files map[string]emitted) *Cost {
 	c := &Cost{HTMLBytes: len(page)}
 	var zipped bytes.Buffer
+	zipped.Grow(len(page) / 3)
 	w, _ := gzip.NewWriterLevel(&zipped, gzip.BestSpeed)
 	_, _ = w.Write(page)
 	_ = w.Close()
@@ -252,9 +253,11 @@ func (b *builder) fileDecisions(decisions []AssetDecision) []AssetDecision {
 // replacer handles all selected assets together instead of N whole-file passes.
 func (b *builder) planAssets(doc *html.Node) ([]AssetDecision, error) {
 	var snapshot bytes.Buffer
+	snapshot.Grow(b.renderHint)
 	if err := html.Render(&snapshot, doc); err != nil {
 		return nil, err
 	}
+	b.renderHint = snapshot.Len() + snapshot.Len()/8
 	counts := map[[32]byte]int{}
 	count := func(raw []byte) {
 		for _, embed := range check.InspectEmbeds(raw, nil) {

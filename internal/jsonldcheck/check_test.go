@@ -2,6 +2,7 @@ package jsonldcheck
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -119,5 +120,38 @@ func FuzzExpansion(f *testing.F) {
 			t.Skip()
 		}
 		Check([]byte(raw), "https://example.com/")
+	})
+}
+
+func TestPrunedContextExpandsLikeTheFullContext(t *testing.T) {
+	docs := []string{
+		`{"@context":"https://schema.org","@type":"Product","name":"Kit","offers":{"@type":"Offer","price":"9.00","priceCurrency":"EUR","availability":"https://schema.org/InStock","url":"https://example.com/"},"image":"https://example.com/a.png","sameAs":["https://x.com/a"]}`,
+		`{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"#org","name":"A","logo":"logo.png"},{"@type":"WebPage","url":"https://example.com/","publisher":{"@id":"#org"},"datePublished":"2026-10-18","inLanguage":"en"}]}`,
+		`{"@context":["https://schema.org",{"x":"http://example.org/x"}],"@type":"Event","name":"N","startDate":"2026-11-13T19:00","eventAttendanceMode":"OfflineEventAttendanceMode","location":{"@type":"Place","address":{"@type":"PostalAddress","addressLocality":"Hamburg"}},"x":"y"}`,
+		`{"@context":"https://schema.org","@type":["Service","HowTo"],"name":"Plan","step":[{"@type":"HowToStep","text":"Mark the hours"}],"potentialAction":{"@type":"BuyAction","target":"https://buy.stripe.com/x"},"schema:description":"compact IRI","additionalType":"Product"}`,
+		`{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Q?","acceptedAnswer":{"@type":"Answer","text":"A"}}],"dateModified":"2026-10-18","about":{"@type":"Thing","name":"birthDate"}}`,
+	}
+	for i, doc := range docs {
+		full, fullFindings := expand([]byte(doc), "https://example.com/", true)
+		pruned, prunedFindings := expand([]byte(doc), "https://example.com/", false)
+		a, _ := json.Marshal(full)
+		b, _ := json.Marshal(pruned)
+		if string(a) != string(b) || len(fullFindings) != len(prunedFindings) {
+			t.Errorf("doc %d differs:\nfull   %s %v\npruned %s %v", i, a, fullFindings, b, prunedFindings)
+		}
+	}
+}
+
+func FuzzPrunedContextExpandsLikeTheFullContext(f *testing.F) {
+	f.Add(`{"@context":"https://schema.org","@type":"Product","name":"Kit","offers":{"price":"1"}}`)
+	f.Add(`{"@context":"https://schema.org","@type":"Person","birthDate":"2000-01-01","knows":"Thing"}`)
+	f.Fuzz(func(t *testing.T, doc string) {
+		full, fullFindings := expand([]byte(doc), "https://example.com/", true)
+		pruned, prunedFindings := expand([]byte(doc), "https://example.com/", false)
+		a, _ := json.Marshal(full)
+		b, _ := json.Marshal(pruned)
+		if string(a) != string(b) || len(fullFindings) != len(prunedFindings) {
+			t.Fatalf("differs for %s:\n%s\n%s", doc, a, b)
+		}
 	})
 }

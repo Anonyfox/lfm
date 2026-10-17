@@ -122,6 +122,7 @@ type builder struct {
 	packed          map[string]packedAsset
 	roles           map[string]assetRole
 	notices         []diagnostic.Diagnostic
+	renderHint      int // expected serialized size, to size render buffers once
 	references      map[string]string
 	autoCode        []codeCandidate
 	fileReasons     map[string]string
@@ -205,6 +206,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 
 	// 5. finalize
 	var serialized bytes.Buffer
+	serialized.Grow(b.renderHint)
 	if err := html.Render(&serialized, doc); err != nil {
 		return result, err
 	}

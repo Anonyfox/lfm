@@ -118,6 +118,7 @@ func syntaxIssues(raw []byte, file string, root *html.Node, tokens []Token) []Di
 		}
 	}
 	var normalized bytes.Buffer
+	normalized.Grow(len(raw) + len(raw)/8) // the serialization is about the source size
 	if err := html.Render(&normalized, root); err != nil {
 		add(0, err.Error(), "Fix document structure.")
 		return issues
@@ -125,17 +126,17 @@ func syntaxIssues(raw []byte, file string, root *html.Node, tokens []Token) []Di
 	repairedTokens, _ := tokenize(normalized.Bytes())
 	before, after := structuralEvents(tokens), structuralEvents(repairedTokens)
 	for i := 0; i < max(len(before), len(after)); i++ {
-		if i < len(before) && i < len(after) && before[i].value == after[i].value {
+		if i < len(before) && i < len(after) && before[i].kind == after[i].kind && before[i].value == after[i].value {
 			continue
 		}
 		offset := len(raw)
 		found := "end of document"
 		if i < len(before) {
-			offset, found = before[i].offset, before[i].value
+			offset, found = before[i].offset, before[i].String()
 		}
 		expected := "end of document"
 		if i < len(after) {
-			expected = after[i].value
+			expected = after[i].String()
 		}
 		add(offset, fmt.Sprintf("HTML parser repairs the structure near %s (browser structure has %s).", short(found), short(expected)), "Check nesting and required closing tags here. Valid optional end tags are allowed; browser repairs are not silently accepted.")
 		break // One precise repair boundary is more useful than a cascade of guesses.
@@ -200,13 +201,26 @@ func attributeIssues(raw []byte, file string, tokens []Token) []Diagnostic {
 	return issues
 }
 
+// structuralEvent is one tag or text run of the token stream, compared
+// between the source and the parser's repaired serialization.
 type structuralEvent struct {
+	kind   byte // '<' start, '/' end, 't' text
 	value  string
 	offset int
 }
 
+func (e structuralEvent) String() string {
+	switch e.kind {
+	case '<':
+		return "<" + e.value + ">"
+	case '/':
+		return "</" + e.value + ">"
+	}
+	return "text:" + e.value
+}
+
 func structuralEvents(tokens []Token) []structuralEvent {
-	var events []structuralEvent
+	events := make([]structuralEvent, 0, len(tokens)/2)
 	foreign := 0
 	for _, t := range tokens {
 		name := t.Value.Data
@@ -216,9 +230,9 @@ func structuralEvents(tokens []Token) []structuralEvent {
 				foreign++
 			}
 			if !implicitContainers[name] {
-				events = append(events, structuralEvent{"<" + name + ">", t.Offset})
+				events = append(events, structuralEvent{'<', name, t.Offset})
 				if t.Type == html.SelfClosingTagToken && !voidTags[name] {
-					events = append(events, structuralEvent{"</" + name + ">", t.Offset})
+					events = append(events, structuralEvent{'/', name, t.Offset})
 				}
 			}
 			if t.Type == html.SelfClosingTagToken && (name == "svg" || name == "math") {
@@ -226,7 +240,7 @@ func structuralEvents(tokens []Token) []structuralEvent {
 			}
 		case html.EndTagToken:
 			if !optionalEnds[name] {
-				events = append(events, structuralEvent{"</" + name + ">", t.Offset})
+				events = append(events, structuralEvent{'/', name, t.Offset})
 			}
 			if (name == "svg" || name == "math") && foreign > 0 {
 				foreign--
@@ -238,7 +252,7 @@ func structuralEvents(tokens []Token) []structuralEvent {
 				continue
 			}
 			if text := strings.TrimSpace(t.Value.Data); text != "" {
-				events = append(events, structuralEvent{"text:" + text, t.Offset})
+				events = append(events, structuralEvent{'t', text, t.Offset})
 			}
 		}
 	}

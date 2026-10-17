@@ -42,6 +42,8 @@ type Document struct {
 	accessibility  *accessibilityFacts
 	styleModel     *styleModel
 	designFacts    *designFacts
+	sheets         []styleSource
+	keyframeIndex  map[string]keyframe
 }
 
 func Parse(raw []byte, options Options) (*Document, error) {
@@ -215,9 +217,14 @@ func location(file string, lines []int, offset int) Location {
 	return Location{File: file, Line: line + 1, Column: offset - lines[line] + 1, Offset: offset}
 }
 
+// tokenize splits raw into tokens with their byte ranges. Only what the rules
+// read is materialized: tag names (interned, they repeat), the text of text
+// tokens that are not just whitespace, and complete doctype tokens. Copying
+// every attribute and unescaping every text would dominate the check's cost.
 func tokenize(raw []byte) ([]Token, error) {
 	z := html.NewTokenizer(bytes.NewReader(raw))
-	var tokens []Token
+	tokens := make([]Token, 0, len(raw)/32)
+	names := map[string]string{}
 	offset := 0
 	for {
 		kind := z.Next()
@@ -231,7 +238,24 @@ func tokenize(raw []byte) ([]Token, error) {
 			}
 			return tokens, nil
 		}
-		tokens = append(tokens, Token{kind, z.Token(), offset, end})
+		t := Token{Type: kind, Offset: offset, End: end}
+		switch kind {
+		case html.StartTagToken, html.SelfClosingTagToken, html.EndTagToken:
+			name, _ := z.TagName()
+			interned, ok := names[string(name)]
+			if !ok {
+				interned = string(name)
+				names[interned] = interned
+			}
+			t.Value = html.Token{Type: kind, Data: interned}
+		case html.TextToken:
+			if text := z.Text(); len(bytes.TrimSpace(text)) > 0 {
+				t.Value = html.Token{Type: kind, Data: string(text)}
+			}
+		case html.DoctypeToken:
+			t.Value = z.Token()
+		}
+		tokens = append(tokens, t)
 		offset = end
 	}
 }
