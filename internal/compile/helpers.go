@@ -78,6 +78,7 @@ func (h *helperRegistry) resolve(kind, origin, ref string) (helperEntry, error) 
 	} else if !explicit && directory != h.root {
 		candidates = append(candidates, filepath.Join(h.root, filepath.FromSlash(ref)))
 	}
+	local := ""
 	for _, candidate := range candidates {
 		if _, err := os.Lstat(candidate); err == nil {
 			actual, err := h.project.Path(candidate)
@@ -85,8 +86,18 @@ func (h *helperRegistry) resolve(kind, origin, ref string) (helperEntry, error) 
 				return helperEntry{}, err
 			}
 			specifier = actual
+			inPackage := strings.Contains(filepath.ToSlash(actual), "/node_modules/")
+			if info, err := os.Stat(actual); err == nil && info.Mode().IsRegular() && !inPackage {
+				local = actual
+			}
 			break
 		}
+	}
+	// An existing project file needs no resolver. Package names, directories and
+	// files inside packages (whose package.json may remap them) go through
+	// esbuild, whose resolver rescans every parent directory per build.
+	if local != "" {
+		return h.register(key, kind, origin, local)
 	}
 	resolveKind := api.ResolveJSImportStatement
 	if kind == "style" {
@@ -113,6 +124,11 @@ func (h *helperRegistry) resolve(kind, origin, ref string) (helperEntry, error) 
 	if err != nil {
 		return helperEntry{}, err
 	}
+	return h.register(key, kind, origin, path)
+}
+
+// register validates the resolved source type and remembers the helper.
+func (h *helperRegistry) register(key, kind, origin, path string) (helperEntry, error) {
 	loader, code := sourceLoader(path)
 	if !code || (kind == "style" && loader != api.LoaderCSS && loader != api.LoaderLocalCSS) || (kind == "script" && (loader == api.LoaderCSS || loader == api.LoaderLocalCSS || loader == api.LoaderJSON)) {
 		return helperEntry{}, fmt.Errorf("%s helper resolved to an incompatible source type: %s", kind, filepath.Ext(path))

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
+	"github.com/evanw/esbuild/pkg/api"
 	"golang.org/x/net/html"
 )
 
@@ -183,11 +184,7 @@ func (b *builder) processHTML(doc *html.Node, data, jsonld []byte) error {
 					item.Val, err = b.resource(item.Val, b.root, htmlx.HasAttr(node, "download") || fileIcon || nativeLink)
 				}
 			case "style":
-				var result compiled
-				result, err = b.compile("", "x{"+item.Val+"}", true, false)
-				if err == nil {
-					item.Val = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(string(result.code)), "x{"), "}")
-				}
+				item.Val, err = b.inlineStyle(item.Val)
 			}
 			if err != nil {
 				return fmt.Errorf("<%s %s>: %w", node.Data, item.Key, err)
@@ -235,4 +232,26 @@ func (b *builder) processHTML(doc *html.Node, data, jsonld []byte) error {
 		htmlx.Move(body, node)
 	}
 	return nil
+}
+
+// inlineStyle minifies a style attribute. Declarations that reference files
+// are bundled so their URLs are packed like any other; the rest only needs
+// esbuild's transform, which never touches the file system.
+func (b *builder) inlineStyle(value string) (string, error) {
+	source := "x{" + value + "}"
+	var code []byte
+	if strings.Contains(strings.ToLower(value), "url(") || strings.Contains(value, "\\") {
+		result, err := b.compile("", source, true, false)
+		if err != nil {
+			return "", err
+		}
+		code = result.code
+	} else {
+		result := api.Transform(source, api.TransformOptions{Loader: api.LoaderCSS, MinifyWhitespace: true, MinifySyntax: true, Target: api.ES2020, Charset: api.CharsetUTF8, LogLevel: api.LogLevelSilent})
+		if len(result.Errors) > 0 {
+			return "", bundleError(result.Errors)
+		}
+		code = result.Code
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(string(code)), "x{"), "}"), nil
 }
