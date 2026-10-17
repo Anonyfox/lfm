@@ -18,6 +18,7 @@ const (
 	PartialsDir  = "partials"
 	DataDir      = "data"
 	OutputDir    = "output"
+	ResearchDir  = "research" // durable research files; never a build input
 )
 
 // Project is a resolved project root. The zero value is not usable.

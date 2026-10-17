@@ -124,10 +124,20 @@ func TestRulesListsExplainsAndRejects(t *testing.T) {
 	}
 }
 
-func TestSkillsIsAnnouncedNotImplemented(t *testing.T) {
+func TestSkillsListAndPrint(t *testing.T) {
 	code, out, _ := run(t, "skills")
-	if code != 0 || !strings.Contains(out, "not published yet") {
-		t.Fatalf("%d %q", code, out)
+	if code != 0 || !strings.Contains(out, "research") || !strings.Contains(out, "lfm skills <topic>") {
+		t.Fatalf("list: %d %q", code, out)
+	}
+	code, out, _ = run(t, "skills", "research")
+	if code != 0 || !strings.HasPrefix(out, "---\nname: lfm-research\n") || !strings.Contains(out, "generator: lfm 1.2.3") {
+		t.Fatalf("print: %d %q", code, out[:min(len(out), 200)])
+	}
+	if code, _, errs := run(t, "skills", "nope"); code != 2 || !strings.Contains(errs, `no skill named "nope"`) {
+		t.Fatalf("unknown: %d %q", code, errs)
+	}
+	if code, out, _ := run(t, "help", "skills"); code != 0 || !strings.Contains(out, ".claude/skills/<name>/SKILL.md") {
+		t.Fatalf("help: %d %q", code, out)
 	}
 }
 

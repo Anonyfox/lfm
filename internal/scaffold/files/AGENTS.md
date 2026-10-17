@@ -8,6 +8,7 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 - `lfm compile --release` also measures the page in headless Chrome, and with Lighthouse when installed.
 - `lfm serve --open` previews the page and recompiles on every save.
 - `lfm rules` lists every check; `lfm rules <id>` explains one.
+- `lfm skills` lists process guides; `lfm skills <topic>` prints one to follow or install as a skill.
 
 ## Layout
 
@@ -22,7 +23,8 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
 ## Working rules
 
-- Research first: fill `research/` with real, verbatim sources before designing.
+- Research first: follow `lfm skills research` to fill `research/` with real, verbatim sources before
+  designing, and again whenever new customer signals arrive.
 - Reference local files from the template; `{{style "…"}}` and `{{script "…"}}` bundle CSS and JS.
 - Keep product facts in `lfm.json` under `data`, not hardcoded in markup.
 - The page must compile with 0 errors and 0 warnings. Silence a design check only with

@@ -14,6 +14,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/scaffold"
 	"github.com/Anonyfox/lfm/internal/serve"
+	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -134,18 +135,47 @@ Levels are off, warn and error; required rules always stay errors.`,
 
 var skillsCommand = command{
 	name:    "skills",
-	summary: "Process guides for agents (coming soon)",
+	args:    "[topic]",
+	summary: "Print process guides for agents",
 	details: `
-Skills will hand agents the full process for research, UX, copy, imagery and
-commerce, ready to adapt and place in a project. They are not published yet.`,
+Without a topic, lists the skills. With one, prints its SKILL.md for the
+version of lfm you run; save it where your agent loads skills:
+
+  .agents/skills/<name>/SKILL.md   Codex, Cursor, Gemini CLI and most agents
+  .claude/skills/<name>/SKILL.md   Claude Code
+
+For example:
+
+  mkdir -p .agents/skills/lfm-research
+  lfm skills research > .agents/skills/lfm-research/SKILL.md`,
 	run: func(_ context.Context, env Env, p parsed) error {
-		if len(p.args) > 0 {
-			return usageError("lfm skills takes no arguments yet")
+		data := skills.NewData(env.Build.Version)
+		switch len(p.args) {
+		case 0:
+			all, err := skills.All(data)
+			if err != nil {
+				return err
+			}
+			s := term.For(env.Stdout)
+			fmt.Fprintln(env.Stdout, "Skills for agents working on an lfm project:")
+			fmt.Fprintln(env.Stdout)
+			for _, skill := range all {
+				first, _, _ := strings.Cut(skill.Description, ". ")
+				fmt.Fprintf(env.Stdout, "  %s  %s\n", s.Bold(term.Pad(skill.Topic, 10)), term.Wrap(first+".", term.Width-14, strings.Repeat(" ", 14)))
+			}
+			fmt.Fprintln(env.Stdout)
+			fmt.Fprintln(env.Stdout, "'lfm skills <topic>' prints one; 'lfm help skills' shows where to save it.")
+			return nil
+		case 1:
+			skill, err := skills.Get(p.args[0], data)
+			if err != nil {
+				return usageError("%v; run 'lfm skills' for the list", err)
+			}
+			fmt.Fprint(env.Stdout, skill.Text)
+			return nil
+		default:
+			return usageError("lfm skills takes at most one topic")
 		}
-		fmt.Fprintln(env.Stdout, "Skills are not published yet. This command will provide the process guides for")
-		fmt.Fprintln(env.Stdout, "research, UX, copy, imagery and commerce. Until then, AGENTS.md in a new project")
-		fmt.Fprintln(env.Stdout, "and the compiler's own findings are the guidance.")
-		return nil
 	},
 }
 
