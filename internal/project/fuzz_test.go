@@ -10,12 +10,12 @@ import (
 	"testing"
 )
 
-const validConfig = `{"schemaVersion":1,"url":"https://example.org/p/","language":"en","title":"T","description":"D","links":{"x":1},"build":{"browserData":["data.a"],"assets":{"default":"auto","overrides":{"a.css":"inline"}},"validation":{"rules":{"x":"off"}}},"data":{"a":{"b":[1,"2"]}}}`
+const fuzzConfig = `{"schemaVersion":1,"url":"https://example.org/p/","language":"en","title":"T","description":"D","links":{"x":1},"build":{"browserData":["data.a"],"assets":{"default":"auto","overrides":{"a.css":"inline"}},"validation":{"rules":{"x":"off"}}},"data":{"a":{"b":[1,"2"]}}}`
 
 // Property: DecodeJSON accepts exactly the single valid JSON documents and
 // its result survives a marshal/decode round trip unchanged.
 func FuzzDecodeJSON(f *testing.F) {
-	for _, seed := range []string{validConfig, "", "{} {}", `{"a":1,}`, "\xef\xbb\xbf{}", `1e400`, `"\ud800"`, " [1] \n"} {
+	for _, seed := range []string{fuzzConfig, "", "{} {}", `{"a":1,}`, "\xef\xbb\xbf{}", `1e400`, `"\ud800"`, " [1] \n"} {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, raw string) {
@@ -41,7 +41,7 @@ func FuzzDecodeJSON(f *testing.F) {
 // Property: Load never panics, reports every key that strict decoding rejects,
 // and a problem-free load exposes exactly the authored data.
 func FuzzLoad(f *testing.F) {
-	for _, seed := range [][2]string{{validConfig, `{"q":[1]}`}, {`{"URL":"x","data":{}}`, `null`}, {`{"socialImage":{"src":"a","Alt":""}}`, `{`}, {`{"build":{"assets":{"overrides":{"../x":"file"}}}}`, `[]`}, {`{"data":{"faq":1}}`, `2`}} {
+	for _, seed := range [][2]string{{fuzzConfig, `{"q":[1]}`}, {`{"URL":"x","data":{}}`, `null`}, {`{"socialImage":{"src":"a","Alt":""}}`, `{`}, {`{"build":{"assets":{"overrides":{"../x":"file"}}}}`, `[]`}, {`{"data":{"faq":1}}`, `2`}} {
 		f.Add(seed[0], seed[1])
 	}
 	f.Fuzz(func(t *testing.T, config, data string) {
