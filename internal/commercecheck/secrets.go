@@ -32,7 +32,7 @@ func SecretOffset(raw []byte) int {
 				}
 				break
 			}
-			at = end
+			at++ // a prefix can begin inside a short candidate: sk_live_sk_live_...
 		}
 	}
 	return first
