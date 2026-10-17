@@ -64,6 +64,7 @@ func compactSyntax(raw []byte) ([]byte, error) {
 	z := html.NewTokenizer(bytes.NewReader(raw))
 	var out bytes.Buffer
 	out.Grow(len(raw))
+	foreign := 0 // depth inside SVG/MathML, where "/>" does close an element
 	for {
 		kind := z.Next()
 		if kind == html.StartTagToken || kind == html.SelfClosingTagToken {
@@ -71,8 +72,20 @@ func compactSyntax(raw []byte) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
+			name, _ := z.TagName()
+			if kind == html.SelfClosingTagToken && foreign == 0 && voidElements[string(name)] {
+				tag = dropSelfClosing(tag)
+			}
+			if kind == html.StartTagToken && (string(name) == "svg" || string(name) == "math") {
+				foreign++
+			}
 			out.Write(tag)
 		} else {
+			if kind == html.EndTagToken && foreign > 0 {
+				if name, _ := z.TagName(); string(name) == "svg" || string(name) == "math" {
+					foreign--
+				}
+			}
 			out.Write(z.Raw())
 		}
 		if kind == html.ErrorToken {
@@ -82,6 +95,21 @@ func compactSyntax(raw []byte) ([]byte, error) {
 			return out.Bytes(), nil
 		}
 	}
+}
+
+// The slash on an HTML void element ("<br />") is ignored by parsers.
+var voidElements = map[string]bool{"area": true, "base": true, "br": true, "col": true, "embed": true, "hr": true,
+	"img": true, "input": true, "link": true, "meta": true, "source": true, "track": true, "wbr": true}
+
+// dropSelfClosing turns a compacted "…/>" into "…>". An unquoted value right
+// before the slash stays intact: in "a=b/>" the slash would be part of it, so
+// only the marker and the space that separated it go.
+func dropSelfClosing(tag []byte) []byte {
+	trimmed := bytes.TrimSuffix(tag, []byte("/>"))
+	if len(trimmed) == len(tag) {
+		return tag
+	}
+	return append(bytes.TrimRight(trimmed, " \t\n\r\f"), '>')
 }
 
 // rawNameLength measures the tag name as written. TagName is no substitute:

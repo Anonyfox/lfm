@@ -137,3 +137,15 @@ func BenchmarkHTMLCompaction(b *testing.B) {
 		})
 	}
 }
+
+func TestVoidElementsLoseTheirSlashForeignElementsKeepIt(t *testing.T) {
+	source := `<!doctype html><html><head><meta charset="utf-8" /><link rel="icon" href="a/" /></head><body><br/><img alt="x" src="a/b/" /><svg viewBox="0 0 1 1"><path d="M0 0"/><circle r="1" /></svg><input value=""></body></html>`
+	got, result := Compact([]byte(source))
+	if result.Skipped != "" {
+		t.Fatal(result.Skipped)
+	}
+	want := `<!doctype html><html><head><meta charset=utf-8><link rel=icon href=a/></head><body><br><img alt=x src=a/b/><svg viewBox="0 0 1 1"><path d="M0 0"/><circle r=1 /></svg><input value></body></html>`
+	if string(got) != want {
+		t.Fatalf("got  %s\nwant %s", got, want)
+	}
+}
