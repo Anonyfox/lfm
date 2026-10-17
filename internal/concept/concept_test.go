@@ -212,11 +212,15 @@ func TestFormatFindings(t *testing.T) {
 
 func TestOpenQuestions(t *testing.T) {
 	r := check(t, strings.Replace(good, "Price: 19 EUR, once", "Price: Open: the owner sets it", 1))
-	if !has(r, RuleOpen, "Open question: the owner sets it") || r.Summary.Open != 1 {
+	if !has(r, RuleOpen, "Open question in Offer: the owner sets it") || r.Summary.Open != 1 {
 		t.Fatal(messages(r))
 	}
 	if has(r, RuleFormat, "Offer lacks") {
 		t.Fatal("an open field is answered, by a question")
+	}
+	row := check(t, strings.Replace(good, "| phone photo at night V005 | generated |", "| phone photo at night V005 | Open: the owner photographs it |", 1))
+	if !has(row, RuleOpen, `Open question in Imagery row "fridge rota": the owner photographs it`) || row.Summary.Imagery != 0 {
+		t.Fatal(messages(row), row.Summary.Imagery)
 	}
 }
 

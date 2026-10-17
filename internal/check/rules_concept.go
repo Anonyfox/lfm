@@ -55,6 +55,19 @@ func families(prop, value string) []string {
 	return out
 }
 
+// conceptFamilies returns the normalized typeface names concept.md declares.
+func (d *Document) conceptFamilies() map[string]bool {
+	declared := map[string]bool{}
+	if d.Options.Concept != nil {
+		for _, stack := range d.Options.Concept.Families {
+			for _, name := range families("font-family", stack) {
+				declared[name] = true
+			}
+		}
+	}
+	return declared
+}
+
 // conceptFidelityRule compares the page with the concept's declared type,
 // palette and imagery. Translucent black and white count as shading.
 func conceptFidelityRule(d *Document) []Diagnostic {
@@ -70,12 +83,7 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 	}
 	usedFamilies := map[string]*use{}
 	undeclared := map[string]*use{}
-	declared := map[string]bool{}
-	for _, stack := range facts.Families {
-		for _, name := range families("font-family", stack) {
-			declared[name] = true
-		}
-	}
+	declared := d.conceptFamilies()
 	// custom properties, so a family set through a token (font-family:
 	// var(--body)) counts as used where the token is used
 	custom := map[string][]string{}

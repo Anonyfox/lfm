@@ -84,3 +84,26 @@ func TestFamiliesParsing(t *testing.T) {
 		}
 	}
 }
+
+func TestMonoDeclaredInConceptIsADecision(t *testing.T) {
+	var mono Rule
+	for _, r := range DefaultRules() {
+		if r.ID == "design.mono" {
+			mono = r
+		}
+	}
+	body := `<style>.l{font-family:"Martian Mono",monospace}</style></head><body>` + strings.Repeat(`<span class=l>Hours of sun</span>`, 9) + `</body></html>`
+	run := func(facts *ConceptFacts) []Diagnostic {
+		d, err := Parse([]byte("<!doctype html><html><head><title>t</title>"+body), Options{Concept: facts})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mono.Check(d)
+	}
+	if len(run(nil)) == 0 {
+		t.Fatal("undeclared mono labels are the console default")
+	}
+	if got := run(&ConceptFacts{Families: []string{"Martian Mono, monospace"}}); len(got) != 0 {
+		t.Fatalf("a declared mono face is the concept's choice: %+v", got)
+	}
+}

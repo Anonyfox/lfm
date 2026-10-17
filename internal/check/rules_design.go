@@ -1078,6 +1078,8 @@ func (a *designAnalysis) separators() {
 // ---------- monospace microcopy ----------
 
 func (a *designAnalysis) mono() {
+	// a mono face the concept assigns a role to is a decision, not a default
+	declared := a.d.conceptFamilies()
 	var hits []*html.Node
 	for _, n := range a.d.Elements {
 		if !designVisible(n) {
@@ -1099,7 +1101,11 @@ func (a *designAnalysis) mono() {
 		if letters < 3 || codeContext(n) {
 			continue
 		}
-		if stock.Mono(firstFamily(a.m.value(n, "font-family"))) || classes(n)["font-mono"] {
+		family := firstFamily(a.m.value(n, "font-family"))
+		if declared[stock.Family(family)] {
+			continue
+		}
+		if stock.Mono(family) || classes(n)["font-mono"] {
 			hits = append(hits, n)
 		}
 	}

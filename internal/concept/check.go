@@ -143,10 +143,19 @@ func Check(text string, voices *research.Voices, competitors *research.Competito
 	r.Summary = c.sections(d)
 	for _, sec := range d.Order {
 		for _, l := range sec.Lines {
-			if _, question, ok := strings.Cut(l.Text, "Open: "); ok && strings.TrimSpace(question) != "" {
-				c.add(RuleOpen, l.N, "Open question: "+preview(question), "Get the answer from the owner or a source, then replace the line with the decision.")
-				r.Summary.Open++
+			_, question, ok := strings.Cut(l.Text, "Open: ")
+			if !ok || strings.TrimSpace(question) == "" {
+				continue
 			}
+			where := sec.Name
+			if strings.HasPrefix(l.Text, "|") {
+				// a table cell: name the row by its first cell, and stop at the cell
+				cells := strings.Split(strings.Trim(l.Text, "|"), "|")
+				where += " row " + quote(strings.TrimSpace(cells[0]))
+				question, _, _ = strings.Cut(question, "|")
+			}
+			c.add(RuleOpen, l.N, "Open question in "+where+": "+preview(question), "Get the answer from the owner or a source, then replace the line with the decision.")
+			r.Summary.Open++
 		}
 	}
 	r.Summary.Present = true
