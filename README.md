@@ -2,25 +2,54 @@
 
 **Looking for more. Looking for money.**
 
-`lfm` is a compiler for onepagers that sell. Your agent writes plain HTML with a little
-config; `lfm` turns it into a standalone static folder that ships anywhere, enforces the
-technical floor on every build, and hands the agent the craft knowledge it needs — copy,
-visuals, UX, SEO/GEO, sharing, Stripe checkout — exactly when it needs it.
+`lfm` compiles sales pages built by AI agents into fast, checked, standalone static output. The agent
+writes one HTML template, a little config and its assets; `lfm` bundles and packs everything into a
+folder that deploys anywhere, and refuses to ship pages that are broken, slow, inaccessible, invisible to
+search or full of generic AI design defaults. Every finding says how to fix it.
 
-No framework. No platform. No delivery. Just the storefront that gets the sale.
-
-> **Status:** foundations only. The compiler is being battle-tested elsewhere and moves in
-> soon. Nothing here is usable yet.
+No framework, no platform, no runtime: one binary, one page, one folder.
 
 ## Install
 
-Prebuilt binaries for macOS and Linux (amd64/arm64) are attached to each
-[release](https://github.com/Anonyfox/lfm/releases). Or, with Go:
+Prebuilt binaries for macOS and Linux (amd64 and arm64) are attached to every
+[release](https://github.com/Anonyfox/lfm/releases). With Go 1.26 or newer:
 
 ```sh
 go install github.com/Anonyfox/lfm/cmd/lfm@latest
 ```
 
+## Use
+
+```sh
+lfm init my-page        # a starter project that compiles cleanly
+cd my-page
+lfm serve --open        # live preview, recompiles on every save
+lfm compile             # check everything and write output/
+lfm compile --release   # also measure in headless Chrome and Lighthouse
+lfm rules               # every check; lfm rules <id> explains one
+```
+
+`output/` is the finished page: upload it to any static host at the URL configured in `lfm.json`.
+
+## What a compile guarantees
+
+- **Correct:** every template value exists and has the right shape; config mistakes point at their JSON
+  key; links match the declared URLs; HTML parses without browser repairs.
+- **Fast:** CSS and JS are bundled and minified, small assets inlined, large ones emitted as content-named
+  files, images sized against layout shift, HTML compacted without touching text.
+- **Findable and shareable:** canonical URL, metadata, headings, structured data and social previews are
+  checked; preview image sizes are filled in from the real files.
+- **Usable:** controls have names, labels and focus order work, forms and disclosures behave.
+- **Distinct:** typical generated-design defaults (stock palettes, eyebrow labels, emoji bullets, icon-card
+  grids and more) are reported, with an explicit way to keep one deliberately.
+- **Safe to ship:** nothing is written until all checks pass, and a failed compile keeps the last good output.
+
+## Docs
+
+- [Authoring a project](docs/authoring.md): layout, `lfm.json`, templates, assets.
+- [What `lfm compile` does](docs/compiling.md): lifecycle, packing, output, release, preview.
+- [Contributing](CONTRIBUTING.md): building, testing and the package map.
+
 ## License
 
-[MIT](LICENSE) — [lfm.cash](https://lfm.cash)
+[MIT](LICENSE) · [lfm.cash](https://lfm.cash)

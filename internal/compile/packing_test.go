@@ -358,3 +358,37 @@ func TestSmallLinkedDocumentKeepsNavigableFileURL(t *testing.T) {
 		t.Fatal("tiny linked document became an unnavigable data URL")
 	}
 }
+
+func TestAutomaticFileNamesFollowContent(t *testing.T) {
+	root := autoFixture(t)
+	write(t, root, "a/photo.webp", strings.Repeat("A", 40000))
+	write(t, root, "b/photo.webp", strings.Repeat("A", 40000))
+	page := strings.Replace(read(t, root, "index.html.tmpl"), "</body>", `<img src="a/photo.webp" alt="a" width="10" height="10"><img src="b/photo.webp" alt="b" width="10" height="10"></body>`, 1)
+	write(t, root, "index.html.tmpl", page)
+	names := func() []string {
+		t.Helper()
+		r, err := Compile(root, Options{Publish: true})
+		if err != nil {
+			t.Fatal(err, r.Validation)
+		}
+		var photos []string
+		for _, f := range r.Files {
+			if strings.HasPrefix(f.Name, "photo-") {
+				photos = append(photos, f.Name)
+			}
+		}
+		return photos
+	}
+	first := names()
+	if len(first) != 2 || first[0] == first[1] {
+		t.Fatalf("same basename from two paths must get two names: %v", first)
+	}
+	if again := names(); strings.Join(again, " ") != strings.Join(first, " ") {
+		t.Fatalf("names are not deterministic: %v then %v", first, again)
+	}
+	write(t, root, "a/photo.webp", strings.Repeat("B", 40000))
+	changed := names()
+	if changed[0] == first[0] && changed[1] == first[1] || !(changed[0] == first[1] || changed[1] == first[1]) {
+		t.Fatalf("only the changed file must get a new name: %v then %v", first, changed)
+	}
+}

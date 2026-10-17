@@ -13,6 +13,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
 	"github.com/Anonyfox/lfm/internal/htmlx"
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -435,15 +436,33 @@ func inspectedFont(raw []byte) bool {
 // Auto resources use one source-derived name in HTML and esbuild's file loader.
 // This prevents basename collisions BEFORE esbuild reconciles imported assets,
 // and stays stable when content changes. Explicit file policy retains basenames.
+// resourceName names the emitted file of a source. Automatically packed files
+// get a suffix hashed from their project path and content: the URL changes
+// whenever the bytes do, so hosts can cache files forever, and two sources with
+// the same basename never collide. Explicitly configured files keep their name.
 func (b *builder) resourceName(path string) string {
 	name := filepath.Base(path)
-	if b.mode(path) != "auto" {
+	if b.mode(path) != project.Auto {
 		return name
 	}
-	rel, _ := filepath.Rel(b.root, path)
-	hash := sha256.Sum256([]byte(filepath.ToSlash(rel)))
+	b.nameMu.Lock()
+	defer b.nameMu.Unlock()
+	if cached, ok := b.names[path]; ok {
+		return cached
+	}
+	digest := sha256.New()
+	digest.Write([]byte(b.project.Rel(path)))
+	digest.Write([]byte{0})
+	if raw, err := os.ReadFile(path); err == nil {
+		digest.Write(raw)
+	}
 	ext := filepath.Ext(name)
-	return fmt.Sprintf("%s-%x%s", strings.TrimSuffix(name, ext), hash[:6], ext)
+	named := fmt.Sprintf("%s-%x%s", strings.TrimSuffix(name, ext), digest.Sum(nil)[:6], ext)
+	if b.names == nil {
+		b.names = map[string]string{}
+	}
+	b.names[path] = named
+	return named
 }
 
 func (b *builder) autoAssetName(name, path string, raw []byte) string {

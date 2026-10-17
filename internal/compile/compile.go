@@ -121,6 +121,8 @@ type builder struct {
 	fonts           map[string]fontcheck.Info
 	fontHints       int
 	inputs          map[string]bool
+	nameMu          sync.Mutex
+	names           map[string]string // source path -> emitted file name
 }
 
 // Compile runs the lifecycle on the project in dir.
