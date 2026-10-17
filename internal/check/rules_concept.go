@@ -200,12 +200,19 @@ func declaredColor(c color.Color, palette []color.Color) bool {
 }
 
 // imageryCount counts the distinct images a visitor sees: img and video
-// sources, canvases, standalone SVG drawings of 64 px or more, and background
-// image URLs. An image reused in several places counts once.
+// sources, canvases, standalone SVG drawings of 64 px or more, background
+// image URLs and the social preview image. An image reused counts once.
 func imageryCount(d *Document) int {
 	seen := map[string]bool{}
 	canvases := 0
 	for _, n := range d.Elements {
+		// a planned share preview lives in the social image metadata
+		if n.Data == "meta" {
+			if key := strings.ToLower(Attr(n, "property") + Attr(n, "name")); key == "og:image" || key == "twitter:image" {
+				seen[Attr(n, "content")] = true
+			}
+			continue
+		}
 		if inTemplate(n) || !designVisible(n) {
 			continue
 		}
