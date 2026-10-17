@@ -72,6 +72,9 @@ func position(l diagnostic.Location) string {
 
 // renderResult prints a whole compile: findings, then what was produced.
 func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
+	if r.Validation != nil && len(r.Validation.Diagnostics) > 0 {
+		defer fmt.Fprintln(w, s.Dim("'lfm rules <id>' explains any rule above."))
+	}
 	if r.Validation != nil {
 		renderDiagnostics(w, s, r.Validation.Diagnostics)
 		if len(r.Validation.Diagnostics) > 0 {
