@@ -216,3 +216,35 @@ func TestStructuredSharingMediaFollowsAutomaticSidecarNames(t *testing.T) {
 		t.Fatal("structured metadata did not follow automatic packing", card)
 	}
 }
+
+func TestSocialImageSizesAreFilledFromTheEmittedFile(t *testing.T) {
+	root := fixture(t)
+	writeSharingPNG(t, root, "card.png", 600, 314)
+	writeSharingPNG(t, root, "second.png", 300, 300)
+	page := strings.Replace(fixtureHTML, `<meta property="og:image" content="assets/images/picture.svg">`,
+		`<meta property="og:image" content="card.png"><meta property="og:image:alt" content="Result card">`+
+			`<meta property="og:image" content="second.png"><meta property="og:image:width" content="300"><meta property="og:image:alt" content="Square">`, 1)
+	write(t, root, "index.html.tmpl", page)
+	r, err := Compile(root, Options{Publish: true})
+	if err != nil {
+		t.Fatal(err, r.Validation)
+	}
+	for _, issue := range r.Validation.Diagnostics {
+		if issue.Rule == "sharing.media" {
+			t.Fatal("dimensions still reported missing:", issue)
+		}
+	}
+	var sequence []string
+	for _, node := range parsePage(t, read(t, root, "output/index.html")) {
+		if property := htmlx.Attr(node, "property"); node.Data == "meta" && strings.HasPrefix(property, "og:image") {
+			sequence = append(sequence, property+"="+htmlx.Attr(node, "content"))
+		}
+	}
+	want := []string{
+		"og:image=https://example.com/tools/demo/card.png", "og:image:width=600", "og:image:height=314", "og:image:alt=Result card",
+		"og:image=https://example.com/tools/demo/second.png", "og:image:height=300", "og:image:width=300", "og:image:alt=Square",
+	}
+	if strings.Join(sequence, " ") != strings.Join(want, " ") {
+		t.Fatalf("got  %v\nwant %v", sequence, want)
+	}
+}

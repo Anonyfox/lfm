@@ -255,6 +255,7 @@ func (b *builder) assemble(doc *html.Node, values map[string]any, prepared prepa
 	if err := b.ensureFavicon(doc); err != nil {
 		return err
 	}
+	b.socialImageSizes(doc)
 	result.Images = b.prepareImages(doc, images)
 	if result.Packing, err = b.planAssets(doc); err != nil {
 		return err

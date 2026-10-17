@@ -320,17 +320,17 @@ func parseLighthouse(raw []byte, origin string) (*LighthouseResult, error) {
 		return nil, fmt.Errorf("invalid Lighthouse JSON: %w", err)
 	}
 	if data.RuntimeError != nil {
-		return nil, fmt.Errorf("Lighthouse navigation: %s", data.RuntimeError.Message)
+		return nil, fmt.Errorf("navigation failed in Lighthouse: %s", data.RuntimeError.Message)
 	}
 	if data.LighthouseVersion == "" || len(data.Categories) == 0 || len(data.Audits) == 0 {
-		return nil, fmt.Errorf("Lighthouse JSON lacks version/categories/audits")
+		return nil, fmt.Errorf("the Lighthouse JSON lacks version, categories or audits")
 	}
 	r := &LighthouseResult{Status: "ok", Version: data.LighthouseVersion, Chrome: data.UserAgent, Scope: auditScope, Scores: map[string]*int{}, Metrics: map[string]string{}, Warnings: data.RunWarnings}
 	owners := map[string][]string{}
 	for _, name := range []string{"performance", "accessibility", "best-practices", "seo"} {
 		category, ok := data.Categories[name]
 		if !ok || category.Score == nil {
-			return nil, fmt.Errorf("Lighthouse category %s has no score; audit incomplete", name)
+			return nil, fmt.Errorf("the Lighthouse category %s has no score; the audit is incomplete", name)
 		}
 		if math.IsNaN(*category.Score) || *category.Score < 0 || *category.Score > 1 {
 			return nil, fmt.Errorf("invalid Lighthouse category score: %s", name)

@@ -3,10 +3,13 @@ package compile
 import (
 	"encoding/json"
 	"net/url"
+	"path"
+	"strconv"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/htmlx"
+	"github.com/Anonyfox/lfm/internal/imaging"
 	"golang.org/x/net/html"
 )
 
@@ -106,4 +109,60 @@ func (b *builder) sharingAssets(n *html.Node) error {
 		}
 	}
 	return nil
+}
+
+// socialImageSizes adds og:image:width and og:image:height to every local
+// Open Graph image that lacks them, from the emitted file's real dimensions.
+// Platforms use them to lay out a preview before fetching the image; authored
+// values are never changed (a mismatch is reported by the sharing checks).
+func (b *builder) socialImageSizes(doc *html.Node) {
+	type group struct {
+		root   *html.Node
+		fields map[string]bool
+	}
+	var groups []*group
+	var current *group
+	htmlx.Walk(doc, func(n *html.Node) {
+		if n.Namespace != "" || n.Data != "meta" || htmlx.Dormant(n) {
+			return
+		}
+		key := strings.ToLower(strings.TrimSpace(htmlx.Attr(n, "property")))
+		switch key {
+		case "og:image", "og:image:url":
+			current = &group{root: n, fields: map[string]bool{}}
+			groups = append(groups, current)
+		case "og:image:width", "og:image:height":
+			if current != nil {
+				current.fields[key] = true
+			}
+		}
+	})
+	for _, g := range groups {
+		u, err := url.Parse(htmlx.Attr(g.root, "content"))
+		if err != nil {
+			continue
+		}
+		file, ok := b.files[strings.ToLower(path.Base(u.Path))]
+		if !ok {
+			continue
+		}
+		info := imaging.Inspect(file.contents)
+		if info.Issue != "" || info.Unknown != "" || info.Width <= 0 || info.Height <= 0 {
+			continue
+		}
+		after := g.root
+		for _, axis := range []struct {
+			key  string
+			size int
+		}{{"og:image:width", info.Width}, {"og:image:height", info.Height}} {
+			if g.fields[axis.key] {
+				continue
+			}
+			meta := htmlx.Element("meta", "")
+			htmlx.SetAttr(meta, "property", axis.key)
+			htmlx.SetAttr(meta, "content", strconv.Itoa(axis.size))
+			after.Parent.InsertBefore(meta, after.NextSibling)
+			after = meta
+		}
+	}
 }
