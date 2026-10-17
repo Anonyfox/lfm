@@ -104,7 +104,7 @@ func LighthouseDiagnostics(lh *LighthouseResult) []diagnostic.Diagnostic {
 	for _, f := range lh.Findings {
 		message := f.Title
 		if f.Value != "" {
-			message += " — " + f.Value
+			message += ": " + f.Value
 		}
 		if len(f.Categories) > 0 {
 			message += " (scored: " + strings.Join(f.Categories, ", ") + ")"
@@ -284,10 +284,11 @@ func (b *cappedBuffer) Write(p []byte) (int, error) {
 	b.Truncated = b.Truncated || keep < n
 	return n, nil
 }
+// compact collapses whitespace and cuts s to limit runes, marking the cut.
 func compact(s string, limit int) string {
 	s = strings.Join(strings.Fields(s), " ")
-	if len(s) > limit {
-		return string([]rune(s)[:min(len([]rune(s)), limit)]) + "…"
+	if runes := []rune(s); len(runes) > limit {
+		return string(runes[:limit]) + "…"
 	}
 	return s
 }
