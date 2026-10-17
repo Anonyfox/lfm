@@ -40,8 +40,8 @@ stay exactly as written. Each compacted result is parsed and compared with the o
 `output/` contains `index.html` plus the emitted files, flat, ready to upload to any static host at the
 configured `url`. It is replaced as a whole; there are no stale files, sources or reports in it.
 
-Compiles of the same project are serialized across processes with a lock in the system temp directory.
-Nothing is ever written into the project except `output/`.
+Compiles of the same project are serialized across processes by locking the project directory; no lock
+file is created. Nothing is ever written into the project except `output/`.
 
 ## Release
 
