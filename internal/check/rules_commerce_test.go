@@ -163,7 +163,7 @@ func TestCheckoutDiscoveryUsesInitialNativeAnchors(t *testing.T) {
 			t.Fatal(body)
 		}
 	}
-	d := commerceDoc(t, `<a href="https://payments.example.com/a">Buy</a>`, strings.Replace(commerceLD, "https://buy.stripe.com/ABC", "https://payments.example.com/a", 1), commerceFixture())
+	d := commerceDoc(t, `<a href="https://payments.example.com/a">Buy · €49</a>`, strings.Replace(commerceLD, "https://buy.stripe.com/ABC", "https://payments.example.com/a", 1), commerceFixture())
 	d.Options.Commerce.Offers[0].CheckoutURL = "https://payments.example.com/a"
 	if issues := commerceFindings(d, "commerce.discovery"); len(issues) != 0 {
 		t.Fatal(issues)
@@ -190,5 +190,35 @@ func BenchmarkAnalyzeCommerce(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		_, _ = Analyze(raw, options)
+	}
+}
+
+func TestCommercePriceVisible(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want bool // finding expected
+	}{
+		{`<p>Price 49,00 €</p>`, false},
+		{`<p>Nur 49 Euro, einmalig.</p>`, false},
+		{`<p>EUR 49.00 once</p>`, false},
+		{`<p>49,– €</p>`, false},
+		{`<p>Price: 4,900 EUR</p>`, true},
+		{`<p>49 people bought it</p>`, true},
+		{`<p>Price shown after you choose.</p>`, true},
+		{`<template><p>49 €</p></template>`, true},
+	} {
+		d := commerceDoc(t, `<a href="https://buy.stripe.com/ABC">Buy the audit</a>`+tc.text, commerceLD, commerceFixture())
+		var found bool
+		for _, issue := range commerceFindings(d, "commerce.discovery") {
+			found = found || strings.Contains(issue.Message, "does not appear")
+		}
+		if found != tc.want {
+			t.Errorf("%s: finding %v, want %v", tc.text, found, tc.want)
+		}
+	}
+	for written, want := range map[string]int64{"12": 1200, "12,00": 1200, "12.5": 1250, "1.200,50": 120050, "1,200.50": 120050, "1 200": 120000} {
+		if got, ok := minorUnits(written, 100); !ok || got != want {
+			t.Errorf("%s = %d, want %d", written, got, want)
+		}
 	}
 }

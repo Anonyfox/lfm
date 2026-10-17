@@ -1,9 +1,12 @@
 package check
 
 import (
+	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/commercecheck"
@@ -122,6 +125,9 @@ func (d *Document) commerceFacts() []Diagnostic {
 		if offer.CheckoutURL != "" && !usable[commercecheck.Identity(offer.CheckoutURL)] {
 			d.commerceAdd("commerce.discovery", nil, Warning, "Declared offer has no initially usable native checkout anchor.", "Render an <a href> using urls[checkoutUrlKey] outside hidden/inert/closed views; keep a direct purchase path alongside the interactive funnel.", &offer)
 		}
+		if offer.Price != nil && (offer.Price.Scale == 1 || offer.Price.Scale == 100) && offer.Price.AmountMinor > 0 && !d.priceVisible(*offer.Price) {
+			d.commerceAdd("commerce.discovery", nil, Warning, fmt.Sprintf("The price of the fixed-price offer (%s) does not appear in the page's initial text.", formatMinor(*offer.Price)), "Show the price next to the offer and its checkout link in the HTML, with its currency; a price only in scripts, images or structured data is invisible to readers, crawlers and assistants.", &offer)
+		}
 		if offer.Price != nil && !matched[i] && !expansionUnavailable {
 			d.commerceAdd("commerce.discovery", nil, Warning, "Fixed-price offer has no identifiable Schema.org Offer in initial JSON-LD.", "Describe the offer in the compiler-owned block; use the same sku on its Offer/Product or an unambiguous checkout target. Unknown remote contexts cannot be checked offline.", &offer)
 		}
@@ -164,4 +170,75 @@ func commerceSecretsRule(d *Document) []Diagnostic {
 		}
 	}
 	return issues
+}
+
+// moneyNumber finds amounts as people write them: 12, 12.00, 12,00, 1.200,50,
+// 1,200.50, 1 200 or 12,–.
+var moneyNumber = regexp.MustCompile(`\d{1,3}(?:[.,' \x{a0}\x{202f}]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?`)
+
+var currencyTokens = map[string][]string{
+	"EUR": {"€", "eur", "euro"}, "USD": {"$", "usd", "us$"}, "GBP": {"£", "gbp"}, "CHF": {"chf", "fr."},
+	"JPY": {"¥", "jpy", "円"}, "SEK": {"sek", "kr"}, "NOK": {"nok", "kr"}, "DKK": {"dkk", "kr"}, "PLN": {"pln", "zł"},
+}
+
+// priceVisible reports whether visible text names the amount with its
+// currency token within a few characters.
+func (d *Document) priceVisible(price commercecheck.Money) bool {
+	tokens := currencyTokens[strings.ToUpper(price.Currency)]
+	tokens = append(tokens, strings.ToLower(price.Currency))
+	for _, s := range visibleSegments(d) {
+		text := strings.ToLower(s.text)
+		for _, m := range moneyNumber.FindAllStringIndex(text, -1) {
+			minor, ok := minorUnits(text[m[0]:m[1]], price.Scale)
+			if !ok || minor != price.AmountMinor {
+				continue
+			}
+			before, after := text[max(0, m[0]-8):m[0]], text[m[1]:min(len(text), m[1]+8)]
+			for _, t := range tokens {
+				if strings.Contains(before, t) || strings.Contains(after, t) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// minorUnits converts a written amount to minor units for a currency with
+// scale minor units per major unit (100 for cents). A separator followed by
+// exactly three digits groups thousands; one or two digits are decimals.
+func minorUnits(written string, scale int64) (int64, bool) {
+	digits, decimals := "", ""
+	cut := strings.LastIndexAny(written, ".,")
+	if cut >= 0 && len(written)-cut-1 <= 2 {
+		decimals = written[cut+1:]
+		written = written[:cut]
+	}
+	for _, r := range written {
+		if r >= '0' && r <= '9' {
+			digits += string(r)
+		}
+	}
+	major, err := strconv.ParseInt(digits, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	minor := int64(0)
+	if decimals != "" {
+		if scale != 100 {
+			return 0, false
+		}
+		if len(decimals) == 1 {
+			decimals += "0"
+		}
+		minor, _ = strconv.ParseInt(decimals, 10, 64)
+	}
+	return major*scale + minor, true
+}
+
+func formatMinor(price commercecheck.Money) string {
+	if price.Scale == 100 {
+		return fmt.Sprintf("%d.%02d %s", price.AmountMinor/100, price.AmountMinor%100, strings.ToUpper(price.Currency))
+	}
+	return fmt.Sprintf("%d %s", price.AmountMinor/max(price.Scale, 1), strings.ToUpper(price.Currency))
 }
