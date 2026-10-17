@@ -44,7 +44,7 @@ func TestOwnedBrowserExposesPortForLighthouse(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
 	profile := t.TempDir()
 	_, cleanup, err := startAuditBrowser(ctx, path, "http://127.0.0.1:1", profile)

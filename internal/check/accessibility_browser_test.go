@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/chromedp/cdproto/accessibility"
@@ -42,7 +41,7 @@ func TestBrowserAccessibleNamesAndNativeFocus(t *testing.T) {
 		w.Write([]byte(raw))
 	}))
 	defer server.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path))

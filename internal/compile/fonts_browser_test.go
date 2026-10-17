@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/release"
@@ -79,7 +78,7 @@ func TestBrowserFontPackingAndPreloadReuse(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path))

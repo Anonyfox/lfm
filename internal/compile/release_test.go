@@ -95,7 +95,7 @@ func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
 	path, _ := release.BrowserPath()
 	for _, scripts := range []bool{true, false} {
 		t.Run(fmt.Sprintf("scripts=%t", scripts), func(t *testing.T) {
-			deadline, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			deadline, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 			defer cancel()
 			opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 			opts = append(opts, chromedp.ExecPath(path))

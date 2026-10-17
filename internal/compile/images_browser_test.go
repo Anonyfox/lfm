@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/release"
@@ -84,7 +83,7 @@ func TestBrowserInferredImageSizesPreserveLoadedLayout(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	deadline, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	deadline, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path))

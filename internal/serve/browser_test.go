@@ -25,7 +25,7 @@ func TestBrowserReloadsSourcesAndRecoversFromErrors(t *testing.T) {
 	if first := nextBuild(t, built); first.err != nil {
 		t.Fatal(first.err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path))
