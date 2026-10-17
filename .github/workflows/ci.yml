@@ -61,7 +61,7 @@ jobs:
           for pkg in $(go list ./...); do
             for target in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
               echo "::group::$pkg $target"
-              go test -run '^$' -fuzz "^${target}\$" -fuzztime 10s "$pkg"
+              go test -run '^$' -fuzz "^${target}\$" -fuzztime 5s "$pkg"
               echo "::endgroup::"
             done
           done

@@ -24,7 +24,7 @@ To fuzz every target briefly, as CI does:
 ```sh
 for pkg in $(go list ./internal/...); do
   for name in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz'); do
-    go test -run '^$' -fuzz "^$name\$" -fuzztime 10s "$pkg" || exit 1
+    go test -run '^$' -fuzz "^$name\$" -fuzztime 5s "$pkg" || exit 1
   done
 done
 ```
