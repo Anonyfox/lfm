@@ -102,5 +102,6 @@ Social preview images, media and linked documents always become real files with 
 ## Research
 
 `research/` holds the durable inputs of the design process: `human-voices.md` (verbatim posts with source
-links) and `competitor-analysis.md`. The compiler ignores the folder; it exists so the agents building
-the page start from real data instead of guesses.
+links) and `competitor-analysis.md`. `lfm skills research` prints the process and the exact format. The
+files are never part of the page, but every compile parses them, reports format and substance problems
+(`research.*` rules) and summarizes them: voices, platforms, peers, posting dates.

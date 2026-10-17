@@ -5,7 +5,7 @@ of them report through the same findings, so a single run lists everything that 
 
 | Stage | Work |
 | --- | --- |
-| load | Read `lfm.json` and `data/`; every config problem is reported at its JSON key. |
+| load | Read `lfm.json` and `data/`; every config problem is reported at its JSON key. Check the research files. |
 | prepare | Check every template binding, link and offer statically, then render the page. |
 | assemble | Resolve, bundle and pack every referenced resource; inspect images and fonts. |
 | optimize | `--release` only: split critical CSS after measuring it in headless Chrome. |

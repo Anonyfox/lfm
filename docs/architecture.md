@@ -21,6 +21,8 @@ one package per responsibility, each testable on its own.
 | `htmlcompact` | Syntax-only HTML compaction, proven by comparing parsed trees. |
 | `dataurl` | Data URL encoding and decoding. |
 | `htmlx`, `jsonsrc`, `diagnostic` | Shared node helpers, JSON source locations, and the finding format. |
+| `research` | Parses, checks and summarizes the two research files. |
+| `skills` | Agent Skills embedded in the binary and rendered with its facts. |
 | `release` | Headless Chrome for critical CSS and the runtime probe, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
 

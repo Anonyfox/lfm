@@ -15,6 +15,7 @@ import (
 	"text/template"
 
 	"github.com/Anonyfox/lfm/internal/project"
+	"github.com/Anonyfox/lfm/internal/research"
 )
 
 //go:embed files
@@ -35,11 +36,11 @@ type Data struct {
 func NewData(version string) Data {
 	return Data{
 		Version:      version,
-		Voices:       project.ResearchDir + "/human-voices.md",
-		Competitors:  project.ResearchDir + "/competitor-analysis.md",
-		MinVoices:    60,
-		MinPlatforms: 5,
-		MinPeers:     12,
+		Voices:       project.ResearchDir + "/" + research.VoicesFile,
+		Competitors:  project.ResearchDir + "/" + research.CompetitorsFile,
+		MinVoices:    research.MinVoices,
+		MinPlatforms: research.MinPlatforms,
+		MinPeers:     research.MinPeers,
 	}
 }
 

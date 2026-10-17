@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/Anonyfox/lfm/internal/research"
 )
 
 // Every skill must load in any Agent Skills client and stay small enough to be
@@ -82,6 +84,39 @@ func TestResearchSkillCarriesItsNonNegotiablesEarly(t *testing.T) {
 	for _, fact := range []string{"60 voices", "5 platforms", "12 peers", "research/competitor-analysis.md"} {
 		if !strings.Contains(s.Text, fact) {
 			t.Errorf("rendered skill lacks %q", fact)
+		}
+	}
+}
+
+// The skill teaches the exact format the compiler checks; its examples must
+// parse cleanly, so the two can never drift apart.
+func TestResearchExamplesParse(t *testing.T) {
+	s, err := Get("research", NewData("dev"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	examples := regexp.MustCompile(`(?s)<example>\n(.*?)</example>`).FindAllStringSubmatch(s.Text, -1)
+	if len(examples) < 3 {
+		t.Fatalf("found %d examples", len(examples))
+	}
+	for _, ex := range examples {
+		body := ex[1]
+		switch {
+		case strings.HasPrefix(body, "### V"):
+			file := "# Human voices: X\n\n## Batch 2026-10-17 · from zero · queries: \"q\" · unreachable: none\n\n" + body
+			if _, problems := research.ParseVoices(file); len(problems) != 0 {
+				t.Errorf("voice example does not parse: %+v\n%s", problems, body)
+			}
+		case strings.HasPrefix(body, "### P"):
+			if _, problems := research.ParseCompetitors("# Competitor analysis: X\n\n## Batch 2026-10-17 · from zero\n\n" + body); len(problems) != 0 {
+				t.Errorf("peer example does not parse: %+v", problems)
+			}
+		case strings.HasPrefix(body, "## Batch"):
+			if _, problems := research.ParseVoices("# Human voices: X\n\n" + body); len(problems) != 0 {
+				t.Errorf("batch example does not parse: %+v", problems)
+			}
+		default:
+			t.Errorf("unrecognized example: %q", body)
 		}
 	}
 }

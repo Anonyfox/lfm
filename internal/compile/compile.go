@@ -34,6 +34,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/imaging"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/research"
 
 	"golang.org/x/net/html"
 )
@@ -67,6 +68,7 @@ type Result struct {
 	Compaction *htmlcompact.Result `json:"htmlCompaction,omitempty"`
 	Images     []imaging.Decision  `json:"images,omitempty"`
 	Fonts      []fontcheck.Info    `json:"fonts,omitempty"`
+	Research   research.Summary    `json:"research"`
 	FontHints  int                 `json:"fontHintRepairs,omitempty"`
 	Inputs     []string            `json:"-"` // resolved source files, for watchers
 	Duration   time.Duration       `json:"duration"`
@@ -158,9 +160,11 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	loaded := project.Load(p, ruleCheck)
 	c := loaded.Config
 	result.PageURL = c.URL
+	findings := checkResearch(p, &result, c.Build.Validation.Rules)
 
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
+	preliminary = *summarize(preliminary.Stage, append(preliminary.Diagnostics, findings...))
 	result.Validation = &preliminary
 	if err != nil {
 		return result, err
@@ -395,4 +399,18 @@ func diagnostics(r Result) []diagnostic.Diagnostic {
 		return nil
 	}
 	return r.Validation.Diagnostics
+}
+
+// checkResearch checks the research files that exist. They are never build
+// inputs; their findings join the report so research stays exact as it grows.
+func checkResearch(p project.Project, result *Result, rules map[string]diagnostic.Severity) []diagnostic.Diagnostic {
+	files := map[string][]byte{}
+	for _, name := range []string{research.VoicesFile, research.CompetitorsFile} {
+		if raw, err := p.Read(project.ResearchDir + "/" + name); err == nil {
+			files[name] = raw
+		}
+	}
+	r := research.Check(files, project.ResearchDir, time.Now())
+	result.Research = r.Summary
+	return diagnostic.Apply(r.Diagnostics, rules)
 }

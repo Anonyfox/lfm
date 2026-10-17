@@ -98,15 +98,18 @@ Use exactly this structure, so batches from different sessions and tools stay co
 
 ## Batch <YYYY-MM-DD> · <from zero | ongoing: trigger> · queries: "<query>", "<query>" · unreachable: <platforms or none>
 
-### V<NNN> · <platform> <place> · <buyer | creator | brand | expert> · posted <YYYY-MM-DD | unknown> · fetched <YYYY-MM-DD> · via <connector | search | browser | user>
+### V<NNN> · <platform> (<place>) · <buyer | creator | brand | expert> · posted <YYYY-MM-DD | unknown> · fetched <YYYY-MM-DD> · via <connector | search | browser | user>
 > <exact text>
+> <next line of the same text, if any>
 <https://source.url>
 Observer note: <only for image and video posts>
 ```
 
-IDs are `V` plus three digits, continuing across batches (`V001`, `V002`, …), never reused. Numbers that
-describe behaviour (sales, clicks, survey counts) go into their own table under the batch heading, each
-row with its source.
+IDs are `V` plus three digits, continuing across batches (`V001`, `V002`, …), never reused. The place in
+parentheses is optional (a subreddit, a channel, a product's review page). Every line of a quote starts
+with `> `, including blank ones (`>`), so the text may contain anything. Fields never contain ` · `.
+Numbers that describe behaviour (sales, clicks, survey counts) go into their own table under the batch
+heading, each row with its source.
 
 ## [[.Competitors]] format
 
@@ -115,16 +118,23 @@ row with its source.
 
 ## Batch <YYYY-MM-DD> · <from zero | ongoing: trigger>
 
-### P<NNN> · <name> · <https://peer.url> · fetched <YYYY-MM-DD> · via <connector | search | browser | user>
+### P<NNN> · <name> · https://peer.url · fetched <YYYY-MM-DD> · via <connector | search | browser | user>
 - Opening: <headline claim>; <hero>; <first action>
-- Palette: … · Type: … · Imagery: … · Motion: …
-- Mechanism: … · Proof: … · Price: … · Tone: … · Takeaway: …
+- Palette: …
+- Type: …
+- Imagery: …
+- Motion: …
+- Mechanism: …
+- Proof: …
+- Price: …
+- Tone: …
+- Takeaway: …
 
 ### Grid after this batch
 
-| Column | Values with counts |
-| --- | --- |
-| Opening | <value> 7, <value> 3, … |
+| Column | Value | Peers |
+| --- | --- | --- |
+| Opening | <value> | 7 |
 
 ### Baseline
 
@@ -137,10 +147,12 @@ row with its source.
 
 ## Validate before saving
 
-Run this against each file and fix anything that fails before you finish:
+`lfm compile` parses both files and reports every `research.*` finding with its line; when you can run
+it, fix what it reports. Either way, check each file yourself before you finish:
 
 - headings and field order match the format exactly; dates are `YYYY-MM-DD`;
 - IDs are unique, consecutive and continue from the previous batch;
+- each grid column's counts add up to the number of peers in the file;
 - every entry has a URL, every quote sits in a `>` block, and no field is an empty placeholder;
 - no earlier batch changed (compare against what you read);
 - from zero: the minimums and the diversity limits hold, or the shortfall is named in the batch header.
@@ -160,7 +172,7 @@ reachable at all, ask the user to paste or export sources, and stop rather than 
 ## Examples
 
 <example>
-### V014 · Reddit r/pourover · buyer · posted 2026-01-13 · fetched 2026-10-17 · via search
+### V014 · Reddit (r/pourover) · buyer · posted 2026-01-13 · fetched 2026-10-17 · via search
 > Numbering feels way less intimidating than words. And yeah, if someone suddenly goes 'I loved #3' it makes the follow up so much easier.
 <https://www.reddit.com/r/pourover/comments/1qbely1/>
 </example>
@@ -170,6 +182,20 @@ reachable at all, ask the user to paste or export sources, and stop rather than 
 > the payoff is coming I can feel it
 <https://www.tiktok.com/@example/video/7656547532020976910>
 Observer note: phone screen recording of a code editor, white caption box at the top, talk-show still inserted after two seconds, fast cuts.
+</example>
+
+<example>
+### P003 · Trade Coffee · https://www.drinktrade.com/ · fetched 2026-10-17 · via browser
+- Opening: "Coffee matched to your taste"; bag packshots; "Take the quiz"
+- Palette: off-white, black, one citrus accent
+- Type: one geometric sans
+- Imagery: studio packshots of bags
+- Motion: none
+- Mechanism: taste quiz leading to a subscription
+- Proof: star rating and press logos
+- Price: first bag free, then per bag
+- Tone: confident, friendly
+- Takeaway: none
 </example>
 
 <example>

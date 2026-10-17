@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/research"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -100,6 +102,7 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	}
 	fmt.Fprintln(w, line)
 	renderFiles(w, s, r)
+	renderResearch(w, s, r.Research)
 	renderRelease(w, s, r.Release)
 }
 
@@ -179,4 +182,34 @@ func score(n *int) string {
 		return "–"
 	}
 	return fmt.Sprint(*n)
+}
+
+// renderResearch summarizes the evidence the page stands on.
+func renderResearch(w io.Writer, s term.Style, r research.Summary) {
+	if r.Empty() {
+		return
+	}
+	line := fmt.Sprintf("%s · %s · %s", term.Plural(r.Voices, "voice"), term.Plural(len(r.Platforms), "platform"), term.Plural(r.Peers, "peer"))
+	if !r.Latest.IsZero() {
+		line += " · latest batch " + r.Latest.Format(time.DateOnly)
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("research", 12), line)
+	var detail []string
+	for i, p := range r.Platforms {
+		if i == 3 {
+			detail = append(detail, fmt.Sprintf("+%d more", len(r.Platforms)-3))
+			break
+		}
+		detail = append(detail, fmt.Sprintf("%s %d%%", p.Name, 100*p.N/r.Voices))
+	}
+	if r.Dated > 0 {
+		span := r.Oldest.Format("2006")
+		if newest := r.Newest.Format("2006"); newest != span {
+			span += " to " + newest
+		}
+		detail = append(detail, fmt.Sprintf("posted %s, %d%% within a year", span, 100*r.Recent/r.Dated))
+	}
+	if len(detail) > 0 {
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(detail, " · ")))
+	}
 }
