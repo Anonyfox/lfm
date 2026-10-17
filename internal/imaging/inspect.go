@@ -91,7 +91,8 @@ func Inspect(raw []byte) (info Info) {
 	info.Raster = true
 	if format != imagemeta.WebP {
 		config, _, err := image.DecodeConfig(io.LimitReader(bytes.NewReader(raw), metadataReadLimit))
-		if err != nil {
+		// GIF headers may declare a zero logical screen; never report half a size.
+		if err != nil || config.Width <= 0 || config.Height <= 0 {
 			info.Issue = "image header cannot be read; re-export the source image"
 			return
 		}
