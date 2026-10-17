@@ -36,6 +36,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
+	"github.com/Anonyfox/lfm/internal/scaffold"
 
 	"golang.org/x/net/html"
 )
@@ -423,6 +424,11 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	c := concept.Check(string(raw), r.Voices, r.Competitors)
 	result.Concept = c.Summary
 	findings = append(findings, c.Diagnostics...)
+	// The page is held to the concept once it is built; the untouched starter
+	// page of lfm init has nothing to hold yet.
+	if page, err := p.Read(project.TemplateFile); err == nil && scaffold.IsStarterPage(page) {
+		return diagnostic.Apply(findings, rules), nil
+	}
 	facts := &check.ConceptFacts{Colors: c.Summary.DeclaredColors, Families: c.Summary.Families, Imagery: c.Summary.Imagery}
 	return diagnostic.Apply(findings, rules), facts
 }

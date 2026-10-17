@@ -25,17 +25,20 @@ whole brief for implementation, so a decision missing from it is a decision nobo
 4. **Strike before you choose.** The first two directions you write are the most probable ones; they are
    always struck. Choose by recorded criteria, never by which direction feels best, because preference
    favours the typical.
-5. **Name no banned looks while ideating.** Generator defaults are checked by `lfm compile` after you
-   choose; listing them in your head first makes them likelier.
+5. **Check defaults after choosing, never before.** `lfm compile` reports generator defaults in palette,
+   type and imagery once the concept is written; naming them while ideating makes them likelier.
+6. **Never invent what the owner decides.** The product, price and delivery come from the owner, the
+   project or the user; content the mechanism needs comes from sources. Write `Open: <question>` for
+   whatever you cannot source, and implementation resolves it before building that part.
 
 ## Before you start
 
-- Run `lfm compile` if you can. The research lines must show the minimums met ([[.MinVoices]] voices from
-  [[.MinPlatforms]] platforms, [[.MinPeers]] peers) or a named shortfall. With less, collect research first
-  (`lfm skills research`).
+- Run `lfm compile` if you can. It must report no `research.*` findings: the minimums ([[.MinVoices]] voices
+  from [[.MinPlatforms]] platforms, [[.MinPeers]] peers) are met or a shortfall is named. Otherwise collect
+  research first (`lfm skills research`).
 - Choose the mode:
   - **New**: no concept yet. Write every section.
-  - **Rebuild**: a page exists without a concept. Write `## Diagnosis` first (what is generic, what is
+  - **Rebuild**: a page exists without a concept (the starter page of `lfm init` does not count). Write `## Diagnosis` first (what is generic, what is
     strong, what the visitor came to do), then set the old page aside until a direction is chosen.
   - **Grow**: research gained a batch since the concept's last changelog entry. Re-derive voices and axes
     from the whole files, then classify each change: depth (a new phrase, objection or proof: edit the
@@ -49,7 +52,8 @@ Work through the sections in order; each builds on the one before.
 
 1. **Voices.** Code the voices: the phrases buyers use, the feelings they want and dread, their rituals
    and in-jokes, what they photograph and film and how, their complaints about current options. At least
-   [[.Design.MinVoiceNotes]] observations, each citing its voices.
+   [[.Design.MinVoiceNotes]] observations, each citing its voices. When the research reaches wider than the
+   offer, code what concerns the offer's job and say in Buyer which part of it the page serves.
 2. **Buyer.** Who arrives, from where, what just happened, what they compare against, what they must
    believe to pay, and the hesitation most likely to stop them.
 3. **Decision path.** The visitor's questions in order, each with the job of the section that answers it:
@@ -58,35 +62,40 @@ Work through the sections in order; each builds on the one before.
 4. **Mechanism.** What the visitor does on the page: a tool or calculator, a configurator, a sample to read
    or use, an explainer, a diagnostic or quiz, a comparison, a game, a simulation, or a plain answer. Score
    the candidates on speed to first value, strength of proof, effort, honesty risk and share value. Choose
-   one, reject at least [[.Design.MinRejected]] with reasons. A plain page wins when it serves best.
-5. **Facts.** At least [[.Design.MinFacts]] checked facts true of this subject and hardly any other: numbers, units
+   one, reject at least [[.Design.MinRejected]] with reasons. A plain page wins when it serves best. Data
+   the mechanism needs and the research lacks is an `Open:` line.
+5. **Offer.** What the buyer pays for, the price and how it arrives, from the owner, `lfm.json` or the user.
+   Research tells you the hesitations around it, not the facts.
+6. **Facts.** At least [[.Design.MinFacts]] checked facts true of this subject and hardly any other: numbers, units
    and timings, textures, sounds and light, tools and vocabulary, failure modes and rituals, places. Genre
    words such as modern, premium or clean are not facts. Each fact cites its source.
-6. **Axes.** At least [[.Design.MinAxes]] design axes on which the data separates. Per axis: the market
+7. **Axes.** At least [[.Design.MinAxes]] design axes on which the data separates. Per axis: the market
    position with the peers that hold it, the voice position with the voices that hold it, and your chosen
    position: break from the market where it clusters, match the voices. Then imagine the page a generator
    makes for this topic with no research; if a chosen position lands there, it is no break, unless it is
    the subject's literal material and the voices support it.
-7. **Sparks.** [[.Design.MinSparks]] to [[.Design.MaxSparks]] details that are specific, surprising, recur in the voices (two or more
+8. **Sparks.** [[.Design.MinSparks]] to [[.Design.MaxSparks]] details that are specific, surprising, recur in the voices (two or more
    IDs each) and appear in no peer. Check [[.Competitors]] before you call something unused.
-8. **Directions.** Write at least [[.Design.MinDirections]] directions fast, each built from a spark and three facts,
+9. **Directions.** Write at least [[.Design.MinDirections]] directions fast, each built from a spark and three facts,
    seen through ordinary people in the topic rather than a visionary. Make them differ in representation
    (scene, notation, data, type, sound, plain tool), interaction, time and what the visitor takes away.
-   Push each one further before judging any. Then strike, with the reason: the first two; any whose
+   Write them in the order they come. Push each one further, on a continuation line, before judging any. Then strike, with the reason: the first two; any whose
    one-line description still works with a competitor's product swapped in; any that matches the market
    baseline on opening, palette, imagery or mechanism; any that slows the first value; any that is merely
    tasteful where the voices are not. Mark exactly one as chosen.
-9. **Concept.** The chosen direction, pushed once more: what would make it astonishing without slowing
+10. **Concept.** The chosen direction, pushed once more: what would make it astonishing without slowing
    the visitor? Say how it builds on its sparks.
-10. **Spine.** The page's sections in order, each with its job and the evidence it shows.
-11. **Visual system.** Derive palette, type, form, imagery and motion from the concept and the axes. For
-    each, list about eight candidates privately with the chance a typical generator picks each, and choose
-    one below roughly 10% that serves the spine and cites a voice, peer or fact. Declare every color the
-    page will use, with at least one text and ground pair at 4.5:1 contrast. Plan the images by job
+11. **Spine.** The page's sections in order, each with its job and the evidence it shows.
+12. **Visual system.** Derive palette, type, form, imagery and motion from the concept and the axes. For
+    each, list about eight candidates of your own, estimate the chance a typical generator picks each, and
+    choose one below roughly 10% that serves the spine. Cite a voice, peer or fact for it: type and form
+    rarely appear in voices, so derive them from facts and the topic's own artifacts (signs, labels, tools,
+    documents) and cite those. Declare every color the page will use; the compiler checks that a text and
+    ground pair reaches 4.5:1. Plan the images by job
     (protagonist, proof, atmosphere, explanation, share preview), with art direction taken from what the
     buyers photograph and film. Decide one orchestrated motion moment, the feedback motion, and what the
     page shows with reduced motion.
-12. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices.
+13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices.
 
 ## [[.ConceptFile]] format
 
@@ -112,6 +121,11 @@ Use exactly these headings in this order; the words under them are yours. `Diagn
 Chosen: <mechanism and why …>
 Rejected: <alternative …>: <why …>
 
+## Offer
+Product: <what the buyer pays for …>
+Price: <amount and currency, or Open: <question …>>
+Delivery: <how and when it arrives …>
+
 ## Facts
 - <fact true of this subject …> V007 or P002 or https://source
 
@@ -125,7 +139,8 @@ Rejected: <alternative …>: <why …>
 
 ## Directions
 1. <direction …> V011 → struck: <reason …>
-2. <direction …> V023 → chosen
+2. <name>: <direction …> V023 → chosen
+  <the direction pushed further …>
 
 ## Concept
 <the chosen direction pushed once more, built on its sparks …> V011
@@ -141,7 +156,7 @@ Rejected: <alternative …>: <why …>
 ## Type
 | Role | Family | Source |
 | --- | --- | --- |
-| <role …> | <family or stack …> | <why this face …> |
+| <role …> | <font stack only, e.g. Family, system-ui, serif …> | <why this face …> |
 
 ## Form
 <shape, corners, edges, elevation and the layout idea …>
@@ -168,12 +183,15 @@ Reduced motion: <what shows instead …>
 
 - Citations are bare IDs anywhere in the text: `V003`, `P012`. Every ID must exist in the research files.
 - A deliberately imageless page writes `None: <reason>` under Imagery instead of the table.
+- `Open: <question>` may stand on its own line in any section; `lfm compile` lists each one.
+- Notes may follow a table; the table itself stays as shown.
 - Every list item stays on one line or continues on lines indented by two spaces.
 
 ## Validate before finishing
 
-Run `lfm compile` and fix every `concept.*` finding; it checks the sections, the citations and their
-spread across voices, platforms and peers, and the generator defaults in palette, type and imagery. Then
+Run `lfm compile` and fix every `concept.*` finding; it checks the sections, the citations and their spread
+across voices, platforms and peers, and the generator defaults in palette, type and imagery. `concept.open`
+findings stay until the owner answers them; hand them over with the file. Then
 reread [[.ConceptFile]] as the implementer will:
 
 - Could someone build the page from this file alone, without asking you anything?
@@ -187,5 +205,6 @@ reread [[.ConceptFile]] as the implementer will:
 - A spark that appears in a peer is the market, not a spark.
 - Citing many IDs on one line does not make a weak claim strong; cite the voices that actually say it.
 - Colors from the tool or kit you would normally use are not research; trace each one to a source.
+- Research voices are evidence, not customers: the page never shows them as testimonials or reviews.
 - After implementation starts, `lfm compile` holds the page to this file's palette, typefaces and imagery.
   Change the concept first, with a changelog entry, when a decision itself changes.

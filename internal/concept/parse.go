@@ -25,6 +25,7 @@ var Sections = []struct {
 	{"Buyer", false},
 	{"Decision path", false},
 	{"Mechanism", false},
+	{"Offer", false},
 	{"Facts", false},
 	{"Axes", false},
 	{"Sparks", false},
@@ -72,6 +73,11 @@ var citation = regexp.MustCompile(`\b[VP][0-9]{3,6}\b`)
 
 // Citations returns the research IDs cited in text, in order of appearance.
 func Citations(text string) []string { return citation.FindAllString(text, -1) }
+
+// StripCitations removes research IDs and the spaces they leave.
+func StripCitations(text string) string {
+	return strings.Join(strings.Fields(citation.ReplaceAllString(text, "")), " ")
+}
 
 // Parse splits concept.md into its sections.
 func Parse(text string) (Document, []Problem) {

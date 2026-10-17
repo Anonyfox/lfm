@@ -217,16 +217,32 @@ func renderResearch(w io.Writer, s term.Style, r research.Summary) {
 }
 
 // renderConcept summarizes the decisions the page is held to.
+// directionName shortens a chosen direction to its name: the part before the
+// first colon or dash, without citations, at most 60 characters.
+func directionName(direction string) string {
+	name := concept.StripCitations(direction)
+	for _, sep := range []string{": ", " — ", " – ", " - "} {
+		if head, _, ok := strings.Cut(name, sep); ok && head != "" {
+			name = head
+			break
+		}
+	}
+	if r := []rune(name); len(r) > 60 {
+		name = string(r[:59]) + "…"
+	}
+	return name
+}
+
 func renderConcept(w io.Writer, s term.Style, c concept.Summary) {
 	if !c.Present {
 		return
 	}
-	chosen := c.Chosen
+	chosen := directionName(c.Chosen)
 	if chosen == "" {
 		chosen = "no direction chosen yet"
 	}
-	if r := []rune(chosen); len(r) > 70 {
-		chosen = string(r[:70]) + "…"
+	if c.Open > 0 {
+		chosen += s.Dim(" · " + term.Plural(c.Open, "open question"))
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("concept", 12), chosen)
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(fmt.Sprintf("cites %s from %s and %s · %s · %s · %s",

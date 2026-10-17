@@ -18,18 +18,21 @@ import (
 )
 
 type RuntimeResult struct {
-	Status     string   `json:"status"`
-	Reason     string   `json:"reason,omitempty"`
-	Hint       string   `json:"hint,omitempty"`
-	Chrome     string   `json:"chrome,omitempty"`
-	Scope      string   `json:"scope,omitempty"`
-	Problems   []string `json:"problems,omitempty"`
-	DurationMS int64    `json:"durationMs"`
+	Status     string        `json:"status"`
+	Reason     string        `json:"reason,omitempty"`
+	Hint       string        `json:"hint,omitempty"`
+	Chrome     string        `json:"chrome,omitempty"`
+	Scope      string        `json:"scope,omitempty"`
+	Problems   []string      `json:"problems,omitempty"`
+	Layout     *LayoutResult `json:"layout,omitempty"`
+	DurationMS int64         `json:"durationMs"`
 }
 
 // A cheap real-JS navigation probe also runs when Lighthouse isn't installed.
 // It never guesses which business controls to click or submits forms/orders.
-func AuditRuntime(page []byte, assets map[string][]byte, path string) *RuntimeResult {
+// The same tab then walks the page frame by frame at every review screen
+// (auditLayout); frames is the screenshot folder, "" for none.
+func AuditRuntime(page []byte, assets map[string][]byte, path, frames string) *RuntimeResult {
 	start := time.Now()
 	r := &RuntimeResult{Status: "skipped", Scope: "390x844 initial navigation with application JS; 250 ms settle; no user journeys or simulated mobile performance scores; external traffic/mutations blocked."}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
@@ -38,7 +41,7 @@ func AuditRuntime(page []byte, assets map[string][]byte, path string) *RuntimeRe
 	server.Config.Handler = AuditHandler(page, assets, origin)
 	server.Start()
 	defer server.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	fail := func(err error) *RuntimeResult {
 		r.Reason = compact(err.Error(), 500)
@@ -131,6 +134,13 @@ func AuditRuntime(page []byte, assets map[string][]byte, path string) *RuntimeRe
 	mu.Unlock()
 	sort.Strings(r.Problems)
 	r.Status = "ok"
+	// Problems are taken before the frame walk reloads the page at other sizes.
+	layout, err := auditLayout(tab, server.URL+"/", frames)
+	r.Layout = layout
+	if err != nil {
+		layout.Findings = append(layout.Findings, LayoutFinding{Kind: "incomplete", Message: "The frame walk stopped early: " + compact(err.Error(), 300), Hint: "Check that the page loads and scrolls in Chrome; rerun --release."})
+	}
+
 	return r
 }
 

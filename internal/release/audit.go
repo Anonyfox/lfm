@@ -73,12 +73,21 @@ func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
 		}
 		return r
 	}
-	r.Runtime = AuditRuntime(page, assets, browser)
+	r.Runtime = AuditRuntime(page, assets, browser, FramesPath(root))
 	if r.Runtime.Status != "ok" {
 		warn("release.browser", "Runtime navigation check skipped: "+r.Runtime.Reason, r.Runtime.Hint)
 	}
 	for _, problem := range r.Runtime.Problems {
 		warn("release.runtime", problem, "Fix the named browser exception or missing generated asset; this check observes initial navigation only.")
+	}
+	if l := r.Runtime.Layout; l != nil {
+		for _, f := range l.Findings {
+			hint := f.Hint
+			if l.Count > 0 {
+				hint += " Frames: " + l.Frames
+			}
+			warn("release.layout", f.Message, hint)
+		}
 	}
 	if r.Runtime.Status != "ok" && r.Runtime.Chrome == "" {
 		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "Chrome could not start for navigation", Hint: r.Runtime.Hint, Scope: auditScope}

@@ -43,6 +43,11 @@ func OperationalRules() []RuleInfo {
 			Help:    "With --release, lfm loads the exact artifact in Chrome at phone size and records uncaught exceptions, console.error calls and HTTP responses of 400 or above. Each one is something visitors hit on arrival, such as a broken script or a missing generated file. Fix the named exception or asset reference; the probe covers initial navigation only, not later interactions.",
 		},
 		{
+			ID:      "release.layout",
+			Summary: "Every frame of the page is legible, nothing scrolls sideways and values stay whole",
+			Help:    "With --release, lfm scrolls the page in Chrome by half a screen at a time at 390×844 (phone), 1280×680 and 1440×900, lets finite animations settle, and saves a screenshot of every frame. It warns when a stretch of the page shows no legible text or image (empty or faded scroll scenes, oversized spacing), when the page is wider than the screen, and when a number breaks onto a different line than its unit. These defects hide in chosen screenshots and are what visitors scroll through. Fix the named element, then read the saved frames top to bottom at every size.",
+		},
+		{
 			ID:      "release.lighthouse",
 			Summary: "Installed Lighthouse ran and produced a complete audit",
 			Help:    "With --release, lfm runs an installed Lighthouse against the artifact; this warns when the executable is missing or the run fails, times out or returns incomplete JSON. Without it you get no performance, accessibility, best-practice or SEO scores for this build. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) and check that the Node, Lighthouse and Chrome versions are compatible.",

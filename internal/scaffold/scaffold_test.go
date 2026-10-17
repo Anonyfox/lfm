@@ -1,4 +1,4 @@
-package scaffold
+package scaffold_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/compile"
+	. "github.com/Anonyfox/lfm/internal/scaffold"
 )
 
 func TestCreatedProjectCompilesWithoutFindings(t *testing.T) {
@@ -101,4 +102,21 @@ func contains(list []string, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestStarterPageIsRecognizedUntilEdited(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "herbs")
+	if _, err := Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "index.html.tmpl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !IsStarterPage(raw) || !IsStarterPage([]byte(strings.ReplaceAll(string(raw), "\n", "\r\n"))) {
+		t.Fatal("the created template is the starter page")
+	}
+	if IsStarterPage([]byte(strings.Replace(string(raw), "<main>", "<main><p>built</p>", 1))) {
+		t.Fatal("an edited template is not the starter page")
+	}
 }

@@ -32,6 +32,7 @@ const (
 	RuleFormat   = "concept.format"
 	RuleEvidence = "concept.evidence"
 	RuleDefaults = "concept.defaults"
+	RuleOpen     = "concept.open"
 )
 
 // Rules describes the concept checks for the rule catalog.
@@ -46,6 +47,11 @@ func Rules() []diagnostic.RuleInfo {
 			ID:      RuleEvidence,
 			Summary: "concept.md cites existing research, broadly enough to stand on it",
 			Help:    "Every V and P ID in concept.md must exist in the research files, the concept must cite a fair share of the voices across several platforms and peers, and sparks must each rest on two or more voices. A concept that cites a handful of quotes from one source is the builder's taste with footnotes. Cite the voices and peers that actually support each decision, and collect more research first when the files are thin.",
+		},
+		{
+			ID:      RuleOpen,
+			Summary: "Questions concept.md leaves open for the owner",
+			Help:    "Lists every \"Open: <question>\" in concept.md: facts only the owner can supply, such as the price or the deliverable, and content that must be sourced before building. Implementation must not invent these. Answer each question with the owner or the sources, replace the line with the decision, and compile again.",
 		},
 		{
 			ID:      RuleDefaults,
@@ -65,6 +71,27 @@ type Summary struct {
 	DeclaredColors []color.Color
 	Families       []string
 	Imagery        int
+	Open           int // open questions
+}
+
+// proseWords never appear in a font family name; their presence means the
+// cell holds an explanation instead of a stack.
+var proseWords = map[string]bool{"then": true, "or": true, "and": true, "at": true, "with": true, "for": true, "in": true, "as": true, "on": true, "plus": true, "fallback": true, "via": true, "the": true}
+
+// prose returns the first entry of a font stack that reads as prose.
+func prose(stack string) string {
+	for _, name := range strings.Split(stack, ",") {
+		words := strings.Fields(strings.Trim(strings.TrimSpace(name), `"'`))
+		if len(words) > 5 {
+			return strings.TrimSpace(name)
+		}
+		for _, w := range words {
+			if proseWords[w] {
+				return strings.TrimSpace(name)
+			}
+		}
+	}
+	return ""
 }
 
 // Report is the result of checking concept.md.
@@ -114,6 +141,14 @@ func Check(text string, voices *research.Voices, competitors *research.Competito
 		c.add(RuleFormat, p.Line, p.Message, p.Hint)
 	}
 	r.Summary = c.sections(d)
+	for _, sec := range d.Order {
+		for _, l := range sec.Lines {
+			if _, question, ok := strings.Cut(l.Text, "Open: "); ok && strings.TrimSpace(question) != "" {
+				c.add(RuleOpen, l.N, "Open question: "+preview(question), "Get the answer from the owner or a source, then replace the line with the decision.")
+				r.Summary.Open++
+			}
+		}
+	}
 	r.Summary.Present = true
 	c.evidence(d, &r.Summary, voices)
 	c.defaults(d)
@@ -181,6 +216,12 @@ func (c checker) sections(d Document) Summary {
 		}
 		c.need(s, chosen != "", "Mechanism names no \"Chosen:\" mechanism.", "Write \"Chosen: <mechanism and why>\".")
 		c.need(s, rejected >= MinRejected, fmt.Sprintf("Mechanism rejects %d alternatives; weigh at least %d.", rejected, MinRejected), "Add \"Rejected: <alternative>: <why>\" lines.")
+	}
+	if s := d.Sections["Offer"]; s != nil {
+		for _, field := range []string{"Product", "Price", "Delivery"} {
+			value, _ := s.Field(field)
+			c.need(s, value != "", "Offer lacks \""+field+":\".", "State what the buyer pays for, the price and how it arrives; write \""+field+": Open: <question>\" when only the owner can answer.")
+		}
 	}
 	if s := d.Sections["Facts"]; s != nil {
 		items := s.Items()
@@ -282,6 +323,10 @@ func (c checker) sections(d Document) Summary {
 		for _, row := range rows {
 			if len(row.Cells) != 3 || row.Cells[0] == "" || row.Cells[1] == "" || row.Cells[2] == "" {
 				c.add(RuleFormat, row.N, "Type row needs a role, a family and its source.", "| <role> | <family> | <why this face> |")
+				continue
+			}
+			if bad := prose(row.Cells[1]); bad != "" {
+				c.add(RuleFormat, row.N, "Family "+quote(bad)+" is prose, not a font name.", "Write only the stack, e.g. Recursive, system-ui, sans-serif; reasons go in the Source column.")
 				continue
 			}
 			sum.Families = append(sum.Families, row.Cells[1])

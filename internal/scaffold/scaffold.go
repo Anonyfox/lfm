@@ -120,3 +120,14 @@ func Slug(name string) string {
 	}
 	return b.String()
 }
+
+// IsStarterPage reports whether template is still the page lfm init wrote,
+// ignoring line endings and surrounding whitespace.
+func IsStarterPage(template []byte) bool {
+	starter, err := files.ReadFile("files/index.html.tmpl")
+	if err != nil {
+		return false
+	}
+	normalize := func(b []byte) []byte { return bytes.TrimSpace(bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n"))) }
+	return bytes.Equal(normalize(template), normalize(starter))
+}

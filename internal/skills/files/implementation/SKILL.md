@@ -20,7 +20,8 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
    `lfm compile` reports typefaces, colors and imagery that drift from it.
 2. **Real or nothing.** Every fact, number, quote, price, person and photo is true and traceable to the
    research, the config or Stripe. No invented testimonials, ratings, customers, stock people, logos or
-   statistics; no placeholders shipped. A missing fact is asked for or left out.
+   statistics; no placeholders shipped. Research voices are not your customers: never show them as
+   testimonials. A missing fact is asked for or left out.
 3. **0 errors, 0 warnings.** The compiler is the floor. Fix the cause a finding names; never silence it.
    `data-design-reason="…"` is only for a choice [[.ConceptFile]] states, and its text says that reason.
 4. **Look at the whole page after every change.** A fix that looks right in the edited spot often breaks a
@@ -33,6 +34,8 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
 - Read [[.ConceptFile]] in full, then the voices it cites in [[.Voices]], then `lfm.json` and the template.
 - Run `lfm compile`. If research or concept findings remain, or [[.ConceptFile]] is missing, finish those
   first (`lfm skills research`, `lfm skills design`); building without them produces the typical page.
+  `concept.open` lists questions for the owner (price, deliverable, data to source): get the answers and
+  write them into [[.ConceptFile]] before building the part they affect.
 - Choose the mode:
   - **Build**: the template is still the starter. Build the spine first, then the rounds below.
   - **Rebuild**: a page exists and [[.ConceptFile]] has a `Diagnosis`. Build the new spine beside the old
@@ -56,7 +59,7 @@ Make the core loop work with real content before any polish.
 4. **Tokens from the concept.** Declare the palette as custom properties named by role, the typefaces of
    the Type table and the Form rules (corners, edges, elevation) once; components use the tokens only.
    Body text meets 4.5:1 against its actual ground, including over images.
-5. **Offer and checkout.** Price, what arrives, how and when, beside a native `<a href>` to the hosted
+5. **Offer and checkout.** The Offer of [[.ConceptFile]]: price, what arrives, how and when, beside a native `<a href>` to the hosted
    checkout (see Commerce). Findable from the first screen without scrolling the whole story.
 
 Compile now and fix everything before continuing.

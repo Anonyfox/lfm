@@ -62,6 +62,12 @@ Chosen: a rota planner that prints a schedule V018
 Rejected: quiz: says little about their actual week
 Rejected: explainer: no first value before scrolling
 
+## Offer
+
+Product: the printable rota kit
+Price: 19 EUR, once
+Delivery: PDF by email within minutes
+
 ## Facts
 
 - Fact one V001
@@ -187,6 +193,8 @@ func TestFormatFindings(t *testing.T) {
 		"placeholder":       {"Paper slips on a dark ground", "<shape, corners …>", "placeholder"},
 		"uncited fact":      {"- Fact one V001", "- Fact one", "Fact without a source"},
 		"changelog date":    {"- 2026-10-18: first concept", "- first concept", "does not start with a date"},
+		"offer field":       {"Delivery: PDF by email within minutes\n", "", "Offer lacks \"Delivery:\""},
+		"prose family":      {"| text | system-ui |", "| text | system-ui, then Georgia at small sizes |", "is prose, not a font name"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if !strings.Contains(good, tc.from) {
@@ -197,6 +205,16 @@ func TestFormatFindings(t *testing.T) {
 				t.Fatalf("no finding containing %q: %v", tc.want, messages(r))
 			}
 		})
+	}
+}
+
+func TestOpenQuestions(t *testing.T) {
+	r := check(t, strings.Replace(good, "Price: 19 EUR, once", "Price: Open: the owner sets it", 1))
+	if !has(r, RuleOpen, "Open question: the owner sets it") || r.Summary.Open != 1 {
+		t.Fatal(messages(r))
+	}
+	if has(r, RuleFormat, "Offer lacks") {
+		t.Fatal("an open field is answered, by a question")
 	}
 }
 
