@@ -20,8 +20,9 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
    `lfm compile` reports typefaces, colors and imagery that drift from it.
 2. **Real or nothing.** Every fact, number, quote, price, person and photo is true and traceable to the
    research, the config or Stripe. No invented testimonials, ratings, customers, stock people, logos or
-   statistics; no placeholders shipped. Research voices are not your customers: never show them as
-   testimonials. A missing fact is asked for or left out.
+   statistics; no placeholders shipped. Research voices are not your customers: say what buyers commonly
+   say in your own words, never quote a person as if they had bought. A missing fact is asked for or
+   left out.
 3. **0 errors, 0 warnings.** The compiler is the floor. Fix the cause a finding names; never silence it.
    `data-design-reason="…"` is only for a choice [[.ConceptFile]] states, and its text says that reason.
 4. **Look at the whole page after every change.** A fix that looks right in the edited spot often breaks a
@@ -46,7 +47,9 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
   way to view images, Stripe access. The rounds below name a fallback for each.
 - **Done** means: every part of [[.ConceptFile]] is built except those waiting on an `Open:` line, the
   compile is clean apart from `concept.open`, and the review below passed. Something you cannot produce
-  (an owner's photo, data no source gives) becomes an `Open:` line in [[.ConceptFile]], never a stand-in.
+  (an owner's photo, data no source gives) becomes an `Open:` in [[.ConceptFile]] where it belongs (an
+  image in a cell of its Imagery row), never a stand-in. A spine section that cannot work without it stays
+  off the page, and its neighbours read as if it never existed.
 
 ## Round 1: the working spine
 
@@ -57,7 +60,9 @@ Make the core loop work with real content before any polish.
    them; it never repeats a literal. Templates are Go `html/template`: config numbers compare by value
    (`{{if ge .data.hours 6}}`) but there is no arithmetic, so store the values the first screen shows in
    `data`, and compute the rest in the script. `build.browserData` lists the `data` paths the script needs;
-   it reads them with `JSON.parse(document.getElementById("product-data").textContent)`.
+   it reads them with `JSON.parse(document.getElementById("product-data").textContent)`. A value that
+   depends on today (this month's task) renders a default that is true all year in HTML, and the script
+   replaces it.
 2. **One section per spine item**, in order, each doing the job [[.ConceptFile]] gives it. Headings name
    what the section answers; one `h1`. Semantic landmarks, native controls, real `href`s.
 3. **The mechanism first.** The tool, sample, configurator or game works with real data before anything is
@@ -143,20 +148,24 @@ Record each offer in `lfm.json` as an object keyed by a plain name, and render i
 ```
 
 Stripe IDs are copied from Stripe, or left out when you have no access; never invented. The offer in
-`jsonld` takes its name and price from these values and carries a `BuyAction` whose target is the checkout
-URL. Delivery-critical inputs are collected in Stripe (at most three custom fields). No secret keys in the
-project.
+`jsonld` binds its name (`"{{.data.commerce.offers.plan.name}}"`), writes the price as the decimal string
+(`"9.00"`; the compiler checks it equals `amountMinor`) and carries a `BuyAction` whose target is the
+checkout URL. Inputs the delivery needs are Stripe custom fields (at most three); without Stripe access
+they are an `Open:` line for the owner, not URL parameters. No secret keys in the project.
 
 ## Round 4: review and fix
 
 Run `lfm compile --release`. In headless Chrome it records runtime errors, scrolls the page by half a
 screen at [[.Screens]],
-reports empty stretches, sideways scrolling, covered text and split values, and saves every frame; the
-`frames` line of the report names the folder. Then review by looking:
+and reports a first screen without heading or control, empty stretches, sideways scrolling, covered,
+tiny or low-contrast text and split values. It saves every frame; the `frames` line names the folder and,
+from the second run on, the frames that changed. Then review by looking:
 
-1. **Frames.** Open the saved frames in order, every one at full size, phone first. Every frame shows
-   legible content or an obvious continuation. Then exercise the mechanism yourself: empty, extreme and
-   invalid input, back, reload, a shared URL, reduced motion, keyboard only, 200% zoom.
+1. **Frames.** The first time, open every frame in order at full size, phone first; afterwards the changed
+   ones and their neighbours. Every frame shows legible content or an obvious continuation. Then, with a
+   browser, exercise the mechanism: empty, extreme and invalid input, back, reload, a shared URL, keyboard
+   only, 200% zoom, reduced motion, and the motion moment at normal speed. Without a browser, list these
+   as not checked.
 2. **Passes.** Answer each question with the frame that shows it; a "no" is a finding.
    - *Conversion*: does the first phone frame say who it is for, what they get and what to do? Is the
      first value reached without scrolling past it? Are price, delivery and the next step in one frame?
@@ -201,6 +210,7 @@ These ship on pages that looked finished in chosen screenshots; check each in th
 - `lfm serve --open` recompiles on save; the preview is the compiled output, not the template.
 - Every rendered link except a same-page `#fragment` is a named `urls` entry in `lfm.json`.
 - Set fonts through tokens (`font-family: var(--body)`); the compiler follows them to the concept's faces.
+- A variable font's `@font-face` declares the axis range the file has (`font-stretch: 75% 125%`).
 - Values that change with input use tabular numerals and units in the same element.
 - A warning you cannot fix without breaking the concept means the concept needs a change; edit
   [[.ConceptFile]] first, then the page.
