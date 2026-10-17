@@ -59,7 +59,7 @@ Ctrl-C stops a compile between stages; a stopped compile never publishes.
    on, the frames whose content changed. `release.layout` reports a first screen without a legible heading or
    any control, stretches without legible content, sideways scrolling, text a pinned layer always covers,
    text under 9 px, text under the WCAG contrast minimum on a certain flat ground, numbers split from their
-   units, and what still moves when the page is loaded again with reduced motion requested. Outside
+   units, what still moves when the page is loaded again with reduced motion requested, and a heading or most of the text missing when it is loaded without JavaScript. Outside
    requests are blocked; nothing is clicked, typed or submitted.
 3. **Lighthouse** (45 s, when installed): one mobile lab run. Scores, metrics and every failing audit are
    reported; the complete JSON is saved in the system temp directory.

@@ -266,6 +266,11 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
 		}
 	}
+	if found, err := withoutScripts(tab, url, Screens[0]); err != nil {
+		return r, err
+	} else {
+		r.Findings = append(r.Findings, found...)
+	}
 	if moving, err := reducedMotion(tab, url, Screens[0]); err != nil {
 		return r, err
 	} else if len(moving) > 0 {
@@ -321,6 +326,46 @@ func (p *perElement) findings(kind, message, hint string) []LayoutFinding {
 		parts = append(parts, p.text[e]+" at "+strings.Join(p.screens[e], ", "))
 	}
 	return []LayoutFinding{{p.screens[p.order[0]][0], kind, fmt.Sprintf(message, strings.Join(parts, "; ")), hint}}
+}
+
+// withoutScripts compares the page at screen v with JavaScript off against
+// the scripted page: readers whose script fails, crawlers that do not run it
+// and assistants that read the HTML see the first version.
+func withoutScripts(tab context.Context, url string, v Screen) ([]LayoutFinding, error) {
+	count := `for(const a of document.getAnimations()){try{if(Number.isFinite(a.effect.getComputedTiming().endTime))a.finish()}catch(e){}};const h=[...document.querySelectorAll("h1")].some(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2&&r.top<innerHeight&&getComputedStyle(e).visibility!=="hidden"&&parseFloat(getComputedStyle(e).opacity)>0.5});return {Words:(document.body.innerText.match(/\S+/g)||[]).length,Heading:h}`
+	// timers never fire while scripts are off, so only the scripted page waits
+	settled := "(async()=>{await document.fonts.ready;await new Promise(r=>setTimeout(r,250));" + count + "})()"
+	immediate := "(()=>{" + count + "})()"
+	type state struct {
+		Words   int
+		Heading bool
+	}
+	if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), chromedp.EmulateMobile, chromedp.EmulateTouch), chromedp.Navigate(url)); err != nil {
+		return nil, err
+	}
+	with, err := chromedp.Run(tab, chromedp.Evaluate[state](settled, chromedp.EvalAwaitPromise))
+	if err != nil {
+		return nil, err
+	}
+	if _, err := chromedp.Call(tab, emulation.SetScriptExecutionDisabled, emulation.SetScriptExecutionDisabledParams{Value: true}); err != nil {
+		return nil, err
+	}
+	defer chromedp.Call(tab, emulation.SetScriptExecutionDisabled, emulation.SetScriptExecutionDisabledParams{Value: false})
+	if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
+		return nil, err
+	}
+	without, err := chromedp.Run(tab, chromedp.Evaluate[state](immediate))
+	if err != nil {
+		return nil, err
+	}
+	var out []LayoutFinding
+	if with.Heading && !without.Heading {
+		out = append(out, LayoutFinding{v.String(), "no-script", fmt.Sprintf("Without JavaScript the first screen at %s shows no legible main heading.", v), "Render the heading visible in the HTML; let scripts enhance it, not reveal it."})
+	}
+	if with.Words >= 40 && without.Words*2 < with.Words {
+		out = append(out, LayoutFinding{v.String(), "no-script", fmt.Sprintf("Without JavaScript the page shows %d words; with it, %d.", without.Words, with.Words), "Put the answer, the offer and the explanations in the HTML; let scripts compute and enhance. Crawlers, assistants and readers whose script fails see only the HTML."})
+	}
+	return out, nil
 }
 
 // reducedMotion loads the page at screen v with prefers-reduced-motion:

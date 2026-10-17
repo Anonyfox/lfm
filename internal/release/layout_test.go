@@ -189,3 +189,31 @@ REDUCE</style></head><body><main><h1>Motion</h1><p><a href="#x">Act</a></p><div 
 		}
 	}
 }
+
+func TestLayoutAuditComparesThePageWithoutScripts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	path, err := BrowserPath()
+	if err != nil {
+		t.Skip(err)
+	}
+	head := `<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="></head><body><main>`
+	scripted := head + `<h1 id=h style="opacity:0">Heading</h1><p><a href="#x">Act</a></p><div id=c></div></main><script>document.getElementById("h").style.opacity=1;document.getElementById("c").textContent="word ".repeat(200)</script></body></html>`
+	var kinds []string
+	for _, f := range AuditRuntime([]byte(scripted), nil, path, "").Layout.Findings {
+		if f.Kind == "no-script" {
+			kinds = append(kinds, f.Message)
+		}
+	}
+	joined := strings.Join(kinds, "\n")
+	if !strings.Contains(joined, "no legible main heading") || !strings.Contains(joined, "Without JavaScript the page shows") {
+		t.Fatalf("scripted page: %q", joined)
+	}
+	static := head + `<style>@keyframes in{from{opacity:0}to{opacity:1}}h1{animation:in 3s both}</style><h1>Heading</h1><p><a href="#x">Act</a></p><p>` + strings.Repeat("word ", 200) + `</p></main><script>document.title="x"</script></body></html>`
+	for _, f := range AuditRuntime([]byte(static), nil, path, "").Layout.Findings {
+		if f.Kind == "no-script" {
+			t.Fatalf("static page: %s", f.Message)
+		}
+	}
+}
