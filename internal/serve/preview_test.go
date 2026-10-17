@@ -43,7 +43,7 @@ func TestMonitorAtomicSavesDependenciesAndIgnoredOutputs(t *testing.T) {
 	m := newMonitor(root)
 	before := m.snapshot()
 	write(t, root, "output/index.html", "output")
-	write(t, root, ".micro/report.json", "scratch")
+	write(t, root, ".cache/report.json", "scratch")
 	write(t, root, ".git/index", "git")
 	write(t, root, "app.js.swp", "temporary")
 	if changed(before, m.snapshot()) {
@@ -176,7 +176,7 @@ func TestServeReloadFailureRecoveryAndOutputIsolation(t *testing.T) {
 	prefix := strings.Split(page[strings.Index(page, "/__lfm_"):], "/client.js")[0]
 	parsed, _ := http.NewRequest(http.MethodGet, address, nil)
 	origin := "http://" + parsed.URL.Host
-	for _, path := range []string{"/product/lfm.json", "/product/.micro/report.json", "/product/../lfm.json", "/elsewhere", "/product/sub/file"} {
+	for _, path := range []string{"/product/lfm.json", "/product/.cache/report.json", "/product/../lfm.json", "/elsewhere", "/product/sub/file"} {
 		if code, _ := fetch(t, origin+path); code != 404 {
 			t.Fatal("source/fallback exposed", path, code)
 		}
@@ -245,7 +245,7 @@ func TestServeReloadFailureRecoveryAndOutputIsolation(t *testing.T) {
 		t.Fatal("script edit missed")
 	}
 	write(t, root, "output/unlisted.txt", "private")
-	write(t, root, ".micro/arbitrary.txt", "scratch")
+	write(t, root, ".cache/arbitrary.txt", "scratch")
 	select {
 	case result := <-built:
 		t.Fatal("generated output caused a rebuild loop", result)

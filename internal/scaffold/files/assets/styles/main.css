@@ -1,0 +1,11 @@
+/* Decide the visual system from the research before styling. */
+body {
+  margin: 0;
+  font: 1.125rem/1.5 Georgia, serif;
+}
+
+main {
+  max-width: 40rem;
+  margin: auto;
+  padding: 2rem 1rem;
+}

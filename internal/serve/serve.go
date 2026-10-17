@@ -14,7 +14,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -143,20 +142,9 @@ func (p *preview) publish(report compile.Result, err error) {
 	next.Version++
 	next.Problem = ""
 	if err == nil {
-		files := map[string][]byte{}
-		for _, file := range report.Files {
-			content, readErr := os.ReadFile(filepath.Join(report.Output, file.Name))
-			if readErr != nil {
-				err = fmt.Errorf("preview cannot read %s: %w", file.Name, readErr)
-				break
-			}
-			files[file.Name] = content
-		}
-		if err == nil {
-			next.Files = files
-			if target, e := url.Parse(report.PageURL); e == nil && target.Path != "" {
-				next.Path = target.EscapedPath()
-			}
+		next.Files = report.Artifact
+		if target, e := url.Parse(report.PageURL); e == nil && target.Path != "" {
+			next.Path = target.EscapedPath()
 		}
 	}
 	if err != nil {

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "url": "https://example.com/__SLUG__/",
+  "language": "en",
+  "title": "__TITLE__",
+  "description": "One sentence: who this page is for and what they get from it.",
+  "socialImage": {
+    "src": "assets/images/share.png",
+    "alt": "Placeholder preview: replace it with an image that shows the offer."
+  }
+}

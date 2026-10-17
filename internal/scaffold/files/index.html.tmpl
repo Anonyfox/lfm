@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="{{.language}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.title}}</title>
+<meta name="description" content="{{.description}}">
+<link rel="canonical" href="{{.url}}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{.url}}">
+<meta property="og:title" content="{{.title}}">
+<meta property="og:description" content="{{.description}}">
+<meta property="og:image" content="{{.socialImage.src}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{.socialImage.alt}}">
+<meta name="twitter:card" content="summary_large_image">
+{{style "assets/styles/main.css"}}
+</head>
+<body>
+<main>
+<h1>{{.title}}</h1>
+<p>{{.description}}</p>
+</main>
+{{script "assets/scripts/main.js"}}
+</body>
+</html>

@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/project"
 )
 
 type stamp struct {
@@ -62,7 +64,7 @@ func (m *monitor) snapshot() map[string]stamp {
 		}
 		relative, _ := filepath.Rel(m.root, path)
 		if entry.IsDir() {
-			if path != m.root && (entry.Name() == ".git" || entry.Name() == "node_modules" || relative == ".micro" || relative == "output") {
+			if path != m.root && (strings.HasPrefix(entry.Name(), ".") || entry.Name() == "node_modules" || relative == project.OutputDir || strings.HasPrefix(relative, project.OutputDir+".next-")) {
 				return filepath.SkipDir
 			}
 			return nil

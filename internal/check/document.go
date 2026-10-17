@@ -188,6 +188,8 @@ func elementLabel(n *html.Node) string {
 	label := n.Data
 	if id := Attr(n, "id"); id != "" {
 		label += "#" + id
+	} else if class := strings.Fields(Attr(n, "class")); len(class) > 0 {
+		label += "." + class[0]
 	}
 	if len(label) > 120 {
 		label = label[:120]
