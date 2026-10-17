@@ -11,7 +11,9 @@ one package per responsibility, each testable on its own.
 | `term` | Color detection, wrapping, padding and human units. No knowledge of lfm. |
 | `project` | The fixed layout, the source boundary every read goes through, and `lfm.json` loading. |
 | `scaffold` | The embedded starter project written by `lfm init`. |
+| `skills` | Agent Skills embedded in the binary and rendered with its facts. |
 | `compile` | The compile lifecycle and the assemble stage: bundling with esbuild, packing, images, fonts, hints. |
+| `research` | Parses, checks and summarizes the two research files. |
 | `templatecheck` | Static analysis of templates against the actual config values, then rendering. |
 | `urlcheck` | URL syntax, the named-URL registry and destination matching across config, template and output. |
 | `commercecheck` | The optional offer and Stripe checkout contract in config. |
@@ -21,8 +23,6 @@ one package per responsibility, each testable on its own.
 | `htmlcompact` | Syntax-only HTML compaction, proven by comparing parsed trees. |
 | `dataurl` | Data URL encoding and decoding. |
 | `htmlx`, `jsonsrc`, `diagnostic` | Shared node helpers, JSON source locations, and the finding format. |
-| `research` | Parses, checks and summarizes the two research files. |
-| `skills` | Agent Skills embedded in the binary and rendered with its facts. |
 | `release` | Headless Chrome for critical CSS and the runtime probe, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
 
