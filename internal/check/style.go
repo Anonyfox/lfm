@@ -3,11 +3,11 @@ package check
 import (
 	"bytes"
 	"io"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"github.com/andybalholm/cascadia"
 	"github.com/tdewolff/parse/v2"
@@ -474,164 +474,9 @@ func firstFamily(v string) string {
 	return strings.ToLower(strings.Trim(strings.TrimSpace(family), `"'`))
 }
 
-// ---- Color parsing (sRGB → OKLab/OKLCH) ----
+// Colors are parsed and compared by the color package; the cascade above only
+// decides which values apply.
+type okColor = color.Color
 
-type okColor struct{ L, a, b, alpha float64 }
-
-func (c okColor) chroma() float64 { return math.Hypot(c.a, c.b) }
-func (c okColor) hue() float64 {
-	h := math.Atan2(c.b, c.a) * 180 / math.Pi
-	if h < 0 {
-		h += 360
-	}
-	return h
-}
-func (c okColor) dist(o okColor) float64 {
-	return math.Sqrt((c.L-o.L)*(c.L-o.L) + (c.a-o.a)*(c.a-o.a) + (c.b-o.b)*(c.b-o.b))
-}
-
-func srgbToOK(r, g, b, alpha float64) okColor {
-	lin := func(c float64) float64 {
-		if c <= 0.04045 {
-			return c / 12.92
-		}
-		return math.Pow((c+0.055)/1.055, 2.4)
-	}
-	r, g, b = lin(r), lin(g), lin(b)
-	l := math.Cbrt(0.4122214708*r + 0.5363325363*g + 0.0514459929*b)
-	m := math.Cbrt(0.2119034982*r + 0.6806995451*g + 0.1073969566*b)
-	s := math.Cbrt(0.0883024619*r + 0.2817188376*g + 0.6299787005*b)
-	return okColor{0.2104542553*l + 0.7936177850*m - 0.0040720468*s, 1.9779984951*l - 2.4285922050*m + 0.4505937099*s, 0.0259040371*l + 0.7827717662*m - 0.8086757660*s, alpha}
-}
-
-func hexColor(h string) (okColor, bool) {
-	h = strings.TrimPrefix(h, "#")
-	if len(h) == 3 || len(h) == 4 {
-		var b strings.Builder
-		for _, c := range h {
-			b.WriteRune(c)
-			b.WriteRune(c)
-		}
-		h = b.String()
-	}
-	if len(h) != 6 && len(h) != 8 {
-		return okColor{}, false
-	}
-	n, err := strconv.ParseUint(h, 16, 64)
-	if err != nil {
-		return okColor{}, false
-	}
-	alpha := 1.0
-	if len(h) == 8 {
-		alpha = float64(n&0xff) / 255
-		n >>= 8
-	}
-	return srgbToOK(float64(n>>16&0xff)/255, float64(n>>8&0xff)/255, float64(n&0xff)/255, alpha), true
-}
-
-// colorsIn extracts every literal color from a CSS value with its byte offset.
-func colorsIn(v string) []okColor {
-	var out []okColor
-	lower := strings.ToLower(v)
-	for i := 0; i < len(lower); i++ {
-		c := lower[i]
-		if c == '#' {
-			j := i + 1
-			for j < len(lower) && strings.IndexByte("0123456789abcdef", lower[j]) >= 0 {
-				j++
-			}
-			if col, ok := hexColor(lower[i:j]); ok {
-				out = append(out, col)
-			}
-			i = j - 1
-			continue
-		}
-		for _, fn := range []string{"rgba(", "rgb(", "hsla(", "hsl(", "oklch("} {
-			if strings.HasPrefix(lower[i:], fn) && (i == 0 || !isIdentByte(lower[i-1])) {
-				end := strings.IndexByte(lower[i:], ')')
-				if end < 0 {
-					break
-				}
-				if col, ok := functionColor(fn, lower[i+len(fn):i+end]); ok {
-					out = append(out, col)
-				}
-				i += end
-				break
-			}
-		}
-	}
-	return out
-}
-
-func isIdentByte(b byte) bool { return b == '-' || b >= 'a' && b <= 'z' || b >= '0' && b <= '9' }
-
-func functionColor(fn, args string) (okColor, bool) {
-	args = strings.NewReplacer(",", " ", "/", " ").Replace(args)
-	f := strings.Fields(args)
-	if len(f) < 3 {
-		return okColor{}, false
-	}
-	num := func(s string, scale float64) (float64, bool) {
-		if strings.HasSuffix(s, "%") {
-			v, err := strconv.ParseFloat(strings.TrimSuffix(s, "%"), 64)
-			return v / 100 * scale, err == nil
-		}
-		v, err := strconv.ParseFloat(strings.TrimSuffix(s, "deg"), 64)
-		return v, err == nil
-	}
-	alpha := 1.0
-	if len(f) >= 4 {
-		if a, ok := num(f[3], 1); ok {
-			alpha = a
-		}
-	}
-	switch fn {
-	case "rgb(", "rgba(":
-		r, ok1 := num(f[0], 255)
-		g, ok2 := num(f[1], 255)
-		b, ok3 := num(f[2], 255)
-		if !ok1 || !ok2 || !ok3 {
-			return okColor{}, false
-		}
-		return srgbToOK(r/255, g/255, b/255, alpha), true
-	case "hsl(", "hsla(":
-		h, ok1 := num(f[0], 1)
-		s, ok2 := num(f[1], 1)
-		l, ok3 := num(f[2], 1)
-		if !ok1 || !ok2 || !ok3 {
-			return okColor{}, false
-		}
-		if !strings.HasSuffix(f[1], "%") {
-			s /= 100
-		}
-		if !strings.HasSuffix(f[2], "%") {
-			l /= 100
-		}
-		k := func(n float64) float64 { return math.Mod(n+h/30, 12) }
-		a := s * math.Min(l, 1-l)
-		ch := func(n float64) float64 { return l - a*math.Max(-1, math.Min(math.Min(k(n)-3, 9-k(n)), 1)) }
-		return srgbToOK(ch(0), ch(8), ch(4), alpha), true
-	case "oklch(":
-		L, ok1 := num(f[0], 1)
-		C, ok2 := num(f[1], 0.4)
-		H, ok3 := num(f[2], 1)
-		if !ok1 || !ok2 || !ok3 {
-			return okColor{}, false
-		}
-		if !strings.HasSuffix(f[0], "%") && L > 1 {
-			L /= 100
-		}
-		return okColor{L, C * math.Cos(H*math.Pi/180), C * math.Sin(H*math.Pi/180), alpha}, true
-	}
-	return okColor{}, false
-}
-
-// relLuminance approximates WCAG relative luminance from OKLab lightness.
-func contrastOK(a, b okColor) float64 {
-	lum := func(c okColor) float64 { y := c.L * c.L * c.L; return y }
-	x, y := lum(a), lum(b)
-	if x < y {
-		x, y = y, x
-	}
-	return (x + 0.05) / (y + 0.05)
-}
+func hexColor(h string) (okColor, bool) { return color.ParseHex(h) }
+func colorsIn(v string) []okColor       { return color.Parse(v) }

@@ -8,7 +8,9 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/stock"
 	"golang.org/x/net/html"
 )
 
@@ -268,50 +270,7 @@ func (a *designAnalysis) prop(n *html.Node, p string) string { return strings.To
 
 // ---------- color ----------
 
-type namedColor struct {
-	name string
-	c    okColor
-}
-
-func named(name, hex string) namedColor { c, _ := hexColor(hex); return namedColor{name, c} }
-
-var stockAccents = []namedColor{
-	named("Tailwind indigo-400 #818cf8", "#818cf8"), named("Tailwind indigo-500 #6366f1", "#6366f1"), named("Tailwind indigo-600 #4f46e5", "#4f46e5"), named("Tailwind indigo-700 #4338ca", "#4338ca"),
-	named("Tailwind violet-400 #a78bfa", "#a78bfa"), named("Tailwind violet-500 #8b5cf6", "#8b5cf6"), named("Tailwind violet-600 #7c3aed", "#7c3aed"), named("Tailwind violet-700 #6d28d9", "#6d28d9"),
-	named("Tailwind purple-400 #c084fc", "#c084fc"), named("Tailwind purple-500 #a855f7", "#a855f7"), named("Tailwind purple-600 #9333ea", "#9333ea"), named("Tailwind purple-700 #7e22ce", "#7e22ce"),
-}
-
-func init() {
-	// Tailwind v4 redefined the palette in OKLCH; keep both generations.
-	for _, v := range []struct{ name, value string }{
-		{"Tailwind v4 indigo-400", "oklch(67.3% 0.182 276.935)"}, {"Tailwind v4 indigo-500", "oklch(58.5% 0.233 277.117)"}, {"Tailwind v4 indigo-600", "oklch(51.1% 0.262 276.966)"}, {"Tailwind v4 indigo-700", "oklch(45.7% 0.24 277.023)"},
-		{"Tailwind v4 violet-400", "oklch(70.2% 0.183 293.541)"}, {"Tailwind v4 violet-500", "oklch(60.6% 0.25 292.717)"}, {"Tailwind v4 violet-600", "oklch(54.1% 0.281 293.009)"}, {"Tailwind v4 violet-700", "oklch(49.1% 0.27 292.581)"},
-		{"Tailwind v4 purple-400", "oklch(71.4% 0.203 305.504)"}, {"Tailwind v4 purple-500", "oklch(62.7% 0.265 303.9)"}, {"Tailwind v4 purple-600", "oklch(55.8% 0.288 302.321)"}, {"Tailwind v4 purple-700", "oklch(49.6% 0.265 301.924)"},
-	} {
-		if c := colorsIn(v.value); len(c) == 1 {
-			stockAccents = append(stockAccents, namedColor{v.name + " " + v.value, c[0]})
-		}
-	}
-}
-
-var assistantCreams = []namedColor{named("cream #f4f1ea", "#f4f1ea"), named("cream #faf9f5", "#faf9f5"), named("cream #f7f1e4", "#f7f1e4"), named("cream #f0eee6", "#f0eee6")}
-var assistantTerracottas = []namedColor{named("terracotta #d97757", "#d97757"), named("terracotta #c96442", "#c96442"), named("terracotta #d9622b", "#d9622b"), named("terracotta #cc785c", "#cc785c")}
-
 var colorProps = regexp.MustCompile(`^(color|background(-color|-image)?|border(-[a-z-]+)?|outline(-color)?|fill|stroke|box-shadow|text-shadow|accent-color|caret-color|text-decoration(-color)?|--.*)$`)
-
-func nearest(c okColor, set []namedColor, limit float64) (namedColor, bool) {
-	for _, n := range set {
-		if c.dist(n.c) < limit {
-			return n, true
-		}
-	}
-	return namedColor{}, false
-}
-
-func purpleish(c okColor) bool {
-	h := c.hue()
-	return c.chroma() >= 0.12 && h >= 270 && h <= 330 && c.L > 0.3 && c.L < 0.85
-}
 
 func (a *designAnalysis) palette() {
 	var cream, terra *cssRule
@@ -329,10 +288,10 @@ func (a *designAnalysis) palette() {
 				purple, foreign := 0, 0
 				for _, c := range cols {
 					switch {
-					case purpleish(c):
+					case stock.Purpleish(c):
 						purple++
-					case c.chroma() < 0.06:
-					case c.hue() >= 200 && c.hue() < 270, c.hue() >= 330 || c.hue() < 20:
+					case c.Chroma() < 0.06:
+					case c.Hue() >= 200 && c.Hue() < 270, c.Hue() >= 330 || c.Hue() < 20:
 					default:
 						foreign++
 					}
@@ -345,13 +304,13 @@ func (a *designAnalysis) palette() {
 				}
 			}
 			for _, c := range cols {
-				if n, ok := nearest(c, stockAccents, 0.02); ok && !gradientHit && a.once("accent "+n.name) {
-					a.add(designSignal{rule: "design.palette", kind: "stock accent color", strong: true, css: r, message: fmt.Sprintf("%s (%s) is the stock generator accent; `%s` uses it.", n.name, dcl.prop, r.selector), hint: "Derive the accent from the subject's own world and name its role in the brief."})
+				if n, ok := stock.Nearest(c, stock.Accents, 0.02); ok && !gradientHit && a.once("accent "+n.Name) {
+					a.add(designSignal{rule: "design.palette", kind: "stock accent color", strong: true, css: r, message: fmt.Sprintf("%s (%s) is the stock generator accent; `%s` uses it.", n.Name, dcl.prop, r.selector), hint: "Derive the accent from the subject's own world and name its role in the brief."})
 				}
-				if _, ok := nearest(c, assistantCreams, 0.012); ok && cream == nil && (strings.HasPrefix(dcl.prop, "background") || strings.HasPrefix(dcl.prop, "--")) {
+				if _, ok := stock.Nearest(c, stock.Creams, 0.012); ok && cream == nil && (strings.HasPrefix(dcl.prop, "background") || strings.HasPrefix(dcl.prop, "--")) {
 					cream = r
 				}
-				if _, ok := nearest(c, assistantTerracottas, 0.02); ok && terra == nil {
+				if _, ok := stock.Nearest(c, stock.Terracottas, 0.02); ok && terra == nil {
 					terra = r
 				}
 			}
@@ -458,7 +417,7 @@ func (a *designAnalysis) glows() {
 					continue
 				}
 				for _, c := range colorsIn(layer) {
-					if c.chroma() > 0.1 {
+					if c.Chroma() > 0.1 {
 						glowing += len(r.matches)
 						if glowNode == nil && len(r.matches) > 0 {
 							glowNode = r.matches[0]
@@ -545,9 +504,6 @@ func allCaps(s string) bool {
 
 // ---------- typography ----------
 
-var genericSans = map[string]bool{"inter": true, "roboto": true, "arial": true, "poppins": true, "geist": true, "system-ui": true, "-apple-system": true, "blinkmacsystemfont": true, "sans-serif": true, "manrope": true, "dm sans": true, "plus jakarta sans": true, "open sans": true, "montserrat": true, "lato": true}
-var rosterDisplay = map[string]bool{"space grotesk": true, "instrument serif": true, "fraunces": true, "syne": true, "geist": true, "clash display": true, "cabinet grotesk": true, "satoshi": true, "general sans": true}
-
 func (a *designAnalysis) typography() {
 	var body, h1 *html.Node
 	for _, n := range a.d.Elements {
@@ -565,7 +521,7 @@ func (a *designAnalysis) typography() {
 	if fh == "" {
 		fh = fb
 	}
-	if fb != "" && fb == fh && genericSans[fb] {
+	if fb != "" && fb == fh && stock.GenericSans(fb) {
 		distinct := false
 		for _, n := range a.d.Elements {
 			if isHeading(n) && designVisible(n) && firstFamily(a.m.value(n, "font-family")) != fb && firstFamily(a.m.value(n, "font-family")) != "" {
@@ -577,7 +533,7 @@ func (a *designAnalysis) typography() {
 			a.add(designSignal{rule: "design.type", kind: "one stock sans", strong: true, node: h1, message: fmt.Sprintf("%q sets both the display headline and the body: the one-sans generator default.", fb), hint: "Give display a typeface chosen for this subject; keep a readable text face for copy."})
 		}
 	}
-	if rosterDisplay[fh] {
+	if stock.Display(fh) {
 		a.add(designSignal{rule: "design.type", kind: "LLM display roster face", node: h1})
 	}
 	// accent word: a short differently styled span inside a longer heading
@@ -947,7 +903,7 @@ func (a *designAnalysis) shadows() {
 			v := strings.Join(strings.Fields(strings.ToLower(dcl.value)), " ")
 			if tailwindShadow.MatchString(v) {
 				for _, c := range colorsIn(v) {
-					if c.chroma() < 0.01 && c.L < 0.1 {
+					if c.Chroma() < 0.01 && c.L < 0.1 {
 						count += len(r.matches)
 						if first == nil && len(r.matches) > 0 {
 							first = r.matches[0]
@@ -1121,8 +1077,6 @@ func (a *designAnalysis) separators() {
 
 // ---------- monospace microcopy ----------
 
-var monoFamilies = regexp.MustCompile(`^(monospace|ui-monospace|menlo|monaco|consolas|sf mono|jetbrains mono|ibm plex mono|space mono|courier|courier new|roboto mono|fira code|fira mono|dm mono|geist mono|chivo mono|source code pro|berkeley mono|commit mono|martian mono)$`)
-
 func (a *designAnalysis) mono() {
 	var hits []*html.Node
 	for _, n := range a.d.Elements {
@@ -1145,7 +1099,7 @@ func (a *designAnalysis) mono() {
 		if letters < 3 || codeContext(n) {
 			continue
 		}
-		if monoFamilies.MatchString(firstFamily(a.m.value(n, "font-family"))) || classes(n)["font-mono"] {
+		if stock.Mono(firstFamily(a.m.value(n, "font-family"))) || classes(n)["font-mono"] {
 			hits = append(hits, n)
 		}
 	}
@@ -1168,8 +1122,6 @@ func codeContext(n *html.Node) bool {
 
 // ---------- fake chrome, proof furniture, stock sections ----------
 
-var trafficLights = []namedColor{named("red", "#ff5f56"), named("red", "#ff5f57"), named("yellow", "#ffbd2e"), named("yellow", "#febc2e"), named("green", "#27c93f"), named("green", "#28c840")}
-
 func (a *designAnalysis) chrome() {
 	for _, p := range a.d.Elements {
 		kids := elementChildren(p)
@@ -1177,11 +1129,11 @@ func (a *designAnalysis) chrome() {
 			continue
 		}
 		// red, yellow, green in this order, each a distinct traffic-light hue
-		order := [][]namedColor{trafficLights[0:2], trafficLights[2:4], trafficLights[4:6]}
+		order := stock.WindowControls
 		hits := 0
 		for i, k := range kids[:3] {
 			for _, c := range colorsIn(a.prop(k, "background") + " " + a.prop(k, "background-color")) {
-				if _, ok := nearest(c, order[i], 0.04); ok {
+				if _, ok := stock.Nearest(c, order[i], 0.04); ok {
 					hits++
 					break
 				}
@@ -1310,7 +1262,7 @@ func (a *designAnalysis) contrast() {
 			if strings.Contains(a.prop(p, "background-image"), "gradient(") {
 				return okColor{}, false
 			}
-			if cs := colorsIn(bg); len(cs) > 0 && cs[0].alpha > 0.95 {
+			if cs := colorsIn(bg); len(cs) > 0 && cs[0].Alpha > 0.95 {
 				return cs[0], true
 			}
 		}
@@ -1329,10 +1281,10 @@ func (a *designAnalysis) contrast() {
 			continue
 		}
 		fg := cs[0]
-		if fg.alpha > 0 && fg.alpha < 1 {
-			fg = okColor{fg.L*fg.alpha + bg.L*(1-fg.alpha), fg.a*fg.alpha + bg.a*(1-fg.alpha), fg.b*fg.alpha + bg.b*(1-fg.alpha), 1}
+		if fg.Alpha > 0 && fg.Alpha < 1 {
+			fg = fg.Over(bg)
 		}
-		if contrastOK(fg, bg) < 7 && a.once("grey body") {
+		if color.Contrast(fg, bg) < 7 && a.once("grey body") {
 			a.add(designSignal{rule: "design.contrast", kind: "grey body text on dark", node: p})
 		}
 	}
