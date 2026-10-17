@@ -362,15 +362,6 @@ func (a *designAnalysis) palette() {
 	}
 }
 
-func firstRule(rs ...*cssRule) *cssRule {
-	for _, r := range rs {
-		if r != nil {
-			return r
-		}
-	}
-	return nil
-}
-
 // ---------- gradient text ----------
 
 func (a *designAnalysis) gradientText() {
@@ -813,7 +804,7 @@ func (a *designAnalysis) grids() {
 					}
 				}
 			}
-			if stats == len(g) && insideTool(p) == false {
+			if stats == len(g) && !insideTool(p) {
 				if round >= 2 {
 					a.add(designSignal{rule: "design.stats", kind: "stat strip", strong: true, node: p, message: fmt.Sprintf("Stat strip of %d big round numbers with small labels.", len(g)), hint: "Show sourced numbers where they prove a specific claim, next to their source."})
 				} else {

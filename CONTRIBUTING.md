@@ -1,5 +1,18 @@
 # Contributing
 
+Go 1.26 or newer. Chrome or Chromium is optional; browser-backed tests skip without it.
+
+```sh
+go build ./cmd/lfm          # the binary
+go test ./...               # everything, including browser tests
+go test -short ./...        # without browser tests
+go vet ./... && go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
+```
+
+[Architecture](docs/architecture.md) maps the packages and explains how to add a check. CI runs lint,
+race-enabled tests on Linux and macOS, every fuzz target briefly, cross-compiles and a release check.
+Tags `vX.Y.Z` publish binaries for macOS and Linux through GoReleaser.
+
 ## Fuzzing
 
 Every parser and analyzer that reads author or LLM input has native Go fuzz
