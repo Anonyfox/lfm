@@ -2,11 +2,11 @@ package serve
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Anonyfox/lfm/internal/project"
 )
@@ -30,8 +30,9 @@ func newMonitor(root string) *monitor {
 }
 
 // Polling works across native OSes, mounted shares and editor atomic replacements,
-// with no platform processes or watcher limits. Small authoring files are hashed;
-// large unchanged binary inputs reuse their content hash after cheap stat checks.
+// with no platform processes or watcher limits. A file is read and hashed only
+// when its size, mode or modification time changed, or while that time is
+// recent enough that a coarse-grained file system could hide a same-size edit.
 func (m *monitor) snapshot() map[string]stamp {
 	current := map[string]stamp{}
 	add := func(path string) {
@@ -44,7 +45,8 @@ func (m *monitor) snapshot() map[string]stamp {
 			return
 		}
 		s := stamp{Size: info.Size(), Time: info.ModTime().UnixNano(), Mode: info.Mode()}
-		if old, ok := m.cache[path]; ok && old.Error == "" && old.Size == s.Size && old.Time == s.Time && old.Mode == s.Mode && s.Size > 256*1024 {
+		settled := time.Since(info.ModTime()) > 2*time.Second
+		if old, ok := m.cache[path]; ok && old.Error == "" && old.Size == s.Size && old.Time == s.Time && old.Mode == s.Mode && settled {
 			s.Hash = old.Hash
 			s.Error = old.Error
 		} else {
@@ -157,23 +159,4 @@ func changed(a, b map[string]stamp) bool {
 
 func transient(name string) bool {
 	return name == ".DS_Store" || name == "Thumbs.db" || name == "4913" || strings.HasSuffix(name, "~") || strings.HasPrefix(name, ".#") || strings.HasSuffix(name, ".swp") || strings.HasSuffix(name, ".swo") || strings.HasSuffix(name, ".tmp")
-}
-
-func realRoot(directory string) (string, error) {
-	root, err := filepath.Abs(directory)
-	if err != nil {
-		return "", err
-	}
-	root, err = filepath.EvalSymlinks(root)
-	if err != nil {
-		return "", fmt.Errorf("preview workbench: %w", err)
-	}
-	info, err := os.Stat(root)
-	if err != nil {
-		return "", err
-	}
-	if !info.IsDir() {
-		return "", fmt.Errorf("preview workbench must be a directory: %s", root)
-	}
-	return root, nil
 }

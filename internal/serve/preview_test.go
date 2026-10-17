@@ -89,8 +89,8 @@ type logURL struct{ ch chan string }
 
 func (w logURL) Write(raw []byte) (int, error) {
 	text := string(raw)
-	if strings.HasPrefix(text, "Preview: http://") {
-		address := strings.Fields(text)[1]
+	if strings.HasPrefix(text, "serving http://") {
+		address := strings.TrimSuffix(strings.Fields(text)[1], ",")
 		select {
 		case w.ch <- address:
 		default:

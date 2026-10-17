@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/compile"
+	"github.com/Anonyfox/lfm/internal/project"
 	xhtml "golang.org/x/net/html"
 )
 
@@ -52,10 +53,11 @@ func Serve(ctx context.Context, directory string, options Options) error {
 	if options.Port < 0 || options.Port > 65535 {
 		return fmt.Errorf("preview port must be between 0 and 65535")
 	}
-	root, err := realRoot(directory)
+	p0, err := project.Open(directory)
 	if err != nil {
 		return err
 	}
+	root := p0.Root
 	listener, err := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(options.Port)))
 	if err != nil && !options.ExplicitPort {
 		listener, err = net.Listen("tcp4", "127.0.0.1:0")
@@ -84,7 +86,7 @@ func Serve(ctx context.Context, directory string, options Options) error {
 		}
 		p.publish(report, err)
 		if !cspReported && reloadBlocked(p.snapshot().Files["index.html"]) {
-			fmt.Fprintln(log, "Preview: authored CSP blocks the reload connection or client; refresh manually. Output security policy is preserved.")
+			fmt.Fprintln(log, "note: the page's Content-Security-Policy blocks live reload; refresh by hand. The policy itself is kept.")
 			cspReported = true
 		}
 	}
@@ -95,12 +97,12 @@ func Serve(ctx context.Context, directory string, options Options) error {
 	go func() { defer close(done); stopped <- server.Serve(listener) }()
 	defer func() { server.Close(); <-done }()
 	address := "http://" + p.host + p.snapshot().Path
-	fmt.Fprintf(log, "Preview: %s | watching sources; browser reloads automatically | Ctrl-C to stop\n", address)
+	fmt.Fprintf(log, "serving %s, reloading on every change (Ctrl-C stops)\n\n", address)
 	var opened <-chan error
 	if options.Open {
 		opened, err = openBrowser(address)
 		if err != nil {
-			fmt.Fprintf(log, "Preview: could not open your browser: %v; open the URL above.\n", err)
+			fmt.Fprintf(log, "could not open a browser: %v; open %s yourself\n", err, address)
 		}
 	}
 	ticker := time.NewTicker(150 * time.Millisecond)
@@ -117,7 +119,7 @@ func Serve(ctx context.Context, directory string, options Options) error {
 			return err
 		case err := <-opened:
 			if err != nil {
-				fmt.Fprintf(log, "Preview: browser launcher failed: %v; open %s manually.\n", err, address)
+				fmt.Fprintf(log, "the browser launcher failed: %v; open %s yourself\n", err, address)
 			}
 			opened = nil
 		case <-ticker.C:
@@ -137,9 +139,11 @@ func Serve(ctx context.Context, directory string, options Options) error {
 
 func (p *preview) snapshot() state { p.mu.Lock(); defer p.mu.Unlock(); return p.current }
 
+// publish makes a compile result current. Browsers reload only when what they
+// would show changed, so edits to notes or research never interrupt a preview.
 func (p *preview) publish(report compile.Result, err error) {
-	next := p.snapshot()
-	next.Version++
+	previous := p.snapshot()
+	next := previous
 	next.Problem = ""
 	if err == nil {
 		next.Files = report.Artifact
@@ -157,6 +161,10 @@ func (p *preview) publish(report compile.Result, err error) {
 			next.Problem = err.Error()
 		}
 	}
+	if next.Problem == previous.Problem && next.Path == previous.Path && sameFiles(next.Files, previous.Files) && previous.Version > 0 {
+		return
+	}
+	next.Version++
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.current = next
@@ -351,4 +359,17 @@ func reloadBlocked(page []byte) bool {
 			}
 		}
 	}
+}
+
+func sameFiles(a, b map[string][]byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for name, content := range a {
+		other, ok := b[name]
+		if !ok || !bytes.Equal(content, other) {
+			return false
+		}
+	}
+	return true
 }
