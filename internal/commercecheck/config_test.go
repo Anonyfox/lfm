@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
-	"github.com/Anonyfox/lfm/internal/templatecheck"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func checkConfig(t *testing.T, raw string) (Facts, []diagnostic.Diagnostic) {
@@ -19,7 +19,7 @@ func checkConfig(t *testing.T, raw string) (Facts, []diagnostic.Diagnostic) {
 	if err := d.Decode(&values); err != nil {
 		t.Fatal(err)
 	}
-	sources := templatecheck.IndexSources(map[string][]byte{"lfm.json": []byte(raw)})
+	sources := jsonsrc.Index(map[string][]byte{"lfm.json": []byte(raw)})
 	data, _ := values["data"].(map[string]any)
 	urls := map[string]string{}
 	if named, ok := values["urls"].(map[string]any); ok {
@@ -168,7 +168,7 @@ func TestSecretShapesAndRedaction(t *testing.T) {
 		}
 	}
 	raw := []byte(`{"data":{"private":"` + value + `"}}`)
-	sources := templatecheck.IndexSources(map[string][]byte{"lfm.json": raw})
+	sources := jsonsrc.Index(map[string][]byte{"lfm.json": raw})
 	var values map[string]any
 	json.Unmarshal(raw, &values)
 	issues := ConfigSecrets(values, sources)
@@ -197,7 +197,7 @@ func FuzzCommerceConfig(f *testing.F) {
 			return
 		}
 		data, _ := values["data"].(map[string]any)
-		_, _ = Check(data, nil, templatecheck.Sources{})
-		_ = ConfigSecrets(values, templatecheck.Sources{})
+		_, _ = Check(data, nil, jsonsrc.Sources{})
+		_ = ConfigSecrets(values, jsonsrc.Sources{})
 	})
 }

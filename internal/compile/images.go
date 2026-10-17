@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/imaging"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"golang.org/x/net/html"
@@ -21,18 +22,18 @@ type imageInput struct {
 
 func captureImages(doc *html.Node) []imageInput {
 	var inputs []imageInput
-	walkHTML(doc, func(n *html.Node) {
+	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Data != "img" || n.Namespace != "" {
 			return
 		}
-		input := imageInput{node: n, src: attr(n, "src"), srcset: attr(n, "srcset")}
+		input := imageInput{node: n, src: htmlx.Attr(n, "src"), srcset: htmlx.Attr(n, "srcset")}
 		for _, candidate := range urlcheck.Candidates(input.srcset) {
 			input.candidates = append(input.candidates, candidate.URL)
 		}
 		if n.Parent != nil && n.Parent.Data == "picture" {
 			for sibling := n.Parent.FirstChild; sibling != nil; sibling = sibling.NextSibling {
 				if sibling.Data == "source" {
-					for _, candidate := range urlcheck.Candidates(attr(sibling, "srcset")) {
+					for _, candidate := range urlcheck.Candidates(htmlx.Attr(sibling, "srcset")) {
 						input.candidates = append(input.candidates, candidate.URL)
 					}
 				}
@@ -114,14 +115,14 @@ func (b *builder) prepareImages(doc *html.Node, inputs []imageInput) []imaging.D
 	for _, input := range inputs {
 		n := input.node
 		info := inspect(input.src)
-		d := imaging.Decision{Info: info, AuthoredWidth: imaging.PositiveAttribute(attr(n, "width")), AuthoredHeight: imaging.PositiveAttribute(attr(n, "height"))}
+		d := imaging.Decision{Info: info, AuthoredWidth: imaging.PositiveAttribute(htmlx.Attr(n, "width")), AuthoredHeight: imaging.PositiveAttribute(htmlx.Attr(n, "height"))}
 		cssReason := policy.reason(n)
-		responsive := hasAttr(n, "srcset") || hasAttr(n, "sizes") || n.Parent != nil && n.Parent.Data == "picture"
-		d.CompareSize = !responsive && cssReason == "" && info.Unknown == "" && info.Issue == "" && policy.attributeBox(n) && !dormantImage(n)
+		responsive := htmlx.HasAttr(n, "srcset") || htmlx.HasAttr(n, "sizes") || n.Parent != nil && n.Parent.Data == "picture"
+		d.CompareSize = !responsive && cssReason == "" && info.Unknown == "" && info.Issue == "" && policy.attributeBox(n) && !htmlx.Dormant(n)
 		switch {
-		case hasAttr(n, "width") && hasAttr(n, "height"):
+		case htmlx.HasAttr(n, "width") && htmlx.HasAttr(n, "height"):
 			d.Reason = "authored width/height preserved"
-		case dormantImage(n):
+		case htmlx.Dormant(n):
 			d.Reason = "dormant template sizing preserved"
 		case responsive:
 			d.Reason = "responsive sources/sizes may use different dimensions or pixel densities"
@@ -131,11 +132,11 @@ func (b *builder) prepareImages(doc *html.Node, inputs []imageInput) []imaging.D
 			d.Reason = info.Issue
 		case info.Unknown != "" || info.Width <= 0 || info.Height <= 0:
 			d.Reason = info.Unknown
-		case hasAttr(n, "width") && d.AuthoredWidth == 0 || hasAttr(n, "height") && d.AuthoredHeight == 0:
+		case htmlx.HasAttr(n, "width") && d.AuthoredWidth == 0 || htmlx.HasAttr(n, "height") && d.AuthoredHeight == 0:
 			d.Reason = "explicit empty/zero/relative/malformed sizing preserved"
 		default:
 			width, height := info.Width, info.Height
-			if hasAttr(n, "width") {
+			if htmlx.HasAttr(n, "width") {
 				width = d.AuthoredWidth
 				scaled := int64(width) * int64(info.Height)
 				if scaled%int64(info.Width) != 0 || scaled/int64(info.Width) > 1<<30 {
@@ -143,7 +144,7 @@ func (b *builder) prepareImages(doc *html.Node, inputs []imageInput) []imaging.D
 					break
 				}
 				height = int(scaled / int64(info.Width))
-			} else if hasAttr(n, "height") {
+			} else if htmlx.HasAttr(n, "height") {
 				height = d.AuthoredHeight
 				scaled := int64(height) * int64(info.Width)
 				if scaled%int64(info.Height) != 0 || scaled/int64(info.Height) > 1<<30 {
@@ -152,12 +153,12 @@ func (b *builder) prepareImages(doc *html.Node, inputs []imageInput) []imaging.D
 				}
 				width = int(scaled / int64(info.Height))
 			}
-			if !hasAttr(n, "width") {
-				setAttr(n, "width", strconv.Itoa(width))
+			if !htmlx.HasAttr(n, "width") {
+				htmlx.SetAttr(n, "width", strconv.Itoa(width))
 				d.Added = append(d.Added, "width")
 			}
-			if !hasAttr(n, "height") {
-				setAttr(n, "height", strconv.Itoa(height))
+			if !htmlx.HasAttr(n, "height") {
+				htmlx.SetAttr(n, "height", strconv.Itoa(height))
 				d.Added = append(d.Added, "height")
 			}
 			d.Reason = "known intrinsic dimensions; missing attributes inferred without changing authored values"

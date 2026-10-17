@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Anonyfox/lfm/internal/htmlx"
 )
 
 func fontWorkbench(t *testing.T, style, head string) string {
@@ -30,7 +32,7 @@ func TestFontPackingAndHintRepairsPreserveBytes(t *testing.T) {
 	// An arbitrary filename still gets recognized after bundling; no new author syntax.
 	root := fontWorkbench(t, `@font-face{font-family:"Demo";src:local("Absent Demo"),url(./type.bin) format(truetype);font-display:optional;font-weight:400;unicode-range:U+0-FF}h1{font-family:Demo,serif}`, `<link rel="preload" as="font" href="type.bin">`)
 	write(t, root, "type.bin", string(font))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -51,8 +53,8 @@ func TestFontPackingAndHintRepairsPreserveBytes(t *testing.T) {
 	}
 	page := read(t, root, "output/index.html")
 	for _, n := range parsePage(t, page) {
-		if n.Data == "link" && attr(n, "as") == "font" {
-			if attr(n, "type") != "font/ttf" || !hasAttr(n, "crossorigin") || attr(n, "href") != fileURL(output) {
+		if n.Data == "link" && htmlx.Attr(n, "as") == "font" {
+			if htmlx.Attr(n, "type") != "font/ttf" || !htmlx.HasAttr(n, "crossorigin") || htmlx.Attr(n, "href") != fileURL(output) {
 				t.Fatal(n.Attr)
 			}
 		}
@@ -67,7 +69,7 @@ func TestFontPackingAndHintRepairsPreserveBytes(t *testing.T) {
 func TestFontAuthoredCredentialTypeAndInlinePolicyPreserved(t *testing.T) {
 	root := fontWorkbench(t, `@font-face{font-family:Demo;src:url(./a.ttf);font-display:block}`, `<link rel="preload" as="font" href="a.ttf" crossorigin="use-credentials" type="font/woff2">`)
 	write(t, root, "a.ttf", string(realFont(t)))
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +90,7 @@ func TestFontAuthoredCredentialTypeAndInlinePolicyPreserved(t *testing.T) {
 		t.Fatal("missing mismatch warning")
 	}
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"] = map[string]any{"default": "inline"} })
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +106,7 @@ func TestFontAuthoredCredentialTypeAndInlinePolicyPreserved(t *testing.T) {
 func TestRemoteFontHintGetsCORSWithoutFetching(t *testing.T) {
 	root := fontWorkbench(t, `@font-face{font-family:Demo;src:url({{.urls.font}}) format(woff2);font-display:swap}`, `<link rel="preload" as="font" href="{{.urls.font}}">`)
 	changeConfig(t, root, func(c map[string]any) { c["urls"] = map[string]any{"font": "https://example.invalid/demo.woff2"} })
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
 	}
@@ -112,8 +114,8 @@ func TestRemoteFontHintGetsCORSWithoutFetching(t *testing.T) {
 		t.Fatal(r.Fonts, r.FontHints)
 	}
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "link" && attr(n, "as") == "font" {
-			if !hasAttr(n, "crossorigin") || hasAttr(n, "type") {
+		if n.Data == "link" && htmlx.Attr(n, "as") == "font" {
+			if !htmlx.HasAttr(n, "crossorigin") || htmlx.HasAttr(n, "type") {
 				t.Fatal(n.Attr)
 			}
 		}
@@ -123,7 +125,7 @@ func TestRemoteFontHintGetsCORSWithoutFetching(t *testing.T) {
 func TestFontOpaqueSourceAndRenamedContainer(t *testing.T) {
 	root := fontWorkbench(t, `@font-face{font-family:Bad;src:url(./response.bin);font-display:swap}`, "")
 	write(t, root, "response.bin", `<html>not a font</html>`)
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +150,7 @@ func TestFontOpaqueSourceAndRenamedContainer(t *testing.T) {
 	raw[27] = 4
 	write(t, root, "renamed.bin", string(raw))
 	write(t, root, "index.html.tmpl", helperHTML("", `<style>@font-face{font-family:X;src:url(./renamed.bin);font-display:swap}</style><link rel="preload" as="font" href="renamed.bin"><link rel="preload" as="font" href="renamed.bin" crossorigin="anonymous">`))
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +165,7 @@ func TestFontOpaqueSourceAndRenamedContainer(t *testing.T) {
 	}
 	hints := 0
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "link" && attr(n, "as") == "font" {
+		if n.Data == "link" && htmlx.Attr(n, "as") == "font" {
 			hints++
 		}
 	}

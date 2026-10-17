@@ -14,6 +14,7 @@ import (
 	"text/template/parse"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func Catalog() []diagnostic.RuleInfo {
@@ -37,7 +38,7 @@ type Options struct {
 	Entry       string
 	Values      map[string]any
 	Files       map[string][]byte
-	Sources     Sources
+	Sources     jsonsrc.Sources
 	BrowserData []string
 	Rules       map[string]diagnostic.Severity
 	// Consumed holds compiler-rendered config subtrees and their dependencies.

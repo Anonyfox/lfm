@@ -3,6 +3,7 @@ package release
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -54,7 +55,7 @@ type AuditFinding struct {
 	Items      int      `json:"detailItems,omitempty"`
 }
 
-func Audit(page []byte, assets map[string][]byte, root, scratch string) *AuditResult {
+func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
 	r := &AuditResult{}
 	warn := func(rule, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
@@ -87,7 +88,7 @@ func Audit(page []byte, assets map[string][]byte, root, scratch string) *AuditRe
 		}
 		return r
 	}
-	r.Lighthouse = runLighthouse(page, assets, browser, root, scratch)
+	r.Lighthouse = runLighthouse(page, assets, browser, root)
 	if r.Lighthouse.Status != "ok" {
 		warn("release.lighthouse", "Lighthouse skipped: "+r.Lighthouse.Reason, r.Lighthouse.Hint)
 	}
@@ -143,7 +144,7 @@ func lighthousePath(root string) (string, error) {
 	return "", fmt.Errorf("installed Lighthouse executable not found")
 }
 
-func runLighthouse(page []byte, assets map[string][]byte, browser, root, scratch string) *LighthouseResult {
+func runLighthouse(page []byte, assets map[string][]byte, browser, root string) *LighthouseResult {
 	start := time.Now()
 	r := &LighthouseResult{Status: "skipped", Scope: auditScope}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
@@ -162,10 +163,10 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root, scratch
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
-	profile, err := os.MkdirTemp(scratch, "lighthouse-chrome-")
+	profile, err := os.MkdirTemp("", "lfm-lighthouse-chrome-")
 	if err != nil {
 		r.Reason = err.Error()
-		r.Hint = "Ensure .micro/ is writable."
+		r.Hint = "Ensure the system temporary directory is writable."
 		return r
 	}
 	defer func() {
@@ -212,9 +213,10 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root, scratch
 		return r
 	}
 	parsed, parseErr := parseLighthouse(stdout.Bytes(), server.URL)
-	// Persist raw detail outside deployable output. Atomic rename replaces an
-	// existing symlink rather than following it; reports never leak into output/.
-	file, err := os.CreateTemp(scratch, "lighthouse-*.json")
+	// Persist raw detail in the system temp directory, one file per project.
+	// Atomic rename replaces an existing symlink rather than following it.
+	report := ReportPath(root)
+	file, err := os.CreateTemp(filepath.Dir(report), "lfm-lighthouse-*.json")
 	if err == nil {
 		name := file.Name()
 		defer os.Remove(name)
@@ -224,7 +226,7 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root, scratch
 			err = closeErr
 		}
 		if err == nil {
-			err = os.Rename(name, filepath.Join(scratch, "lighthouse.json"))
+			err = os.Rename(name, report)
 		}
 	}
 	if parsed != nil {
@@ -233,7 +235,7 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root, scratch
 	if err != nil {
 		r.Warnings = append(r.Warnings, "Full report could not be saved: "+err.Error())
 	} else {
-		r.Report = filepath.Join(scratch, "lighthouse.json")
+		r.Report = report
 	}
 	if parseErr != nil {
 		r.Reason = parseErr.Error()
@@ -434,4 +436,11 @@ func auditItems(raw json.RawMessage) []json.RawMessage {
 		list = append(list, object[key])
 	}
 	return list
+}
+
+// ReportPath is where the complete Lighthouse JSON of a project is kept: the
+// system temp directory, outside the project and its deployable output.
+func ReportPath(root string) string {
+	sum := sha256.Sum256([]byte(root))
+	return filepath.Join(os.TempDir(), fmt.Sprintf("lfm-lighthouse-%x.json", sum[:6]))
 }

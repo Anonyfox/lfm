@@ -1,4 +1,6 @@
-package templatecheck
+// Package jsonsrc indexes authored JSON documents by field path so diagnostics
+// can point at the exact key that caused them.
+package jsonsrc
 
 import (
 	"bytes"
@@ -24,7 +26,7 @@ type Sources struct {
 	locators  map[string]diagnostic.Source
 }
 
-func IndexSources(files map[string][]byte) Sources {
+func Index(files map[string][]byte) Sources {
 	s := Sources{Raw: files, Locations: map[string]diagnostic.Location{}, Leaves: map[string]diagnostic.Location{}, locators: map[string]diagnostic.Source{}}
 	names := make([]string, 0, len(files))
 	for name := range files {
@@ -153,12 +155,12 @@ func (s Sources) Nearest(key string) (diagnostic.Location, bool) {
 		if loc, ok := s.Locations[key]; ok {
 			return loc, true
 		}
-		key = parentPath(key)
+		key = Parent(key)
 	}
 	return diagnostic.Location{}, false
 }
 
-func parentPath(key string) string {
+func Parent(key string) string {
 	last := -1
 	quoted, escape := false, false
 	for i, r := range key {

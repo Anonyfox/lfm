@@ -9,7 +9,9 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"golang.org/x/net/html"
 )
 
@@ -102,7 +104,7 @@ func parsePage(t *testing.T, value string) []*html.Node {
 
 func TestInlineBuild(t *testing.T) {
 	root := fixture(t)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,37 +124,37 @@ func TestInlineBuild(t *testing.T) {
 	}
 	var dataPosition, scriptPosition int
 	for position, node := range parsePage(t, page) {
-		if attr(node, "id") == "intruder" {
+		if htmlx.Attr(node, "id") == "intruder" {
 			t.Fatal("JSON escaped its script element")
 		}
-		if node.Data == "meta" && attr(node, "property") == "og:image" && attr(node, "content") != "https://example.com/tools/demo/picture.svg" {
+		if node.Data == "meta" && htmlx.Attr(node, "property") == "og:image" && htmlx.Attr(node, "content") != "https://example.com/tools/demo/picture.svg" {
 			t.Fatal("incorrect social image URL")
 		}
 		if node.Data == "style" {
 			if node.Parent.Data != "head" {
 				t.Fatal("CSS outside head")
 			}
-			if strings.Contains(textContent(node), "@import") {
+			if strings.Contains(htmlx.RawText(node), "@import") {
 				t.Fatal("CSS import was not bundled")
 			}
 		}
 		if node.Data == "img" {
-			raw := decodeInline(t, attr(node, "src"))
+			raw := decodeInline(t, htmlx.Attr(node, "src"))
 			if string(raw) != read(t, root, "assets/images/picture.svg") {
 				t.Fatal("image did not round-trip")
 			}
-			if !strings.Contains(attr(node, "srcset"), "data:image/png;base64,aGVsbG8= 1x") {
+			if !strings.Contains(htmlx.Attr(node, "srcset"), "data:image/png;base64,aGVsbG8= 1x") {
 				t.Fatal("existing srcset data URL was damaged")
 			}
 		}
 		if node.Data == "script" {
-			if attr(node, "src") != "" {
+			if htmlx.Attr(node, "src") != "" {
 				t.Fatal("script wasn't inlined")
 			}
-			if attr(node, "id") == "product-data" {
+			if htmlx.Attr(node, "id") == "product-data" {
 				dataPosition = position
 				var payload map[string]map[string]map[string]any
-				if err := json.Unmarshal([]byte(textContent(node)), &payload); err != nil {
+				if err := json.Unmarshal([]byte(htmlx.RawText(node)), &payload); err != nil {
 					t.Fatal(err)
 				}
 				if payload["data"]["quiz"]["value"] != float64(42) {
@@ -160,7 +162,7 @@ func TestInlineBuild(t *testing.T) {
 				}
 			} else {
 				scriptPosition = position
-				if strings.Contains(textContent(node), "import ") {
+				if strings.Contains(htmlx.RawText(node), "import ") {
 					t.Fatal("module import not bundled")
 				}
 			}
@@ -177,7 +179,7 @@ func TestInlineBuild(t *testing.T) {
 		t.Fatal("output must be readable by the deployment server")
 	}
 	first := page
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != first {
@@ -190,7 +192,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "output/stale.txt", "old")
 	write(t, root, "output/old/nested.txt", "old")
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +222,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "<h1>", "<h1 id=changed>", 1))
-	if _, err := Run(root, false); err != nil {
+	if _, err := Compile(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -262,7 +264,7 @@ func TestFailuresPreserveOutput(t *testing.T) {
 			changeConfig(t, r, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 		}},
 		{"generated input", "outside output/", func(t *testing.T, r string) { write(t, r, "index.html.tmpl", `<img src="output/sentinel.txt">`) }},
-		{"escape", "inside the workbench", func(t *testing.T, r string) { write(t, r, "index.html.tmpl", `<img src="../outside.svg">`) }},
+		{"escape", "inside the project", func(t *testing.T, r string) { write(t, r, "index.html.tmpl", `<img src="../outside.svg">`) }},
 		{"asset symlink", "symlink", func(t *testing.T, r string) {
 			outside := t.TempDir()
 			write(t, outside, "image.svg", "outside")
@@ -277,7 +279,7 @@ func TestFailuresPreserveOutput(t *testing.T) {
 			root := fixture(t)
 			write(t, root, "output/sentinel.txt", "last good build")
 			test.change(t, root)
-			report, err := Run(root, true)
+			report, err := Compile(root, Options{Publish: true})
 			message := ""
 			if err != nil {
 				message = err.Error()
@@ -304,7 +306,7 @@ func TestOutputSymlinkAndBuildLock(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root, "output")); err != nil {
 		t.Skip(err)
 	}
-	if _, err := Run(root, true); err == nil || !strings.Contains(err.Error(), "symlink") {
+	if _, err := Compile(root, Options{Publish: true}); err == nil || !strings.Contains(err.Error(), "symlink") {
 		t.Fatalf("got %v", err)
 	}
 	if read(t, outside, "keep.txt") != "safe" {
@@ -313,11 +315,40 @@ func TestOutputSymlinkAndBuildLock(t *testing.T) {
 	if err := os.Remove(filepath.Join(root, "output")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(root, ".micro/build.lock"), 0700); err != nil {
+	// A held lock makes a second compile of the same project wait.
+	real, err := filepath.EvalSymlinks(root)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Run(root, true); err == nil || !strings.Contains(err.Error(), "acquire") {
-		t.Fatalf("got %v", err)
+	unlock, err := lock(real)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, err := Compile(root, Options{Publish: true}); done <- err }()
+	select {
+	case err := <-done:
+		t.Fatalf("compile ran while the project was locked: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+	unlock()
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	assertClean(t, root)
+}
+
+// assertClean fails when a compile left anything beside sources and output/.
+func assertClean(t *testing.T, root string) {
+	t.Helper()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".") || strings.HasPrefix(entry.Name(), "output.") {
+			t.Fatalf("compile left %s in the project", entry.Name())
+		}
 	}
 }
 
@@ -329,7 +360,7 @@ func TestRemoteResourcesAndClassicGlobals(t *testing.T) {
 	write(t, root, "index.html.tmpl", `<!doctype html><html><head><link rel="canonical" href="{{.url}}"><link rel="stylesheet" href="{{.urls.stylesheet}}"></head><body>
 <img src="{{.urls.image}}"><script src="{{.urls.sdk}}"></script>
 <script>function publishedHandler() { return "</scr" + "ipt>"; }</script></body></html>`)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -355,7 +386,7 @@ func TestExample(t *testing.T) {
 			return err
 		}
 		if entry.IsDir() {
-			if entry.Name() == ".micro" || entry.Name() == "output" || entry.Name() == "node_modules" {
+			if entry.Name() == "output" || entry.Name() == "node_modules" {
 				return fs.SkipDir
 			}
 			return os.MkdirAll(filepath.Join(root, filepath.FromSlash(path)), 0755)
@@ -368,7 +399,7 @@ func TestExample(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}

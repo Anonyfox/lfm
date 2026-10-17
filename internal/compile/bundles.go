@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/evanw/esbuild/pkg/api"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -41,7 +42,7 @@ func (p *pageBundles) helper(node *html.Node, entry helperEntry) {
 		return
 	}
 	p.helpers[key] = true
-	delAttr(node, "data-lfm-helper")
+	htmlx.DelAttr(node, "data-lfm-helper")
 	input := bundleInput{node: node, path: entry.path, file: p.b.mode(entry.path) == "file"}
 	input.name = strings.TrimSuffix(filepath.Base(entry.path), filepath.Ext(entry.path))
 	if entry.kind == "script" {
@@ -83,9 +84,9 @@ func independentlyAddressable(node *html.Node, allowed ...string) bool {
 }
 
 func (p *pageBundles) stylesheet(node *html.Node) error {
-	input := bundleInput{node: node, source: textContent(node), media: attr(node, "media")}
+	input := bundleInput{node: node, source: htmlx.RawText(node), media: htmlx.Attr(node, "media")}
 	if node.Data == "link" {
-		ref := attr(node, "href")
+		ref := htmlx.Attr(node, "href")
 		remote, err := p.b.remote(ref)
 		if err != nil {
 			return err
@@ -106,7 +107,7 @@ func (p *pageBundles) stylesheet(node *html.Node) error {
 		input.file = p.b.mode(input.path) == "file"
 		input.name = strings.TrimSuffix(filepath.Base(input.path), filepath.Ext(input.path)) + ".css"
 	}
-	input.isolated = independentlyAddressable(node, "rel", "href", "type", "media", "integrity", "crossorigin") || strings.Contains(strings.ToLower(attr(node, "rel")), "alternate")
+	input.isolated = independentlyAddressable(node, "rel", "href", "type", "media", "integrity", "crossorigin") || strings.Contains(strings.ToLower(htmlx.Attr(node, "rel")), "alternate")
 	if input.isolated {
 		input.media = ""
 	} // preserve addressable sheet.media on its node
@@ -118,13 +119,13 @@ func (p *pageBundles) stylesheet(node *html.Node) error {
 }
 
 func (p *pageBundles) script(node *html.Node, module bool) error {
-	legacy := hasAttr(node, "data-lfm-classic")
+	legacy := htmlx.HasAttr(node, "data-lfm-classic")
 	if legacy && module {
 		return fmt.Errorf("data-lfm-classic cannot be combined with type=module")
 	}
-	delAttr(node, "data-lfm-classic")
-	input := bundleInput{node: node, source: textContent(node)}
-	if ref := attr(node, "src"); ref != "" {
+	htmlx.DelAttr(node, "data-lfm-classic")
+	input := bundleInput{node: node, source: htmlx.RawText(node)}
+	if ref := htmlx.Attr(node, "src"); ref != "" {
 		remote, err := p.b.remote(ref)
 		if err != nil {
 			return err
@@ -160,12 +161,12 @@ func (p *pageBundles) script(node *html.Node, module bool) error {
 		}
 	}
 	if module {
-		setAttr(node, "type", "module")
+		htmlx.SetAttr(node, "type", "module")
 	} else {
 		input.isolated = true
 		// These attributes only retain their native classic-script behavior with
 		// an external src, so inlining would silently change scheduling/events.
-		if input.path != "" && (hasAttr(node, "async") || hasAttr(node, "defer") || hasAttr(node, "onload") || hasAttr(node, "onerror")) {
+		if input.path != "" && (htmlx.HasAttr(node, "async") || htmlx.HasAttr(node, "defer") || htmlx.HasAttr(node, "onload") || htmlx.HasAttr(node, "onerror")) {
 			input.file = true
 		}
 	}
@@ -267,19 +268,19 @@ func (p *pageBundles) compileScripts() ([]*html.Node, error) {
 			}
 		}
 		node := first.node
-		delAttr(node, "integrity")
+		htmlx.DelAttr(node, "integrity")
 		if first.file {
 			name := p.filename(group, i, len(all), ".js")
 			if err := p.b.emit(name, fmt.Sprintf("%sscript-bundle:%d", p.prefix, i), result.code); err != nil {
 				return nil, err
 			}
-			setAttr(node, "src", fileURL(name))
-			setText(node, "")
+			htmlx.SetAttr(node, "src", fileURL(name))
+			htmlx.SetText(node, "")
 		} else {
-			delAttr(node, "src", "crossorigin", "defer")
-			setText(node, string(result.code))
+			htmlx.DelAttr(node, "src", "crossorigin", "defer")
+			htmlx.SetText(node, string(result.code))
 		}
-		p.b.bundleReferences(group, attr(node, "src"))
+		p.b.bundleReferences(group, htmlx.Attr(node, "src"))
 		if p.b.automaticGroup(group) && !first.isolated && !first.file {
 			p.b.autoCode = append(p.b.autoCode, codeCandidate{node: node, inputs: group, name: p.filename(group, i, len(all), ".js"), origin: fmt.Sprintf("%sscript-bundle:%d", p.prefix, i), kind: "script"})
 		}
@@ -301,7 +302,7 @@ func (p *pageBundles) compileStyles(head *html.Node) error {
 	for i, group := range all {
 		first := group[0]
 		if first.remote {
-			move(head, first.node)
+			htmlx.Move(head, first.node)
 			continue
 		}
 		result, err := p.b.compileInputs(group, true)
@@ -310,17 +311,17 @@ func (p *pageBundles) compileStyles(head *html.Node) error {
 		}
 		node := first.node
 		if node == nil {
-			node = element("style", "")
+			node = htmlx.Element("style", "")
 		}
-		alternate := strings.Contains(strings.ToLower(attr(node, "rel")), "alternate")
+		alternate := strings.Contains(strings.ToLower(htmlx.Attr(node, "rel")), "alternate")
 		for _, input := range group {
 			if input.node != nil && input.node.Parent != nil {
 				input.node.Parent.RemoveChild(input.node)
 			}
 		}
-		delAttr(node, "rel", "href", "integrity", "crossorigin")
+		htmlx.DelAttr(node, "rel", "href", "integrity", "crossorigin")
 		if !first.isolated {
-			delAttr(node, "media")
+			htmlx.DelAttr(node, "media")
 		}
 		if first.file {
 			name := p.filename(group, i, len(all), ".css")
@@ -328,25 +329,25 @@ func (p *pageBundles) compileStyles(head *html.Node) error {
 				return err
 			}
 			node.Data, node.DataAtom = "link", atom.Link
-			setText(node, "")
+			htmlx.SetText(node, "")
 			// Void elements must not retain even an empty text child.
 			for node.FirstChild != nil {
 				node.RemoveChild(node.FirstChild)
 			}
-			setAttr(node, "rel", "stylesheet")
-			setAttr(node, "href", fileURL(name))
+			htmlx.SetAttr(node, "rel", "stylesheet")
+			htmlx.SetAttr(node, "href", fileURL(name))
 			if alternate {
-				setAttr(node, "rel", "alternate stylesheet")
+				htmlx.SetAttr(node, "rel", "alternate stylesheet")
 			}
 		} else {
 			node.Data, node.DataAtom = "style", atom.Style
-			setText(node, string(result.code))
+			htmlx.SetText(node, string(result.code))
 		}
-		p.b.bundleReferences(group, attr(node, "href"))
+		p.b.bundleReferences(group, htmlx.Attr(node, "href"))
 		if p.b.automaticGroup(group) && !first.isolated && !first.file {
 			p.b.autoCode = append(p.b.autoCode, codeCandidate{node: node, inputs: group, name: p.filename(group, i, len(all), ".css"), origin: fmt.Sprintf("%sstyle-bundle:%d", p.prefix, i), kind: "style"})
 		}
-		move(head, node)
+		htmlx.Move(head, node)
 	}
 	return nil
 }

@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/chromedp/chromedp"
 	"golang.org/x/net/html"
@@ -52,7 +53,7 @@ func TestBrowserInferredImageSizesPreserveLoadedLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, root, "fixed.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60" viewBox="0 0 2 1"><rect fill="#cc0011" width="2" height="1"/></svg>`)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -62,12 +63,12 @@ func TestBrowserInferredImageSizesPreserveLoadedLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	index := 0
-	walkHTML(doc, func(n *html.Node) {
+	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Data != "img" || n.Namespace != "" {
 			return
 		}
 		for _, key := range report.Images[index].Added {
-			delAttr(n, key)
+			htmlx.DelAttr(n, key)
 		}
 		index++
 	})

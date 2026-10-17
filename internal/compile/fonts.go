@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/fontcheck"
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"golang.org/x/net/html"
 )
 
@@ -33,9 +34,9 @@ func (b *builder) inspectFonts(doc *html.Node) (map[string]fontcheck.Info, []fon
 			}
 		}
 	}
-	walkHTML(doc, func(n *html.Node) {
-		if n.Data == "style" && n.Namespace == "" && !dormant(n) && (attr(n, "type") == "" || strings.EqualFold(attr(n, "type"), "text/css")) {
-			readCSS([]byte(textContent(n)))
+	htmlx.Walk(doc, func(n *html.Node) {
+		if n.Data == "style" && n.Namespace == "" && !htmlx.Dormant(n) && (htmlx.Attr(n, "type") == "" || strings.EqualFold(htmlx.Attr(n, "type"), "text/css")) {
+			readCSS([]byte(htmlx.RawText(n)))
 		}
 	})
 	for _, f := range b.files {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func BenchmarkPreflight(b *testing.B) {
@@ -34,7 +36,7 @@ func BenchmarkPreflight(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				sources := IndexSources(map[string][]byte{"data/faq.json": raw})
+				sources := jsonsrc.Index(map[string][]byte{"data/faq.json": raw})
 				template, parsed := Parse(files, "index.html.tmpl")
 				if parsed.Errors > 0 {
 					b.Fatal(messages(parsed))

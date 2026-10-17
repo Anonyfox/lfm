@@ -12,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
-	"github.com/Anonyfox/lfm/internal/templatecheck"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 type Offer struct {
@@ -36,7 +36,7 @@ func Catalog() []diagnostic.RuleInfo {
 }
 
 type checker struct {
-	sources templatecheck.Sources
+	sources jsonsrc.Sources
 	facts   Facts
 	issues  []diagnostic.Diagnostic
 }
@@ -53,7 +53,7 @@ func (c *checker) consume(path string) { c.facts.Consumed = append(c.facts.Consu
 
 // Check does not require commerce on knowledge/tools/free pages. Unknown fields
 // within the convention remain available for arbitrary authoring and extensions.
-func Check(data map[string]any, urls map[string]string, sources templatecheck.Sources) (Facts, []diagnostic.Diagnostic) {
+func Check(data map[string]any, urls map[string]string, sources jsonsrc.Sources) (Facts, []diagnostic.Diagnostic) {
 	c := checker{sources: sources, facts: Facts{CheckedCheckout: map[string]bool{}}}
 	raw, present := data["commerce"]
 	if !present {
@@ -73,7 +73,7 @@ func Check(data map[string]any, urls map[string]string, sources templatecheck.So
 	}
 	seen := map[string]Offer{}
 	for _, key := range keys(offers) {
-		path := templatecheck.Child("data.commerce.offers", key)
+		path := jsonsrc.Child("data.commerce.offers", key)
 		if strings.TrimSpace(key) == "" {
 			c.add("commerce.config", diagnostic.Error, path, "Offer key is empty.", "Use a stable purpose-based object key.")
 		}
@@ -110,7 +110,7 @@ func Check(data map[string]any, urls map[string]string, sources templatecheck.So
 					c.add("commerce.config", diagnostic.Error, child, "checkoutUrlKey does not name an entry in urls.", "Store the hosted Stripe link once under urls, then use that exact key here and in purchase anchors.")
 				} else {
 					offer.CheckoutURL = target
-					c.consume(templatecheck.Child("urls", text))
+					c.consume(jsonsrc.Child("urls", text))
 					if !c.facts.CheckedCheckout[target] {
 						c.facts.CheckedCheckout[target] = true
 						for _, finding := range Checkout(target) {
@@ -118,7 +118,7 @@ func Check(data map[string]any, urls map[string]string, sources templatecheck.So
 							if finding.Error {
 								level = diagnostic.Error
 							}
-							c.add("commerce.checkout", level, templatecheck.Child("urls", text), finding.Message, finding.Hint)
+							c.add("commerce.checkout", level, jsonsrc.Child("urls", text), finding.Message, finding.Hint)
 						}
 					}
 				}
@@ -160,7 +160,7 @@ func Check(data map[string]any, urls map[string]string, sources templatecheck.So
 		for _, key := range keys(value) {
 			for _, known := range []string{"sku", "name", "checkoutUrlKey", "price", "stripe"} {
 				if key != known && strings.EqualFold(key, known) {
-					c.add("commerce.config", diagnostic.Warning, templatecheck.Child(path, key), "Offer field differs in case from "+known+".", "Use the documented spelling for automatic checks; unknown extension fields remain allowed.")
+					c.add("commerce.config", diagnostic.Warning, jsonsrc.Child(path, key), "Offer field differs in case from "+known+".", "Use the documented spelling for automatic checks; unknown extension fields remain allowed.")
 				}
 			}
 		}

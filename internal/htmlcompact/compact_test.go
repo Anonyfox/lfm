@@ -1,4 +1,4 @@
-package compile
+package htmlcompact
 
 import (
 	"bytes"
@@ -43,7 +43,7 @@ window.answer = value;</script><script type="application/json"> { "copy": "  a  
 		t.Run(name, func(t *testing.T) {
 			before := serializedHTML(t, source)
 			original := bytes.Clone(before)
-			after, report := compactHTML(before)
+			after, report := Compact(before)
 			if report.Skipped != "" {
 				t.Fatal(report.Skipped)
 			}
@@ -63,7 +63,7 @@ window.answer = value;</script><script type="application/json"> { "copy": "  a  
 			if report.AfterBytes != len(after) || report.SavedBytes != len(before)-len(after) || len(after) > len(before) {
 				t.Fatal(report)
 			}
-			again, r := compactHTML(after)
+			again, r := Compact(after)
 			if !bytes.Equal(again, after) || r.Skipped != "" {
 				candidate, _ := compactSyntax(after)
 				t.Fatalf("not idempotent: %+v\nbefore %s\ncandidate %s", r, after, candidate)
@@ -74,7 +74,7 @@ window.answer = value;</script><script type="application/json"> { "copy": "  a  
 
 func TestHTMLCompactionChangesOnlySafeSyntax(t *testing.T) {
 	before := serializedHTML(t, `<div id="box" data-empty="" title="He said &quot;hello&quot;" class="  a  b ">  untouched  </div><img src="./" alt="">`)
-	after, r := compactHTML(before)
+	after, r := Compact(before)
 	if r.SavedBytes == 0 || r.Skipped != "" {
 		t.Fatal(r)
 	}
@@ -112,7 +112,7 @@ func FuzzHTMLCompaction(f *testing.F) {
 			return
 		}
 		before := bytes.Clone(rendered.Bytes())
-		after, _ := compactHTML(rendered.Bytes())
+		after, _ := Compact(rendered.Bytes())
 		a, _ := html.Parse(bytes.NewReader(before))
 		b, _ := html.Parse(bytes.NewReader(after))
 		if !sameHTMLTree(a, b) || !bytes.Equal(before, rendered.Bytes()) || len(after) > len(before) {
@@ -132,7 +132,7 @@ func BenchmarkHTMLCompaction(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for b.Loop() {
-				compactHTML(raw)
+				Compact(raw)
 			}
 		})
 	}

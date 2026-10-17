@@ -19,7 +19,7 @@ func commerceWorkbench(t *testing.T) string {
 
 func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 	root := commerceWorkbench(t)
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
 	}
@@ -30,7 +30,7 @@ func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	changeConfig(t, root, func(c map[string]any) { c["jsonld"].(map[string]any)["offers"].(map[string]any)["price"] = "4900" })
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal("price mismatch published", err, r.Validation)
 	}
@@ -49,7 +49,7 @@ func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"commerce.structured-data": "warn"}}
 	})
-	if r, err = Run(root, true); err != nil || !r.Published {
+	if r, err = Compile(root, Options{Publish: true}); err != nil || !r.Published {
 		t.Fatal("override ignored", err, r.Validation)
 	}
 	before = read(t, root, "output/index.html")
@@ -58,7 +58,7 @@ func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 		offer["checkoutUrlKey"] = "missing"
 		offer["price"].(map[string]any)["amountMinor"] = -1
 	})
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err == nil || r.Published || r.Validation.Stage != "template" || r.Validation.Warnings != 0 || read(t, root, "output/index.html") != before {
 		t.Fatal(err, r.Validation)
 	}
@@ -79,20 +79,20 @@ func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"commerce.config": "off", "commerce.price": "off", "commerce.structured-data": "off"}}
 	})
-	if r, err = Run(root, true); err != nil || !r.Published {
+	if r, err = Compile(root, Options{Publish: true}); err != nil || !r.Published {
 		t.Fatal("config override failed", err, r.Validation)
 	}
 }
 
 func TestCommerceDatasetLocationsAndSecretGate(t *testing.T) {
 	root := commerceWorkbench(t)
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
 	changeConfig(t, root, func(c map[string]any) { delete(c["data"].(map[string]any), "commerce") })
 	write(t, root, "data/commerce.json", `{"offers":{"audit":{"name":"Audit","sku":"lab-audit","checkoutUrlKey":"absent","price":{"amountMinor":-1,"currency":"EUR"}}}}`)
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal(err)
 	}
@@ -102,13 +102,13 @@ func TestCommerceDatasetLocationsAndSecretGate(t *testing.T) {
 		}
 	}
 	root = fixture(t)
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before = read(t, root, "output/index.html")
 	secret := "sk_test_" + strings.Repeat("x", 24)
 	changeConfig(t, root, func(c map[string]any) { c["data"].(map[string]any)["privateKey"] = secret })
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal("secret passed preflight", err)
 	}

@@ -3,6 +3,8 @@ package compile
 import (
 	"strings"
 	"testing"
+
+	"github.com/Anonyfox/lfm/internal/htmlx"
 )
 
 func TestNamedURLsBuildAndEscaping(t *testing.T) {
@@ -12,7 +14,7 @@ func TestNamedURLsBuildAndEscaping(t *testing.T) {
 	})
 	extra := `<a href="{{.urls.checkout}}">Pay</a><a href="{{.urls.phone}}">Call</a><a href="{{.urls.app}}">App</a><a href="{{.urls.email}}">Mail</a>`
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", extra+"</body>", 1))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -20,7 +22,7 @@ func TestNamedURLsBuildAndEscaping(t *testing.T) {
 	links := map[string]bool{}
 	for _, n := range parsePage(t, raw) {
 		if n.Data == "a" {
-			links[attr(n, "href")] = true
+			links[htmlx.Attr(n, "href")] = true
 		}
 	}
 	for _, href := range []string{"tel:+49401234", "https://checkout.example/pay?product=one&ref=hero", "myapp://product/1", "mailto:hello@example.org?subject=Hi%20there"} {
@@ -61,12 +63,12 @@ func TestURLFailuresPreserveOutput(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			root := fixture(t)
-			if _, err := Run(root, true); err != nil {
+			if _, err := Compile(root, Options{Publish: true}); err != nil {
 				t.Fatal(err)
 			}
 			before := read(t, root, "output/index.html")
 			tc.change(t, root)
-			report, err := Run(root, true)
+			report, err := Compile(root, Options{Publish: true})
 			if err == nil || report.Published {
 				t.Fatal(report, err)
 			}
@@ -94,7 +96,7 @@ func TestURLRuleOverrides(t *testing.T) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"links.literal": "warn", "links.declared": "warn"}}
 	})
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="https://other.example/">Other</a></body>`, 1))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil || !report.Published {
 		t.Fatal(report, err)
 	}
@@ -111,7 +113,7 @@ func TestMultipleNamedURLErrorsCollected(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["urls"] = map[string]any{"checkout": "htpps://checkout.example/", "help": "https://example.org:99999/"}
 	})
-	report, err := Run(root, false)
+	report, err := Compile(root, Options{})
 	if err == nil || report.Validation.Errors != 2 || report.Validation.Warnings != 0 {
 		t.Fatal(report.Validation, err)
 	}
@@ -134,7 +136,7 @@ func TestContextNormalizedNamedURLs(t *testing.T) {
 	})
 	extra := `<a href="{{.urls.unicode}}">Unicode</a><a href="{{.urls.punctuation}}">Book</a><a href="{{.urls.signed}}">Signed</a><img srcset="{{.urls.srcsetComma}} 2x" alt="">`
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", extra+"</body>", 1))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -153,7 +155,7 @@ func TestUnicodeCanonicalAndURLValueTypeLocation(t *testing.T) {
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["url"] = "https://bücher.de/über/" })
 	write(t, root, "index.html.tmpl", fixtureHTML)
-	report, err := Run(root, false)
+	report, err := Compile(root, Options{})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -163,7 +165,7 @@ func TestUnicodeCanonicalAndURLValueTypeLocation(t *testing.T) {
 		}
 	}
 	changeConfig(t, root, func(c map[string]any) { c["urls"] = map[string]any{"bad": 42} })
-	report, err = Run(root, false)
+	report, err = Compile(root, Options{})
 	if err == nil {
 		t.Fatal("non-string URL accepted")
 	}
@@ -178,7 +180,7 @@ func TestLiteralURLReportsSyntaxAndExistingOwner(t *testing.T) {
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["urls"] = map[string]any{"checkout": "https://checkout.example/"} })
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="https://checkout.example/">Pay</a><a href="htpps://other.example/">Typo</a></body>`, 1))
-	report, err := Run(root, false)
+	report, err := Compile(root, Options{})
 	if err == nil || report.Validation.Errors != 3 {
 		t.Fatal(report.Validation, err)
 	}

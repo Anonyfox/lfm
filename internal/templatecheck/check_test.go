@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func fixture(t *testing.T, source, config string, extras map[string]string) (Options, diagnostic.Summary, []byte) {
@@ -15,7 +16,7 @@ func fixture(t *testing.T, source, config string, extras map[string]string) (Opt
 	for name, raw := range extras {
 		files[name] = []byte(raw)
 	}
-	options := Options{Entry: "index.html.tmpl", Files: files, Sources: IndexSources(map[string][]byte{"lfm.json": []byte(config)})}
+	options := Options{Entry: "index.html.tmpl", Files: files, Sources: jsonsrc.Index(map[string][]byte{"lfm.json": []byte(config)})}
 	decoder := json.NewDecoder(strings.NewReader(config))
 	decoder.UseNumber()
 	if err := decoder.Decode(&options.Values); err != nil {

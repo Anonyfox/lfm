@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"golang.org/x/net/html"
 )
 
@@ -14,19 +15,19 @@ import (
 // ambiguous payloads stay byte-for-byte authored for the aggregate final gate.
 func (b *builder) sharingAssets(n *html.Node) error {
 	field := "content"
-	kind := strings.ToLower(strings.TrimSpace(attr(n, "name")))
+	kind := strings.ToLower(strings.TrimSpace(htmlx.Attr(n, "name")))
 	if kind == "" {
-		kind = strings.ToLower(strings.TrimSpace(attr(n, "property")))
+		kind = strings.ToLower(strings.TrimSpace(htmlx.Attr(n, "property")))
 	}
-	if n.Data == "script" && attr(n, "id") == "discord:component-embed" {
+	if n.Data == "script" && htmlx.Attr(n, "id") == "discord:component-embed" {
 		field, kind = "", "discord"
 	}
 	if n.Namespace != "" || kind != "fc:miniapp" && kind != "fc:frame" && kind != "discord" {
 		return nil
 	}
-	raw := attr(n, field)
+	raw := htmlx.Attr(n, field)
 	if field == "" {
-		raw = textContent(n)
+		raw = htmlx.RawText(n)
 	}
 	object, err := check.DecodeSharingJSON([]byte(raw))
 	if err != nil {
@@ -99,9 +100,9 @@ func (b *builder) sharingAssets(n *html.Node) error {
 			return err
 		}
 		if field == "" {
-			setText(n, string(encoded))
+			htmlx.SetText(n, string(encoded))
 		} else {
-			setAttr(n, field, string(encoded))
+			htmlx.SetAttr(n, field, string(encoded))
 		}
 	}
 	return nil

@@ -10,6 +10,7 @@ import (
 	"text/template/parse"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 type value struct {
@@ -123,7 +124,7 @@ func (c *checker) issue(rule string, node parse.Node, active bool, key, message,
 			// A missing index is an error here: optional data must be explicit null.
 			d.Hint = "Declare the selected key explicitly (null is allowed), or correct its spelling."
 		}
-		if Within(key, "jsonld") {
+		if jsonsrc.Within(key, "jsonld") {
 			d.Message = "JSON-LD cannot reference its own jsonld subtree."
 			d.Hint = "Select an ordinary config/data field; JSON-LD references are resolved once without recursive dependencies."
 		}
@@ -290,7 +291,7 @@ func (c *checker) rangeNode(t *htmltemplate.Template, n *parse.RangeNode, env *e
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			items = append(items, item{value{raw: key}, value{raw: v[key], path: Child(collection.path, key), origin: collection.origin}})
+			items = append(items, item{value{raw: key}, value{raw: v[key], path: jsonsrc.Child(collection.path, key), origin: collection.origin}})
 		}
 	default:
 		rv := reflect.ValueOf(v)

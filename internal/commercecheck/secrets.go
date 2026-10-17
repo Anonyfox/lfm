@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
-	"github.com/Anonyfox/lfm/internal/templatecheck"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 // Secret recognizes only concrete Stripe secret-key shapes, never publishable
@@ -38,7 +38,7 @@ func SecretOffset(raw []byte) int {
 	return first
 }
 
-func ConfigSecrets(values map[string]any, sources templatecheck.Sources) []diagnostic.Diagnostic {
+func ConfigSecrets(values map[string]any, sources jsonsrc.Sources) []diagnostic.Diagnostic {
 	var issues []diagnostic.Diagnostic
 	var walk func(any, string)
 	walk = func(value any, path string) {
@@ -52,7 +52,7 @@ func ConfigSecrets(values map[string]any, sources templatecheck.Sources) []diagn
 		switch object := value.(type) {
 		case map[string]any:
 			for _, key := range keys(object) {
-				walk(object[key], templatecheck.Child(path, key))
+				walk(object[key], jsonsrc.Child(path, key))
 			}
 		case []any:
 			for i, item := range object {

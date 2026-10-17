@@ -1,4 +1,6 @@
-package compile
+// Package htmlcompact shrinks serialized HTML syntax without touching text,
+// comments or raw content, and proves every result by comparing parsed trees.
+package htmlcompact
 
 import (
 	"bytes"
@@ -10,7 +12,8 @@ import (
 	"golang.org/x/net/html"
 )
 
-type Compaction struct {
+// Result reports what compaction did. Skipped explains why the input was kept.
+type Result struct {
 	BeforeBytes int    `json:"beforeBytes"`
 	AfterBytes  int    `json:"afterBytes"`
 	SavedBytes  int    `json:"savedBytes"`
@@ -23,13 +26,13 @@ type Compaction struct {
 // Reuse the existing lexer and attribute escaper, without those transformations.
 // Comments, raw text and closing/document tags pass verbatim. Attribute
 // names/case and namespaces are never normalized here.
-func compactHTML(raw []byte) ([]byte, Compaction) {
+func Compact(raw []byte) ([]byte, Result) {
 	candidate, err := compactSyntax(raw)
 	return acceptCompaction(raw, candidate, err)
 }
 
-func acceptCompaction(raw, candidate []byte, err error) ([]byte, Compaction) {
-	report := Compaction{BeforeBytes: len(raw), AfterBytes: len(raw)}
+func acceptCompaction(raw, candidate []byte, err error) ([]byte, Result) {
+	report := Result{BeforeBytes: len(raw), AfterBytes: len(raw)}
 	if err == nil && !bytes.Equal(raw, candidate) {
 		// Guard every build, not just the regression corpus. Compare complete
 		// reparsed trees including text, attributes, namespaces and comments.

@@ -9,14 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/templatecheck"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
-	"github.com/Anonyfox/lfm/internal/check"
 )
 
-const entryTemplate = "index.html.tmpl"
+const entryTemplate = project.TemplateFile
 
 var canonicalAttributeTemplate = htmltemplate.Must(htmltemplate.New("canonical-url").Parse(`<link href="{{.}}">`))
 
@@ -39,11 +41,12 @@ type preparedTemplate struct {
 }
 
 // All mapping checks happen before assets are bundled or output is staged.
-func prepareTemplate(root string, c Config, values map[string]any, rawSources map[string][]byte, configProblems []configProblem) (preparedTemplate, check.Report, *urlcheck.Registry, error) {
+func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate, check.Report, *urlcheck.Registry, error) {
 	var prepared preparedTemplate
 	var registry *urlcheck.Registry
-	sources := templatecheck.IndexSources(rawSources)
-	files, issues := templateFiles(root)
+	c, values, rawSources, configProblems := loaded.Config, loaded.Values, loaded.Sources, loaded.Problems
+	sources := jsonsrc.Index(rawSources)
+	files, issues := templateFiles(p)
 	t, parsed := templatecheck.Parse(files, entryTemplate)
 	for _, issue := range parsed.Diagnostics {
 		if _, readable := files[issue.Location.File]; !readable {
@@ -75,7 +78,7 @@ func prepareTemplate(root string, c Config, values map[string]any, rawSources ma
 		}
 		issues = append(issues, diagnostic.Diagnostic{Rule: "config.invalid", Severity: diagnostic.Error, Location: at, Path: problem.Path, Related: related, Message: problem.Err.Error(), Hint: "Fix this config/data setting; custom page fields belong under data and paths mirror the JSON structure."})
 	}
-	helpers := newHelpers(root)
+	helpers := newHelpers(p)
 	options := templatecheck.Options{Entry: entryTemplate, Values: values, Files: files, Sources: sources, BrowserData: c.Build.BrowserData, Rules: c.Build.Validation.Rules, Funcs: helpers.functions(false)}
 	if len(configProblems) == 0 {
 		var commerceIssues []diagnostic.Diagnostic
@@ -139,11 +142,11 @@ func templateReport(issues []diagnostic.Diagnostic) check.Report {
 	return check.Report{Stage: "template", Diagnostics: s.Diagnostics, Errors: s.Errors, Warnings: s.Warnings}
 }
 
-func templateFiles(root string) (map[string][]byte, []diagnostic.Diagnostic) {
+func templateFiles(p project.Project) (map[string][]byte, []diagnostic.Diagnostic) {
 	files := map[string][]byte{}
 	var issues []diagnostic.Diagnostic
 	read := func(name string) {
-		raw, err := readSource(root, name)
+		raw, err := p.Read(name)
 		if err != nil {
 			issues = append(issues, diagnostic.Diagnostic{Rule: "template.syntax", Severity: diagnostic.Error, Location: diagnostic.At(name, nil, 0), Message: err.Error(), Hint: "Make this template source readable inside the workbench."})
 			return
@@ -151,7 +154,7 @@ func templateFiles(root string) (map[string][]byte, []diagnostic.Diagnostic) {
 		files[name] = raw
 	}
 	read(entryTemplate)
-	if dir, err := optionalDirectory(root, "partials"); err != nil {
+	if dir, err := p.OptionalDir(project.PartialsDir); err != nil {
 		issues = append(issues, diagnostic.Diagnostic{Rule: "template.syntax", Severity: diagnostic.Error, Location: diagnostic.At("partials", nil, 0), Message: err.Error(), Hint: "Keep partials in a readable directory inside the workbench."})
 	} else if dir != "" {
 		err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, walkErr error) error {
@@ -167,7 +170,7 @@ func templateFiles(root string) (map[string][]byte, []diagnostic.Diagnostic) {
 			if entry.IsDir() {
 				return nil
 			}
-			rel, err := filepath.Rel(root, path)
+			rel, err := filepath.Rel(p.Root, path)
 			if err != nil {
 				return err
 			}
@@ -181,13 +184,13 @@ func templateFiles(root string) (map[string][]byte, []diagnostic.Diagnostic) {
 	return files, issues
 }
 
-func urlRegistry(c Config, sources templatecheck.Sources) *urlcheck.Registry {
+func urlRegistry(c project.Config, sources jsonsrc.Sources) *urlcheck.Registry {
 	declarations := []urlcheck.Declaration{{Path: "url", Value: c.URL, Location: sources.Locations["url"]}}
 	if c.SocialImage.Src != "" {
 		declarations = append(declarations, urlcheck.Declaration{Path: "socialImage.src", Value: c.SocialImage.Src, Location: sources.Locations["socialImage.src"]})
 	}
 	for key, raw := range c.URLs {
-		path := templatecheck.Child("urls", key)
+		path := jsonsrc.Child("urls", key)
 		declarations = append(declarations, urlcheck.Declaration{Path: path, Value: raw, Location: sources.Locations[path]})
 	}
 	return urlcheck.NewRegistry(c.URL, declarations)

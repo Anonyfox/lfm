@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"golang.org/x/net/html"
 )
 
@@ -17,14 +18,14 @@ import (
 func (b *builder) ensureFavicon(doc *html.Node) error {
 	var head *html.Node
 	var found bool
-	walkHTML(doc, func(n *html.Node) {
+	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Namespace != "" {
 			return
 		}
 		if n.Data == "head" {
 			head = n
 		}
-		if n.Data == "link" && n.Parent == head && relToken(n, "icon") && strings.TrimSpace(attr(n, "href")) != "" {
+		if n.Data == "link" && n.Parent == head && htmlx.Rel(n, "icon") && strings.TrimSpace(htmlx.Attr(n, "href")) != "" {
 			found = true
 		}
 	})
@@ -58,20 +59,11 @@ func (b *builder) ensureFavicon(doc *html.Node) error {
 	if err := b.emit(name, "generated-favicon", data.Bytes()); err != nil {
 		return err
 	}
-	n := element("link", "")
-	setAttr(n, "rel", "icon")
-	setAttr(n, "type", "image/png")
-	setAttr(n, "sizes", "96x96")
-	setAttr(n, "href", fileURL(name))
+	n := htmlx.Element("link", "")
+	htmlx.SetAttr(n, "rel", "icon")
+	htmlx.SetAttr(n, "type", "image/png")
+	htmlx.SetAttr(n, "sizes", "96x96")
+	htmlx.SetAttr(n, "href", fileURL(name))
 	head.AppendChild(n)
 	return nil
-}
-
-func relToken(n *html.Node, token string) bool {
-	for _, value := range strings.Fields(strings.ToLower(attr(n, "rel"))) {
-		if value == token {
-			return true
-		}
-	}
-	return false
 }

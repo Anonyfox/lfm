@@ -92,7 +92,7 @@ func TestAuditHandlerNeverForwardsOrMutates(t *testing.T) {
 func TestMissingCapabilitiesReportAllSetupRequirements(t *testing.T) {
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
 	t.Setenv("LFM_LIGHTHOUSE", "/does-not-exist/lighthouse")
-	r := Audit([]byte("page"), nil, t.TempDir(), t.TempDir())
+	r := Audit([]byte("page"), nil, t.TempDir())
 	if len(r.Diagnostics) != 2 || !strings.Contains(r.Lighthouse.Hint, "LFM_CHROME") || !strings.Contains(r.Lighthouse.Hint, "npm install") {
 		t.Fatal(r)
 	}

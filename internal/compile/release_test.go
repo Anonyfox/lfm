@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
@@ -17,12 +18,12 @@ import (
 
 func TestReleaseMissingBrowserWarnsAndPublishesNormalArtifact(t *testing.T) {
 	root := fixture(t)
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
 	t.Setenv("LFM_CHROME", "/missing/chromium")
-	report, err := RunWithOptions(root, RunOptions{Publish: true, Release: true})
+	report, err := Compile(root, Options{Publish: true, Release: true})
 	if err != nil || !report.Published || report.Validation.Errors != 0 {
 		t.Fatal(err, report.Validation)
 	}
@@ -61,7 +62,7 @@ func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "assets/scripts/app.js"}}`, `{{style "theme.css"}}`))
 	// Avoid a second CSS graph extracted from the JS fixture.
 	write(t, root, "assets/scripts/app.js", `window.result=42`)
-	report, err := RunWithOptions(root, RunOptions{Publish: true, Release: true})
+	report, err := Compile(root, Options{Publish: true, Release: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -74,7 +75,7 @@ func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
 	page := read(t, root, "output/index.html")
 	hasPrintLoader := false
 	for _, n := range parsePage(t, page) {
-		if n.Data == "link" && attr(n, "media") == "print" && attr(n, "onload") != "" {
+		if n.Data == "link" && htmlx.Attr(n, "media") == "print" && htmlx.Attr(n, "onload") != "" {
 			hasPrintLoader = true
 		}
 	}
@@ -142,7 +143,7 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["assets"].(map[string]any)["overrides"] = map[string]any{"theme&sheet.css": "file"}
 	})
-	report, err := RunWithOptions(root, RunOptions{Publish: true, Release: true})
+	report, err := Compile(root, Options{Publish: true, Release: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -157,7 +158,7 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 	}
 	hasSheet := false
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "link" && attr(n, "href") == "./theme&sheet.css" {
+		if n.Data == "link" && htmlx.Attr(n, "href") == "./theme&sheet.css" {
 			hasSheet = true
 		}
 	}

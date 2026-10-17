@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func (c *checker) browserData() {
@@ -14,7 +15,7 @@ func (c *checker) browserData() {
 		v := value{raw: c.options.Values, origin: true}
 		valid := true
 		for _, part := range strings.Split(path, ".") {
-			key := Child(v.path, part)
+			key := jsonsrc.Child(v.path, part)
 			object, ok := v.raw.(map[string]any)
 			if !ok || part == "" {
 				c.browserIssue(i, path, key, "Selection must follow nonempty object keys separated by dots.")
@@ -95,7 +96,7 @@ func (c *checker) unused(t *htmltemplate.Template) {
 	sort.Strings(paths)
 	for _, path := range paths {
 		used := c.exact[path]
-		for prefix := path; !used; prefix = parentPath(prefix) {
+		for prefix := path; !used; prefix = jsonsrc.Parent(prefix) {
 			if c.whole[prefix] {
 				used = true
 				break

@@ -8,8 +8,8 @@ import (
 
 func assetFunctions(custom htmltemplate.FuncMap) htmltemplate.FuncMap {
 	funcs := htmltemplate.FuncMap{
-		"script":        func(string) string { return "" },
-		"style":         func(string) string { return "" },
+		"script":      func(string) string { return "" },
+		"style":       func(string) string { return "" },
 		"__lfmScript": func(string, string) string { return "" },
 		"__lfmStyle":  func(string, string) string { return "" },
 	}

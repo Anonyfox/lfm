@@ -1,4 +1,4 @@
-package compile
+package htmlcompact
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/dataurl"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/chromedp/chromedp"
 )
@@ -25,7 +26,7 @@ func TestBrowserHTMLAndSVGEquivalence(t *testing.T) {
 	}
 	svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="60" height="40" viewBox="0 0 60 40"><defs><linearGradient id="paint"><stop stop-color="#fc0"/><stop offset="1" stop-color="#60c"/></linearGradient></defs><view id="crop" viewBox="0 0 60 40"/><path fill="url(#paint)" d="M0,0h60v40H0z"/><text x="2" y="24" xml:space="preserve"> A  B </text></svg>`)
 	base := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString(svg)
-	percent, encoding := inlineData(svg, "image/svg+xml")
+	percent, encoding := dataurl.Encode(svg, "image/svg+xml")
 	if encoding != "percent" {
 		t.Fatal(encoding)
 	}
@@ -46,7 +47,7 @@ and line break  </div><pre>
 <script type="application/json" id="data"> { "spacing": "  a  b  ", "end": "\u003c/script>" } </script>
 <template id="template"><p data-empty="">  inert  text  </p></template></body></html>`
 	before := serializedHTML(t, strings.ReplaceAll(source, "SVG_URI", base))
-	after, r := compactHTML(serializedHTML(t, strings.ReplaceAll(source, "SVG_URI", percent)))
+	after, r := Compact(serializedHTML(t, strings.ReplaceAll(source, "SVG_URI", percent)))
 	if r.Skipped != "" || r.SavedBytes == 0 {
 		t.Fatal(r)
 	}

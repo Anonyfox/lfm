@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func jsonOptions(t *testing.T, config string) Options {
 	t.Helper()
-	options := Options{Sources: IndexSources(map[string][]byte{"lfm.json": []byte(config)})}
+	options := Options{Sources: jsonsrc.Index(map[string][]byte{"lfm.json": []byte(config)})}
 	decoder := json.NewDecoder(strings.NewReader(config))
 	decoder.UseNumber()
 	if err := decoder.Decode(&options.Values); err != nil {

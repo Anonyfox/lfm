@@ -7,40 +7,32 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/fontcheck"
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"golang.org/x/net/html"
 )
-
-func dormant(n *html.Node) bool {
-	for p := n.Parent; p != nil; p = p.Parent {
-		if p.Data == "template" {
-			return true
-		}
-	}
-	return false
-}
 
 func (b *builder) resourceHints(doc *html.Node) error {
 	var head *html.Node
 	var hints []*html.Node
 	var modules []*html.Node
-	walkHTML(doc, func(n *html.Node) {
-		if n.Namespace != "" || dormant(n) {
+	htmlx.Walk(doc, func(n *html.Node) {
+		if n.Namespace != "" || htmlx.Dormant(n) {
 			return
 		}
 		if n.Data == "head" {
 			head = n
 		}
-		if n.Data == "link" && (relToken(n, "preload") || relToken(n, "modulepreload") || relToken(n, "prefetch")) {
+		if n.Data == "link" && (htmlx.Rel(n, "preload") || htmlx.Rel(n, "modulepreload") || htmlx.Rel(n, "prefetch")) {
 			hints = append(hints, n)
 		}
-		if n.Data == "script" && attr(n, "type") == "module" && attr(n, "src") != "" && !hasAttr(n, "async") {
+		if n.Data == "script" && htmlx.Attr(n, "type") == "module" && htmlx.Attr(n, "src") != "" && !htmlx.HasAttr(n, "async") {
 			modules = append(modules, n)
 		}
 	})
 	seen := map[string]bool{}
 	for _, n := range hints {
-		ref := attr(n, "href")
+		ref := htmlx.Attr(n, "href")
 		if strings.HasPrefix(ref, "data:") {
 			n.Parent.RemoveChild(n)
 			continue
@@ -66,19 +58,19 @@ func (b *builder) resourceHints(doc *html.Node) error {
 			if original.RawQuery != "" {
 				u.RawQuery = original.RawQuery
 			}
-			setAttr(n, "href", u.String())
+			htmlx.SetAttr(n, "href", u.String())
 		}
-		if relToken(n, "preload") && strings.EqualFold(attr(n, "as"), "font") {
+		if htmlx.Rel(n, "preload") && strings.EqualFold(htmlx.Attr(n, "as"), "font") {
 			changed := false
 			// CSS font fetching always uses anonymous CORS, even same-origin.
 			// Preserve authored credential modes; diagnose incompatibility later.
-			if !hasAttr(n, "crossorigin") {
-				setAttr(n, "crossorigin", "")
+			if !htmlx.HasAttr(n, "crossorigin") {
+				htmlx.SetAttr(n, "crossorigin", "")
 				changed = true
 			}
-			if info, ok := b.fonts[attr(n, "href")]; ok && info.Issue == "" && info.Unknown == "" && !hasAttr(n, "type") {
+			if info, ok := b.fonts[htmlx.Attr(n, "href")]; ok && info.Issue == "" && info.Unknown == "" && !htmlx.HasAttr(n, "type") {
 				if mime := fontcheck.MIME(info.Format); mime != "" {
-					setAttr(n, "type", mime)
+					htmlx.SetAttr(n, "type", mime)
 					changed = true
 				}
 			}
@@ -86,10 +78,10 @@ func (b *builder) resourceHints(doc *html.Node) error {
 				b.fontHints++
 			}
 		}
-		if attr(n, "imagesrcset") != "" {
+		if htmlx.Attr(n, "imagesrcset") != "" {
 			var candidates []string
 			valid := true
-			for _, candidate := range urlcheck.Candidates(attr(n, "imagesrcset")) {
+			for _, candidate := range urlcheck.Candidates(htmlx.Attr(n, "imagesrcset")) {
 				ref := candidate.URL
 				if remote, err := b.remote(ref); err != nil {
 					return err
@@ -114,12 +106,12 @@ func (b *builder) resourceHints(doc *html.Node) error {
 				n.Parent.RemoveChild(n)
 				continue
 			}
-			setAttr(n, "imagesrcset", strings.Join(candidates, ", "))
+			htmlx.SetAttr(n, "imagesrcset", strings.Join(candidates, ", "))
 		}
 		for _, module := range modules {
-			if attr(module, "src") == attr(n, "href") && relToken(n, "preload") && attr(n, "as") == "script" {
-				setAttr(n, "rel", "modulepreload")
-				delAttr(n, "as")
+			if htmlx.Attr(module, "src") == htmlx.Attr(n, "href") && htmlx.Rel(n, "preload") && htmlx.Attr(n, "as") == "script" {
+				htmlx.SetAttr(n, "rel", "modulepreload")
+				htmlx.DelAttr(n, "as")
 			}
 		}
 		key := hintKey(n)
@@ -132,19 +124,19 @@ func (b *builder) resourceHints(doc *html.Node) error {
 	// At most one automatic hint: a generated body-end startup module is
 	// otherwise discovered late. CSS already in head needs no duplicate preload.
 	for _, module := range modules {
-		ref := attr(module, "src")
+		ref := htmlx.Attr(module, "src")
 		u, err := url.Parse(ref)
-		if err != nil || u.IsAbs() || !strings.HasPrefix(ref, "./") || strings.EqualFold(attr(module, "fetchpriority"), "low") {
+		if err != nil || u.IsAbs() || !strings.HasPrefix(ref, "./") || strings.EqualFold(htmlx.Attr(module, "fetchpriority"), "low") {
 			continue
 		}
 		if _, generated := b.files[strings.ToLower(filepath.Base(u.Path))]; !generated {
 			continue
 		}
-		n := element("link", "")
-		setAttr(n, "rel", "modulepreload")
-		setAttr(n, "href", ref)
-		if hasAttr(module, "crossorigin") {
-			setAttr(n, "crossorigin", attr(module, "crossorigin"))
+		n := htmlx.Element("link", "")
+		htmlx.SetAttr(n, "rel", "modulepreload")
+		htmlx.SetAttr(n, "href", ref)
+		if htmlx.HasAttr(module, "crossorigin") {
+			htmlx.SetAttr(n, "crossorigin", htmlx.Attr(module, "crossorigin"))
 		}
 		if !seen[hintKey(n)] && head != nil {
 			head.AppendChild(n)
@@ -157,8 +149,8 @@ func (b *builder) resourceHints(doc *html.Node) error {
 func hintKey(n *html.Node) string {
 	var parts []string
 	for _, key := range []string{"rel", "href", "as", "type", "media", "imagesrcset", "imagesizes", "crossorigin"} {
-		value := attr(n, key)
-		if key == "crossorigin" && hasAttr(n, key) && !strings.EqualFold(value, "use-credentials") {
+		value := htmlx.Attr(n, key)
+		if key == "crossorigin" && htmlx.HasAttr(n, key) && !strings.EqualFold(value, "use-credentials") {
 			value = "anonymous"
 		}
 		parts = append(parts, value)

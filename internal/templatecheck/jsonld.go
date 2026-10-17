@@ -8,6 +8,7 @@ import (
 	"text/template/parse"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 // ResolveJSONLD substitutes only authored string leaves, exactly once. Selected
@@ -59,7 +60,7 @@ func ResolveJSONLD(options Options) (any, []string, diagnostic.Summary) {
 			}
 			sort.Strings(keys)
 			for _, key := range keys {
-				child := Child(path, key)
+				child := jsonsrc.Child(path, key)
 				if strings.Contains(key, "{{") {
 					problem(child, "JSON-LD object keys cannot contain placeholders.", "Keep keys literal; placeholders are allowed only in string values.")
 				}

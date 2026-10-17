@@ -8,6 +8,8 @@ import (
 	"strings"
 	"text/template"
 	"text/template/parse"
+
+	"github.com/Anonyfox/lfm/internal/jsonsrc"
 )
 
 func (c *checker) pipeline(pipe *parse.PipeNode, env *environment, active bool) value {
@@ -198,7 +200,7 @@ func (c *checker) fields(node parse.Node, v value, fields []string, active bool)
 		c.consume(v, false)
 		key := field
 		if v.origin {
-			key = Child(v.path, field)
+			key = jsonsrc.Child(v.path, field)
 		}
 		if v.unknown {
 			v.path = key
@@ -246,7 +248,7 @@ func (c *checker) index(node parse.Node, args []value, active bool) value {
 				return value{}
 			}
 			raw, exists := container[key]
-			path := Child(v.path, key)
+			path := jsonsrc.Child(v.path, key)
 			if !exists && v.origin {
 				c.issue("template.empty", node, active, path, "index selects a missing map key: "+path+".", "Go's index returns null for absent map keys; check spelling or explicitly guard this optional lookup.")
 			}
@@ -285,7 +287,7 @@ func missingHint(field, parent string, object map[string]any) string {
 	}
 	hint := "Add this key or fix the template path/scope."
 	if best != "" && distance <= max(1, min(3, (len(field)+2)/3)) {
-		hint += " Did you mean " + Child(parent, best) + "?"
+		hint += " Did you mean " + jsonsrc.Child(parent, best) + "?"
 	}
 	if len(keys) > 0 {
 		if len(keys) > 8 {

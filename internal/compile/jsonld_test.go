@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/htmlx"
 )
 
 func TestJSONLDCompilation(t *testing.T) {
@@ -13,7 +14,7 @@ func TestJSONLDCompilation(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"] = map[string]any{"@context": "https://schema.org", "@type": "WebPage", "url": "{{.url}}", "name": "{{.title}}", "description": "{{.description}}", "inLanguage": "{{.language}}", "identifier": "{{.data.quiz.prompt}}"}
 	})
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v: %+v", err, report.Validation)
 	}
@@ -21,14 +22,14 @@ func TestJSONLDCompilation(t *testing.T) {
 	count := 0
 	var jsonldPosition, executablePosition int
 	for i, node := range parsePage(t, page) {
-		if attr(node, "id") == "intruder" {
+		if htmlx.Attr(node, "id") == "intruder" {
 			t.Fatal("JSON-LD broke out of script")
 		}
-		if node.Data == "script" && attr(node, "type") == "application/ld+json" {
+		if node.Data == "script" && htmlx.Attr(node, "type") == "application/ld+json" {
 			count++
 			jsonldPosition = i
 			var data map[string]any
-			if err := json.Unmarshal([]byte(textContent(node)), &data); err != nil {
+			if err := json.Unmarshal([]byte(htmlx.RawText(node)), &data); err != nil {
 				t.Fatal(err)
 			}
 			if data["name"] != "A < B & café 🐺" || data["url"] != "https://example.com/tools/demo/" || data["identifier"] != "</script><script id=intruder>bad()</script>" {
@@ -38,7 +39,7 @@ func TestJSONLDCompilation(t *testing.T) {
 				t.Fatal("wrong JSON-LD placement")
 			}
 		}
-		if node.Data == "script" && attr(node, "type") == "module" {
+		if node.Data == "script" && htmlx.Attr(node, "type") == "module" {
 			executablePosition = i
 		}
 	}
@@ -68,7 +69,7 @@ func TestJSONLDFailuresPreserveOutput(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			root := fixture(t)
-			if _, err := Run(root, true); err != nil {
+			if _, err := Compile(root, Options{Publish: true}); err != nil {
 				t.Fatal(err)
 			}
 			before := read(t, root, "output/index.html")
@@ -76,7 +77,7 @@ func TestJSONLDFailuresPreserveOutput(t *testing.T) {
 			if tc.template != "" {
 				write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", tc.template+"</body>", 1))
 			}
-			report, err := Run(root, true)
+			report, err := Compile(root, Options{Publish: true})
 			if err == nil || report.Validation == nil || report.Published {
 				t.Fatalf("%+v %v", report, err)
 			}
@@ -104,7 +105,7 @@ func TestJSONLDUnknownContextAndDisabledBlock(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"] = map[string]any{"@context": "https://custom.example/context", "@type": "Custom", "name": "Name"}
 	})
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -118,7 +119,7 @@ func TestJSONLDUnknownContextAndDisabledBlock(t *testing.T) {
 		t.Fatal("missing offline context coverage advisory")
 	}
 	changeConfig(t, root, func(config map[string]any) { config["jsonld"] = nil })
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(read(t, root, "output/index.html"), "application/ld+json") {
@@ -135,7 +136,7 @@ func TestJSONLDEntityIdentifiersFollowURLPolicy(t *testing.T) {
 			map[string]any{"@id": "{{.urls.legacyEntity}}", "@type": "Thing", "name": "Legacy"},
 		}}
 	})
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -147,7 +148,7 @@ func TestJSONLDEntityIdentifiersFollowURLPolicy(t *testing.T) {
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"].(map[string]any)["@graph"].([]any)[0].(map[string]any)["@id"] = "#undeclared"
 	})
-	report, err = Run(root, true)
+	report, err = Compile(root, Options{Publish: true})
 	if err == nil {
 		t.Fatal("undeclared fragment ID bypassed named URL policy")
 	}

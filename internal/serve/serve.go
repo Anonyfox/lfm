@@ -30,7 +30,7 @@ type Options struct {
 	ExplicitPort bool
 	Open         bool
 	Log          io.Writer
-	OnBuild      func(compile.Report, error)
+	OnBuild      func(compile.Result, error)
 }
 
 type state struct {
@@ -78,7 +78,7 @@ func Serve(ctx context.Context, directory string, options Options) error {
 	previous := monitor.snapshot()
 	cspReported := false
 	rebuild := func() {
-		report, err := compile.Run(root, true)
+		report, err := compile.Compile(root, compile.Options{Publish: true})
 		monitor.include(report.Inputs)
 		if options.OnBuild != nil {
 			options.OnBuild(report, err)
@@ -138,7 +138,7 @@ func Serve(ctx context.Context, directory string, options Options) error {
 
 func (p *preview) snapshot() state { p.mu.Lock(); defer p.mu.Unlock(); return p.current }
 
-func (p *preview) publish(report compile.Report, err error) {
+func (p *preview) publish(report compile.Result, err error) {
 	next := p.snapshot()
 	next.Version++
 	next.Problem = ""

@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/Anonyfox/lfm/internal/fontcheck"
-	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"mime"
 	"net/http"
 	"net/url"
@@ -14,6 +12,10 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/dataurl"
+	"github.com/Anonyfox/lfm/internal/fontcheck"
+	"github.com/Anonyfox/lfm/internal/urlcheck"
 
 	"github.com/evanw/esbuild/pkg/api"
 )
@@ -43,7 +45,7 @@ func (b *builder) assetPath(ref, directory string) (string, *url.URL, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	path, err := sourcePath(b.root, filepath.Join(directory, filepath.FromSlash(u.Path)))
+	path, err := b.project.Path(filepath.Join(directory, filepath.FromSlash(u.Path)))
 	if err != nil {
 		return "", nil, err
 	}
@@ -103,7 +105,7 @@ func (b *builder) resource(ref, directory string, forceFile bool) (string, error
 		if exists && bytes.Equal(cached.Bytes, contents) {
 			result = cached.URI
 		} else {
-			result, encoding = inlineData(contents, kind)
+			result, encoding = dataurl.Encode(contents, kind)
 		}
 		b.recordInline(result, path)
 		b.mu.Lock()
@@ -202,7 +204,7 @@ func (b *builder) compile(path, source string, css, module bool) (compiled, erro
 
 func (b *builder) bundleOptions(ext string) api.BuildOptions {
 	return api.BuildOptions{
-		AbsWorkingDir: b.root, Outfile: filepath.Join(b.stage, "bundle"+ext), Write: false, Bundle: true,
+		AbsWorkingDir: b.root, Outfile: filepath.Join(b.outDir, "bundle"+ext), Write: false, Bundle: true,
 		Platform: api.PlatformBrowser, Target: api.ES2020, Charset: api.CharsetUTF8, Format: api.FormatESModule,
 		MinifyWhitespace: true, MinifySyntax: true, MinifyIdentifiers: true, TreeShaking: api.TreeShakingTrue,
 		LegalComments: api.LegalCommentsInline, LogLevel: api.LogLevelSilent, Metafile: true, TsconfigRaw: "{}",
@@ -235,11 +237,11 @@ func (b *builder) bundleResult(result api.BuildResult, ext string, module bool) 
 	}
 	output := compiled{module: module}
 	for _, file := range result.OutputFiles {
-		if file.Path == filepath.Join(b.stage, "bundle"+ext) {
+		if file.Path == filepath.Join(b.outDir, "bundle"+ext) {
 			output.code = file.Contents
 			continue
 		}
-		if ext == ".js" && file.Path == filepath.Join(b.stage, "bundle.css") {
+		if ext == ".js" && file.Path == filepath.Join(b.outDir, "bundle.css") {
 			output.css = file.Contents
 			rel, _ := filepath.Rel(b.root, file.Path)
 			for input := range metadata.Outputs[filepath.ToSlash(rel)].Inputs {
@@ -265,7 +267,7 @@ func (b *builder) bundleResult(result api.BuildResult, ext string, module bool) 
 			if !filepath.IsAbs(origin) {
 				origin = filepath.Join(b.root, filepath.FromSlash(origin))
 			}
-			real, err := sourcePath(b.root, origin)
+			real, err := b.project.Path(origin)
 			if err != nil {
 				return compiled{}, err
 			}
@@ -349,7 +351,7 @@ func (b *builder) assetPlugin() api.Plugin {
 		})
 		build.OnLoad(api.OnLoadOptions{Filter: ".*", Namespace: "resource-file"}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
 			actual, _ := args.PluginData.(string)
-			path, err := sourcePath(b.root, actual)
+			path, err := b.project.Path(actual)
 			if err != nil {
 				return api.OnLoadResult{}, err
 			}
@@ -359,7 +361,7 @@ func (b *builder) assetPlugin() api.Plugin {
 			return api.OnLoadResult{Contents: &contents, Loader: api.LoaderFile}, err
 		})
 		build.OnLoad(api.OnLoadOptions{Filter: ".*", Namespace: "file"}, func(args api.OnLoadArgs) (api.OnLoadResult, error) {
-			path, err := sourcePath(b.root, args.Path)
+			path, err := b.project.Path(args.Path)
 			if err != nil {
 				return api.OnLoadResult{}, err
 			}
@@ -413,7 +415,7 @@ func sourceLoader(path string) (api.Loader, bool) {
 // Keep filesystem identity separate from URL spelling and optional URL suffixes.
 // esbuild's file loader still decides whether the asset survives tree shaking.
 func (b *builder) nativeAsset(path, suffix string) (api.OnResolveResult, error) {
-	real, err := sourcePath(b.root, path)
+	real, err := b.project.Path(path)
 	if err != nil {
 		return api.OnResolveResult{}, err
 	}

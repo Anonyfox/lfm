@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/htmlx"
 )
 
 func TestCanonicalFinalGateAndConfigBase(t *testing.T) {
 	root := fixture(t)
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	before := read(t, root, "output/index.html")
@@ -27,7 +28,7 @@ func TestCanonicalFinalGateAndConfigBase(t *testing.T) {
 		strings.Replace(fixtureHTML, "</head>", `<link rel=canonical href="{{.url}}"></head>`, 1),
 	} {
 		write(t, root, "index.html.tmpl", page)
-		r, err := Run(root, true)
+		r, err := Compile(root, Options{Publish: true})
 		if err == nil || r.Published || r.Validation == nil || read(t, root, "output/index.html") != before {
 			t.Fatal("canonical failure replaced output", err)
 		}
@@ -44,7 +45,7 @@ func TestCanonicalFinalGateAndConfigBase(t *testing.T) {
 	write(t, root, "index.html.tmpl", fixtureHTML)
 	for _, base := range []string{"https://example.com/tools/demo/?", "https://example.com/tools/demo/#", "https://example.com/tools/demo/?state=1", "http://example.com/tools/demo/"} {
 		changeConfig(t, root, func(c map[string]any) { c["url"] = base })
-		if r, err := Run(root, true); err == nil || r.Published || r.Validation.Stage != "template" || read(t, root, "output/index.html") != before {
+		if r, err := Compile(root, Options{Publish: true}); err == nil || r.Published || r.Validation.Stage != "template" || read(t, root, "output/index.html") != before {
 			t.Fatal("invalid configured base reached publication", base, err)
 		}
 	}
@@ -88,7 +89,7 @@ func sharingWorkbench(t *testing.T) string {
 
 func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
 	root := sharingWorkbench(t)
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
 	}
@@ -99,10 +100,10 @@ func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	for _, node := range parsePage(t, before) {
-		if node.Data == "meta" && (attr(node, "property") == "snapchat:sticker" || attr(node, "name") == "twitter:image") && !strings.HasPrefix(attr(node, "content"), "https://example.com/tools/demo/") {
+		if node.Data == "meta" && (htmlx.Attr(node, "property") == "snapchat:sticker" || htmlx.Attr(node, "name") == "twitter:image") && !strings.HasPrefix(htmlx.Attr(node, "content"), "https://example.com/tools/demo/") {
 			t.Fatal("platform media not emitted with public URLs", node.Attr)
 		}
-		if node.Data == "script" && attr(node, "id") == "discord:component-embed" && (node.Parent == nil || node.Parent.Data != "head") {
+		if node.Data == "script" && htmlx.Attr(node, "id") == "discord:component-embed" && (node.Parent == nil || node.Parent.Data != "head") {
 			t.Fatal("component JSON was moved with executable scripts")
 		}
 	}
@@ -112,7 +113,7 @@ func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
 	page = strings.Replace(page, `"style":5`, `"style":1`, 1)
 	page = strings.Replace(page, `"version":"1"`, `"version":1`, 1)
 	write(t, root, "index.html.tmpl", page)
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal("sharing rejection replaced output", err)
 	}
@@ -131,7 +132,7 @@ func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"sharing.x-player": "off", "sharing.discord": "warn", "sharing.farcaster": "off", "sharing.snapchat": "off"}}
 	})
-	if r, err = Run(root, true); err != nil || !r.Published {
+	if r, err = Compile(root, Options{Publish: true}); err != nil || !r.Published {
 		t.Fatal("existing overrides did not control sharing findings", err, r.Validation)
 	}
 }
@@ -140,7 +141,7 @@ func TestVendorDiscordTemplateEscapingHasActionableFeedback(t *testing.T) {
 	root := sharingWorkbench(t)
 	page := strings.Replace(read(t, root, "index.html.tmpl"), `id="discord:component-embed" type="application/json"`, `id="discord:component-embed" type="application/vnd.discord.component-embed+json"`, 1)
 	write(t, root, "index.html.tmpl", page)
-	r, err := Run(root, false)
+	r, err := Compile(root, Options{})
 	if err == nil {
 		t.Fatal("raw JSON URL entity escaping passed")
 	}
@@ -160,7 +161,7 @@ func TestLinkedDiscordFileIsInspectedWithoutFetch(t *testing.T) {
 	write(t, root, "assets/preview.json", `{"component":{"type":17,"components":[{"type":1,"components":[{"type":2,"style":5,"label":"Try","url":"https://example.com/tools/demo/?seed=42"}]}]}}`)
 	page := strings.Replace(fixtureHTML, "</head>", `<link rel="discord:component-embed" type="application/json" href="assets/preview.json"></head>`, 1)
 	write(t, root, "index.html.tmpl", page)
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
 	}
@@ -171,7 +172,7 @@ func TestLinkedDiscordFileIsInspectedWithoutFetch(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	write(t, root, "assets/preview.json", `{"component":{},"component":{}}`)
-	r, err = Run(root, true)
+	r, err = Compile(root, Options{Publish: true})
 	if err == nil || r.Published || read(t, root, "output/index.html") != before {
 		t.Fatal("linked JSON was not gated", err)
 	}
@@ -192,7 +193,7 @@ func TestStructuredSharingMediaFollowsAutomaticSidecarNames(t *testing.T) {
 	page := read(t, root, "index.html.tmpl")
 	page = strings.Replace(page, `{"type":10,"content":"[Compare`, `{"type":12,"items":[{"media":{"url":"{{.urls.card}}"}}]},{"type":10,"content":"[Compare`, 1)
 	write(t, root, "index.html.tmpl", page)
-	r, err := Run(root, true)
+	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
 	}
@@ -203,9 +204,9 @@ func TestStructuredSharingMediaFollowsAutomaticSidecarNames(t *testing.T) {
 	}
 	card := ""
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "meta" && attr(n, "name") == "fc:miniapp" {
+		if n.Data == "meta" && htmlx.Attr(n, "name") == "fc:miniapp" {
 			var object map[string]any
-			if err := json.Unmarshal([]byte(attr(n, "content")), &object); err != nil {
+			if err := json.Unmarshal([]byte(htmlx.Attr(n, "content")), &object); err != nil {
 				t.Fatal(err)
 			}
 			card, _ = object["imageUrl"].(string)

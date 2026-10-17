@@ -1,9 +1,13 @@
-package compile
+// Package dataurl encodes resources as data URLs, choosing the representation
+// that compresses best for SVG and base64 for everything else.
+package dataurl
 
 import (
 	"compress/flate"
 	"encoding/base64"
+	"errors"
 	"io"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -21,12 +25,14 @@ type byteCounter int
 
 func (n *byteCounter) Write(p []byte) (int, error) { *n += byteCounter(len(p)); return len(p), nil }
 
-func inlineData(contents []byte, kind string) (uri, encoding string) {
+// Encode returns a data URL for contents of media type kind and the encoding
+// used: "percent" (lossless SVG text) or "base64".
+func Encode(contents []byte, kind string) (uri, encoding string) {
 	base64URI := "data:" + kind + ";base64," + base64.StdEncoding.EncodeToString(contents)
 	if kind != "image/svg+xml" {
 		return base64URI, "base64"
 	}
-	textURI := svgDataURI(contents)
+	textURI := SVG(contents)
 	w := encodingWriters.Get().(*flate.Writer)
 	defer encodingWriters.Put(w)
 	score := func(value string) int {
@@ -48,7 +54,7 @@ func inlineData(contents []byte, kind string) (uri, encoding string) {
 // This alphabet survives HTML attributes, srcset, either JS/CSS string delimiter
 // and unquoted CSS url(). In particular %, #, comma, &, quotes and backslashes
 // must never become ambiguous payload, markup, escapes or URL fragments.
-func svgDataURI(contents []byte) string {
+func SVG(contents []byte) string {
 	const hex = "0123456789ABCDEF"
 	var out strings.Builder
 	out.Grow(len(contents) + len(contents)/2 + 19)
@@ -63,4 +69,24 @@ func svgDataURI(contents []byte) string {
 		}
 	}
 	return out.String()
+}
+
+// Decode returns the payload and media type of a data URL. A fragment, which
+// references a part of the resource, is ignored.
+func Decode(uri string) (contents []byte, kind string, err error) {
+	rest, ok := strings.CutPrefix(uri, "data:")
+	if !ok {
+		return nil, "", errors.New("not a data URL")
+	}
+	rest, _, _ = strings.Cut(rest, "#")
+	header, payload, ok := strings.Cut(rest, ",")
+	if !ok {
+		return nil, "", errors.New("data URL has no payload separator")
+	}
+	if kind, ok = strings.CutSuffix(header, ";base64"); ok {
+		contents, err = base64.StdEncoding.DecodeString(payload)
+		return contents, kind, err
+	}
+	text, err := url.PathUnescape(payload)
+	return []byte(text), header, err
 }

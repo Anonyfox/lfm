@@ -8,18 +8,20 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/evanw/esbuild/pkg/api"
 )
 
 type helperEntry struct{ kind, path, origin string }
 type helperRegistry struct {
+	project      project.Project
 	root, prefix string
 	resolved     map[string]helperEntry
 	entries      map[string]helperEntry
 }
 
-func newHelpers(root string) *helperRegistry {
-	return &helperRegistry{root: root, prefix: fmt.Sprintf("%x", randomToken()), resolved: map[string]helperEntry{}, entries: map[string]helperEntry{}}
+func newHelpers(p project.Project) *helperRegistry {
+	return &helperRegistry{project: p, root: p.Root, prefix: fmt.Sprintf("%x", randomToken()), resolved: map[string]helperEntry{}, entries: map[string]helperEntry{}}
 }
 
 func randomToken() [16]byte { var token [16]byte; _, _ = rand.Read(token[:]); return token }
@@ -78,7 +80,7 @@ func (h *helperRegistry) resolve(kind, origin, ref string) (helperEntry, error) 
 	}
 	for _, candidate := range candidates {
 		if _, err := os.Lstat(candidate); err == nil {
-			actual, err := sourcePath(h.root, candidate)
+			actual, err := h.project.Path(candidate)
 			if err != nil {
 				return helperEntry{}, err
 			}
@@ -107,7 +109,7 @@ func (h *helperRegistry) resolve(kind, origin, ref string) (helperEntry, error) 
 	if resolved.External || resolved.Namespace != "file" || resolved.Path == "" || resolved.Suffix != "" {
 		return helperEntry{}, fmt.Errorf("%s helper must resolve to one local source file without URL query/fragment suffixes", kind)
 	}
-	path, err := sourcePath(h.root, resolved.Path)
+	path, err := h.project.Path(resolved.Path)
 	if err != nil {
 		return helperEntry{}, err
 	}

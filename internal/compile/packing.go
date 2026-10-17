@@ -10,9 +10,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Anonyfox/lfm/internal/fontcheck"
-	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/fontcheck"
+	"github.com/Anonyfox/lfm/internal/htmlx"
+	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -38,7 +39,7 @@ type codeCandidate struct {
 func (b *builder) packCode() error {
 	for _, candidate := range b.autoCode {
 		n := candidate.node
-		code := []byte(textContent(n))
+		code := []byte(htmlx.RawText(n))
 		limit := 20 * 1024
 		if candidate.kind == "script" {
 			limit = 50 * 1024
@@ -55,10 +56,10 @@ func (b *builder) packCode() error {
 		ref := fileURL(candidate.name)
 		if candidate.kind == "style" {
 			n.Data, n.DataAtom = "link", atom.Link
-			setAttr(n, "rel", "stylesheet")
-			setAttr(n, "href", ref)
+			htmlx.SetAttr(n, "rel", "stylesheet")
+			htmlx.SetAttr(n, "href", ref)
 		} else {
-			setAttr(n, "src", ref)
+			htmlx.SetAttr(n, "src", ref)
 		}
 		b.bundleReferences(candidate.inputs, ref)
 	}
@@ -100,14 +101,14 @@ func measureCost(page []byte, doc *html.Node, files map[string]emitted) *Cost {
 	_ = w.Close()
 	c.GzipBytes = zipped.Len()
 	// This traversal counts code exactly once, without another HTML serialization.
-	walkHTML(doc, func(n *html.Node) {
+	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Data == "style" {
-			c.CSSBytes += len(textContent(n))
+			c.CSSBytes += len(htmlx.RawText(n))
 		}
-		if n.Data == "script" && attr(n, "src") == "" {
-			kind := strings.ToLower(strings.TrimSpace(attr(n, "type")))
+		if n.Data == "script" && htmlx.Attr(n, "src") == "" {
+			kind := strings.ToLower(strings.TrimSpace(htmlx.Attr(n, "type")))
 			if kind == "" || kind == "module" || kind == "text/javascript" || kind == "application/javascript" {
-				c.JSBytes += len(textContent(n))
+				c.JSBytes += len(htmlx.RawText(n))
 			}
 		}
 	})
@@ -126,24 +127,12 @@ func measureCost(page []byte, doc *html.Node, files map[string]emitted) *Cost {
 	return c
 }
 
-func walkHTML(n *html.Node, visit func(*html.Node)) {
-	if n == nil {
-		return
-	}
-	if n.Type == html.ElementNode {
-		visit(n)
-	}
-	for child := n.FirstChild; child != nil; child = child.NextSibling {
-		walkHTML(child, visit)
-	}
-}
-
 // Collect author intent before URLs are compiled. Dormant template media and
 // explicitly lazy media are deferrable; DOM order alone cannot establish LCP.
 func (b *builder) collectAssetRoles(doc *html.Node) {
 	b.roles = map[string]assetRole{}
-	walkHTML(doc, func(n *html.Node) {
-		role := assetRole{Deferred: strings.EqualFold(attr(n, "loading"), "lazy"), Download: hasAttr(n, "download"), Media: n.Data == "video" || n.Data == "audio"}
+	htmlx.Walk(doc, func(n *html.Node) {
+		role := assetRole{Deferred: strings.EqualFold(htmlx.Attr(n, "loading"), "lazy"), Download: htmlx.HasAttr(n, "download"), Media: n.Data == "video" || n.Data == "audio"}
 		for p := n.Parent; p != nil; p = p.Parent {
 			if p.Data == "template" {
 				role.Deferred = true
@@ -155,7 +144,7 @@ func (b *builder) collectAssetRoles(doc *html.Node) {
 				role.Media = true
 			}
 		}
-		if attr(n, "srcset") != "" {
+		if htmlx.Attr(n, "srcset") != "" {
 			role.Responsive = true
 		}
 		add := func(ref string, role assetRole) {
@@ -170,11 +159,11 @@ func (b *builder) collectAssetRoles(doc *html.Node) {
 			b.roles[path] = assetRole{old.Responsive || role.Responsive, old.Deferred || role.Deferred, old.Media || role.Media, old.Download || role.Download}
 		}
 		for _, key := range []string{"src", "poster", "data", "href"} {
-			if ref := attr(n, key); ref != "" && (key != "href" || role.Download) {
+			if ref := htmlx.Attr(n, key); ref != "" && (key != "href" || role.Download) {
 				add(ref, role)
 			}
 		}
-		for _, candidate := range urlcheck.Candidates(attr(n, "srcset")) {
+		for _, candidate := range urlcheck.Candidates(htmlx.Attr(n, "srcset")) {
 			add(candidate.URL, role)
 		}
 	})
@@ -271,14 +260,14 @@ func (b *builder) planAssets(doc *html.Node) ([]AssetDecision, error) {
 			counts[sha256.Sum256(raw[embed.Offset:embed.Offset+embed.Bytes])] += embed.Count
 		}
 	}
-	walkHTML(doc, func(n *html.Node) {
+	htmlx.Walk(doc, func(n *html.Node) {
 		for _, a := range n.Attr {
 			if resourceAttribute(n, a.Key) {
 				count([]byte(a.Val))
 			}
 		}
 		if n.Data == "style" || n.Data == "script" && executableScript(n) {
-			count([]byte(textContent(n)))
+			count([]byte(htmlx.RawText(n)))
 		}
 	})
 	htmlCounts := map[[32]byte]int{}
@@ -410,7 +399,7 @@ func (b *builder) planAssets(doc *html.Node) ([]AssetDecision, error) {
 		return decisions, nil
 	}
 	replace := strings.NewReplacer(pairs...)
-	walkHTML(doc, func(n *html.Node) {
+	htmlx.Walk(doc, func(n *html.Node) {
 		for i := range n.Attr {
 			if resourceAttribute(n, n.Attr[i].Key) {
 				n.Attr[i].Val = replace.Replace(n.Attr[i].Val)
@@ -419,7 +408,7 @@ func (b *builder) planAssets(doc *html.Node) ([]AssetDecision, error) {
 		// Only compiled executable code/CSS contains generated resource tokens;
 		// inert JSON and visible/copy text are deliberately untouched.
 		if n.Data == "style" || n.Data == "script" && executableScript(n) {
-			setText(n, replace.Replace(textContent(n)))
+			htmlx.SetText(n, replace.Replace(htmlx.RawText(n)))
 		}
 	})
 	for key, f := range b.files {
@@ -428,9 +417,6 @@ func (b *builder) planAssets(doc *html.Node) ([]AssetDecision, error) {
 		}
 		changed := []byte(replace.Replace(string(f.contents)))
 		if !bytes.Equal(changed, f.contents) {
-			if err := os.WriteFile(filepath.Join(b.stage, f.name), changed, 0644); err != nil {
-				return nil, err
-			}
 			f.contents = changed
 			b.files[key] = f
 		}
@@ -495,7 +481,7 @@ func generatedCode(f emitted) bool {
 	return strings.Contains(f.origin, "style-bundle:") || strings.Contains(f.origin, "script-bundle:")
 }
 func executableScript(n *html.Node) bool {
-	switch strings.ToLower(strings.TrimSpace(attr(n, "type"))) {
+	switch strings.ToLower(strings.TrimSpace(htmlx.Attr(n, "type"))) {
 	case "", "module", "text/javascript", "application/javascript":
 		return true
 	}

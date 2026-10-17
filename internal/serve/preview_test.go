@@ -100,7 +100,7 @@ func (w logURL) Write(raw []byte) (int, error) {
 }
 
 type outcome struct {
-	report compile.Report
+	report compile.Result
 	err    error
 }
 
@@ -111,7 +111,7 @@ func start(t *testing.T, root string) (string, <-chan outcome) {
 	addresses := make(chan string, 1)
 	built := make(chan outcome, 32)
 	go func() {
-		done <- Serve(ctx, root, Options{Port: 0, ExplicitPort: true, Log: logURL{addresses}, OnBuild: func(r compile.Report, e error) { built <- outcome{r, e} }})
+		done <- Serve(ctx, root, Options{Port: 0, ExplicitPort: true, Log: logURL{addresses}, OnBuild: func(r compile.Result, e error) { built <- outcome{r, e} }})
 	}()
 	t.Cleanup(func() {
 		cancel()

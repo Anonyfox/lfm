@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/andybalholm/cascadia"
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/css"
@@ -28,15 +29,15 @@ type imageSizing struct {
 // unconditionally covered by simple valid CSS to add hints under CSS sizing.
 func (b *builder) imageSizing(doc *html.Node) imageSizing {
 	var policy imageSizing
-	walkHTML(doc, func(n *html.Node) {
-		if dormantImage(n) {
+	htmlx.Walk(doc, func(n *html.Node) {
+		if htmlx.Dormant(n) {
 			return
 		}
 		if n.Data == "style" {
-			policy.readCSS([]byte(textContent(n)), false, hasAttr(n, "media") || hasAttr(n, "title") || hasAttr(n, "disabled"))
+			policy.readCSS([]byte(htmlx.RawText(n)), false, htmlx.HasAttr(n, "media") || htmlx.HasAttr(n, "title") || htmlx.HasAttr(n, "disabled"))
 		}
-		if n.Data == "link" && stylesheetRel(strings.ToLower(attr(n, "rel"))) {
-			u, err := url.Parse(attr(n, "href"))
+		if n.Data == "link" && stylesheetRel(strings.ToLower(htmlx.Attr(n, "rel"))) {
+			u, err := url.Parse(htmlx.Attr(n, "href"))
 			if err != nil {
 				policy.unknown = true
 				return
@@ -47,7 +48,7 @@ func (b *builder) imageSizing(doc *html.Node) imageSizing {
 				policy.unknown = true
 				return
 			}
-			policy.readCSS(f.contents, false, hasAttr(n, "media") || hasAttr(n, "title") || hasAttr(n, "disabled") || relToken(n, "alternate"))
+			policy.readCSS(f.contents, false, htmlx.HasAttr(n, "media") || htmlx.HasAttr(n, "title") || htmlx.HasAttr(n, "disabled") || htmlx.Rel(n, "alternate"))
 		}
 	})
 	return policy
@@ -175,7 +176,7 @@ func (s imageSizing) reason(n *html.Node) string {
 	for _, rule := range s.rules {
 		apply(rule)
 	}
-	if style := attr(n, "style"); style != "" {
+	if style := htmlx.Attr(n, "style"); style != "" {
 		var inline imageSizing
 		inline.readCSS([]byte(style), true, false)
 		if inline.unknown {
@@ -198,7 +199,7 @@ func (s imageSizing) reason(n *html.Node) string {
 		}
 		var rules []sizingDeclaration
 		rules = append(rules, s.rules...)
-		if style := attr(parent, "style"); style != "" {
+		if style := htmlx.Attr(parent, "style"); style != "" {
 			var inline imageSizing
 			inline.readCSS([]byte(style), true, false)
 			if inline.unknown {
@@ -227,7 +228,7 @@ func (s imageSizing) reason(n *html.Node) string {
 // Authored dimension attributes are not a measured CSS display box when any
 // sizing rule applies, even when adding intrinsic hints is safe under that rule.
 func (s imageSizing) attributeBox(n *html.Node) bool {
-	if s.unknown || attr(n, "style") != "" {
+	if s.unknown || htmlx.Attr(n, "style") != "" {
 		return false
 	}
 	for _, rule := range s.rules {
@@ -239,13 +240,4 @@ func (s imageSizing) attributeBox(n *html.Node) bool {
 		}
 	}
 	return true
-}
-
-func dormantImage(n *html.Node) bool {
-	for parent := n.Parent; parent != nil; parent = parent.Parent {
-		if parent.Data == "template" && parent.Namespace == "" {
-			return true
-		}
-	}
-	return false
 }

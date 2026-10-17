@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"golang.org/x/net/html"
 )
 
@@ -27,7 +28,7 @@ func TestAutomaticPackingUsesRolesAndWholeDocument(t *testing.T) {
 	page := read(t, root, "index.html.tmpl")
 	page = strings.Replace(page, "</body>", `<img src="tiny.svg" alt="tiny" width="10" height="10"><img src="large.png" alt="large" width="10" height="10"><img src="lazy.webp" loading="lazy" alt="lazy" width="10" height="10"><img src="small.webp" srcset="small.webp 1x, tiny.svg 2x" alt="responsive" width="10" height="10"></body>`, 1)
 	write(t, root, "index.html.tmpl", page)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -51,7 +52,7 @@ func TestAutomaticPackingUsesRolesAndWholeDocument(t *testing.T) {
 		t.Fatal(report.Cost)
 	}
 	before := output
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -68,7 +69,7 @@ func TestPackingTargetAndPins(t *testing.T) {
 		imgs.WriteString(`<img width="10" height="10" alt="image" src="` + name + `">`)
 	}
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", imgs.String()+"</body>", 1))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -84,7 +85,7 @@ func TestPackingTargetAndPins(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["assets"] = map[string]any{"overrides": map[string]any{"A.png": "inline"}}
 	})
-	report, err = Run(root, true)
+	report, err = Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,19 +107,19 @@ func TestPackingRewritesGeneratedCodeButPreservesInertAndVisibleData(t *testing.
 	page := helperHTML(`{{script "app.js"}}`, `{{style "theme.css"}}`)
 	page = strings.Replace(page, "</body>", `<p title="`+uri+`">`+uri+`</p><script type="application/json">{"original":"{{.urls.original}}"}</script></body>`, 1)
 	write(t, root, "index.html.tmpl", page)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
 	output := read(t, root, "output/index.html")
 	visible, inert := false, false
 	for _, n := range parsePage(t, output) {
-		if n.Data == "p" && attr(n, "title") == uri && textContent(n) == uri {
+		if n.Data == "p" && htmlx.Attr(n, "title") == uri && htmlx.RawText(n) == uri {
 			visible = true
 		}
-		if n.Data == "script" && attr(n, "type") == "application/json" && attr(n, "id") == "" {
+		if n.Data == "script" && htmlx.Attr(n, "type") == "application/json" && htmlx.Attr(n, "id") == "" {
 			var value map[string]string
-			if err := json.Unmarshal([]byte(textContent(n)), &value); err != nil {
+			if err := json.Unmarshal([]byte(htmlx.RawText(n)), &value); err != nil {
 				t.Fatal(err)
 			}
 			inert = value["original"] == uri
@@ -130,10 +131,10 @@ func TestPackingRewritesGeneratedCodeButPreservesInertAndVisibleData(t *testing.
 	var code, css string
 	for _, n := range parsePage(t, output) {
 		if n.Data == "script" && executableScript(n) {
-			code += textContent(n)
+			code += htmlx.RawText(n)
 		}
 		if n.Data == "style" {
-			css += textContent(n)
+			css += htmlx.RawText(n)
 		}
 	}
 	packedURL := ""
@@ -160,7 +161,7 @@ func TestIdenticalAssetAliasesHonorInlinePin(t *testing.T) {
 		c["build"].(map[string]any)["assets"] = map[string]any{"overrides": map[string]any{"b.png": "inline"}}
 	})
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", `<img src="a.png" alt="a"><img src="b.png" alt="b"></body>`, 1))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,20 +173,20 @@ func TestIdenticalAssetAliasesHonorInlinePin(t *testing.T) {
 func TestFaviconFallbackAndAuthoredIdentity(t *testing.T) {
 	root := autoFixture(t)
 	write(t, root, "index.html.tmpl", helperHTML("", ""))
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	var icon *html.Node
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "link" && relToken(n, "icon") {
+		if n.Data == "link" && htmlx.Rel(n, "icon") {
 			icon = n
 		}
 	}
 	if icon == nil {
 		t.Fatal("no favicon")
 	}
-	if attr(icon, "href") != "./favicon.png" {
-		t.Fatal(attr(icon, "href"))
+	if htmlx.Attr(icon, "href") != "./favicon.png" {
+		t.Fatal(htmlx.Attr(icon, "href"))
 	}
 	raw := []byte(read(t, root, "output/favicon.png"))
 	decoded, err := png.Decode(bytes.NewReader(raw))
@@ -194,14 +195,14 @@ func TestFaviconFallbackAndAuthoredIdentity(t *testing.T) {
 	}
 	write(t, root, "custom.png", string(raw))
 	write(t, root, "index.html.tmpl", helperHTML("", `<link rel="shortcut icon" id="live-icon" href="custom.png">`))
-	if _, err := Run(root, true); err != nil {
+	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}
 	count := 0
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "link" && relToken(n, "icon") {
+		if n.Data == "link" && htmlx.Rel(n, "icon") {
 			count++
-			if attr(n, "id") != "live-icon" {
+			if htmlx.Attr(n, "id") != "live-icon" {
 				t.Fatal("authored icon replaced")
 			}
 		}
@@ -222,7 +223,7 @@ func TestLocalHintsFollowCompiledFilesAndDropInlineResources(t *testing.T) {
 	})
 	head := `<link rel="preload" as="font" href="font.woff2"><link rel="preload" as="image" href="tiny.png"><link rel="modulepreload" href="one.js"><style>@font-face{font-family:Example;src:url('./font.woff2')}</style>`
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "one.js"}}{{script "two.js"}}`, head))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -237,19 +238,19 @@ func TestLocalHintsFollowCompiledFilesAndDropInlineResources(t *testing.T) {
 		if n.Data != "link" {
 			continue
 		}
-		if relToken(n, "modulepreload") {
+		if htmlx.Rel(n, "modulepreload") {
 			moduleHints++
-			if attr(n, "href") != "./bundle.js" {
-				t.Fatal(attr(n, "href"))
+			if htmlx.Attr(n, "href") != "./bundle.js" {
+				t.Fatal(htmlx.Attr(n, "href"))
 			}
 		}
-		if attr(n, "as") == "font" {
+		if htmlx.Attr(n, "as") == "font" {
 			fonts++
-			if attr(n, "href") != fontOutput || !hasAttr(n, "crossorigin") {
+			if htmlx.Attr(n, "href") != fontOutput || !htmlx.HasAttr(n, "crossorigin") {
 				t.Fatal(n.Attr)
 			}
 		}
-		if attr(n, "as") == "image" {
+		if htmlx.Attr(n, "as") == "image" {
 			t.Fatal("unused/inline image hint survived")
 		}
 	}
@@ -264,7 +265,7 @@ func TestAutomaticSidecarsEscapeCSSAndResolveBasenameCollisions(t *testing.T) {
 	write(t, root, "two/same(a).png", strings.Repeat("b", 30000))
 	write(t, root, "theme.css", `.one{background:url('./one/same(a).png')}.two{background:url('./two/same(a).png')}`)
 	write(t, root, "index.html.tmpl", helperHTML("", `{{style "theme.css"}}`))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -289,17 +290,17 @@ func TestAutomaticCodePackingPreservesNativeInlineBoundaries(t *testing.T) {
 	write(t, root, "app.js", `window.moduleValue="`+large+`"`)
 	page := helperHTML(`{{script "app.js"}}<script>window.classicValue="`+large+`"</script>`, "")
 	write(t, root, "index.html.tmpl", page)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	moduleFile, classicInline := false, false
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
 		if n.Data == "script" {
-			if attr(n, "type") == "module" && attr(n, "src") != "" {
+			if htmlx.Attr(n, "type") == "module" && htmlx.Attr(n, "src") != "" {
 				moduleFile = true
 			}
-			if strings.Contains(textContent(n), "window.classicValue=") && attr(n, "src") == "" {
+			if strings.Contains(htmlx.RawText(n), "window.classicValue=") && htmlx.Attr(n, "src") == "" {
 				classicInline = true
 			}
 		}
@@ -323,7 +324,7 @@ func TestUnusedLargeAutomaticImportDoesNotEmitSidecar(t *testing.T) {
 	write(t, root, "unused.png", strings.Repeat("x", 100000))
 	write(t, root, "app.js", `import unused from './unused.png';window.answer=42`)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "app.js"}}`, ""))
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -343,14 +344,14 @@ func TestSmallLinkedDocumentKeepsNavigableFileURL(t *testing.T) {
 	root := autoFixture(t)
 	write(t, root, "assets/free.pdf", "small PDF fixture")
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", `<a href="assets/free.pdf">Read the document</a></body>`, 1))
-	_, err := Run(root, true)
+	_, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	found := false
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "a" && strings.Contains(textContent(n), "Read the document") {
-			found = strings.HasPrefix(attr(n, "href"), "./free-") && !strings.HasPrefix(attr(n, "href"), "data:")
+		if n.Data == "a" && strings.Contains(htmlx.RawText(n), "Read the document") {
+			found = strings.HasPrefix(htmlx.Attr(n, "href"), "./free-") && !strings.HasPrefix(htmlx.Attr(n, "href"), "data:")
 		}
 	}
 	if !found {

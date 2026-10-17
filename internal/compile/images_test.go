@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Anonyfox/lfm/internal/htmlx"
 )
 
 func imagePNG(t testing.TB, width, height int) []byte {
@@ -35,18 +37,18 @@ func imageWorkbench(t *testing.T, body, styles string) string {
 func TestImageInferencePreservesAuthoredSizing(t *testing.T) {
 	body := `<img id="plain" src="assets/images/photo.png" alt=""><img id="width" src="assets/images/photo.png" width="006" alt=""><img id="height" src="assets/images/photo.png" height="4" alt=""><img id="both" src="assets/images/photo.png" width="5" height="7" alt=""><img id="zero" src="assets/images/photo.png" width="0" alt=""><img id="empty" src="assets/images/photo.png" width="" alt=""><img id="relative" src="assets/images/photo.png" width="50%" alt=""><img id="fraction" src="assets/images/photo.png" width="5" alt=""><template><img id="dormant" src="assets/images/photo.png" alt=""></template>`
 	root := imageWorkbench(t, body, "")
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		id := attr(n, "id")
+		id := htmlx.Attr(n, "id")
 		want := map[string][2]string{"plain": {"12", "8"}, "width": {"006", "4"}, "height": {"6", "4"}, "both": {"5", "7"}, "zero": {"0", ""}, "empty": {"", ""}, "relative": {"50%", ""}, "fraction": {"5", ""}, "dormant": {"", ""}}
 		if pair, ok := want[id]; ok {
-			if attr(n, "width") != pair[0] || attr(n, "height") != pair[1] {
-				t.Fatalf("%s got %q×%q, want %v", id, attr(n, "width"), attr(n, "height"), pair)
+			if htmlx.Attr(n, "width") != pair[0] || htmlx.Attr(n, "height") != pair[1] {
+				t.Fatalf("%s got %q×%q, want %v", id, htmlx.Attr(n, "width"), htmlx.Attr(n, "height"), pair)
 			}
-			if id == "empty" && !hasAttr(n, "width") {
+			if id == "empty" && !htmlx.HasAttr(n, "width") {
 				t.Fatal("empty deliberate attribute was removed")
 			}
 		}
@@ -87,7 +89,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 				body = "<" + test.wrapper + ">" + body + "</" + test.wrapper + ">"
 			}
 			root := imageWorkbench(t, body, test.style)
-			report, err := Run(root, true)
+			report, err := Compile(root, Options{Publish: true})
 			if err != nil {
 				t.Fatal(err, report.Validation)
 			}
@@ -98,7 +100,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 		})
 	}
 	root := imageWorkbench(t, `<img src="assets/images/photo.png" style="width:100%;height:auto" alt="">`, "")
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil || len(report.Images[0].Added) != 2 {
 		t.Fatal(err, report.Images)
 	}
@@ -110,26 +112,26 @@ func TestImageInferenceHandlesInlineFilesSVGAndResponsiveSelection(t *testing.T)
 	root := imageWorkbench(t, body, "")
 	write(t, root, "fixed.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60"><view id="crop" viewBox="0 0 10 10"/></svg>`)
 	write(t, root, "ratio.svg", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60"/>`)
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		switch attr(n, "id") {
+		switch htmlx.Attr(n, "id") {
 		case "data", "file":
-			if attr(n, "width") != "12" || attr(n, "height") != "8" {
-				t.Fatal("raster inference", attr(n, "id"))
+			if htmlx.Attr(n, "width") != "12" || htmlx.Attr(n, "height") != "8" {
+				t.Fatal("raster inference", htmlx.Attr(n, "id"))
 			}
 		case "svg":
-			if attr(n, "width") != "120" || attr(n, "height") != "60" {
+			if htmlx.Attr(n, "width") != "120" || htmlx.Attr(n, "height") != "60" {
 				t.Fatal("SVG inference")
 			}
 		case "viewbox", "fragment", "srcset", "picture":
-			if hasAttr(n, "width") || hasAttr(n, "height") {
-				t.Fatalf("unsafe inference %s", attr(n, "id"))
+			if htmlx.HasAttr(n, "width") || htmlx.HasAttr(n, "height") {
+				t.Fatalf("unsafe inference %s", htmlx.Attr(n, "id"))
 			}
 		}
-		if n.Data == "source" && (attr(n, "width") != "20" || attr(n, "height") != "30") {
+		if n.Data == "source" && (htmlx.Attr(n, "width") != "20" || htmlx.Attr(n, "height") != "30") {
 			t.Fatal("art direction changed")
 		}
 	}
@@ -152,7 +154,7 @@ func TestOversizedImageWarningsAreActionableAndDeduplicated(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "large.png"), raw, 0644); err != nil {
 		t.Fatal(err)
 	}
-	report, err := Run(root, true)
+	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
 	}
@@ -169,7 +171,7 @@ func TestOversizedImageWarningsAreActionableAndDeduplicated(t *testing.T) {
 		t.Fatalf("warnings=%d", count)
 	}
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "img" && (attr(n, "width") != "100" || attr(n, "height") != "100") {
+		if n.Data == "img" && (htmlx.Attr(n, "width") != "100" || htmlx.Attr(n, "height") != "100") {
 			t.Fatal("deliberate sizing changed")
 		}
 	}

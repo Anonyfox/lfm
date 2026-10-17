@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/release"
 	"golang.org/x/net/html"
 )
@@ -28,10 +29,10 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 			if node.Data == "template" {
 				return
 			}
-			if node.Data == "meta" && strings.EqualFold(attr(node, "http-equiv"), "content-security-policy") {
+			if node.Data == "meta" && strings.EqualFold(htmlx.Attr(node, "http-equiv"), "content-security-policy") {
 				blocked = true
 			}
-			if node.Data == "style" || (node.Data == "link" && stylesheetRel(attr(node, "rel"))) {
+			if node.Data == "style" || (node.Data == "link" && stylesheetRel(htmlx.Attr(node, "rel"))) {
 				sheets = append(sheets, node)
 			}
 		}
@@ -45,14 +46,14 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 		return report, nil
 	}
 	node := sheets[0]
-	if independentlyAddressable(node, "rel", "href", "type") || strings.Contains(attr(node, "rel"), "alternate") {
+	if independentlyAddressable(node, "rel", "href", "type") || strings.Contains(htmlx.Attr(node, "rel"), "alternate") {
 		report.Reason = "Stylesheet has independent loading/identity/security semantics; kept full CSS."
 		return report, nil
 	}
-	full := []byte(textContent(node))
+	full := []byte(htmlx.RawText(node))
 	name := ""
 	if node.Data == "link" {
-		ref, err := url.Parse(attr(node, "href"))
+		ref, err := url.Parse(htmlx.Attr(node, "href"))
 		if err != nil {
 			return report, err
 		}
@@ -69,8 +70,8 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 		report.Reason = "Stylesheet is below 8 KiB; splitting overhead is not justified."
 		return report, nil
 	}
-	setAttr(node, "data-lfm-critical-source", "")
-	defer delAttr(node, "data-lfm-critical-source")
+	htmlx.SetAttr(node, "data-lfm-critical-source", "")
+	defer htmlx.DelAttr(node, "data-lfm-critical-source")
 	var preview bytes.Buffer
 	if err := html.Render(&preview, doc); err != nil {
 		return report, err
@@ -100,22 +101,22 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 			return report, err
 		}
 	}
-	criticalNode := element("style", string(critical))
-	link := element("link", "")
-	setAttr(link, "rel", "stylesheet")
-	setAttr(link, "href", fileURL(name))
-	setAttr(link, "media", "print")
-	setAttr(link, "onload", "this.media='all';this.onload=null")
+	criticalNode := htmlx.Element("style", string(critical))
+	link := htmlx.Element("link", "")
+	htmlx.SetAttr(link, "rel", "stylesheet")
+	htmlx.SetAttr(link, "href", fileURL(name))
+	htmlx.SetAttr(link, "media", "print")
+	htmlx.SetAttr(link, "onload", "this.media='all';this.onload=null")
 	// A real native sheet is used when scripting is disabled. No executable
 	// bundle, framework or custom CSS runtime is needed for stylesheet loading.
-	fallbackLink := element("link", "")
-	setAttr(fallbackLink, "rel", "stylesheet")
-	setAttr(fallbackLink, "href", fileURL(name))
+	fallbackLink := htmlx.Element("link", "")
+	htmlx.SetAttr(fallbackLink, "rel", "stylesheet")
+	htmlx.SetAttr(fallbackLink, "href", fileURL(name))
 	var fallbackHTML bytes.Buffer
 	if err := html.Render(&fallbackHTML, fallbackLink); err != nil {
 		return report, err
 	}
-	fallback := element("noscript", fallbackHTML.String())
+	fallback := htmlx.Element("noscript", fallbackHTML.String())
 	parent := node.Parent
 	parent.InsertBefore(criticalNode, node)
 	parent.InsertBefore(link, node)
