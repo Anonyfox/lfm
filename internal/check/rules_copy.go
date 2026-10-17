@@ -268,8 +268,10 @@ func reducedMotionRule(d *Document) []Diagnostic {
 	}
 	var uses []use
 	for _, s := range sheets {
-		for name := range motionKeyframes(s.text) {
-			moving[name] = true
+		for name, k := range keyframes(s.text) {
+			if k.moves {
+				moving[name] = true
+			}
 		}
 	}
 	for _, s := range sheets {
@@ -374,48 +376,77 @@ var cssIdent = regexp.MustCompile(`-?[a-z_][a-z0-9_-]*`)
 
 func cssIdents(v string) []string { return cssIdent.FindAllString(v, -1) }
 
-// motionKeyframes returns the names of @keyframes blocks that change a motion
-// property. It reads the raw sheet with a small brace-depth scanner because
-// the style model skips keyframes.
-func motionKeyframes(css string) map[string]bool {
-	out := map[string]bool{}
+// keyframe is what one @keyframes block does.
+type keyframe struct {
+	moves  bool // changes a motion property in any frame
+	hidden bool // its first frame (from, 0%) is invisible
+}
+
+// keyframes reads the @keyframes blocks of a raw sheet with a small
+// brace-depth scanner, because the style model skips keyframes.
+func keyframes(css string) map[string]keyframe {
+	out := map[string]keyframe{}
 	lower := strings.ToLower(css)
-	for i := 0; ; {
+	for i := 0; i < len(lower); {
 		at := strings.Index(lower[i:], "keyframes")
 		if at < 0 {
-			return out
+			break
 		}
 		at += i
 		open := strings.IndexByte(lower[at:], '{')
 		if open < 0 {
-			return out
+			break
 		}
-		name := strings.Trim(strings.TrimSpace(lower[at+len("keyframes"):at+open]), `"'`)
-		depth, end := 0, len(lower)
-		for j := at + open; j < len(lower); j++ {
-			if lower[j] == '{' {
+		open += at
+		name := strings.Trim(strings.TrimSpace(lower[at+len("keyframes"):open]), `"'`)
+		var k keyframe
+		depth, selector, end := 0, open+1, len(lower)
+		for j := open; j < len(lower) && end == len(lower); j++ {
+			switch lower[j] {
+			case '{':
 				depth++
-			} else if lower[j] == '}' {
+				if depth == 2 {
+					frame, body := strings.TrimSpace(lower[selector:j]), lower[j+1:]
+					if close := strings.IndexByte(body, '}'); close >= 0 {
+						body = body[:close]
+					}
+					first := strings.Contains(","+strings.ReplaceAll(frame, " ", "")+",", ",from,") || strings.Contains(","+strings.ReplaceAll(frame, " ", "")+",", ",0%,")
+					for _, decl := range strings.Split(body, ";") {
+						prop, value, ok := strings.Cut(decl, ":")
+						if !ok {
+							continue
+						}
+						prop, value = strings.TrimSpace(prop), strings.TrimSpace(value)
+						if motionProps[prop] {
+							k.moves = true
+						}
+						if first && (prop == "opacity" && zero(value) || prop == "visibility" && value == "hidden") {
+							k.hidden = true
+						}
+					}
+				}
+			case '}':
 				depth--
+				if depth == 1 {
+					selector = j + 1
+				}
 				if depth == 0 {
 					end = j
-					break
 				}
 			}
 		}
-		body := lower[at+open : end]
-		for _, decl := range strings.FieldsFunc(body, func(r rune) bool { return r == ';' || r == '{' || r == '}' }) {
-			prop, _, ok := strings.Cut(decl, ":")
-			if ok && motionProps[strings.TrimSpace(prop)] {
-				out[name] = true
-				break
-			}
-		}
-		i = end
-		if i >= len(lower) {
-			return out
-		}
+		out[name] = k
+		i = end + 1
 	}
+	return out
+}
+
+// zero reports whether a CSS number or percentage is zero.
+func zero(v string) bool {
+	v = strings.TrimSuffix(strings.TrimSpace(strings.TrimSuffix(v, "!important")), "%")
+	var f float64
+	_, err := fmt.Sscanf(v, "%g", &f)
+	return err == nil && f == 0
 }
 
 type styleSource struct {
@@ -587,4 +618,62 @@ func preview(s string) string {
 		return string(r[:59]) + "…"
 	}
 	return s
+}
+
+// ---------- ux.hidden-start ----------
+
+// hiddenStartRule warns when the main heading begins invisible: opacity 0 or
+// hidden visibility in the base styles, or an animation whose first frame is
+// invisible. Such content waits for scripts or animation, so slow phones,
+// crawlers and no-JS readers see an empty first screen, and the largest paint
+// comes late.
+func hiddenStartRule(d *Document) []Diagnostic {
+	var h1 *html.Node
+	for _, n := range d.activeNodes("h1") {
+		if designVisible(n) {
+			h1 = n
+			break
+		}
+	}
+	if h1 == nil {
+		return nil
+	}
+	m := d.styles()
+	hiding := map[string]bool{}
+	for _, s := range d.styleSources() {
+		for name, k := range keyframes(s.text) {
+			if k.hidden {
+				hiding[name] = true
+			}
+		}
+	}
+	for n := h1; n != nil && n.Type == html.ElementNode && n.Data != "body" && n.Data != "html"; n = n.Parent {
+		if HasAttr(n, "data-design-reason") {
+			return nil
+		}
+		cause := ""
+		switch {
+		case zero(m.value(n, "opacity")):
+			cause = "opacity: 0"
+		case strings.EqualFold(m.value(n, "visibility"), "hidden"):
+			cause = "visibility: hidden"
+		default:
+			for _, prop := range []string{"animation", "animation-name"} {
+				for _, name := range cssIdents(strings.ToLower(m.value(n, prop))) {
+					if hiding[name] {
+						cause = "the animation " + name + " starts invisible"
+					}
+				}
+			}
+		}
+		if cause != "" {
+			what := "The main heading"
+			if n != h1 {
+				what = "The main heading's container <" + elementLabel(n) + ">"
+			}
+			return []Diagnostic{d.At(h1, Warning, what+" starts invisible ("+cause+") and appears only when a script or animation runs.",
+				"Render it in its final state; animate something that does not hide content, or start from a visible state. Slow phones, crawlers and no-JS readers otherwise meet an empty first screen.")}
+		}
+	}
+	return nil
 }

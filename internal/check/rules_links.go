@@ -56,7 +56,10 @@ func linksDeclaredRule(d *Document) []Diagnostic {
 	refs, analyzer := d.linkFacts()
 	var issues []Diagnostic
 	for _, ref := range refs {
-		if urlcheck.Embedded(ref.Value) || ref.Resource && strings.HasPrefix(ref.Value, "#") || d.generatedURL(ref.Value, analyzer) {
+		// a bare #fragment link or form action stays in this document; its target is
+		// checked by html.references. JSON-LD fragment IDs are identities and stay declared.
+		sameDocument := strings.HasPrefix(ref.Value, "#") && (ref.Resource || !strings.HasPrefix(ref.Attribute, "JSON "))
+		if urlcheck.Embedded(ref.Value) || sameDocument || d.generatedURL(ref.Value, analyzer) {
 			continue
 		}
 		if len(d.Options.Registry.Match(ref.Value)) > 0 {

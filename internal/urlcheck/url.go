@@ -49,7 +49,7 @@ func Catalog() []diagnostic.RuleInfo {
 		{
 			ID:      "links.literal",
 			Summary: "Templates take link destinations from config urls instead of hardcoded URLs",
-			Help:    "A template attribute, URL-like JSON field or inline CSS contains a literal destination, including in inactive branches and partials. Hardcoded copies drift when the real link changes and slip past the URL checks. Declare the URL under urls in lfm.json and render it, e.g. href=\"{{.urls.checkout}}\"; local asset paths and fragments to SVG symbols are exempt.",
+			Help:    "A template attribute, URL-like JSON field or inline CSS contains a literal destination, including in inactive branches and partials. Hardcoded copies drift when the real link changes and slip past the URL checks. Declare the URL under urls in lfm.json and render it, e.g. href=\"{{.urls.checkout}}\"; local asset paths and same-page #fragment links are exempt.",
 		},
 	}
 }

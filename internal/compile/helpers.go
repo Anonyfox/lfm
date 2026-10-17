@@ -52,7 +52,11 @@ func (h *helperRegistry) functions(render bool) htmltemplate.FuncMap {
 			return htmltemplate.HTML(fmt.Sprintf(`<%s%s data-lfm-helper="%s"></%s>`, tag, extra, id, tag)), nil
 		}
 	}
-	return htmltemplate.FuncMap{"__lfmScript": makeHelper("script"), "__lfmStyle": makeHelper("style")}
+	funcs := htmltemplate.FuncMap{"__lfmScript": makeHelper("script"), "__lfmStyle": makeHelper("style")}
+	for name, f := range comparisons {
+		funcs[name] = f
+	}
+	return funcs
 }
 
 // Existing local paths win over package names. Explicit dot paths are relative

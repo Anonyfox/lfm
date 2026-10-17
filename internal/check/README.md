@@ -103,6 +103,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `ux.forms` | Warnings: ambiguous/invalid form-button types and malformed numeric bounds/steps/starting values; native invokers and explicit form owners are recognized. |
 | `ux.disclosures` | Warning: missing authored summary. Errors: multiple/misplaced native summaries or built-in dialog/popover commands targeting the wrong element type. |
 | `ux.media` | Warnings: media requests autoplay without initial mute; actual audio, duration and playback policy need browser review. |
+| `ux.hidden-start` | Warning: the first visible h1 or an ancestor starts at opacity 0, hidden visibility or an animation whose first keyframe is invisible; data-design-reason exempts. |
 | `ux.reduced-motion` | Warning: moving keyframes, scroll-driven animation, smooth scrolling, transform transitions ≥400 ms or scripted transform animations without any prefers-reduced-motion query in styles or scripts. Opacity/color animation is not motion. |
 | `perf.html-size` | Warning at 1,800,000 bytes; error above 2,000,000 uncompressed bytes |
 | `perf.inline-assets` | Warnings: >32 KiB embedded contributions and embedded srcset candidates |

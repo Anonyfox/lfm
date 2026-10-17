@@ -19,7 +19,7 @@ func DefaultRules() []Rule {
 			"Errors for URLs browsers cannot parse, protocol typos such as htps:, javascript: URLs, unresolved placeholders and escaping that changed a configured destination; warnings for whitespace, odd percent encoding, embedded credentials, unknown schemes, a likely missing https:// and mailto/tel mistakes. A malformed link silently goes nowhere or somewhere else. Fix the value in lfm.json urls; store a raw & in JSON and let html/template escape it.",
 			linksSyntaxRule),
 		rule("links.declared", "Every rendered link destination matches a named URL in lfm.json urls",
-			"After rendering, each href, src, srcset, social URL and JSON-LD URL is resolved like a browser would and compared with the declared urls; anything else is an error. This catches destinations assembled in partials or expressions that bypass the registry. Declare the complete URL, including deliberate query or fragment variants, under urls and render it; set this rule to warn only if the product deliberately builds destinations at render time.",
+			"After rendering, each href, src, srcset, social URL and JSON-LD URL is resolved like a browser would and compared with the declared urls; anything else is an error, except same-page #fragment links, whose targets html.references checks. This catches destinations assembled in partials or expressions that bypass the registry. Declare the complete URL, including deliberate query or fragment variants, under urls and render it; set this rule to warn only if the product deliberately builds destinations at render time.",
 			linksDeclaredRule),
 		rule("links.behavior", "Links are crawlable, resources are HTTPS and download links can work",
 			"Warns for navigation that relies on a click handler or role instead of an href, javascript: or bare # placeholder links, href on elements that are not links, HTTP resources on an HTTPS page, download attributes pointing at another origin, and full page URLs whose fragment matches no element. Crawlers and keyboard users cannot follow handler-only links, and browsers block or ignore the others. Use <a href> for navigation and <button> for actions, serve resources over HTTPS, and point fragments at existing IDs.",
@@ -147,6 +147,9 @@ func DefaultRules() []Rule {
 			"Warns when audio or video has autoplay without muted. Browsers block unmuted autoplay, and sound that starts on its own drives visitors away and fails accessibility guidance. Add muted or let the visitor start playback, and provide a way to pause or stop.",
 			mediaInteractionRule),
 
+		rule("ux.hidden-start", "The main heading is visible without waiting for scripts or animation",
+			"Warns when the first visible h1, or an element around it, has opacity 0 or hidden visibility in the base styles, or runs an animation whose first frame is invisible. Such headings wait for a script or an animation, so slow phones, crawlers and visitors without JavaScript see an empty first screen and the largest paint comes late. Render the heading in its final state and animate without hiding it.",
+			hiddenStartRule),
 		rule("ux.reduced-motion", "Pages that move things also honor the reduced-motion preference",
 			"Warns when keyframe animations that move elements, scroll-driven animations, smooth scrolling, transform transitions of 400 ms or more, or scripted element.animate() transforms exist but no stylesheet or script mentions prefers-reduced-motion. Opacity and color changes are not counted. Visitors with vestibular disorders set this preference because movement makes them ill. Add @media (prefers-reduced-motion: reduce) with the reduced state the concept defines, or check matchMedia in the script.",
 			reducedMotionRule),

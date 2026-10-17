@@ -64,8 +64,8 @@ rules accept only `error`; they protect execution rather than style preferences.
   unused warnings but can hide stale children behind those operations.
 - Reserved config keys have exact casing; arbitrary keys belong under `data`/`links`.
   JSON numbers remain `json.Number`, matching the existing renderer. `printf "%s"`
-  prints their original representation; Go numeric comparisons need deliberate
-  conversion (e.g. `.data.count.Int64`). Browser JSON retains numeric JSON values.
+  prints their original representation; `eq`, `ne`, `lt`, `le`, `gt` and `ge` are
+  replaced so two numbers compare exactly by value. Browser JSON retains numeric JSON values.
 
 ## Organization and limits
 

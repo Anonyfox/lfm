@@ -59,6 +59,87 @@
     }
   };
 
+  // A pinned layer (fixed, or sticky and taller than a header) that sits on top
+  // of legible text hides it. Thin bars are expected to pass over text while
+  // scrolling and are left out.
+  const pinnedLayer = (el) => {
+    for (let e = el; e && e !== document.body; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      if ((cs.position === "fixed" || cs.position === "sticky") && e.getBoundingClientRect().height >= innerHeight * 0.2) return e;
+    }
+    return null;
+  };
+  // coverer returns the pinned layer painted over el at a point, or null.
+  // elementsFromPoint lists the hit elements top first; everything before el
+  // that is not one of its ancestors paints above it. Only an element's own
+  // background or media content hides text; transparent boxes do not.
+  const coverer = (el, x, y) => {
+    for (const e of document.elementsFromPoint(x, y)) {
+      if (e === el || el.contains(e)) return null;
+      if (e.contains(el)) continue;
+      const cs = getComputedStyle(e);
+      const bg = cs.backgroundColor.match(/[\d.]+/g);
+      const solid = /^(IMG|VIDEO|CANVAS|PICTURE|IFRAME)$/.test(e.tagName) || (bg && (bg.length < 4 || parseFloat(bg[3]) >= 0.5)) || /url\(|gradient\(/.test(cs.backgroundImage);
+      if (solid && parseFloat(cs.opacity) >= 0.5) {
+        const layer = pinnedLayer(e);
+        if (layer && !layer.contains(el)) return layer;
+      }
+    }
+    return null;
+  };
+
+  // Each text element gets a stable number for the whole walk, so the Go side
+  // can tell text that is covered in one frame from text never readable at all.
+  const ids = new WeakMap();
+  let nextID = 0;
+  const idOf = (el) => {
+    if (!ids.has(el)) ids.set(el, ++nextID);
+    return ids.get(el);
+  };
+
+  const elements = new Map(); // id → element, for the fine-grained recheck
+
+  // readable reports whether a line of el is fully on screen and on top.
+  const readable = (el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    for (const r of range.getClientRects()) {
+      if (r.width < 4 || r.height < 4 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
+      if (!coverer(el, r.left + r.width / 2, r.top + r.height / 2)) return true;
+    }
+    return false;
+  };
+
+  // coverage lists the text elements fully on screen in this frame: the ones a
+  // visitor can read, and the ones an opaque pinned layer sits on.
+  const coverage = () => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    const opacity = new Map();
+    const seen = [], covered = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const el = n.parentElement;
+      if (!el || skipTags.has(el.tagName) || n.data.trim().length < 2 || pinnedLayer(el)) continue;
+      const box = el.getBoundingClientRect();
+      // visually hidden helper text (1px boxes) is for screen readers only
+      if (box.bottom <= 0 || box.top >= innerHeight || box.width <= 2 || box.height <= 2) continue;
+      if (opacityOf(el, opacity) < 0.5) continue;
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) {
+        if (r.width < 4 || r.height < 4 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
+        const layer = coverer(el, r.left + r.width / 2, r.top + r.height / 2);
+        if (!layer) {
+          seen.push(idOf(el));
+        } else {
+          elements.set(idOf(el), el);
+          covered.push({ id: idOf(el), text: describe(el), by: describe(layer) });
+        }
+        break;
+      }
+    }
+    return { seen, covered };
+  };
+
   window.__lfmLayout = {
     prepare() {
       backgrounds = [];
@@ -75,6 +156,32 @@
       await new Promise((r) => setTimeout(r, 50));
       finish();
       await settleFrames();
+      return Object.assign(this.legibility(), coverage());
+    },
+
+    // recheck scrolls in small steps across the range where each element could
+    // be on screen and returns the ids that are readable somewhere: text that
+    // only passes under a pinned layer between two frames is fine.
+    async recheck(list) {
+      const found = [];
+      for (const id of list) {
+        const el = elements.get(id);
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top + scrollY;
+        const bottom = top + el.getBoundingClientRect().height;
+        for (let y = Math.max(0, top - innerHeight); y <= bottom; y += Math.max(40, innerHeight / 10)) {
+          window.scrollTo({ top: y, left: 0, behavior: "instant" });
+          await new Promise((r) => requestAnimationFrame(r));
+          if (readable(el)) {
+            found.push(id);
+            break;
+          }
+        }
+      }
+      return found;
+    },
+
+    legibility() {
       const opacity = new Map(), pinned = new Map();
       let faint = false;
       const judge = (el) => {

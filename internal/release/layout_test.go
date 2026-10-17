@@ -60,6 +60,48 @@ header{position:fixed;top:0;left:0;right:0;height:40px;background:#eee}
 	}
 }
 
+func TestLayoutAuditFindsPinnedLayersOverText(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	path, err := BrowserPath()
+	if err != nil {
+		t.Skip(err)
+	}
+	var b strings.Builder
+	b.WriteString(`<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="><style>
+body{margin:0;font:18px/1.6 serif}
+header{position:sticky;top:0;height:48px;background:#fff}
+.stage{position:sticky;top:0;height:100vh;background:#234;z-index:2}
+p{position:relative;z-index:1;margin:0 1rem 2rem}
+.over p{z-index:3}
+</style></head><body><header>Header bar passes over text</header><main><h1>Pinned</h1>`)
+	b.WriteString(`<section><div class=stage></div>`)
+	for i := 0; i < 12; i++ {
+		b.WriteString(`<p>Text that scrolls under the pinned stage and disappears behind it.</p>`)
+	}
+	b.WriteString(`</section></main></body></html>`)
+	r := AuditRuntime([]byte(b.String()), nil, path, "")
+	found := false
+	for _, f := range r.Layout.Findings {
+		if f.Kind == "covered" && strings.Contains(f.Message, "div.stage covers the text of p") {
+			found = true
+		}
+		if f.Kind == "covered" && strings.Contains(f.Message, "header") {
+			t.Errorf("a thin header passing over text is expected: %s", f.Message)
+		}
+	}
+	if !found {
+		t.Fatalf("%+v", r.Layout.Findings)
+	}
+	over := strings.Replace(b.String(), "<section>", "<section class=over>", 1)
+	for _, f := range AuditRuntime([]byte(over), nil, path, "").Layout.Findings {
+		if f.Kind == "covered" {
+			t.Errorf("text above the stage is not covered: %s", f.Message)
+		}
+	}
+}
+
 func TestLayoutAuditKeepsCleanPagesQuiet(t *testing.T) {
 	if testing.Short() {
 		t.Skip("browser integration")

@@ -83,7 +83,7 @@ func TestTemplateOwnershipUsesParseTrees(t *testing.T) {
 		{`<a href="{{.urls.checkout}}">go</a>`, 0},
 		{`<a href='{{printf "%s" .urls.checkout}}'>go</a>`, 0},
 		{`<a href='{{"https://example.org/"}}'>go</a>`, 1},
-		{`<a href="#part">part</a>`, 1},
+		{`<a href="#part">part</a>`, 0},
 		{`<a href="../other/">other</a>`, 1},
 		{`<a href="assets/brochure.pdf">download</a>`, 0},
 		{`<img src="assets/image.webp"><img src="./image.webp"><script src="assets/scripts/main.js"></script>`, 0},

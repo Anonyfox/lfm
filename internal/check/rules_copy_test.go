@@ -158,3 +158,35 @@ func TestPlaceholders(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestHiddenStart(t *testing.T) {
+	for name, tc := range map[string]struct {
+		css, body string
+		want      string
+	}{
+		"visible":             {`h1{color:#000}`, `<h1>Hi</h1>`, ""},
+		"opacity zero":        {`h1{opacity:0}`, `<h1>Hi</h1>`, "opacity: 0"},
+		"container hidden":    {`.hero{opacity:0}`, `<div class=hero><h1>Hi</h1></div>`, "container"},
+		"fade in":             {`@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1}}h1{animation:in .6s both}`, `<h1>Hi</h1>`, "animation in starts invisible"},
+		"fade from half":      {`@keyframes in{from{opacity:.5}to{opacity:1}}h1{animation:in .6s}`, `<h1>Hi</h1>`, ""},
+		"visibility":          {`main{visibility:hidden}`, `<main><h1>Hi</h1></main>`, "visibility: hidden"},
+		"hover only":          {`h1:hover{opacity:0}`, `<h1>Hi</h1>`, ""},
+		"reduced only":        {`@media (prefers-reduced-motion:reduce){h1{opacity:0}}`, `<h1>Hi</h1>`, ""},
+		"reason":              {`.hero{opacity:0}`, `<div class=hero data-design-reason="curtain reveal is the product"><h1>Hi</h1></div>`, ""},
+		"hidden h1 skipped":   {`h1{opacity:0}`, `<h1 hidden>Old</h1>`, ""},
+		"percentage keyframe": {`@keyframes in{0%,40%{opacity:0}100%{opacity:1}}h1{animation-name:in}`, `<h1>Hi</h1>`, "starts invisible"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := runOn(t, hiddenStartRule, "<style>"+tc.css+"</style>", tc.body, Options{})
+			if tc.want == "" {
+				if len(got) != 0 {
+					t.Fatalf("unexpected: %+v", got)
+				}
+				return
+			}
+			if len(got) != 1 || !strings.Contains(got[0].Message, tc.want) {
+				t.Fatalf("want %q, got %+v", tc.want, got)
+			}
+		})
+	}
+}

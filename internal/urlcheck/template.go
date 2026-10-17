@@ -145,7 +145,10 @@ func Template(t *htmltemplate.Template, files map[string][]byte, registries ...*
 			if !dynamic {
 				text = ref.Value
 			}
-			hardcoded := text != "" && !LocalAsset(text) && !(ref.Resource && (Embedded(text) || strings.HasPrefix(text, "#") || localResource(text)))
+			// A bare #fragment points into this document; html.references and
+			// links.fragments check its target, so it needs no registry entry.
+			sameDocument := strings.HasPrefix(text, "#") && !strings.HasPrefix(ref.Attribute, "JSON ")
+			hardcoded := text != "" && !sameDocument && !LocalAsset(text) && !(ref.Resource && (Embedded(text) || localResource(text)))
 			// Placement-specific query/fragment suffixes can remain dynamic. The rendered
 			// ownership check still validates the complete URL and asks for an explicit
 			// named variant when it no longer matches a declaration.

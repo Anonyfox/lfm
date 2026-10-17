@@ -2,6 +2,7 @@ package release
 
 import (
 	"context"
+	"encoding/json"
 	"crypto/sha256"
 	_ "embed"
 	"fmt"
@@ -28,6 +29,9 @@ func (v Screen) String() string { return fmt.Sprintf("%d×%d", v.Width, v.Height
 // laptop screen and a desktop. Frames step by half a viewport, so every part of
 // the page appears in two frames.
 var Screens = []Screen{{390, 844, true}, {1280, 680, false}, {1440, 900, false}}
+
+// maxRecheck bounds the elements rechecked in fine steps per screen.
+const maxRecheck = 12
 
 // maxFrames bounds one viewport's walk; longer pages are sampled to the end at
 // a wider step.
@@ -59,6 +63,12 @@ type frameState struct {
 	Legible bool    `json:"legible"`
 	Faint   bool    `json:"faint"`
 	Y       float64 `json:"y"`
+	Seen    []int `json:"seen"`
+	Covered []struct {
+		ID   int    `json:"id"`
+		Text string `json:"text"`
+		By   string `json:"by"`
+	} `json:"covered"`
 }
 
 type pageSize struct {
@@ -111,6 +121,13 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			step = last/(maxFrames-1) + 1
 		}
 		var empty []frameState
+		readable := map[int]bool{}
+		type cover struct {
+			text, by string
+			from, to int
+		}
+		covered := map[int]*cover{}
+		var order []int
 		for i, y := 0, 0; ; i, y = i+1, y+step {
 			f, err := chromedp.Run(tab, chromedp.Evaluate[frameState](fmt.Sprintf(`__lfmLayout.frame(%d)`, y), chromedp.EvalAwaitPromise))
 			if err != nil {
@@ -118,6 +135,16 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			}
 			if !f.Legible {
 				empty = append(empty, f)
+			}
+			for _, id := range f.Seen {
+				readable[id] = true
+			}
+			for _, c := range f.Covered {
+				if covered[c.ID] == nil {
+					covered[c.ID] = &cover{c.Text, c.By, int(f.Y), int(f.Y) + v.Height}
+					order = append(order, c.ID)
+				}
+				covered[c.ID].to = int(f.Y) + v.Height
 			}
 			if dir != "" {
 				quality, fast := int64(80), true
@@ -135,6 +162,39 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			}
 		}
 		r.Findings = append(r.Findings, emptyFindings(v, empty)...)
+		// text passing under a pinned layer is ordinary scrolling; text that is
+		// under it in every frame that shows it can never be read
+		var suspects []int
+		for _, id := range order {
+			if !readable[id] && len(suspects) < maxRecheck {
+				suspects = append(suspects, id)
+			}
+		}
+		if len(suspects) > 0 {
+			list, _ := json.Marshal(suspects)
+			found, err := chromedp.Run(tab, chromedp.Evaluate[[]int](fmt.Sprintf(`__lfmLayout.recheck(%s)`, list), chromedp.EvalAwaitPromise))
+			if err != nil {
+				return r, err
+			}
+			for _, id := range found {
+				readable[id] = true
+			}
+		}
+		var hidden []*cover
+		for _, id := range suspects {
+			if !readable[id] {
+				hidden = append(hidden, covered[id])
+			}
+		}
+		if len(hidden) > 0 {
+			h := hidden[0]
+			msg := fmt.Sprintf("At %s %s covers the text of %s in every frame that shows it (page %d to %d px).", v, h.by, h.text, h.from, h.to)
+			if len(hidden) > 1 {
+				msg = fmt.Sprintf("At %s %s covers the text of %s and %d more elements in every frame that shows them (from page %d px).", v, h.by, h.text, len(hidden)-1, h.from)
+			}
+			r.Findings = append(r.Findings, LayoutFinding{v.String(), "covered", msg,
+				"Give the text a zone the pinned element never overlaps at this size, shrink or unpin the element, or let the text scroll above it."})
+		}
 		over, err := chromedp.Run(tab, chromedp.Evaluate[overflowState](fmt.Sprintf(`__lfmLayout.overflow(%d)`, v.Width)))
 		if err != nil {
 			return r, err
