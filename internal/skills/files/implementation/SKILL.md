@@ -17,7 +17,7 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
 
 1. **[[.ConceptFile]] is the brief.** Build its spine, palette, type, form, imagery, motion and copy. When a
    decision has to change, change [[.ConceptFile]] first with a changelog entry, citing research, then the page.
-   `lfm compile` reports typefaces, colors and imagery that drift from it.
+   `lfm compile` reports typefaces, colors, imagery and phrases that drift from it.
 2. **Real or nothing.** Every fact, number, quote, price, person and photo is true and traceable to the
    research, the config or Stripe. No invented testimonials, ratings, customers, stock people, logos or
    statistics; no placeholders shipped. Research voices are not your customers: say what buyers commonly
@@ -71,7 +71,8 @@ Make the core loop work with real content before any polish.
    (a pot size, a household) are shown next to it and editable where they matter.
 4. **Tokens from the concept.** Declare the palette as custom properties named by role, the typefaces of
    the Type table and the Form rules (corners, edges, elevation) once; components use the tokens only.
-   Body text meets 4.5:1 against its actual ground, including over images. Font files are WOFF2 in the
+   Body text meets 4.5:1 against its actual ground, including over images (the release audit measures it
+   on flat grounds; over images, check it yourself). Font files are WOFF2 in the
    project (from the foundry or an open font host such as Fontsource, with the licence), a small set of
    weights, the variable file when the concept uses an axis such as width.
 5. **Offer and checkout.** The Offer of [[.ConceptFile]]: price, what arrives, how and when, beside a native
@@ -98,8 +99,8 @@ photograph and film (cited in [[.ConceptFile]]), not from stock aesthetics. Then
   never stand in for the product, a place, a person or a result.
 - Ship sensibly sized WebP or AVIF with honest dimensions; the hero is never lazy-loaded.
 - Fallback ladder: an image generation tool → photos or files from the user → images rendered in code
-  (SVG, canvas, CSS) when the concept allows → ask the user, and leave the row unbuilt rather than filling it
-  with stock or placeholder services.
+  (SVG, canvas, CSS) when the concept allows → an `Open:` in the image's row for the owner. Never stock
+  or placeholder services.
 
 **Motion.** Build the one orchestrated moment and the feedback motion of [[.ConceptFile]]; nothing else
 moves by default. Content is readable before and without any animation (no opacity-zero reveals hiding
