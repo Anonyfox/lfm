@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -162,6 +163,20 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 		fmt.Fprintf(w, "  %s critical CSS %s of %s blocks rendering; the rest loads after\n", term.Pad("release", 12), term.Bytes(r.CriticalBytes), term.Bytes(r.OriginalBytes))
 	} else if r.Reason != "" {
 		fmt.Fprintf(w, "  %s %s\n", term.Pad("release", 12), s.Dim(r.Reason))
+	}
+	if r.LazyImages > 0 || r.PriorityImage != "" {
+		var parts []string
+		if r.LazyImages > 0 {
+			verb := " load lazily"
+			if r.LazyImages == 1 {
+				verb = " loads lazily"
+			}
+			parts = append(parts, term.Plural(r.LazyImages, "image")+" below the first screen"+verb)
+		}
+		if r.PriorityImage != "" {
+			parts = append(parts, path.Base(r.PriorityImage)+" is fetched first")
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("images", 12), strings.Join(parts, "; "))
 	}
 	if r.Audit == nil {
 		return

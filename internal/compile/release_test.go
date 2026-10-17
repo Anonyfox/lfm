@@ -166,3 +166,40 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 		t.Fatal("stylesheet was not reused/escaped correctly")
 	}
 }
+
+func TestReleaseFillsImageLoadingHints(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := release.BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	root := fixture(t)
+	for _, name := range []string{"hero", "far", "kept"} {
+		writeSharingPNG(t, root, "assets/images/"+name+".png", 1200, 800)
+	}
+	changeConfig(t, root, func(c map[string]any) {
+		c["build"].(map[string]any)["assets"] = map[string]any{"default": "file"}
+	})
+	page := strings.Replace(fixtureHTML, "<h1>{{.title}}</h1>", `<h1>{{.title}}</h1><img src="assets/images/hero.png" width="1200" height="800" alt="The hero" style="width:100%;height:auto"><div style="height:3000px"></div><img src="assets/images/far.png" width="1200" height="800" alt="Far below"><img src="assets/images/kept.png" width="1200" height="800" alt="Authored eager" loading="eager">`, 1)
+	write(t, root, "index.html.tmpl", page)
+	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := read(t, root, "output/index.html")
+	has := func(alt, attr string) bool {
+		for _, n := range parsePage(t, out) {
+			if htmlx.Attr(n, "alt") == alt {
+				return strings.Contains(attr, "=") && htmlx.Attr(n, strings.Split(attr, "=")[0]) == strings.Split(attr, "=")[1]
+			}
+		}
+		return false
+	}
+	if !has("Far below", "loading=lazy") || has("The hero", "loading=lazy") || !has("Authored eager", "loading=eager") || !has("The hero", "fetchpriority=high") {
+		t.Fatalf("hints: %v\n%s", report.Release, out[:min(len(out), 1500)])
+	}
+	if report.Release.LazyImages != 2 || !strings.HasSuffix(report.Release.PriorityImage, ".png") {
+		t.Fatalf("report: %+v", report.Release)
+	}
+}

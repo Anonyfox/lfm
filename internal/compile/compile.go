@@ -305,6 +305,10 @@ func (b *builder) assemble(doc *html.Node, values map[string]any, prepared prepa
 func (b *builder) optimize(doc *html.Node, result *Result) error {
 	r, err := b.optimizeRelease(doc)
 	result.Release = r
+	if result.Release == nil {
+		result.Release = &release.Result{}
+	}
+	b.imageHints(doc, result.Release)
 	if err == nil {
 		return nil
 	}

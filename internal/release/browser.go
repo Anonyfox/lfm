@@ -42,6 +42,8 @@ type Result struct {
 	Viewports     []Viewport   `json:"viewports,omitempty"`
 	CSS           string       `json:"-"`
 	Audit         *AuditResult `json:"audit,omitempty"`
+	LazyImages    int          `json:"lazyImages,omitempty"`    // images the compiler set to load lazily
+	PriorityImage string       `json:"priorityImage,omitempty"` // image the compiler set to fetch first
 }
 
 type rule struct {
