@@ -273,18 +273,26 @@
           if (long && moves) out.set(a.effect.target, (a.animationName ? "@keyframes " + a.animationName : "animation") + (timing.iterations === Infinity ? ", looping" : ""));
         } catch (_) {}
       }
-      const boxes = new Map();
-      for (const el of document.body.getElementsByTagName("*")) {
-        const r = el.getBoundingClientRect();
-        if (r.width && r.height && r.bottom > 0 && r.top < innerHeight) boxes.set(el, r);
-      }
-      await new Promise((r) => setTimeout(r, 400));
-      for (const [el, before] of boxes) {
-        if (out.has(el) || [...out.keys()].some((m) => m.contains(el))) continue;
-        const r = el.getBoundingClientRect();
-        if (Math.abs(r.left - before.left) > 2 || Math.abs(r.top - before.top) > 2) {
-          if (![...out.keys()].some((m) => m.contains(el) || el.contains(m))) out.set(el, "moved by a script");
+      // Continuous movement only: the box changes in two consecutive 200 ms
+      // windows. A clock hand ticking once a second is an update, not motion,
+      // and sampling it would make the result depend on timing.
+      const sample = () => {
+        const boxes = new Map();
+        for (const el of document.body.getElementsByTagName("*")) {
+          const r = el.getBoundingClientRect();
+          if (r.width && r.height && r.bottom > 0 && r.top < innerHeight) boxes.set(el, r);
         }
+        return boxes;
+      };
+      const moved = (a, b) => b && (Math.abs(a.left - b.left) > 2 || Math.abs(a.top - b.top) > 2);
+      const first = sample();
+      await new Promise((r) => setTimeout(r, 200));
+      const second = sample();
+      await new Promise((r) => setTimeout(r, 200));
+      const third = sample();
+      for (const [el, a] of first) {
+        if (!moved(a, second.get(el)) || !moved(second.get(el), third.get(el))) continue;
+        if (![...out.keys()].some((m) => m.contains(el) || el.contains(m))) out.set(el, "moved by a script");
       }
       return [...out].map(([el, how]) => ({ selector: describe(el), how }));
     },
