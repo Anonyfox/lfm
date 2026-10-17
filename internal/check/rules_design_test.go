@@ -161,3 +161,29 @@ func TestDesignCombinationIgnoresRulesTurnedOff(t *testing.T) {
 	}
 	t.Fatal("design.defaults missing")
 }
+
+func TestDesignKitTokens(t *testing.T) {
+	kit := func(css string) []Diagnostic {
+		d, err := Parse([]byte("<!doctype html><html><head><title>t</title><style>"+css+"</style></head><body><p>x</p></body></html>"), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return designRule("design.kit")(d)
+	}
+	shadcn := `:root{--background:0 0% 100%;--foreground:222.2 84% 4.9%;--primary:222.2 47.4% 11.2%;--primary-foreground:210 40% 98%;--muted:210 40% 96.1%;--border:214.3 31.8% 91.4%}`
+	if got := kit(shadcn); len(got) != 1 || !strings.Contains(got[0].Message, "never themed") {
+		t.Fatalf("untouched shadcn tokens: %+v", got)
+	}
+	v4 := `:root{--foreground:oklch(0.145 0 0);--primary:oklch(0.205 0 0);--primary-foreground:oklch(0.985 0 0);--border:oklch(0.922 0 0)}`
+	if got := kit(v4); len(got) != 1 {
+		t.Fatalf("untouched shadcn v4 tokens: %+v", got)
+	}
+	themed := `:root{--background:36 33% 94%;--foreground:20 14% 12%;--primary:28 78% 38%;--border:30 18% 82%}`
+	if got := kit(themed); len(got) != 0 {
+		t.Fatalf("themed tokens: %+v", got)
+	}
+	d, _ := Parse([]byte(`<!doctype html><html><head><title>t</title><style>.btn{background:#0d6efd}</style></head><body><a class=btn href=#x>x</a></body></html>`), Options{})
+	if got := designRule("design.palette")(d); len(got) != 1 || !strings.Contains(got[0].Message, "Bootstrap primary blue") {
+		t.Fatalf("bootstrap blue: %+v", got)
+	}
+}

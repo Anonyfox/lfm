@@ -182,7 +182,7 @@ func DefaultRules() []Rule {
 
 		// design
 		rule("design.palette", "Stock generator accent colors, violet gradients and the assistant cream/terracotta pair",
-			"Warns for Tailwind's stock indigo, violet and purple accents, gradients whose colored stops are all violet, blue or pink, and a cream background with a terracotta accent. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role."+designException,
+			"Warns for Tailwind's stock indigo, violet and purple accents, Bootstrap's default primary blue, gradients whose colored stops are all violet, blue or pink, and a cream background with a terracotta accent. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role."+designException,
 			designRule("design.palette")),
 		rule("design.gradient-text", "Text filled with a gradient through background-clip:text",
 			"Warns for text painted with a gradient via background-clip:text, in CSS or Tailwind classes. It is one of the most recognizable generated-page tells and often loses contrast. Carry emphasis with size, weight, position or a solid color."+designException,
@@ -235,6 +235,9 @@ func DefaultRules() []Rule {
 		rule("design.sections", "Four or more stock landing-page sections",
 			"Warns when four or more stock sections appear: how it works, testimonials, pricing, FAQ, logo strip, feature grid or stat strip. Assembling the default section list makes the page read as a template instead of an argument for this offer. Keep a section only when it makes its own claim or does its own job for this product."+designException,
 			designRule("design.sections")),
+		rule("design.kit", "Component-kit theme tokens are set, not left at the kit's defaults",
+			"Warns when four or more custom properties hold the exact default theme values of shadcn/ui (its slate and zinc HSL tokens or its oklch neutrals); two or three only count in design.defaults. Bootstrap's default primary blue is reported by design.palette. An unthemed kit is the most recognizable generated look: the page wears the kit's identity instead of its own. Set the tokens from the concept's palette, type and form."+designException,
+			designRule("design.kit")),
 		rule("design.defaults", "Several generator-default design signals combining on one page",
 			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified.",
 			designDefaultsRule),

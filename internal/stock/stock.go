@@ -31,6 +31,7 @@ var Accents = func() []Named {
 		hex("Tailwind indigo-400", "#818cf8"), hex("Tailwind indigo-500", "#6366f1"), hex("Tailwind indigo-600", "#4f46e5"), hex("Tailwind indigo-700", "#4338ca"),
 		hex("Tailwind violet-400", "#a78bfa"), hex("Tailwind violet-500", "#8b5cf6"), hex("Tailwind violet-600", "#7c3aed"), hex("Tailwind violet-700", "#6d28d9"),
 		hex("Tailwind purple-400", "#c084fc"), hex("Tailwind purple-500", "#a855f7"), hex("Tailwind purple-600", "#9333ea"), hex("Tailwind purple-700", "#7e22ce"),
+		hex("Bootstrap primary blue", "#0d6efd"),
 	}
 	for _, v := range []struct{ name, value string }{
 		{"Tailwind v4 indigo-400", "oklch(67.3% 0.182 276.935)"}, {"Tailwind v4 indigo-500", "oklch(58.5% 0.233 277.117)"}, {"Tailwind v4 indigo-600", "oklch(51.1% 0.262 276.966)"}, {"Tailwind v4 indigo-700", "oklch(45.7% 0.24 277.023)"},
@@ -105,3 +106,27 @@ func Display(family string) bool { return display[Family(family)] }
 
 // Mono reports monospace families.
 func Mono(family string) bool { return mono[Family(family)] }
+
+// KitTokens are exact values of untouched component-kit themes: shadcn/ui's
+// default HSL tokens (slate and zinc) and its oklch neutrals. Plain white and
+// black are left out; they say nothing. Values are compared with collapsed
+// whitespace and lower case.
+var KitTokens = func() map[string]bool {
+	m := map[string]bool{}
+	for _, v := range []string{
+		// shadcn/ui v3, slate
+		"222.2 84% 4.9%", "222.2 47.4% 11.2%", "210 40% 98%", "210 40% 96.1%", "215.4 16.3% 46.9%", "214.3 31.8% 91.4%", "0 84.2% 60.2%", "212.7 26.8% 83.9%", "217.2 32.6% 17.5%",
+		// shadcn/ui v3, zinc
+		"240 10% 3.9%", "240 5.9% 10%", "0 0% 98%", "240 4.8% 95.9%", "240 3.8% 46.1%", "240 5.9% 90%", "240 3.7% 15.9%", "240 5% 64.9%",
+		// shadcn/ui v4, neutral oklch
+		"oklch(0.145 0 0)", "oklch(0.205 0 0)", "oklch(0.985 0 0)", "oklch(0.97 0 0)", "oklch(0.556 0 0)", "oklch(0.922 0 0)", "oklch(0.708 0 0)", "oklch(0.269 0 0)", "oklch(0.439 0 0)", "oklch(0.577 0.245 27.325)", "oklch(0.704 0.191 22.216)",
+	} {
+		m[v] = true
+	}
+	return m
+}()
+
+// KitToken reports whether a custom property value is a default kit token.
+func KitToken(value string) bool {
+	return KitTokens[strings.ToLower(strings.Join(strings.Fields(value), " "))]
+}

@@ -113,7 +113,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `perf.font-assets` | Warnings: bounded container failures/inspection limits; >128 KiB per retained font, >256 KiB total, >8 MiB declared SFNT size. No glyph/payload sanitization or proven download count. |
 | `perf.viewport` | Warnings: missing/duplicate viewport or disabled zoom |
 | `perf.budgets` | Warnings: total inline + file CSS >20 KiB, JS >50 KiB, >1,500 elements, depth >32 |
-| `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH), gradients whose colored stops are all violet/blue/pink, and the assistant cream + terracotta pair. Rainbow/iridescent gradients, lone off-white paper and lone terracotta stay quiet. |
+| `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH) and Bootstrap primary blue, gradients whose colored stops are all violet/blue/pink, and the assistant cream + terracotta pair. Rainbow/iridescent gradients, lone off-white paper and lone terracotta stay quiet. |
 | `design.gradient-text` | Warnings: text filled by a gradient through `background-clip:text` (CSS or Tailwind classes). Image-filled text is not flagged. |
 | `design.glow` | Warnings: two or more heavily blurred (≥24px) round or radial decorative shapes; zero-offset colored glows on three or more elements. A single orb or glow only feeds `design.defaults`. |
 | `design.eyebrows` | Warnings: a short uppercase label, tracked or small (or named eyebrow/kicker/overline), directly before an h1–h3. Labels containing digits or currency (time, step, price) only feed `design.defaults`. |
@@ -131,6 +131,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.mono` | Warnings: monospace on eight or more non-code labels/captions. Code, outputs, times, data, tables, form controls and SVG text are excluded; three to seven is weak. |
 | `design.proof` | Warnings: generic "trusted by / as seen on / join 10,000+ teams" claims; placeholder image services (pravatar, randomuser, ui-avatars, picsum, placeholder hosts). "Most popular" badges and tilted 3D product mockups are weak. |
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
+| `design.kit` | Warnings: four or more custom properties with exact shadcn/ui default theme values (slate/zinc HSL, v4 oklch neutrals); two or three are weak. |
 | `design.defaults` | Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
 | `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and it's-not-it's constructions (German nicht nur … sondern from three), and ≥4 em dashes above one per hundred words. Quotations, code and data-design-reason subtrees are exempt. |
 | `copy.placeholder` | Warnings: lorem ipsum, TODO/TBD/FIXME (case-sensitive), "your … here" and [insert …] filler in text, alt, title and description metadata; after the starter page is replaced, the lfm init description, social alt text and share image. |

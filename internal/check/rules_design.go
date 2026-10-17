@@ -172,6 +172,34 @@ func (a *designAnalysis) run() {
 	a.sections()
 	a.weakSurfaces()
 	a.contrast()
+	a.kit()
+}
+
+// ---------- component kit ----------
+
+// kit reports a component kit whose theme tokens were never set: several
+// custom properties still hold the kit's exact default values.
+func (a *designAnalysis) kit() {
+	found := map[string]*cssRule{}
+	for _, r := range a.m.rules {
+		for _, dcl := range r.decls {
+			if strings.HasPrefix(dcl.prop, "--") && stock.KitToken(dcl.value) && found[dcl.value] == nil {
+				found[dcl.value] = r
+			}
+		}
+	}
+	switch {
+	case len(found) >= 4:
+		var first *cssRule
+		for _, r := range found {
+			if first == nil || r.order < first.order {
+				first = r
+			}
+		}
+		a.add(designSignal{rule: "design.kit", kind: "untouched component kit", strong: true, css: first, message: fmt.Sprintf("%d theme tokens still hold the component kit's default values (shadcn/ui): the kit was never themed.", len(found)), hint: "Set the tokens from the concept's palette, type and form; the kit's structure may stay."})
+	case len(found) >= 2:
+		a.add(designSignal{rule: "design.kit", kind: "default kit tokens"})
+	}
 }
 
 // ---------- helpers ----------
