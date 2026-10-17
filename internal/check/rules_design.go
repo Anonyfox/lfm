@@ -93,6 +93,21 @@ type designAnalysis struct {
 	m     *styleModel
 	facts *designFacts
 	seen  map[string]bool
+	texts map[*html.Node]string
+}
+
+// text is cleanText memoized for the analysis: the sub-analyses read the text
+// of the same containers many times.
+func (a *designAnalysis) text(n *html.Node) string {
+	if t, ok := a.texts[n]; ok {
+		return t
+	}
+	if a.texts == nil {
+		a.texts = map[*html.Node]string{}
+	}
+	t := cleanText(n)
+	a.texts[n] = t
+	return t
 }
 
 func (a *designAnalysis) add(s designSignal) {
@@ -380,7 +395,7 @@ func (a *designAnalysis) gradientText() {
 		}
 		if clip && grad && transparent {
 			for _, n := range r.matches {
-				if designVisible(n) && cleanText(n) != "" {
+				if designVisible(n) && a.text(n) != "" {
 					a.add(designSignal{rule: "design.gradient-text", kind: "gradient text", strong: true, node: n, message: fmt.Sprintf("Gradient-filled text %s (background-clip:text): a top generated-page tell.", label(n)), hint: "Carry emphasis with size, weight, position or a solid color."})
 				}
 			}
@@ -494,7 +509,7 @@ func (a *designAnalysis) eyebrows() {
 		default:
 			continue
 		}
-		t := cleanText(e)
+		t := a.text(e)
 		if t == "" || wordCount(t) > 9 || len([]rune(t)) > 64 || len(elementChildren(e)) > 3 {
 			continue
 		}
@@ -505,7 +520,7 @@ func (a *designAnalysis) eyebrows() {
 		if !(upper && (tracked || small)) && !named {
 			continue
 		}
-		informative := strings.ContainsAny(t, "0123456789€$£¥%") && !repeatsHeading(t, cleanText(h))
+		informative := strings.ContainsAny(t, "0123456789€$£¥%") && !repeatsHeading(t, a.text(h))
 		if informative {
 			a.add(designSignal{rule: "design.eyebrows", kind: "label above heading", node: e})
 			continue
@@ -583,7 +598,7 @@ func (a *designAnalysis) typography() {
 			continue
 		}
 		for _, c := range elementChildren(h) {
-			t := cleanText(c)
+			t := a.text(c)
 			if t == "" || wordCount(t) > 2 || c.Data == "br" || classes(c)["visually-hidden"] || classes(c)["sr-only"] {
 				continue
 			}
@@ -629,11 +644,11 @@ func (a *designAnalysis) emoji() {
 		switch n.Data {
 		case "h1", "h2", "h3", "h4", "h5", "h6", "button", "summary", "label", "legend", "th", "dt":
 		case "a":
-			if wordCount(cleanText(n)) > 8 {
+			if wordCount(a.text(n)) > 8 {
 				continue
 			}
 		case "li":
-			t := cleanText(n)
+			t := a.text(n)
 			if r, ok := hasEmoji(firstRunes(t, 3)); ok && designVisible(n) {
 				a.add(designSignal{rule: "design.emoji", kind: "emoji as interface", strong: true, node: n, message: fmt.Sprintf("Emoji %q used as a list bullet in %s.", string(r), label(n)), hint: "Use typographic bullets, numbers or a real glyph that names the item."})
 			}
@@ -644,7 +659,7 @@ func (a *designAnalysis) emoji() {
 		if !designVisible(n) {
 			continue
 		}
-		if r, ok := hasEmoji(cleanText(n)); ok {
+		if r, ok := hasEmoji(a.text(n)); ok {
 			msg := fmt.Sprintf("Emoji %q in <%s> %s: emoji as interface decoration reads as generated.", string(r), n.Data, label(n))
 			if r == 0x2728 {
 				msg = fmt.Sprintf("Sparkle ✨ in <%s> %s: the generic 'AI/new' glyph.", n.Data, label(n))
@@ -695,7 +710,7 @@ func (a *designAnalysis) hero() {
 		}
 		if n.Type == html.ElementNode && designVisible(n) {
 			if before && badge == nil && n.Data != "a" && n.Data != "img" && n.Data != "svg" {
-				t := cleanText(n)
+				t := a.text(n)
 				if t != "" && wordCount(t) <= 7 && len(elementChildren(n)) <= 3 {
 					radius := a.prop(n, "border-radius")
 					pill := classes(n)["rounded-full"] || strings.Contains(radius, "999") || strings.Contains(radius, "50%") || lengthPx(radius) >= 100
@@ -791,8 +806,8 @@ func (a *designAnalysis) grids() {
 			stats, round := 0, 0
 			for _, k := range g {
 				for _, e := range append([]*html.Node{k}, descendants(k)...) {
-					t := cleanText(e)
-					if len(elementChildren(e)) == 0 && len(t) <= 12 && statNumber.MatchString(t) && e.Data != "output" && e.Data != "time" && cleanText(k) != t {
+					t := a.text(e)
+					if len(elementChildren(e)) == 0 && len(t) <= 12 && statNumber.MatchString(t) && e.Data != "output" && e.Data != "time" && a.text(k) != t {
 						stats++
 						if strings.ContainsAny(t, "+%kKMB") || strings.HasSuffix(strings.ReplaceAll(t, ",", ""), "000") || strings.HasPrefix(t, "99.9") {
 							round++
@@ -811,7 +826,7 @@ func (a *designAnalysis) grids() {
 			}
 			numbered := 0
 			for i, k := range g {
-				if strings.HasPrefix(cleanText(k), fmt.Sprintf("0%d", i+1)) {
+				if strings.HasPrefix(a.text(k), fmt.Sprintf("0%d", i+1)) {
 					numbered++
 				}
 			}
@@ -1063,10 +1078,10 @@ func (a *designAnalysis) arrows() {
 		if n.Data != "a" && n.Data != "button" || !designVisible(n) {
 			continue
 		}
-		if p := n.Parent; p != nil && (p.Data == "p" || p.Data == "li") && wordCount(cleanText(p)) > wordCount(cleanText(n))+3 {
+		if p := n.Parent; p != nil && (p.Data == "p" || p.Data == "li") && wordCount(a.text(p)) > wordCount(a.text(n))+3 {
 			continue // links inside prose
 		}
-		t := cleanText(n)
+		t := a.text(n)
 		if t == "" {
 			continue
 		}
@@ -1100,7 +1115,7 @@ func (a *designAnalysis) separators() {
 			if c.Type != html.TextNode {
 				continue
 			}
-			if strings.Count(c.Data, " · ")+strings.Count(c.Data, " • ") >= 1 && strings.Count(cleanText(n), "·")+strings.Count(cleanText(n), "•") >= 2 {
+			if strings.Count(c.Data, " · ")+strings.Count(c.Data, " • ") >= 1 && strings.Count(a.text(n), "·")+strings.Count(a.text(n), "•") >= 2 {
 				count++
 				if first == nil {
 					first = n
@@ -1188,7 +1203,7 @@ func (a *designAnalysis) chrome() {
 		}
 		empty := 0
 		for _, k := range kids[:3] {
-			if cleanText(k) == "" && len(elementChildren(k)) == 0 {
+			if a.text(k) == "" && len(elementChildren(k)) == 0 {
 				empty++
 			}
 		}
@@ -1263,7 +1278,7 @@ func (a *designAnalysis) sections() {
 		if !isHeading(n) {
 			continue
 		}
-		t := cleanText(n)
+		t := a.text(n)
 		switch {
 		case howItWorks.MatchString(t):
 			found["how it works"] = true
@@ -1325,7 +1340,7 @@ func (a *designAnalysis) contrast() {
 		return okColor{}, false
 	}
 	for _, p := range a.d.Elements {
-		if p.Data != "p" || !designVisible(p) || wordCount(cleanText(p)) < 8 {
+		if p.Data != "p" || !designVisible(p) || wordCount(a.text(p)) < 8 {
 			continue
 		}
 		bg, ok := backdrop(p)
