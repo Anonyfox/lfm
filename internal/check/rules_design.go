@@ -1353,6 +1353,9 @@ func designDefaultsRule(d *Document) []Diagnostic {
 	f := d.design()
 	strongKinds, weakKinds := map[string]bool{}, map[string]bool{}
 	for _, s := range f.signals {
+		if d.Options.Rules[s.rule] == Off {
+			continue // a rule the project turned off does not count toward the combination
+		}
 		if s.strong {
 			strongKinds[s.kind] = true
 		} else {

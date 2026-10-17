@@ -141,3 +141,23 @@ func TestDesignCombination(t *testing.T) {
 	// weak signals alone stay quiet below five kinds
 	expectDesign(t, "design.defaults", 0, `<style>h1{text-align:center}</style><h1>Centered</h1><a href="#a">A →</a><a href="#b">B →</a>`)
 }
+
+func TestDesignCombinationIgnoresRulesTurnedOff(t *testing.T) {
+	page := "<!doctype html><html><head><title>t</title></head><body><main>" + eyebrowCSS +
+		`<style>.cta{background:#6366f1}body{font-family:Inter}</style><p class="k">Features</p><h1>Ship fast</h1><h2>🚀 Launch</h2><a class="cta" href="#a">Start →</a><a href="#b">Docs →</a><a href="#c">More →</a><a href="#d">x</a>` +
+		"</main></body></html>"
+	off := map[string]Severity{"design.palette": Off, "design.eyebrows": Off, "design.emoji": Off, "design.arrows": Off, "design.type": Off}
+	d, err := Parse([]byte(page), Options{Rules: off})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rule := range DefaultRules() {
+		if rule.ID == "design.defaults" {
+			if got := Run(d, []Rule{rule}, off).Diagnostics; len(got) != 0 {
+				t.Fatalf("signals of disabled rules still counted: %v", got[0].Message)
+			}
+			return
+		}
+	}
+	t.Fatal("design.defaults missing")
+}

@@ -266,11 +266,8 @@ func documentRule(d *Document) []Diagnostic {
 	if doctypes != 1 {
 		issues = append(issues, d.Whole(Error, fmt.Sprintf("Expected one HTML5 doctype, found %d.", doctypes), "Start the document with <!doctype html>."))
 	}
-	for _, tag := range []string{"html", "head", "body"} {
-		if count := len(d.selectNodes(tag)); count != 1 {
-			issues = append(issues, d.Whole(Error, fmt.Sprintf("Expected one <%s>, found %d.", tag, count), "Produce one complete HTML document."))
-		}
-	}
+	// The parser always yields exactly one html, head and body; duplicate start
+	// tags in the source are reported by html.syntax from the token stream.
 	charsets := d.activeNodes("meta[charset]")
 	if len(charsets) == 0 {
 		issues = append(issues, d.Whole(Warning, "No explicit UTF-8 encoding declaration.", "Put <meta charset=\"utf-8\"> first in head; the server must also serve UTF-8."))
