@@ -99,9 +99,11 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `a11y.relationships` | Errors: known non-labelable for targets, extra/mismatched controls inside labels, wrong form/list/popover/table-header target types. Missing IDs belong to html.references; form-associated custom elements are not rejected. |
 | `a11y.aria` | Warnings: focused ARIA token/numeric grammar, ranges and missing checked/slider/combobox state. Native state/defaults, optional empty states, unknown/new attributes and indeterminate progress remain allowed. |
 | `a11y.focus` | Warnings: invalid/positive tabindex, duplicate autofocus within a scope, tab candidates under aria-hidden, custom standalone controls without a static focus path, and non-semantic click targets. Inactive HTML, disabled fieldsets/legend exceptions, managed composites and delegated container handlers are distinguished. |
+| `a11y.link-purpose` | Warnings: two or more visible links with one accessible name and different href values. |
 | `ux.forms` | Warnings: ambiguous/invalid form-button types and malformed numeric bounds/steps/starting values; native invokers and explicit form owners are recognized. |
 | `ux.disclosures` | Warning: missing authored summary. Errors: multiple/misplaced native summaries or built-in dialog/popover commands targeting the wrong element type. |
 | `ux.media` | Warnings: media requests autoplay without initial mute; actual audio, duration and playback policy need browser review. |
+| `ux.reduced-motion` | Warning: moving keyframes, scroll-driven animation, smooth scrolling, transform transitions ≥400 ms or scripted transform animations without any prefers-reduced-motion query in styles or scripts. Opacity/color animation is not motion. |
 | `perf.html-size` | Warning at 1,800,000 bytes; error above 2,000,000 uncompressed bytes |
 | `perf.inline-assets` | Warnings: >32 KiB embedded contributions and embedded srcset candidates |
 | `perf.images` | Warnings: unreserved image dimensions, conflicting lazy/high priority, substantial lazy inline images |
@@ -129,6 +131,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.proof` | Warnings: generic "trusted by / as seen on / join 10,000+ teams" claims; placeholder image services (pravatar, randomuser, ui-avatars, picsum, placeholder hosts). "Most popular" badges and tilted 3D product mockups are weak. |
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
 | `design.defaults` | Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
+| `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and it's-not-it's constructions (German nicht nur … sondern from three), and ≥4 em dashes above one per hundred words. Quotations, code and data-design-reason subtrees are exempt. |
 | `concept.fidelity` | Warning: with a concept.md, font families not declared in its Type table or declared and unused, CSS colors outside the palette (tints and translucent black/white allowed), planned imagery missing from the page. |
 
 Size thresholds use decimal bytes conservatively, following the current

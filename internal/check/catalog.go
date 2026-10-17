@@ -134,6 +134,9 @@ func DefaultRules() []Rule {
 			focusRule),
 
 		// ux
+		rule("a11y.link-purpose", "Links with the same name lead to the same place",
+			"Warns when two or more visible links share an accessible name but point at different destinations, such as two \"Buy\" links for two offers or several \"Learn more\" links. People scanning, screen readers listing links and agents choosing one cannot tell them apart. Name each link by its destination or offer; a short visible label can carry the full name in aria-label.",
+			linkPurposeRule),
 		rule("ux.forms", "Form buttons declare their intent and numeric inputs have valid bounds and defaults",
 			"Warns for buttons with an empty, invalid or implicit submit type inside a form, and for numeric inputs with malformed min, max, step or value, min above max, or a starting value outside the bounds. An implicit submit reloads the page when someone presses a calculator button, and bad bounds make the input impossible to complete. Set type=button or type=submit explicitly and use plain HTML numbers; keep units in labels.",
 			formsRule),
@@ -143,6 +146,10 @@ func DefaultRules() []Rule {
 		rule("ux.media", "Autoplaying audio or video starts muted",
 			"Warns when audio or video has autoplay without muted. Browsers block unmuted autoplay, and sound that starts on its own drives visitors away and fails accessibility guidance. Add muted or let the visitor start playback, and provide a way to pause or stop.",
 			mediaInteractionRule),
+
+		rule("ux.reduced-motion", "Pages that move things also honor the reduced-motion preference",
+			"Warns when keyframe animations that move elements, scroll-driven animations, smooth scrolling, transform transitions of 400 ms or more, or scripted element.animate() transforms exist but no stylesheet or script mentions prefers-reduced-motion. Opacity and color changes are not counted. Visitors with vestibular disorders set this preference because movement makes them ill. Add @media (prefers-reduced-motion: reduce) with the reduced state the concept defines, or check matchMedia in the script.",
+			reducedMotionRule),
 
 		// perf
 		rule("perf.html-size", "Uncompressed HTML stays under 2,000,000 bytes, warning from 1,800,000",
@@ -228,6 +235,11 @@ func DefaultRules() []Rule {
 		rule("design.defaults", "Several generator-default design signals combining on one page",
 			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified.",
 			designDefaultsRule),
+		// copy
+		rule("copy.tells", "Visible copy avoids the stock phrases and dash habit of generated text",
+			"Warns for stock phrases of generated copy (\"in today's fast-paced world\", \"unlock the power\", \"look no further\", \"seamless experience\", \"tauchen Sie ein\", \"im digitalen Zeitalter\" and similar), for repeated \"not just X, but Y\" and \"it's not X, it's Y\" constructions, and for four or more em dashes at more than one per hundred words. Each pattern is narrow: ordinary uses of single words are not matched. Visitors recognize these phrases as unedited machine text. Replace each with the concrete fact or situation it stands for. Text in blockquote, q, code and subtrees with data-design-reason is not checked, so real buyer quotes stay verbatim.",
+			copyTellsRule),
+
 		rule("concept.fidelity", "The page uses the typefaces, palette and imagery concept.md declares",
 			"When the project has a concept.md, every font family on the page must be declared in its Type table and every declared one used, every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading, and planned imagery must appear. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
 			conceptFidelityRule),
