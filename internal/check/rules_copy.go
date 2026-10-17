@@ -3,6 +3,7 @@ package check
 import (
 	"crypto/sha256"
 	"fmt"
+	"strconv"
 	"regexp"
 	"sort"
 	"strings"
@@ -400,8 +401,8 @@ func cssTime(s string) (float64, bool) {
 	default:
 		return 0, false
 	}
-	var v float64
-	if _, err := fmt.Sscanf(s, "%g", &v); err != nil {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
 		return 0, false
 	}
 	return v * unit, true
@@ -479,8 +480,7 @@ func keyframes(css string) map[string]keyframe {
 // zero reports whether a CSS number or percentage is zero.
 func zero(v string) bool {
 	v = strings.TrimSuffix(strings.TrimSpace(strings.TrimSuffix(v, "!important")), "%")
-	var f float64
-	_, err := fmt.Sscanf(v, "%g", &f)
+	f, err := strconv.ParseFloat(v, 64)
 	return err == nil && f == 0
 }
 
