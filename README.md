@@ -27,7 +27,13 @@ lfm serve --open        # live preview, recompiles on every save
 lfm compile             # check everything and write output/
 lfm compile --release   # also measure in headless Chrome and Lighthouse
 lfm rules               # every check; lfm rules <id> explains one
+lfm skills              # the agent skills: research, design, implementation
 ```
+
+An agent builds a page in three phases, each with a skill it prints or installs: **research** collects
+real buyer voices and competitor pages into `research/`, **design** turns them into `concept.md` with
+every decision cited, and **implementation** builds the page from it and reviews every frame. The
+compiler checks each handover, so a phase that skips its homework shows up as findings.
 
 `output/` is the finished page: upload it to any static host at the URL configured in `lfm.json`.
 
