@@ -198,6 +198,47 @@ func wordCount(s string) int { return len(strings.Fields(s)) }
 
 func cleanText(n *html.Node) string { return strings.Join(strings.Fields(Text(n)), " ") }
 
+// webRefs drops data: URLs from a src or srcset value, keeping the rest.
+func webRefs(v string) string {
+	if !strings.Contains(v, "data:") {
+		return v
+	}
+	var keep []string
+	for _, part := range strings.Fields(v) {
+		if !strings.HasPrefix(strings.ToLower(part), "data:") {
+			keep = append(keep, part)
+		}
+	}
+	return strings.Join(keep, " ")
+}
+
+// shortText returns the whitespace-collapsed text of n when it has at most
+// limit bytes of raw text, and false without reading further otherwise.
+func shortText(n *html.Node, limit int) (string, bool) {
+	var b strings.Builder
+	var walk func(*html.Node) bool
+	walk = func(x *html.Node) bool {
+		for c := x.FirstChild; c != nil; c = c.NextSibling {
+			switch c.Type {
+			case html.TextNode:
+				if b.Len()+len(c.Data) > limit {
+					return false
+				}
+				b.WriteString(c.Data)
+			case html.ElementNode:
+				if !walk(c) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	if !walk(n) {
+		return "", false
+	}
+	return strings.Join(strings.Fields(b.String()), " "), true
+}
+
 // shownText omits visually hidden helper text (screen-reader-only spans).
 func shownText(n *html.Node) string {
 	var b strings.Builder
@@ -1164,8 +1205,13 @@ var placeholderMedia = regexp.MustCompile(`(?i)(pravatar\.cc|randomuser\.me|ui-a
 
 func (a *designAnalysis) proof() {
 	for _, n := range a.d.Elements {
-		if (n.Data == "img" || n.Data == "source") && placeholderMedia.MatchString(Attr(n, "src")+" "+Attr(n, "srcset")) && a.once("placeholder media") {
-			a.add(designSignal{rule: "design.proof", kind: "placeholder people/images", strong: true, node: n, message: "Placeholder image service in the page (" + placeholderMedia.FindString(Attr(n, "src")+" "+Attr(n, "srcset")) + "): stand-in faces or photos read as fabricated proof.", hint: "Use real, permitted photos of the actual people/product, or no image."})
+		if n.Data == "img" || n.Data == "source" {
+			// placeholder services are web addresses; embedded data URLs never are,
+			// and scanning their megabytes would dominate the whole check
+			refs := webRefs(Attr(n, "src") + " " + Attr(n, "srcset"))
+			if found := placeholderMedia.FindString(refs); found != "" && a.once("placeholder media") {
+				a.add(designSignal{rule: "design.proof", kind: "placeholder people/images", strong: true, node: n, message: "Placeholder image service in the page (" + found + "): stand-in faces or photos read as fabricated proof.", hint: "Use real, permitted photos of the actual people/product, or no image."})
+			}
 		}
 		if n.Data == "img" && !reasoned(n) {
 			for p := n; p != nil && p.Type == html.ElementNode && p.Data != "section" && p.Data != "main"; p = p.Parent {
@@ -1183,7 +1229,11 @@ func (a *designAnalysis) proof() {
 		if !designVisible(n) || (n.Data != "h2" && n.Data != "h3" && n.Data != "p" && n.Data != "span" && n.Data != "div" && n.Data != "strong") || len(elementChildren(n)) > 4 {
 			continue
 		}
-		t := cleanText(n)
+		// proof claims and badges are short labels; long text never is one
+		t, short := shortText(n, 160)
+		if !short {
+			continue
+		}
 		if wordCount(t) <= 14 && proofClaim.MatchString(t) && a.once("proof") {
 			a.add(designSignal{rule: "design.proof", kind: "proof furniture", strong: true, node: n, message: fmt.Sprintf("Generic proof claim %s: stock 'trusted by' furniture.", label(n)), hint: "Show verifiable proof beside the claim it supports, or remove it (see guides/content-copy.md)."})
 		}
