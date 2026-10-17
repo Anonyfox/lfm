@@ -1,6 +1,7 @@
 package check
 
 import (
+	"crypto/sha256"
 	"strings"
 	"testing"
 )
@@ -119,5 +120,41 @@ func TestLinkPurpose(t *testing.T) {
 				t.Fatalf("want finding %v, got %+v", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestPlaceholders(t *testing.T) {
+	for name, tc := range map[string]struct {
+		head, body string
+		want       string
+	}{
+		"lorem":         {"", `<p>Lorem ipsum dolor sit amet.</p>`, "Lorem ipsum"},
+		"todo marker":   {"", `<h2>TODO: price</h2>`, "TODO"},
+		"todo word":     {"", `<p>Your todo list, sorted.</p>`, ""},
+		"your here":     {"", `<h1>Your headline here</h1>`, "Your headline here"},
+		"insert":        {"", `<p>Call us at [insert phone].</p>`, "[insert phone]"},
+		"alt":           {"", `<img src=a.png alt="TBD">`, "alternative text"},
+		"meta":          {`<meta name=description content="Lorem ipsum">`, "", "metadata"},
+		"quote exempt":  {"", `<blockquote>TODO was all he wrote</blockquote>`, ""},
+		"starter text":  {`<meta property="og:image:alt" content="Placeholder preview: replace it.">`, "", "Placeholder preview"},
+		"plain content": {"", `<p>Basil wants six hours of sun.</p>`, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := runOn(t, placeholderRule, tc.head, tc.body, Options{StarterTexts: []string{"Placeholder preview: replace it."}})
+			if tc.want == "" {
+				if len(got) != 0 {
+					t.Fatalf("unexpected: %+v", got)
+				}
+				return
+			}
+			if len(got) != 1 || !strings.Contains(got[0].Message, tc.want) {
+				t.Fatalf("want one finding with %q, got %+v", tc.want, got)
+			}
+		})
+	}
+	img := []byte("starter-png")
+	got := runOn(t, placeholderRule, "", "", Options{Assets: map[string][]byte{"share-1.png": img}, StarterImages: [][32]byte{sha256.Sum256(img)}})
+	if len(got) != 1 || !strings.Contains(got[0].Message, "share-1.png is still the starter") {
+		t.Fatalf("%+v", got)
 	}
 }

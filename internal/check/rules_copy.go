@@ -1,6 +1,7 @@
 package check
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"slices"
@@ -507,4 +508,83 @@ func linkPurposeRule(d *Document) []Diagnostic {
 			"Name each link by where it goes or what it buys (\"Buy the starter kit\", \"Read the method\"); a visually short label can carry the full name in aria-label."))
 	}
 	return issues
+}
+
+// ---------- copy.placeholder ----------
+
+// Template filler is matched case-sensitively where case carries the meaning
+// (TODO, TBD, FIXME are markers; "todo" is a word).
+var placeholderText = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)\blorem ipsum\b`),
+	regexp.MustCompile(`\b(?:TODO|TBD|FIXME)\b`),
+	regexp.MustCompile(`(?i)\byour (?:headline|tagline|title|text|copy|name|company|product|description|logo) (?:goes )?here\b`),
+	regexp.MustCompile(`(?i)\[(?:insert|add|your|placeholder)[^\]]{0,40}\]`),
+}
+
+// placeholderRule reports template filler in visible text, alternative text and
+// metadata, and the starter description, alt text and image of lfm init once
+// the starter page itself has been replaced.
+func placeholderRule(d *Document) []Diagnostic {
+	var issues []Diagnostic
+	seen := map[string]bool{}
+	report := func(n *html.Node, what, found string) {
+		if seen[found] {
+			return
+		}
+		seen[found] = true
+		issues = append(issues, d.At(n, Warning, fmt.Sprintf("Placeholder %s left in the page: %q.", what, preview(found)), "Replace it with the real content; a page with filler reads as unfinished, and search and share previews show it."))
+	}
+	check := func(n *html.Node, what, text string) {
+		for _, re := range placeholderText {
+			if m := re.FindString(text); m != "" {
+				report(n, what, m)
+				return
+			}
+		}
+		for _, starter := range d.Options.StarterTexts {
+			if starter != "" && strings.Contains(text, starter) {
+				report(n, what, starter)
+				return
+			}
+		}
+	}
+	for _, s := range copySegments(d) {
+		check(s.node, "text", s.text)
+	}
+	for _, n := range d.Elements {
+		if inTemplate(n) {
+			continue
+		}
+		switch {
+		case n.Data == "img" || n.Data == "area" || (n.Data == "input" && strings.EqualFold(Attr(n, "type"), "image")):
+			check(n, "alternative text", Attr(n, "alt"))
+		case n.Data == "meta":
+			key := strings.ToLower(Attr(n, "name") + Attr(n, "property"))
+			if key == "description" || strings.HasSuffix(key, ":description") || strings.HasSuffix(key, ":title") || strings.HasSuffix(key, ":alt") {
+				check(n, "metadata", Attr(n, "content"))
+			}
+		case n.Data == "title" && n.Namespace == "":
+			check(n, "title", Text(n))
+		}
+	}
+	if len(d.Options.StarterImages) > 0 {
+		names := sortedNames(d.Options.Assets)
+		for _, name := range names {
+			sum := sha256.Sum256(d.Options.Assets[name])
+			for _, starter := range d.Options.StarterImages {
+				if sum == starter {
+					issues = append(issues, d.Whole(Warning, fmt.Sprintf("%s is still the starter placeholder image of lfm init.", name), "Make a social image that shows the offer at thumbnail size and point socialImage.src in lfm.json at it."))
+				}
+			}
+		}
+	}
+	return issues
+}
+
+func preview(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > 60 {
+		return string(r[:59]) + "…"
+	}
+	return s
 }

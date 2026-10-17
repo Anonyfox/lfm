@@ -240,6 +240,10 @@ func DefaultRules() []Rule {
 			"Warns for stock phrases of generated copy (\"in today's fast-paced world\", \"unlock the power\", \"look no further\", \"seamless experience\", \"tauchen Sie ein\", \"im digitalen Zeitalter\" and similar), for repeated \"not just X, but Y\" and \"it's not X, it's Y\" constructions, and for four or more em dashes at more than one per hundred words. Each pattern is narrow: ordinary uses of single words are not matched. Visitors recognize these phrases as unedited machine text. Replace each with the concrete fact or situation it stands for. Text in blockquote, q, code and subtrees with data-design-reason is not checked, so real buyer quotes stay verbatim.",
 			copyTellsRule),
 
+		rule("copy.placeholder", "No template filler, starter text or starter image is left in the page",
+			"Warns for lorem ipsum, TODO, TBD and FIXME markers, \"your headline here\" and [insert …] filler in visible text, alternative text, the title and description metadata; and, once the starter page of lfm init has been replaced, for its starter description, social image alt text and social image. Filler shipped reads as an unfinished or generated page, and search and share previews show it first. Replace each with the real content.",
+			placeholderRule),
+
 		rule("concept.fidelity", "The page uses the typefaces, palette and imagery concept.md declares",
 			"When the project has a concept.md, every font family on the page must be declared in its Type table and every declared one used, every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading, and planned imagery must appear. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
 			conceptFidelityRule),

@@ -50,6 +50,10 @@ type Options struct {
 	Assets                            map[string][]byte // exact sidecar bytes keyed by emitted filename; no filesystem/network reads
 	Commerce                          commercecheck.Facts
 	Concept                           *ConceptFacts // decisions of concept.md, when the project has one
+	// Starter texts and images (SHA-256) of lfm init a built page must have
+	// replaced; empty while the page is still the starter page.
+	StarterTexts  []string
+	StarterImages [][32]byte
 }
 
 type Report struct {

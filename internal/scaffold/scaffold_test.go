@@ -120,3 +120,28 @@ func TestStarterPageIsRecognizedUntilEdited(t *testing.T) {
 		t.Fatal("an edited template is not the starter page")
 	}
 }
+
+func TestBuiltPageMustReplaceStarterTexts(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "herbs")
+	if _, err := Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	tmpl := filepath.Join(dir, "index.html.tmpl")
+	raw, _ := os.ReadFile(tmpl)
+	if err := os.WriteFile(tmpl, []byte(strings.Replace(string(raw), "<main>", "<main><p>Basil wants six hours of sun.</p>", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result, _ := compile.Compile(context.Background(), dir, compile.Options{})
+	var messages []string
+	for _, d := range result.Validation.Diagnostics {
+		if d.Rule == "copy.placeholder" {
+			messages = append(messages, d.Message)
+		}
+	}
+	joined := strings.Join(messages, "\n")
+	for _, want := range []string{"One sentence: who this page is for", "Placeholder preview", "still the starter placeholder image"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in\n%s", want, joined)
+		}
+	}
+}

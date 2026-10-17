@@ -164,6 +164,11 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	c := loaded.Config
 	result.PageURL = c.URL
 	findings, facts := checkResearch(p, &result, c.Build.Validation.Rules)
+	var starterTexts []string
+	var starterImages [][32]byte
+	if page, err := p.Read(project.TemplateFile); err == nil && !scaffold.IsStarterPage(page) {
+		starterTexts, starterImages = scaffold.Placeholders()
+	}
 
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
@@ -222,6 +227,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		ExternalCSSBytes: result.Cost.ExternalCSSBytes, ExternalJSBytes: result.Cost.ExternalJSBytes,
 		Rules: c.Build.Validation.Rules, Images: result.Images, FontAssets: b.fonts,
 		Stylesheets: b.cssAssets(), Commerce: prepared.Commerce, Concept: facts,
+		StarterTexts: starterTexts, StarterImages: starterImages,
 	})
 	result.Validation = summarize("html", append(append(preliminary.Diagnostics, analysis.Diagnostics...), diagnostic.Apply(b.notices, c.Build.Validation.Rules)...))
 	result.Validation.Stats = analysis.Stats

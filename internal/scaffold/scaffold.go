@@ -4,7 +4,9 @@ package scaffold
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -130,4 +132,24 @@ func IsStarterPage(template []byte) bool {
 	}
 	normalize := func(b []byte) []byte { return bytes.TrimSpace(bytes.ReplaceAll(b, []byte("\r\n"), []byte("\n"))) }
 	return bytes.Equal(normalize(template), normalize(starter))
+}
+
+// Placeholders are the starter texts and image of lfm init that a finished
+// page must have replaced: the description, the social image alt text and the
+// social image itself.
+func Placeholders() (texts []string, images [][32]byte) {
+	raw, err := files.ReadFile("files/lfm.json")
+	if err == nil {
+		var c struct {
+			Description string
+			SocialImage struct{ Alt string }
+		}
+		if json.Unmarshal(raw, &c) == nil {
+			texts = append(texts, c.Description, c.SocialImage.Alt)
+		}
+	}
+	if png, err := files.ReadFile("files/assets/images/share.png"); err == nil {
+		images = append(images, sha256.Sum256(png))
+	}
+	return texts, images
 }

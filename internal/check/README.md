@@ -132,6 +132,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
 | `design.defaults` | Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
 | `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and it's-not-it's constructions (German nicht nur … sondern from three), and ≥4 em dashes above one per hundred words. Quotations, code and data-design-reason subtrees are exempt. |
+| `copy.placeholder` | Warnings: lorem ipsum, TODO/TBD/FIXME (case-sensitive), "your … here" and [insert …] filler in text, alt, title and description metadata; after the starter page is replaced, the lfm init description, social alt text and share image. |
 | `concept.fidelity` | Warning: with a concept.md, font families not declared in its Type table or declared and unused, CSS colors outside the palette (tints and translucent black/white allowed), planned imagery missing from the page. |
 
 Size thresholds use decimal bytes conservatively, following the current
