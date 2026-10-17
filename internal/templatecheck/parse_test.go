@@ -39,7 +39,7 @@ func TestRenderExecutionFallback(t *testing.T) {
 	}
 }
 func TestResourceLimits(t *testing.T) {
-	for _, source := range []string{`{{range 100001}}{{.}}{{end}}`, `{{range 60000}}x{{.}}{{end}}`} {
+	for _, source := range []string{`{{range 100001}}{{.}}{{end}}`, `{{range 60000}}x{{.}}{{end}}`, `{{range 100000}}{{range 100000}}{{end}}{{end}}`} {
 		_, s, _ := fixture(t, source, `{}`, nil)
 		if s.Errors != 1 || !strings.Contains(messages(s), "100,000") {
 			t.Fatal(messages(s))

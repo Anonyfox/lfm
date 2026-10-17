@@ -345,6 +345,11 @@ func (c *checker) rangeNode(t *htmltemplate.Template, n *parse.RangeNode, env *e
 	}
 	stopped := false
 	for _, entry := range items {
+		// Count iterations too: an empty body ticks no nodes, so nested ranges
+		// would otherwise multiply unchecked.
+		if !c.tick(n) {
+			break
+		}
 		body := scope.scope(!active || stopped)
 		body.dot = entry.value
 		bind(body, entry.key, entry.value)
