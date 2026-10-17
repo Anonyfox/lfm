@@ -169,6 +169,9 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 	if rt := r.Audit.Runtime; rt != nil && rt.Status == "ok" {
 		fmt.Fprintf(w, "  %s %s, %s in %s\n", term.Pad("browser", 12), rt.Chrome, term.Plural(len(rt.Problems), "runtime problem"), fmt.Sprintf("%d ms", rt.DurationMS))
 	}
+	if rt := r.Audit.Runtime; rt != nil && rt.Layout != nil && rt.Layout.Count > 0 {
+		fmt.Fprintf(w, "  %s %s, %s\n", term.Pad("frames", 12), term.Plural(rt.Layout.Count, "screenshot"), s.Dim("read them top to bottom: "+rt.Layout.Frames))
+	}
 	if lh := r.Audit.Lighthouse; lh != nil && lh.Status == "ok" {
 		fmt.Fprintf(w, "  %s performance %s · accessibility %s · best practices %s · SEO %s\n", term.Pad("lighthouse", 12),
 			score(lh.Scores["performance"]), score(lh.Scores["accessibility"]), score(lh.Scores["best-practices"]), score(lh.Scores["seo"]))

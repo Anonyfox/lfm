@@ -19,12 +19,20 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 | `assets/` | Styles, scripts, images and fonts referenced from the template |
 | `data/` | Optional JSON files, available as `.data.<file name>` |
 | `research/` | `human-voices.md` and `competitor-analysis.md`: real sources, verbatim |
+| `concept.md` | The design decisions, written by the design skill and cited to research |
 | `output/` | The compiled page. Never edit it; deploy it as is |
 
 ## Working rules
 
-- Research first: follow `lfm skills research` to fill `research/` with real, verbatim sources before
-  designing, and again whenever new customer signals arrive.
+Every page goes through three phases, each with its own skill (`lfm skills <topic>` prints it):
+
+1. **research**: real buyer voices and competitor pages into `research/`, verbatim and dated.
+2. **design**: `concept.md` from the research, the only brief for the page; every decision cites research.
+3. **implementation**: the page from `concept.md`, iterated until it compiles clean and every frame of
+   `lfm compile --release` holds up on phone and desktop.
+
+- Never skip a phase: a page built without research and a concept is the typical generated page.
+- New customer signals go into research first, then into `concept.md` with a changelog entry, then the page.
 - Reference local files from the template; `{{style "…"}}` and `{{script "…"}}` bundle CSS and JS.
 - Keep product facts in `lfm.json` under `data`, not hardcoded in markup.
 - The page must compile with 0 errors and 0 warnings. Silence a design check only with

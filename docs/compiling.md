@@ -5,13 +5,13 @@ of them report through the same findings, so a single run lists everything that 
 
 | Stage | Work |
 | --- | --- |
-| load | Read `lfm.json` and `data/`; every config problem is reported at its JSON key. Check the research files. |
+| load | Read `lfm.json` and `data/`; every config problem is reported at its JSON key. Check the research files and `concept.md`. |
 | prepare | Check every template binding, link and offer statically, then render the page. |
 | assemble | Resolve, bundle and pack every referenced resource; inspect images and fonts. |
 | optimize | `--release` only: split critical CSS after measuring it in headless Chrome. |
 | finalize | Serialize and compact the HTML. |
 | verify | Run every check on the exact bytes that will be written. |
-| audit | `--release` only: a runtime probe and, when installed, Lighthouse. |
+| audit | `--release` only: a runtime probe, the layout audit and, when installed, Lighthouse. |
 | publish | Replace `output/` with one rename. |
 
 Nothing is written before verify passes. A failed compile keeps the previous `output/` and exits with code 1.
@@ -52,8 +52,12 @@ Ctrl-C stops a compile between stages; a stopped compile never publishes.
 1. **Critical CSS** (45 s limit): the first screen is rendered at 390×844, 768×1024 and 1440×900; the rules it
    uses stay in the head and the complete stylesheet loads after. The split is verified pixel by pixel and
    applied only when it removes at least 2 KiB and 20% of render-blocking CSS.
-2. **Runtime probe** (15 s): the page runs with its scripts in a fresh Chrome profile; exceptions and missing
-   files are reported. Outside requests are blocked; forms and orders are never submitted.
+2. **Runtime probe and layout audit** (90 s): the page runs with its scripts in a fresh Chrome profile;
+   exceptions and missing files are reported. Then the page is scrolled by half a screen at a time at 390×844,
+   1280×680 and 1440×900, finite animations settle, and every frame is saved as a screenshot in the system
+   temp directory (the report prints the folder). Stretches without legible text or image, sideways
+   scrolling and numbers split from their units are reported (`release.layout`). Outside requests are
+   blocked; nothing is clicked, typed or submitted.
 3. **Lighthouse** (45 s, when installed): one mobile lab run. Scores, metrics and every failing audit are
    reported; the complete JSON is saved in the system temp directory.
 

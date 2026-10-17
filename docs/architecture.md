@@ -14,6 +14,8 @@ one package per responsibility, each testable on its own.
 | `skills` | Agent Skills embedded in the binary and rendered with its facts. |
 | `compile` | The compile lifecycle and the assemble stage: bundling with esbuild, packing, images, fonts, hints. |
 | `research` | Parses, checks and summarizes the two research files. |
+| `concept` | Parses `concept.md`, the design handover, and checks it against the research. |
+| `color`, `stock` | Color parsing, OKLab distance and WCAG contrast; the stock values of generated pages. |
 | `templatecheck` | Static analysis of templates against the actual config values, then rendering. |
 | `urlcheck` | URL syntax, the named-URL registry and destination matching across config, template and output. |
 | `commercecheck` | The optional offer and Stripe checkout contract in config. |
@@ -23,11 +25,11 @@ one package per responsibility, each testable on its own.
 | `htmlcompact` | Syntax-only HTML compaction, proven by comparing parsed trees. |
 | `dataurl` | Data URL encoding and decoding. |
 | `htmlx`, `jsonsrc`, `diagnostic` | Shared node helpers, JSON source locations, and the finding format. |
-| `release` | Headless Chrome for critical CSS and the runtime probe, and Lighthouse. |
+| `release` | Headless Chrome for critical CSS, the runtime probe and the frame-by-frame layout audit, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
 
 Dependencies point one way, in layers: `cli` drives `serve`, `compile`, `scaffold` and `skills`; `compile`
-drives the checkers, `research` and `release`; everything may use the shared base (`project`, `diagnostic`,
+drives the checkers, `research`, `concept` and `release`; everything may use the shared base (`project`, `diagnostic`,
 `htmlx`, `jsonsrc`, `term`). Checkers never import `compile`, and nothing imports `cli`.
 
 ## The lifecycle

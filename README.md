@@ -41,7 +41,10 @@ lfm rules               # every check; lfm rules <id> explains one
   checked; preview image sizes are filled in from the real files.
 - **Usable:** controls have names, labels and focus order work, forms and disclosures behave.
 - **Distinct:** typical generated-design defaults (stock palettes, eyebrow labels, emoji bullets, icon-card
-  grids and more) are reported, with an explicit way to keep one deliberately.
+  grids and more) and stock phrases of generated copy are reported, with an explicit way to keep one
+  deliberately; the page is held to the palette, typefaces and imagery its `concept.md` decided.
+- **Seen whole:** `--release` scrolls the page at phone and desktop sizes, saves every frame and reports
+  empty stretches, sideways scrolling and split values.
 - **Safe to ship:** nothing is written until all checks pass, and a failed compile keeps the last good output.
 
 ## Docs

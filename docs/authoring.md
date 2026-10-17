@@ -10,6 +10,7 @@ my-page/
   data/               optional JSON files, merged into .data
   assets/             styles, scripts, images, fonts (a convention, not a rule)
   research/           human-voices.md, competitor-analysis.md (never compiled)
+  concept.md          the design decisions the page is built from (never compiled)
   output/             the compiled page; replaced on every successful compile
 ```
 
@@ -105,3 +106,12 @@ Social preview images, media and linked documents always become real files with 
 links) and `competitor-analysis.md`. `lfm skills research` prints the process and the exact format. The
 files are never part of the page, but every compile parses them, reports format and substance problems
 (`research.*` rules) and summarizes them: voices, platforms, peers, posting dates.
+
+## Concept
+
+`concept.md` is the handover from design to implementation: fixed sections in a fixed order (buyer,
+decision path, mechanism, offer, axes, directions, spine, palette, type, form, imagery, motion, copy), free
+words inside them, every decision citing research IDs such as `V012` or `P003`. `lfm skills design` prints
+the process and the format. Every compile checks the file (`concept.*` rules) against the research; once the
+starter page is replaced, the page is held to its palette, typefaces and planned imagery
+(`concept.fidelity`). `Open: <question>` lines list what only the owner can answer.
