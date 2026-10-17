@@ -295,7 +295,7 @@ func TestSharingURLRegistryEscapesLocationsAndOverrides(t *testing.T) {
 		t.Fatal("sharing analysis mutated bytes or was nondeterministic")
 	}
 	override := map[string]Severity{"sharing.farcaster": Off}
-	if report := Run(d, []Rule{{"sharing.farcaster", "", farcasterRule}}, override); len(report.Diagnostics) != 0 {
+	if report := Run(d, []Rule{testRule("sharing.farcaster", farcasterRule)}, override); len(report.Diagnostics) != 0 {
 		t.Fatal(report)
 	}
 	for _, issue := range first.Diagnostics {

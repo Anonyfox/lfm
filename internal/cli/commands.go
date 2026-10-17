@@ -110,7 +110,8 @@ var rulesCommand = command{
 	args:    "[rule or family]",
 	summary: "List every check, or explain one",
 	details: `
-Every rule runs on every compile. Projects can change a rule's level in
+Every rule runs on every compile; release.* and lighthouse.* findings
+need --release. Projects can change a rule's level in
 lfm.json under build.validation.rules, e.g. {"design.mono": "off"}.
 Levels are off, warn and error; required rules always stay errors.`,
 	run: func(_ context.Context, env Env, p parsed) error {
@@ -147,13 +148,18 @@ func printRules(w io.Writer, filter string) error {
 	catalog := check.Catalog()
 	for _, rule := range catalog {
 		if rule.ID == filter {
-			fmt.Fprintf(w, "%s\n\n%s\n\n", s.Bold(rule.ID), term.Wrap(rule.Description, term.Width, ""))
-			if rule.Required {
-				fmt.Fprintln(w, "Required: it always blocks the compile and cannot be turned off.")
+			printRule(w, s, rule, rule.ID)
+			return nil
+		}
+	}
+	if filter != "lighthouse.*" && diagnostic.DynamicRule(filter) {
+		// Concrete Lighthouse audit IDs come from the installed tool; they
+		// share the family's help and accept their own exact override.
+		for _, rule := range catalog {
+			if rule.ID == "lighthouse.*" {
+				printRule(w, s, rule, filter)
 				return nil
 			}
-			fmt.Fprintf(w, "Change its level in lfm.json:\n\n  \"build\": {\"validation\": {\"rules\": {%q: \"off\"}}}\n", rule.ID)
-			return nil
 		}
 	}
 	families := map[string][]diagnostic.RuleInfo{}
@@ -181,11 +187,25 @@ func printRules(w io.Writer, filter string) error {
 			if rule.Required {
 				marker = s.Red("•")
 			}
-			fmt.Fprintf(w, "  %s %s %s\n", marker, term.Pad(rule.ID, 26), s.Dim(rule.Description))
+			// Summaries wrap under their own column so IDs stay scannable.
+			summary := term.Wrap(rule.Summary, term.Width-31, strings.Repeat(" ", 31))
+			fmt.Fprintf(w, "  %s %s %s\n", marker, term.Pad(rule.ID, 26), s.Dim(summary))
 		}
 	}
 	fmt.Fprintf(w, "\n%s required: always an error.  'lfm rules <id>' explains one rule.\n", s.Red("•"))
 	return nil
+}
+
+// printRule explains one rule: what it checks, why and how to resolve it,
+// then whether and how a project can change its level. id differs from
+// rule.ID only for a concrete lighthouse.<audit-id>.
+func printRule(w io.Writer, s term.Style, rule diagnostic.RuleInfo, id string) {
+	fmt.Fprintf(w, "%s\n%s\n\n%s\n\n", s.Bold(id), term.Wrap(rule.Summary, term.Width, ""), term.Wrap(rule.Help, term.Width, ""))
+	if rule.Required {
+		fmt.Fprintln(w, "Required: yes. It always blocks the compile and cannot be turned off.")
+		return
+	}
+	fmt.Fprintf(w, "Required: no. Change its level (off, warn or error) in lfm.json:\n\n  \"build\": {\"validation\": {\"rules\": {%q: \"off\"}}}\n", id)
 }
 
 func quote(path string) string {

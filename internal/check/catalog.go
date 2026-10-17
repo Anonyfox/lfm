@@ -1,0 +1,250 @@
+package check
+
+import (
+	"sort"
+
+	"github.com/Anonyfox/lfm/internal/commercecheck"
+	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/templatecheck"
+	"github.com/Anonyfox/lfm/internal/urlcheck"
+)
+
+// Catalog lists checks from every lifecycle stage. Required checks cannot be disabled.
+func Catalog() []diagnostic.RuleInfo {
+	result := templatecheck.Catalog()
+	result = append(result, commercecheck.Catalog()...)
+	result = append(result, diagnostic.OperationalRules()...)
+	result = append(result, urlcheck.Catalog()...)
+	for _, rule := range DefaultRules() {
+		result = append(result, rule.RuleInfo)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func rule(id, summary, help string, check func(*Document) []Diagnostic) Rule {
+	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help}, Check: check}
+}
+
+const designException = " Deliberate? Keep it and add data-design-reason=\"why this subject needs it\" on the element or an ancestor."
+
+// DefaultRules is the final-HTML catalog in report order. Summary and Help are
+// the only description of each rule; `lfm rules <id>` prints them.
+func DefaultRules() []Rule {
+	return []Rule{
+		// links
+		rule("links.syntax", "Every URL in templates and final HTML parses the way browsers will read it",
+			"Errors for URLs browsers cannot parse, protocol typos such as htps:, javascript: URLs, unresolved placeholders and escaping that changed a configured destination; warnings for whitespace, odd percent encoding, embedded credentials, unknown schemes, a likely missing https:// and mailto/tel mistakes. A malformed link silently goes nowhere or somewhere else. Fix the value in lfm.json urls; store a raw & in JSON and let html/template escape it.",
+			linksSyntaxRule),
+		rule("links.declared", "Every rendered link destination matches a named URL in lfm.json urls",
+			"After rendering, each href, src, srcset, social URL and JSON-LD URL is resolved like a browser would and compared with the declared urls; anything else is an error. This catches destinations assembled in partials or expressions that bypass the registry. Declare the complete URL, including deliberate query or fragment variants, under urls and render it; set this rule to warn only if the product deliberately builds destinations at render time.",
+			linksDeclaredRule),
+		rule("links.behavior", "Links are crawlable, resources are HTTPS and download links can work",
+			"Warns for navigation that relies on a click handler or role instead of an href, javascript: or bare # placeholder links, href on elements that are not links, HTTP resources on an HTTPS page, download attributes pointing at another origin, and full page URLs whose fragment matches no element. Crawlers and keyboard users cannot follow handler-only links, and browsers block or ignore the others. Use <a href> for navigation and <button> for actions, serve resources over HTTPS, and point fragments at existing IDs.",
+			linksBehaviorRule),
+		rule("links.fragments", "Same-page #fragment links land on content that is not explicitly hidden",
+			"A same-document link targets an element that has the hidden attribute, or sits inside one. Visitors following the link, or arriving from a shared URL, land on nothing visible. Make the target visible, or use native revealable content: a closed <details> or hidden=\"until-found\" is allowed.",
+			fragmentDiscoveryRule),
+
+		// html
+		rule("html.syntax", "Final and rendered HTML has no malformed markup the browser would repair",
+			"Errors for invalid UTF-8, malformed tokens or attributes, duplicate attributes, invalid head content and structure the HTML parser had to repair. Browsers silently fix such markup in different ways, so the page you tested is not the page visitors get. Findings in rendered-template.html point at the expanded template output; fix the tag in the template that produced it.",
+			syntaxRule),
+		rule("html.document", "One HTML5 doctype, one html/head/body and an early UTF-8 charset",
+			"Errors for a missing or legacy doctype, duplicate html/head/body elements, a non-UTF-8, duplicate or late charset declaration; a missing charset warns. Without them browsers fall back to quirks mode or guess the encoding, which garbles text. Start with <!doctype html> and put <meta charset=\"utf-8\"> first in head.",
+			documentRule),
+		rule("html.content-model", "Restricted elements sit in valid parents and interactive elements do not nest",
+			"Errors when list items, table parts, summary, legend, source or track sit outside their required parent, when a container holds disallowed children or stray text, when links or buttons contain other interactive elements, or when block elements sit inside phrasing elements such as p or button. Browsers restructure such markup, which breaks layout, clicks and screen readers. Move the element into a valid container, or make nested controls siblings.",
+			contentRule),
+		rule("html.ids", "Element IDs are unique, nonempty and free of whitespace",
+			"Errors for duplicate IDs and IDs that are empty or contain spaces in the active document. Labels, ARIA references, fragment links and scripts then reach the wrong element or none. Give each element a unique ID and update references to it.",
+			idsRule),
+		rule("html.references", "ID references in labels, forms, ARIA and fragment links point at existing elements",
+			"Errors when for, form, list, headers, popovertarget, commandfor or aria-* attributes reference an ID that does not exist; a fragment link without a matching target warns. A dangling reference leaves a field unlabeled, a control unwired or a link going nowhere. Add the target element or fix the reference; script-created targets cannot be verified statically.",
+			referencesRule),
+		rule("html.json", "Embedded JSON, JSON-LD, import maps and speculation rules are valid JSON",
+			"An inline JSON script does not parse. Browsers, crawlers and scripts discard invalid JSON entirely, so structured data, import maps or prefetch rules silently stop working. Write strict JSON with no comments, trailing commas or literal </script> sequences.",
+			jsonRule),
+
+		// jsonld
+		rule("jsonld.block", "Structured data comes only from the one compiler-generated JSON-LD block",
+			"Errors when the template contains handwritten application/ld+json scripts or more than one JSON-LD block. Scattered blocks drift from config and contradict each other in search results. Declare structured data under jsonld in lfm.json, using @graph or a top-level array for multiple entities, and delete the handwritten scripts.",
+			jsonldBlockRule),
+		rule("jsonld.structure", "The JSON-LD block expands cleanly under offline JSON-LD processing",
+			"Errors when the block is not an object or array, exceeds depth 128 or 100,000 values, has invalid keyword shapes or value objects, or the processor cannot analyze it. Search engines ignore structured data they cannot process, so rich results and assistant answers lose these facts. Fix the reported keyword or nesting in lfm.json jsonld; valid JSON can still be invalid JSON-LD.",
+			jsonldRule("jsonld.structure")),
+		rule("jsonld.context", "JSON-LD contexts that could not be checked because they are remote",
+			"The block uses a remote @context other than the bundled Schema.org context, so expansion was skipped; builds never fetch contexts. Nothing is known to be wrong, but nothing was verified either. Use https://schema.org, or inline the context to have it checked locally.",
+			jsonldRule("jsonld.context")),
+		rule("jsonld.dropped", "JSON-LD properties that expansion discards, or a block with no node data",
+			"A property is not defined by the active @context, so JSON-LD processors drop it, or the whole block expands to nothing. Search engines never see those facts. Check the property spelling against the vocabulary and the @context; turn this off only for deliberate null term mappings.",
+			jsonldRule("jsonld.dropped")),
+
+		// commerce
+		rule("commerce.checkout", "Checkout links are public HTTPS hosted pages with valid Stripe parameters",
+			"Errors for checkout URLs that are not public HTTPS, Stripe API or Dashboard URLs, and unparsable queries; warnings for test-mode links, expiring Checkout Session URLs, unexpected Payment Link paths, unsupported, repeated or invalid prefill parameters, amount prefill on fixed prices, and checkout used as a form target or download. Each of these can stop a buyer from paying, or charge them in test mode. Copy the live Payment Link URL from Stripe into urls and link to it with a plain <a href>.",
+			commerceRule("commerce.checkout")),
+		rule("commerce.discovery", "Declared offers have a visible checkout link and a Schema.org Offer when fixed-price",
+			"Warns when an offer's checkout URL never appears as an initially usable <a href> (it is missing, hidden, inert, in a template or aria-disabled), or when a fixed-price offer has no identifiable Offer in the JSON-LD. Buyers need a direct path to pay, and search engines need the Offer to show the price. Render an anchor to urls[checkoutUrlKey] outside hidden views and describe the offer in lfm.json jsonld with the same sku.",
+			commerceRule("commerce.discovery")),
+		rule("commerce.structured-data", "JSON-LD Offer prices and BuyAction targets agree with the declared offers",
+			"Errors for a negative Offer price, a price that differs from the same offer's amountMinor in the same currency, and a BuyAction target that is not public HTTPS; warnings for incomplete or ambiguous price facts, another currency, or a missing or different action target. Search results that show one price while checkout charges another cost trust and can break merchant policies. Derive the JSON-LD price and target from the same config values as the offer.",
+			commerceRule("commerce.structured-data")),
+		rule("commerce.secrets", "No Stripe secret, restricted or webhook keys in config or published files",
+			"Errors when a value shaped like a Stripe sk_, rk_ or whsec_ secret appears in lfm.json or data, the final HTML, or an emitted JS, CSS, JSON, SVG or text file; the value itself is redacted in the report. Anyone can read a published key and charge, refund or read your account. Remove it from the page, browser data and bundled code, keep it on the server, and rotate the key in Stripe; public pk_ keys and object IDs are fine.",
+			commerceSecretsRule),
+
+		// seo
+		rule("seo.metadata", "One title, description, language and exact HTTPS canonical in head",
+			"Errors for duplicate or out-of-head titles and a missing, duplicate, misplaced, non-HTTPS, query or fragment-bearing canonical, or one that differs from lfm.json url; warnings for a missing title, description or html lang, a duplicate or misplaced description and an unrecognized language tag. Search engines use these to decide which URL to index and what to show in results. Render <title>, the description meta and <link rel=\"canonical\" href=\"{{.url}}\"> once in head, and set html lang from the configured language.",
+			metadataRule),
+		rule("seo.indexability", "Robots meta tags that ask search engines not to index the page or follow its links",
+			"Warns for noindex, none or page-wide nofollow in robots or Googlebot meta tags, including ones placed in body. A public sales page that cannot be indexed gets no search traffic, and nofollow hides the pages it links to. Remove the directive for public pages; keep it for private or test pages and turn this rule off there.",
+			indexabilityRule),
+		rule("seo.snippets", "Robots directives that suppress or shorten search snippets",
+			"Warns for nosnippet and nonnegative max-snippet limits in robots meta tags. They suppress or truncate the text preview in search results and keep the page out of AI answers, which lowers clicks. Remove unintended limits; keep a deliberate publishing restriction and turn this rule off for that page.",
+			snippetsRule),
+		rule("seo.social", "Open Graph and Twitter preview fields are present, placed in head and use public URLs",
+			"Errors for preview URLs or images that are not absolute public HTTP(S) URLs, including data: and local hosts; warnings for missing og:title, og:type, og:url or og:image, fields outside head or with the wrong attribute, empty or repeated fields, and an og:url that differs from the canonical. Shared links without these show as a bare URL, which few people click. Render the Open Graph core fields in head from config, with property= for og:* and name= for twitter:*, pointing at the canonical URL and a deployed image file.",
+			socialRule),
+		rule("seo.headings", "A visible h1 and a heading hierarchy without skipped levels or empty headings",
+			"Warns when no visible h1 exists, when levels skip (h2 to h4) or start below h1, or when a heading has no readable text or accessible name; hidden headings do not count. Screen-reader users and search engines use the outline to understand and navigate the page. Pick heading levels for structure and control size with CSS; more than one h1 is allowed.",
+			headingsRule),
+		rule("seo.content", "One visible main landmark with readable primary text in the initial HTML",
+			"Warns for a missing or duplicated visible <main>, no initially readable text in the primary content, or primary text that is entirely inside data-nosnippet. Crawlers, link previews and assistants read the initial HTML, so a script-only shell looks empty to them. Wrap the page in one <main> and prerender the answer, method or starting example as HTML text.",
+			contentDiscoveryRule),
+
+		// sharing
+		rule("sharing.discovery", "Platform share metadata is well-formed, in early head and uses public media URLs",
+			"Errors for empty or repeated scalar platform fields, non-public audio, video, stream or oEmbed URLs and nonpositive media dimensions; warnings for declarations outside head or with the wrong attribute, metadata after the first 32 KiB, incomplete Slack label/data pairs, unknown or legacy X card types and frame-ancestors in a meta CSP. Preview crawlers read only the initial head and often a bounded prefix, so misplaced tags produce plain links. Put platform tags early in head, ahead of bulky inline CSS, and use named public URLs.",
+			sharingDiscoveryRule),
+		rule("sharing.media", "Social images declare alt text and dimensions that match the emitted files",
+			"Warns when an og:image lacks og:image:alt, og:image:width or og:image:height, when twitter:image has no twitter:image:alt, or when declared dimensions differ from the emitted image. Platforms use dimensions to lay out the card before fetching and alt text for people who cannot see it. Add the actual pixel size and a useful description after each og:image; an intentionally empty alt is allowed.",
+			sharingMediaRule),
+		rule("sharing.x-player", "X player cards have an HTTPS player, poster, pixel dimensions and fallback text",
+			"Errors when a declared twitter:player lacks an HTTPS player URL, a public twitter:image poster or positive integer width and height; warnings for missing title or description fallback text, or a player without twitter:card=player. Without them X shows a plain link or a broken frame. Declare all player fields in head, select card=player and set framing headers on the player route.",
+			xPlayerRule),
+		rule("sharing.discord", "Discord component-embed JSON is valid, within limits and hosted on the page's domain",
+			"Errors for duplicate, misplaced or wrongly typed declarations, linked JSON on an unrelated host, malformed or duplicate-key JSON, more than 3,000 bytes, unsupported component types or button keys, missing names or URLs, more than 40 components or 10 gallery items, and HTML entities inside raw JSON; remote JSON and a missing link button warn. Discord rejects the whole payload on one bad field and falls back to the plain preview. Fix the reported field, use type=application/json for templated inline JSON, and keep the Open Graph fallback.",
+			discordRule),
+		rule("sharing.farcaster", "Farcaster mini-app embed JSON is valid with a launch button and an image within limits",
+			"Errors for malformed or duplicate-key MiniAppEmbed JSON, a version other than \"1\", a missing button title, an action type other than launch_miniapp or launch_frame, non-HTTPS targets, an image URL over 1,024 characters and emitted images that break format, size or dimension limits; uninspectable remote media warns. Farcaster clients drop an invalid embed and show no launch card. Put one MiniAppEmbed object in the meta content and fix the reported field.",
+			farcasterRule),
+		rule("sharing.snapchat", "Snapchat stickers are public PNG or WebP files of 400x400 px under 1 MB",
+			"Errors for a sticker URL that is not public and for an emitted sticker that is not PNG or WebP, is 1 MB or larger, or is not 400x400 px; remote stickers warn because they cannot be inspected. Snapchat refuses stickers outside these limits, so the share action fails. Re-export the image to spec and rebuild.",
+			snapchatRule),
+
+		// a11y
+		rule("a11y.images", "Images, image maps and image inputs have an alt attribute",
+			"Warns when an img, area or input type=image has no alt attribute at all. Screen readers then read the file name, and the image contributes nothing to search. Describe informative images in alt, and use alt=\"\" for decorative ones; an empty alt is a deliberate choice and passes.",
+			imageAltRule),
+		rule("a11y.controls", "Buttons, links, fields, dialogs and informative roles have an accessible name",
+			"Warns for native or custom controls, summaries, dialogs, frames and informative roles without a detectable name from visible text, a label, aria-label, aria-labelledby, image alt or an SVG title. Screen-reader and voice-control users cannot find or operate an unnamed control. Add visible text or an associated label; placeholders and current values do not count as names.",
+			controlsRule),
+		rule("a11y.relationships", "Labels, form owners, lists, popovers and table headers point at the right element types",
+			"Errors when label for points at something that cannot be labeled, a label wraps a control other than its own, or form, list, popovertarget or headers reference the wrong kind of element. The association silently fails, leaving fields unlabeled or buttons unwired. Point each reference at the correct element type and give each control its own label; missing IDs are reported by html.references.",
+			relationshipsRule),
+		rule("a11y.aria", "ARIA states and values use valid tokens and numbers, and custom widgets expose state",
+			"Warns for invalid ARIA tokens, non-numeric or out-of-range aria-value* attributes, and custom checkboxes, radios, sliders or comboboxes that do not expose checked, current value or expanded state. Assistive technology reports wrong or missing state, so users cannot tell what a control is set to. Prefer native inputs; otherwise maintain the reported ARIA attributes with plain values.",
+			ariaRule),
+		rule("a11y.focus", "Keyboard focus order, autofocus and focusability match what is visible and clickable",
+			"Warns for invalid or positive tabindex, more than one autofocus per document, dialog or popover, focusable elements inside aria-hidden content, custom controls with no way to receive focus, and click handlers on non-semantic elements. Keyboard users get a jumbled order, focus disappears into hidden content, or a control cannot be reached at all. Use native buttons and links in DOM order, tabindex 0 or -1 only, and make inactive views inert or hidden.",
+			focusRule),
+
+		// ux
+		rule("ux.forms", "Form buttons declare their intent and numeric inputs have valid bounds and defaults",
+			"Warns for buttons with an empty, invalid or implicit submit type inside a form, and for numeric inputs with malformed min, max, step or value, min above max, or a starting value outside the bounds. An implicit submit reloads the page when someone presses a calculator button, and bad bounds make the input impossible to complete. Set type=button or type=submit explicitly and use plain HTML numbers; keep units in labels.",
+			formsRule),
+		rule("ux.disclosures", "details elements have one leading summary and command buttons target the right element",
+			"Warns for a details element without a summary; errors for multiple summaries, a summary that is not the first child, and built-in dialog or popover commands that target the wrong element type. The browser's generic \"Details\" label tells visitors nothing, and misplaced summaries or targets stop the toggle from working. Put one meaningful <summary> first, and point dialog commands at a <dialog> and popover commands at a popover.",
+			disclosuresRule),
+		rule("ux.media", "Autoplaying audio or video starts muted",
+			"Warns when audio or video has autoplay without muted. Browsers block unmuted autoplay, and sound that starts on its own drives visitors away and fails accessibility guidance. Add muted or let the visitor start playback, and provide a way to pause or stop.",
+			mediaInteractionRule),
+
+		// perf
+		rule("perf.html-size", "Uncompressed HTML stays under 2,000,000 bytes, warning from 1,800,000",
+			"Warns from 1,800,000 bytes and errors above 2,000,000 bytes of uncompressed HTML; the finding lists the largest embedded assets. Googlebot stops reading HTML around 2 MB, and every byte delays first render on a phone. Move large media and fonts to file-mode assets with build.assets.overrides; compression does not change this budget.",
+			sizeRule),
+		rule("perf.inline-assets", "Embedded data URLs over 32 KiB and embedded responsive image candidates",
+			"Warns when one embedded resource contributes more than 32 KiB to the HTML across its occurrences, or when srcset candidates are data URLs. Inlined bytes cannot be cached separately and every srcset candidate downloads even though the browser shows one. Use automatic packing (omit build.assets.default) or set the source to \"file\" in build.assets.overrides.",
+			inlineRule),
+		rule("perf.images", "Images reserve layout space and use consistent loading hints",
+			"Warns for img elements without a valid width/height pair, images that are both loading=lazy and fetchpriority=high, and lazy images whose bytes are embedded in the HTML. Missing dimensions make the page jump as images load, which hurts reading and Core Web Vitals. Set intrinsic width and height (or reserve the aspect ratio in CSS), drop lazy on the hero image, and use file mode for large lazy images.",
+			imagePerformanceRule),
+		rule("perf.image-assets", "Image files stay within byte and pixel budgets for their display size",
+			"Warns for unreadable image metadata, files over 512 KiB, rasters over 4096 px on an edge or 12 megapixels, and sources more than twice the authored width and height on both axes. Oversized images waste mobile data and memory and slow the largest paint. Resize and re-export each source for its largest real display size and pixel density, or add responsive candidates.",
+			imageAssetsRule),
+		rule("perf.fonts", "@font-face rules, font formats and font preloads are complete and consistent",
+			"Warns for @font-face rules with a missing or invalid family, src, font-display or unicode-range, sources whose format does not match, no WOFF2 source, preloads with the wrong as, type or CORS mode, and more than two font preloads. Broken faces fall back silently, and wrong preloads download a font twice or delay critical CSS. Serve WOFF2, preload only the faces needed immediately with as=font crossorigin, and match the exact URL used in CSS.",
+			fontsRule),
+		rule("perf.font-assets", "Font files stay within 128 KiB each and 256 KiB in total",
+			"Warns when a retained font file exceeds 128 KiB, all fonts together exceed 256 KiB, a file declares more than 8 MiB of SFNT data, or a font container cannot be inspected. Text waits for or reflows after these downloads on slow connections. Drop unused families and weights, or use WOFF2 language subsets where licensing allows.",
+			fontAssetsRule),
+		rule("perf.viewport", "One mobile viewport meta tag that keeps zoom enabled",
+			"Warns for a missing or duplicate viewport meta tag and for user-scalable=no or user-scalable=0, which blocks pinch zoom. Without it phones render a shrunken desktop page; without zoom, visitors with low vision cannot read it. Use <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">.",
+			viewportRule),
+		rule("perf.budgets", "CSS, JavaScript and DOM size stay within advisory budgets",
+			"Warns when total CSS exceeds 20 KiB, JavaScript exceeds 50 KiB, the DOM has more than 1,500 elements or nests deeper than 32 levels. Each costs download, parse and layout time on the low-end phones many visitors use. Remove unused styles, dependencies and wrapper elements; moving code to a file changes caching, not its cost. These are authoring defaults, so tune the level if a page has a reason to exceed them.",
+			budgetsRule),
+
+		// design
+		rule("design.palette", "Stock generator accent colors, violet gradients and the assistant cream/terracotta pair",
+			"Warns for Tailwind's stock indigo, violet and purple accents, gradients whose colored stops are all violet, blue or pink, and a cream background with a terracotta accent. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role."+designException,
+			designRule("design.palette")),
+		rule("design.gradient-text", "Text filled with a gradient through background-clip:text",
+			"Warns for text painted with a gradient via background-clip:text, in CSS or Tailwind classes. It is one of the most recognizable generated-page tells and often loses contrast. Carry emphasis with size, weight, position or a solid color."+designException,
+			designRule("design.gradient-text")),
+		rule("design.glow", "Blurred decorative orbs and colored glow shadows",
+			"Warns for two or more heavily blurred round or radial decorative shapes, and for colored zero-offset glows on three or more elements. Floating blobs and neon glows are stock generated atmosphere and add nothing about the product. Use a real subject image, a flat field, or glow only where something emits light."+designException,
+			designRule("design.glow")),
+		rule("design.eyebrows", "Small tracked uppercase labels directly above headings",
+			"Warns for a short uppercase, tracked or small label placed right before an h1 to h3 when it carries no information of its own. It restates the heading and is a generator default. Delete it or merge it into the heading; labels for time, step, price or status are fine."+designException,
+			designRule("design.eyebrows")),
+		rule("design.type", "One stock sans for headline and body, and styled accent words in headlines",
+			"Warns when one stock sans such as Inter, Roboto, Arial or the system font sets both the h1 and the body, and when one word inside a headline is set apart in italic serif or a gradient. Both are the default typography of generated pages. Choose a display face for this subject and keep a readable text face, and set each headline in one face and color."+designException,
+			designRule("design.type")),
+		rule("design.emoji", "Emoji used as headings, buttons, labels or list bullets",
+			"Warns for emoji in headings, buttons, short links, summaries, labels, legends, table headers or as list bullets. Emoji as interface decoration reads as generated and is announced verbatim by screen readers. Remove it or use a purpose-made glyph or typographic bullet; emoji in body copy and check marks or stars are fine."+designException,
+			designRule("design.emoji")),
+		rule("design.hero", "A pill badge above the hero headline and the centered badge-headline-two-buttons hero",
+			"Warns for a pill or \"New\"/\"Introducing\" badge before the first h1, and for the formula of badge, centered h1, subline and two buttons. This is the most common generated hero and tells visitors nothing specific. Lead with the product, object or action; keep a badge only for a real, dated status, as plain text."+designException,
+			designRule("design.hero")),
+		rule("design.cards", "Rows of three or more identical cards each led by an icon and a heading",
+			"Warns for three or more structurally identical siblings that each start with an icon and a heading. The icon-card feature grid is the stock generated layout and flattens items of different weight into equals. Lay out by content: a lead item, a comparison table, a sequence or a list; keep equal cards for true peers."+designException,
+			designRule("design.cards")),
+		rule("design.stats", "Strips of three or more big round numbers with small labels",
+			"Warns for three or more sibling blocks showing big round figures such as 10k+, 99.9% or 50+. Unsourced vanity numbers read as filler and erode trust. Show a specific, sourced number next to the claim it proves, or remove the strip."+designException,
+			designRule("design.stats")),
+		rule("design.stripes", "Colored left-border accent stripes on cards",
+			"Warns when a 2 to 8 px colored left or inline-start border is the only border on two or more boxes; quotations, lists, table cells and diffs are excluded. The side stripe is a strong generated-card fingerprint. Separate items by tone, spacing or a meaningful marker."+designException,
+			designRule("design.stripes")),
+		rule("design.glass", "backdrop-filter blur on three or more elements",
+			"Warns when backdrop-filter: blur() appears on three or more elements. Reflexive glassmorphism looks generated, hurts text contrast and costs rendering time on phones. Use solid surfaces and keep blur for the one layer that truly floats over content."+designException,
+			designRule("design.glass")),
+		rule("design.surfaces", "Tailwind's default soft shadow repeated across three or more boxes",
+			"Warns for Tailwind's default shadow geometry, or shadow-md to shadow-2xl combined with rounded classes, on three or more boxes. The uniform card-kit surface flattens hierarchy and reads as a template. Vary shape and elevation by role, and use shadows only for layers that float."+designException,
+			designRule("design.surfaces")),
+		rule("design.motion", "Scroll-reveal animation hooks on four or more blocks",
+			"Warns for scroll-reveal hooks such as data-aos or fade-up and reveal classes on four or more blocks. Uniform fade-and-rise on every section delays content and signals a template. Spend motion on one moment tied to the concept and on feedback for interaction, and respect reduced-motion settings."+designException,
+			designRule("design.motion")),
+		rule("design.arrows", "Arrow glyphs appended to most buttons and links",
+			"Warns when at least half of four or more buttons or links end in an arrow glyph; external-link arrows and links inside prose are excluded. Arrows on everything stop meaning direction and read as a generator habit. Keep an arrow only where it states a direction: external, next step or scroll."+designException,
+			designRule("design.arrows")),
+		rule("design.chrome", "Repeated \"A · B · C\" meta strings and fake red/yellow/green window dots",
+			"Warns for four or more middot-separated meta strings and for fake window-control dots framing a product image. Both are template chrome that adds no information. Write the information as a sentence, labelled value or list, and show the real interface without a fake frame."+designException,
+			designRule("design.chrome")),
+		rule("design.mono", "Monospace type on eight or more non-code labels and captions",
+			"Warns when monospace sets eight or more labels or captions that are not code, data, times, tables or form controls. The console-style microcopy is a generated default and is harder to read. Set labels in the text face, with tabular figures for numbers, and keep mono for code and technical values."+designException,
+			designRule("design.mono")),
+		rule("design.proof", "Generic \"trusted by\" claims and placeholder avatar or photo services",
+			"Warns for generic proof claims such as \"trusted by\", \"as seen on\" or \"join 10,000+ teams\", and for images from placeholder services like pravatar, randomuser, ui-avatars or picsum. Visitors recognize stand-in faces and unverifiable claims as fabricated, which undermines the real proof. Show verifiable proof next to the claim it supports, with real permitted photos, or remove it."+designException,
+			designRule("design.proof")),
+		rule("design.sections", "Four or more stock landing-page sections",
+			"Warns when four or more stock sections appear: how it works, testimonials, pricing, FAQ, logo strip, feature grid or stat strip. Assembling the default section list makes the page read as a template instead of an argument for this offer. Keep a section only when it makes its own claim or does its own job for this product."+designException,
+			designRule("design.sections")),
+		rule("design.defaults", "Several generator-default design signals combining on one page",
+			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified.",
+			designDefaultsRule),
+	}
+}

@@ -36,13 +36,21 @@ func PublicURL(value string) bool {
 	return true
 }
 
+// Catalog lists the link rules that run on authoring sources before rendering.
+// links.syntax, links.declared and links.behavior also judge final HTML and are
+// defined once, with the final-document rules, in check.DefaultRules.
 func Catalog() []diagnostic.RuleInfo {
 	return []diagnostic.RuleInfo{
-		{ID: "links.syntax", Description: "Invalid URLs, protocol typos, parser repairs and ambiguous destinations"},
-		{ID: "links.registry", Description: "Named URL declarations, duplicate destinations and maintainable names"},
-		{ID: "links.literal", Description: "URL destinations in templates must come from config"},
-		{ID: "links.declared", Description: "Rendered destinations must match a named config URL"},
-		{ID: "links.behavior", Description: "Crawlability, mixed content and ineffective download links"},
+		{
+			ID:      "links.registry",
+			Summary: "Named URLs in lfm.json urls have usable names and no duplicate destinations",
+			Help:    "Triggered by an empty URL name, a name awkward to use as a template path, two names for the same normalized destination, or a URL literal typed into visible copy. Every destination should have exactly one owner so a changed link is edited in one place. Reuse one purpose-based name such as urls.checkout at every placement, and render visible URLs from config; code samples are exempt.",
+		},
+		{
+			ID:      "links.literal",
+			Summary: "Templates take link destinations from config urls instead of hardcoded URLs",
+			Help:    "A template attribute, URL-like JSON field or inline CSS contains a literal destination, including in inactive branches and partials. Hardcoded copies drift when the real link changes and slip past the URL checks. Declare the URL under urls in lfm.json and render it, e.g. href=\"{{.urls.checkout}}\"; local asset paths and fragments to SVG symbols are exempt.",
+		},
 	}
 }
 

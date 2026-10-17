@@ -46,10 +46,14 @@ func (d Diagnostic) String() string {
 	return text
 }
 
+// RuleInfo is the single definition of a rule's identity and help. Summary is
+// one line naming what is checked; Help explains what triggers it, why it
+// matters and how to resolve it. Required rules can never leave error level.
 type RuleInfo struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
-	Required    bool   `json:"required,omitempty"`
+	ID       string `json:"id"`
+	Summary  string `json:"summary"`
+	Help     string `json:"help"`
+	Required bool   `json:"required,omitempty"`
 }
 
 type Summary struct {

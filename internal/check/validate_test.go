@@ -37,7 +37,7 @@ func TestSelectorsAndLocations(t *testing.T) {
 	if _, err := d.Query("img["); err == nil {
 		t.Fatal("invalid selector accepted")
 	}
-	issues := Run(d, []Rule{{"alt", "", imageAltRule}}, nil).Diagnostics
+	issues := Run(d, []Rule{testRule("alt", imageAltRule)}, nil).Diagnostics
 	if len(issues) != 1 || issues[0].Location.Line != 4 || issues[0].Location.Column != 1 || issues[0].Location.Offset != bytes.Index(raw, []byte("<img")) {
 		t.Fatalf("locations: %+v", issues)
 	}
@@ -56,7 +56,7 @@ func TestSelectorsAndLocations(t *testing.T) {
 func TestRegistryAndOverrides(t *testing.T) {
 	seen := map[string]bool{}
 	for _, rule := range DefaultRules() {
-		if rule.ID == "" || rule.Description == "" || rule.Check == nil || seen[rule.ID] {
+		if rule.ID == "" || rule.Summary == "" || rule.Help == "" || rule.Check == nil || seen[rule.ID] {
 			t.Fatalf("invalid rule: %+v", rule)
 		}
 		seen[rule.ID] = true
@@ -70,7 +70,7 @@ func TestRegistryAndOverrides(t *testing.T) {
 		t.Fatal(err)
 	}
 	d, _ := Parse([]byte("<p id=x></p><p id=x></p>"), Options{})
-	rule := Rule{"html.ids", "", idsRule}
+	rule := testRule("html.ids", idsRule)
 	if got := Run(d, []Rule{rule}, map[string]Severity{"html.ids": Off}); len(got.Diagnostics) != 0 {
 		t.Fatal(got)
 	}

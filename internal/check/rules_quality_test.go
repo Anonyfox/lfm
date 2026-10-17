@@ -69,7 +69,7 @@ func TestSizeBoundaries(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		issues := Run(d, []Rule{{"perf.html-size", "", sizeRule}}, nil).Diagnostics
+		issues := Run(d, []Rule{testRule("perf.html-size", sizeRule)}, nil).Diagnostics
 		if tc.level == "" {
 			if len(issues) != 0 {
 				t.Fatal(issues)

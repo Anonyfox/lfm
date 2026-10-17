@@ -53,7 +53,7 @@ func TestImageAssetRuleCanBePromotedOrDisabled(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		rules := []Rule{{"perf.image-assets", "image assets", imageAssetsRule}}
+		rules := []Rule{testRule("perf.image-assets", imageAssetsRule)}
 		report := Run(doc, rules, map[string]Severity{"perf.image-assets": level})
 		if level == Off && len(report.Diagnostics) != 0 || level == Warning && report.Warnings != 1 || level == Error && report.Errors != 1 {
 			t.Fatal(report)

@@ -11,16 +11,61 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 )
+
+// testRule wraps a single check for fixtures that do not need catalog help.
+func testRule(id string, check func(*Document) []Diagnostic) Rule {
+	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id}, Check: check}
+}
+
+// Every rule a user or agent can be told about must explain itself in
+// `lfm rules <id>`: a one-line summary and a short help paragraph.
+func TestCatalogRulesHaveStandardHelp(t *testing.T) {
+	seen := map[string]bool{}
+	sentence := regexp.MustCompile(`[.!?](\s|$)`)
+	for _, rule := range Catalog() {
+		if rule.ID == "" || seen[rule.ID] {
+			t.Errorf("empty or duplicate rule ID %q", rule.ID)
+		}
+		seen[rule.ID] = true
+		summary, help := rule.Summary, rule.Help
+		switch {
+		case strings.TrimSpace(summary) == "":
+			t.Errorf("%s has no Summary", rule.ID)
+		case utf8.RuneCountInString(summary) > 90:
+			t.Errorf("%s Summary is %d characters; keep it to 90: %q", rule.ID, utf8.RuneCountInString(summary), summary)
+		case strings.HasSuffix(summary, "."):
+			t.Errorf("%s Summary ends with a period: %q", rule.ID, summary)
+		case strings.TrimSpace(summary) != summary || strings.Contains(summary, "\n"):
+			t.Errorf("%s Summary must be one trimmed line: %q", rule.ID, summary)
+		}
+		if strings.TrimSpace(help) == "" {
+			t.Errorf("%s has no Help", rule.ID)
+			continue
+		}
+		if n := len(sentence.FindAllString(help, -1)); n < 2 || n > 5 {
+			t.Errorf("%s Help has %d sentences; use 2 to 5", rule.ID, n)
+		}
+		if !strings.HasSuffix(help, ".") || strings.Contains(help, "\n") {
+			t.Errorf("%s Help must be one paragraph ending with a period", rule.ID)
+		}
+		for _, banned := range []string{"\u2014", "Note:"} {
+			if strings.Contains(summary+" "+help, banned) {
+				t.Errorf("%s help text contains %q", rule.ID, banned)
+			}
+		}
+	}
+}
 
 // Keep future diagnostics and the CLI's catalog/config controls in sync. Dynamic
 // Lighthouse IDs belong to the installed tool and have their own namespace.
 func TestCatalogCoversEmittedRuleIDs(t *testing.T) {
 	known := map[string]bool{}
 	for _, entry := range Catalog() {
-		if known[entry.ID] || entry.ID == "" || entry.Description == "" {
+		if known[entry.ID] || entry.ID == "" || entry.Summary == "" {
 			t.Fatal("invalid catalog entry", entry)
 		}
 		known[entry.ID] = true
