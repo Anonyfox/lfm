@@ -6,6 +6,8 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/Anonyfox/lfm/internal/concept"
+
 	"github.com/Anonyfox/lfm/internal/research"
 )
 
@@ -117,6 +119,31 @@ func TestResearchExamplesParse(t *testing.T) {
 			}
 		default:
 			t.Errorf("unrecognized example: %q", body)
+		}
+	}
+}
+
+// The format block the design skill prints must parse with every section in
+// place, so the skill can never teach a structure the compiler rejects.
+func TestDesignTemplateMatchesTheParser(t *testing.T) {
+	s, err := Get("design", NewData("dev"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := strings.Index(s.Text, "```markdown\n# Concept:")
+	end := strings.Index(s.Text[start+3:], "```")
+	if start < 0 || end < 0 {
+		t.Fatal("format block not found")
+	}
+	block := strings.TrimPrefix(s.Text[start:start+3+end], "```markdown\n")
+	_, problems := concept.Parse(block)
+	for _, p := range problems {
+		t.Errorf("line %d: %s", p.Line, p.Message)
+	}
+	flat := strings.Join(strings.Fields(s.Text), " ")
+	for _, want := range []string{"least 8 observations", "At least 10 checked facts", "3 to 5 details", "at least 8 directions"} {
+		if !strings.Contains(flat, want) {
+			t.Errorf("rendered skill lacks %q", want)
 		}
 	}
 }

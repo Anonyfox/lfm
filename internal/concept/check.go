@@ -12,6 +12,21 @@ import (
 	"github.com/Anonyfox/lfm/internal/stock"
 )
 
+// Minimums each section must meet. The design skill prints the same numbers.
+const (
+	MinVoiceNotes = 8
+	MinPathSteps  = 3
+	MinRejected   = 2
+	MinFacts      = 10
+	MinAxes       = 5
+	MinSparks     = 3
+	MaxSparks     = 5
+	MinDirections = 8
+	MinSpine      = 3
+	MinColors     = 3
+	MinCopy       = 3
+)
+
 // Rule IDs reported by Check.
 const (
 	RuleFormat   = "concept.format"
@@ -137,7 +152,7 @@ func (c checker) sections(d Document) Summary {
 	var sum Summary
 	if s := d.Sections["Voices"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 8, fmt.Sprintf("Voices codes %d observations; write at least 8.", len(items)), "Code the voices into phrases, feelings, rituals, self-made aesthetic and complaints, each citing its V IDs.")
+		c.need(s, len(items) >= MinVoiceNotes, fmt.Sprintf("Voices codes %d observations; write at least %d.", len(items), MinVoiceNotes), "Code the voices into phrases, feelings, rituals, self-made aesthetic and complaints, each citing its V IDs.")
 		for _, it := range items {
 			if len(ids(it.Text, 'V')) == 0 {
 				c.add(RuleFormat, it.N, "Observation without a voice ID.", "Cite the V IDs it comes from.")
@@ -149,7 +164,7 @@ func (c checker) sections(d Document) Summary {
 	}
 	if s := d.Sections["Decision path"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 3 && s.Numbered(), fmt.Sprintf("Decision path has %d numbered steps; write at least 3.", len(items)), "One numbered step per question the visitor asks, in order.")
+		c.need(s, len(items) >= MinPathSteps && s.Numbered(), fmt.Sprintf("Decision path has %d numbered steps; write at least %d.", len(items), MinPathSteps), "One numbered step per question the visitor asks, in order.")
 		for _, it := range items {
 			if !strings.Contains(it.Text, " → ") {
 				c.add(RuleFormat, it.N, "Step lacks \" → \" between the visitor's question and the section's job.", "Write: <question> → <what the section does about it>.")
@@ -165,11 +180,11 @@ func (c checker) sections(d Document) Summary {
 			}
 		}
 		c.need(s, chosen != "", "Mechanism names no \"Chosen:\" mechanism.", "Write \"Chosen: <mechanism and why>\".")
-		c.need(s, rejected >= 2, fmt.Sprintf("Mechanism rejects %d alternatives; weigh at least 2.", rejected), "Add \"Rejected: <alternative>: <why>\" lines.")
+		c.need(s, rejected >= MinRejected, fmt.Sprintf("Mechanism rejects %d alternatives; weigh at least %d.", rejected, MinRejected), "Add \"Rejected: <alternative>: <why>\" lines.")
 	}
 	if s := d.Sections["Facts"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 10, fmt.Sprintf("Facts lists %d; mine at least 10 facts true of this subject.", len(items)), "Numbers, timings, materials, vocabulary, rituals, failure modes; each with its source.")
+		c.need(s, len(items) >= MinFacts, fmt.Sprintf("Facts lists %d; mine at least %d facts true of this subject.", len(items), MinFacts), "Numbers, timings, materials, vocabulary, rituals, failure modes; each with its source.")
 		for _, it := range items {
 			if len(Citations(it.Text)) == 0 && !strings.Contains(it.Text, "http") {
 				c.add(RuleFormat, it.N, "Fact without a source.", "Cite a V or P ID or link the page it comes from.")
@@ -179,7 +194,7 @@ func (c checker) sections(d Document) Summary {
 	if s := d.Sections["Axes"]; s != nil {
 		rows, header := s.Table([]string{"Axis", "Market", "Voices", "Chosen"})
 		c.need(s, header, "Axes needs the table | Axis | Market | Voices | Chosen |.", "One row per design axis the data separates.")
-		c.need(s, len(rows) >= 5, fmt.Sprintf("Axes has %d rows; find at least 5.", len(rows)), "Use the axes where the market and the voices actually differ or agree.")
+		c.need(s, len(rows) >= MinAxes, fmt.Sprintf("Axes has %d rows; find at least %d.", len(rows), MinAxes), "Use the axes where the market and the voices actually differ or agree.")
 		for _, row := range rows {
 			switch {
 			case len(row.Cells) != 4:
@@ -192,7 +207,7 @@ func (c checker) sections(d Document) Summary {
 	spark := map[string]bool{}
 	if s := d.Sections["Sparks"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 3 && len(items) <= 5, fmt.Sprintf("Sparks lists %d; choose 3 to 5.", len(items)), "Sparks are specific, recurring voice details no peer uses.")
+		c.need(s, len(items) >= MinSparks && len(items) <= MaxSparks, fmt.Sprintf("Sparks lists %d; choose %d to %d.", len(items), MinSparks, MaxSparks), "Sparks are specific, recurring voice details no peer uses.")
 		for _, it := range items {
 			v := ids(it.Text, 'V')
 			if len(v) < 2 {
@@ -205,7 +220,7 @@ func (c checker) sections(d Document) Summary {
 	}
 	if s := d.Sections["Directions"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 8 && s.Numbered(), fmt.Sprintf("Directions lists %d numbered directions; write at least 8.", len(items)), "Write directions fast, push each further, then strike.")
+		c.need(s, len(items) >= MinDirections && s.Numbered(), fmt.Sprintf("Directions lists %d numbered directions; write at least %d.", len(items), MinDirections), "Write directions fast, push each further, then strike.")
 		chosen := 0
 		for i, it := range items {
 			body, verdict, ok := strings.Cut(it.Text, " → ")
@@ -239,7 +254,7 @@ func (c checker) sections(d Document) Summary {
 	}
 	if s := d.Sections["Spine"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 3 && s.Numbered(), fmt.Sprintf("Spine has %d numbered sections; write at least 3.", len(items)), "One numbered line per page section, in order: <section>: <its job>.")
+		c.need(s, len(items) >= MinSpine && s.Numbered(), fmt.Sprintf("Spine has %d numbered sections; write at least %d.", len(items), MinSpine), "One numbered line per page section, in order: <section>: <its job>.")
 		for _, it := range items {
 			if name, job, ok := strings.Cut(it.Text, ": "); !ok || strings.TrimSpace(name) == "" || strings.TrimSpace(job) == "" {
 				c.add(RuleFormat, it.N, "Spine line is not \"<section>: <job>\".", "Name the section and the job it does for the visitor.")
@@ -249,7 +264,7 @@ func (c checker) sections(d Document) Summary {
 	if s := d.Sections["Palette"]; s != nil {
 		rows, header := s.Table([]string{"Role", "Color", "Source"})
 		c.need(s, header, "Palette needs the table | Role | Color | Source |.", "One row per color role.")
-		c.need(s, len(rows) >= 3, fmt.Sprintf("Palette has %d colors; declare at least 3 roles.", len(rows)), "Ground, text and accent at least; every color the page uses belongs here.")
+		c.need(s, len(rows) >= MinColors, fmt.Sprintf("Palette has %d colors; declare at least %d roles.", len(rows), MinColors), "Ground, text and accent at least; every color the page uses belongs here.")
 		for _, row := range rows {
 			if len(row.Cells) != 3 || row.Cells[0] == "" || row.Cells[2] == "" || !hexValue.MatchString(row.Cells[1]) {
 				c.add(RuleFormat, row.N, "Palette row needs a role, a #rrggbb color and its source.", "| <role> | #rrggbb | <where it comes from> |")
@@ -295,7 +310,7 @@ func (c checker) sections(d Document) Summary {
 	}
 	if s := d.Sections["Copy"]; s != nil {
 		items := s.Items()
-		c.need(s, len(items) >= 3, fmt.Sprintf("Copy lists %d rules; write at least 3.", len(items)), "The buyers' words to use, the tone, the words to avoid; each citing voices.")
+		c.need(s, len(items) >= MinCopy, fmt.Sprintf("Copy lists %d rules; write at least %d.", len(items), MinCopy), "The buyers' words to use, the tone, the words to avoid; each citing voices.")
 		for _, it := range items {
 			if len(ids(it.Text, 'V')) == 0 {
 				c.add(RuleFormat, it.N, "Copy rule without a voice ID.", "Cite the voices whose words or tone it follows.")

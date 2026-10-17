@@ -14,6 +14,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/research"
 )
@@ -32,6 +33,15 @@ type Data struct {
 	MinPeers     int
 	Authors      string // allowed author types, "a | b"
 	Methods      string // allowed fetch methods, "a | b"
+	ConceptFile  string // the design handover
+	Design       Design // minimums concept.md must meet
+}
+
+// Design holds the minimums the compiler checks in concept.md.
+type Design struct {
+	MinVoiceNotes, MinPathSteps, MinRejected, MinFacts, MinAxes int
+	MinSparks, MaxSparks, MinDirections, MinSpine, MinColors    int
+	MinCopy                                                     int
 }
 
 // NewData returns the facts of this binary.
@@ -45,6 +55,12 @@ func NewData(version string) Data {
 		MinPeers:     research.MinPeers,
 		Authors:      strings.Join(research.Authors, " | "),
 		Methods:      strings.Join(research.Methods, " | "),
+		ConceptFile:  concept.File,
+		Design: Design{
+			MinVoiceNotes: concept.MinVoiceNotes, MinPathSteps: concept.MinPathSteps, MinRejected: concept.MinRejected,
+			MinFacts: concept.MinFacts, MinAxes: concept.MinAxes, MinSparks: concept.MinSparks, MaxSparks: concept.MaxSparks,
+			MinDirections: concept.MinDirections, MinSpine: concept.MinSpine, MinColors: concept.MinColors, MinCopy: concept.MinCopy,
+		},
 	}
 }
 
@@ -56,7 +72,19 @@ type Skill struct {
 	Text        string // the complete SKILL.md
 }
 
-// All renders every skill, sorted by topic.
+// lifecycle orders the skills as a project uses them; others follow by name.
+var lifecycle = []string{"research", "design", "implementation"}
+
+func rank(topic string) int {
+	for i, t := range lifecycle {
+		if t == topic {
+			return i
+		}
+	}
+	return len(lifecycle)
+}
+
+// All renders every skill in lifecycle order.
 func All(data Data) ([]Skill, error) {
 	topics, err := fs.Glob(files, "files/*/SKILL.md")
 	if err != nil {
@@ -70,7 +98,12 @@ func All(data Data) ([]Skill, error) {
 		}
 		all = append(all, skill)
 	}
-	sort.Slice(all, func(i, j int) bool { return all[i].Topic < all[j].Topic })
+	sort.Slice(all, func(i, j int) bool {
+		if rank(all[i].Topic) != rank(all[j].Topic) {
+			return rank(all[i].Topic) < rank(all[j].Topic)
+		}
+		return all[i].Topic < all[j].Topic
+	})
 	return all, nil
 }
 
