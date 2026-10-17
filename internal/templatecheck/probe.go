@@ -24,9 +24,14 @@ type probe struct {
 // its value without stringifying it. This preserves Go's builtin/type semantics,
 // including pipeline argument order and lazy and/or evaluation.
 func (c *checker) execute(command *parse.CommandNode, env *environment, previous *value) (any, error) {
-	variables := make([]string, 0, len(env.variables))
+	// Bind only the variables the command reads: every binding costs a
+	// reflective call on each evaluation, and ranges evaluate bodies per item.
+	used := c.variablesIn(command)
+	variables := make([]string, 0, len(used))
 	for name := range env.variables {
-		variables = append(variables, name)
+		if used[name] {
+			variables = append(variables, name)
+		}
 	}
 	sort.Strings(variables)
 	key := probeKey{command, strings.Join(variables, "\x00"), previous != nil}
@@ -43,8 +48,13 @@ func (c *checker) execute(command *parse.CommandNode, env *environment, previous
 			funcs[name] = fn
 		}
 		var prologue strings.Builder
-		prologue.WriteString("{{$ = __lfmRoot}}")
+		if used["$"] {
+			prologue.WriteString("{{$ = __lfmRoot}}")
+		}
 		for _, name := range variables {
+			if name == "$" {
+				continue
+			}
 			prologue.WriteString("{{" + name + " := __lfmVar " + strconv.Quote(name) + "}}")
 		}
 		prologue.WriteString("{{__lfmCapture .}}")
@@ -71,4 +81,33 @@ func (c *checker) execute(command *parse.CommandNode, env *environment, previous
 	}
 	err := p.template.Execute(io.Discard, env.dot.raw)
 	return p.result, err
+}
+
+// variablesIn lists the variables a command reads, including inside nested
+// parenthesized pipelines. Results are cached per command node.
+func (c *checker) variablesIn(command *parse.CommandNode) map[string]bool {
+	if used, ok := c.commandVariables[command]; ok {
+		return used
+	}
+	used := map[string]bool{}
+	var visit func(parse.Node)
+	visit = func(n parse.Node) {
+		switch n := n.(type) {
+		case *parse.VariableNode:
+			used[n.Ident[0]] = true
+		case *parse.ChainNode:
+			visit(n.Node)
+		case *parse.PipeNode:
+			for _, cmd := range n.Cmds {
+				visit(cmd)
+			}
+		case *parse.CommandNode:
+			for _, arg := range n.Args {
+				visit(arg)
+			}
+		}
+	}
+	visit(command)
+	c.commandVariables[command] = used
+	return used
 }

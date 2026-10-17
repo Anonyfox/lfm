@@ -44,18 +44,19 @@ func (e *environment) rootValue() value {
 }
 
 type checker struct {
-	locations    map[string]diagnostic.Source
-	options      Options
-	tree         *parse.Tree
-	issues       []diagnostic.Diagnostic
-	seen         map[string]bool
-	exact, whole map[string]bool
-	reached      map[string]bool
-	stack        map[string]bool
-	probes       map[probeKey]*probe
-	steps        int
-	exhausted    bool
-	bindingPath  string // nonempty while evaluating a lfm.json JSON-LD leaf
+	locations        map[string]diagnostic.Source
+	options          Options
+	tree             *parse.Tree
+	issues           []diagnostic.Diagnostic
+	seen             map[string]bool
+	exact, whole     map[string]bool
+	reached          map[string]bool
+	stack            map[string]bool
+	probes           map[probeKey]*probe
+	commandVariables map[*parse.CommandNode]map[string]bool
+	steps            int
+	exhausted        bool
+	bindingPath      string // nonempty while evaluating a lfm.json JSON-LD leaf
 }
 
 // Check walks the standard parse trees against the actual JSON shapes. Dormant
@@ -82,7 +83,7 @@ func Check(t *htmltemplate.Template, options Options) diagnostic.Summary {
 }
 
 func newChecker(options Options) *checker {
-	return &checker{locations: map[string]diagnostic.Source{}, options: options, seen: map[string]bool{}, exact: map[string]bool{}, whole: map[string]bool{}, reached: map[string]bool{}, stack: map[string]bool{}, probes: map[probeKey]*probe{}}
+	return &checker{locations: map[string]diagnostic.Source{}, options: options, seen: map[string]bool{}, exact: map[string]bool{}, whole: map[string]bool{}, reached: map[string]bool{}, stack: map[string]bool{}, probes: map[probeKey]*probe{}, commandVariables: map[*parse.CommandNode]map[string]bool{}}
 }
 
 func (c *checker) add(d diagnostic.Diagnostic) {
