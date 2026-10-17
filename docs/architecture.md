@@ -26,8 +26,9 @@ one package per responsibility, each testable on its own.
 | `release` | Headless Chrome for critical CSS and the runtime probe, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
 
-Dependencies point down this table: `cli` uses `compile`, `compile` uses the checkers, nothing below
-imports anything above it.
+Dependencies point one way, in layers: `cli` drives `serve`, `compile`, `scaffold` and `skills`; `compile`
+drives the checkers, `research` and `release`; everything may use the shared base (`project`, `diagnostic`,
+`htmlx`, `jsonsrc`, `term`). Checkers never import `compile`, and nothing imports `cli`.
 
 ## The lifecycle
 
