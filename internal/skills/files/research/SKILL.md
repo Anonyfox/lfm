@@ -93,8 +93,8 @@ already has) and list gaps no peer uses.
 **Minimums from zero:** [[.MinVoices]] voices from [[.MinPlatforms]] platforms, including an image or video
 platform when one is reachable, and [[.MinPeers]] peers. **Stop** when the minimums hold and your last 10
 voices brought no new platform and no new kind of problem or wish (a new detail of a known problem does
-not count), or at twice the minimums, whichever comes first. If the minimums cannot be met, add `shortfall: <what and
-why>` to the batch heading. Ongoing batches have no minimum; they end when the trigger is covered.
+not count), or at twice the minimums, whichever comes first. If the minimums cannot be met, add
+`shortfall: <what and why>` to the batch heading. Ongoing batches have no minimum; they end when the trigger is covered.
 
 ## [[.Voices]] format
 
