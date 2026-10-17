@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/scaffold"
@@ -152,7 +151,7 @@ commerce, ready to adapt and place in a project. They are not published yet.`,
 
 func printRules(w io.Writer, filter string) error {
 	s := term.For(w)
-	catalog := check.Catalog()
+	catalog := compile.Rules()
 	for _, rule := range catalog {
 		if rule.ID == filter {
 			printRule(w, s, rule, rule.ID)

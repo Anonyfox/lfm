@@ -3,8 +3,6 @@
 package check
 
 import (
-	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/commercecheck"
@@ -61,30 +59,19 @@ type Report struct {
 	Warnings    int          `json:"warnings"`
 }
 
-type Failure struct{ Count int }
-
-func (f *Failure) Error() string {
-	return fmt.Sprintf("HTML validation failed (%d errors); output was not replaced", f.Count)
-}
-
 // Analyze parses once for all rules. It does not serialize, minify, or fix HTML.
+// Findings, errors included, are part of the report; the returned error only
+// means the document could not be analyzed at all.
 func Analyze(raw []byte, options Options) (Report, error) {
-	if err := ValidateOptions(options.Rules); err != nil {
-		return Report{}, err
-	}
 	doc, err := Parse(raw, options)
 	if err != nil {
 		return Report{}, err
 	}
-	report := Run(doc, DefaultRules(), options.Rules)
-	if report.Errors > 0 {
-		return report, &Failure{report.Errors}
-	}
-	return report, nil
+	return Run(doc, DefaultRules(), options.Rules), nil
 }
 
 // Run permits any subset/custom rules, including a single rule on a tiny fixture.
-// Configuration overrides for the default catalog use ValidateOptions first.
+// Overrides are validated against the whole catalog by the compiler first.
 // Custom Go catalogs/overrides are owned by the caller.
 func Run(doc *Document, rules []Rule, overrides map[string]Severity) Report {
 	report := Report{Stage: "html", Stats: doc.Stats, Diagnostics: []Diagnostic{}}
@@ -105,31 +92,6 @@ func Run(doc *Document, rules []Rule, overrides map[string]Severity) Report {
 	report.Errors = summary.Errors
 	report.Warnings = summary.Warnings
 	return report
-}
-
-func ValidateOptions(overrides map[string]Severity) error {
-	known := map[string]diagnostic.RuleInfo{}
-	for _, rule := range Catalog() {
-		known[rule.ID] = rule
-	}
-	keys := make([]string, 0, len(overrides))
-	for key := range overrides {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		if _, exists := known[key]; !exists && !diagnostic.DynamicRule(key) {
-			return fmt.Errorf("build.validation.rules: unknown rule %q", key)
-		}
-		level := overrides[key]
-		if known[key].Required && level != Error {
-			return fmt.Errorf("build.validation.rules.%s: required safety check must remain error", key)
-		}
-		if level != Off && level != Warning && level != Error {
-			return fmt.Errorf("build.validation.rules.%s: use off, warn, or error", key)
-		}
-	}
-	return nil
 }
 
 func join(parts ...string) string { return strings.Join(parts, "; ") }

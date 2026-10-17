@@ -72,7 +72,7 @@ func TestMappingPoliciesAndRuntimeOnlyConsumption(t *testing.T) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"template.bindings": "off"}}
 	})
 	report, err = Compile(context.Background(), root, Options{})
-	if err == nil || report.Validation.Errors != 1 || !strings.Contains(report.Validation.Diagnostics[0].Message, "required safety") {
+	if err == nil || report.Validation.Errors != 1 || !strings.Contains(report.Validation.Diagnostics[0].Message, "is required and must stay error") {
 		t.Fatal(report, err)
 	}
 }

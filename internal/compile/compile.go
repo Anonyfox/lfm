@@ -218,8 +218,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	})
 	result.Validation = summarize("html", append(append(preliminary.Diagnostics, analysis.Diagnostics...), diagnostic.Apply(b.notices, c.Build.Validation.Rules)...))
 	result.Validation.Stats = analysis.Stats
-	var failure *check.Failure
-	if err != nil && !errors.As(err, &failure) {
+	if err != nil {
 		return result, err
 	}
 	if result.Errors() > 0 {
@@ -384,10 +383,6 @@ func (b *builder) emit(name, origin string, content []byte) error {
 	}
 	b.files[key] = emitted{name, origin, content}
 	return nil
-}
-
-func ruleCheck(id string, level diagnostic.Severity) error {
-	return check.ValidateOptions(map[string]diagnostic.Severity{id: level})
 }
 
 func summarize(stage string, issues []diagnostic.Diagnostic) *check.Report {

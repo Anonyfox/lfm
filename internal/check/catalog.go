@@ -1,26 +1,8 @@
 package check
 
 import (
-	"sort"
-
-	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
-	"github.com/Anonyfox/lfm/internal/templatecheck"
-	"github.com/Anonyfox/lfm/internal/urlcheck"
 )
-
-// Catalog lists checks from every lifecycle stage. Required checks cannot be disabled.
-func Catalog() []diagnostic.RuleInfo {
-	result := templatecheck.Catalog()
-	result = append(result, commercecheck.Catalog()...)
-	result = append(result, diagnostic.OperationalRules()...)
-	result = append(result, urlcheck.Catalog()...)
-	for _, rule := range DefaultRules() {
-		result = append(result, rule.RuleInfo)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
-	return result
-}
 
 func rule(id, summary, help string, check func(*Document) []Diagnostic) Rule {
 	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help}, Check: check}

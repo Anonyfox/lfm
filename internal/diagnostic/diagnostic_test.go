@@ -31,9 +31,6 @@ func TestSummaryAndFormatting(t *testing.T) {
 	if err != nil || !strings.Contains(string(raw), `"related"`) {
 		t.Fatal(string(raw), err)
 	}
-	if !strings.Contains((&Failure{Stage: "Template", Count: 2}).Error(), "2 errors") {
-		t.Fatal("failure summary")
-	}
 }
 
 func TestReadableReportIncludesConfigPathOnce(t *testing.T) {

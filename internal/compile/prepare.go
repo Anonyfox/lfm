@@ -119,7 +119,7 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 	issues = filtered
 	if diagnostic.Summarize(issues).Errors > 0 {
 		report := templateReport(diagnostic.HardOnly(issues))
-		failure := &diagnostic.Failure{Stage: "Template/config", Count: report.Errors}
+		failure := &Failure{Errors: report.Errors}
 		if len(configProblems) > 0 {
 			return preparedTemplate{}, report, registry, fmt.Errorf("%w: %v", failure, configProblems[0].Err)
 		}
@@ -130,7 +130,7 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 	raw, renderIssue := templatecheck.Render(t, options)
 	if renderIssue != nil {
 		report := templateReport([]diagnostic.Diagnostic{*renderIssue})
-		return preparedTemplate{}, report, registry, &diagnostic.Failure{Stage: "Template", Count: 1}
+		return preparedTemplate{}, report, registry, &Failure{Errors: 1}
 	}
 	prepared.HTML = raw
 	prepared.Helpers = helpers.entries

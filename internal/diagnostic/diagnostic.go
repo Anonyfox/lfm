@@ -114,15 +114,6 @@ func At(file string, raw []byte, offset int) Location {
 	return Location{file, line, column, offset}
 }
 
-type Failure struct {
-	Stage string
-	Count int
-}
-
-func (f *Failure) Error() string {
-	return fmt.Sprintf("%s validation failed (%d errors); output was not replaced", f.Stage, f.Count)
-}
-
 // Source indexes line starts once for repeated source-position lookups.
 // Columns/offsets use UTF-8 bytes, matching Go's template and JSON parsers.
 type Source struct {

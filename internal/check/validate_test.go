@@ -61,14 +61,6 @@ func TestRegistryAndOverrides(t *testing.T) {
 		}
 		seen[rule.ID] = true
 	}
-	for _, config := range []map[string]Severity{{"typo": Off}, {"html.ids": "warning"}, {"html.ids": ""}} {
-		if ValidateOptions(config) == nil {
-			t.Fatalf("accepted config: %v", config)
-		}
-	}
-	if err := ValidateOptions(map[string]Severity{"html.ids": Off}); err != nil {
-		t.Fatal(err)
-	}
 	d, _ := Parse([]byte("<p id=x></p><p id=x></p>"), Options{})
 	rule := testRule("html.ids", idsRule)
 	if got := Run(d, []Rule{rule}, map[string]Severity{"html.ids": Off}); len(got.Diagnostics) != 0 {
@@ -98,7 +90,7 @@ func TestAnalyzeAndRenderedSource(t *testing.T) {
 		t.Fatal("mutated output")
 	}
 	report, err = Analyze(before, Options{RenderedSource: []byte(`<html><head><img src=x><title>T</title></head><body></body></html>`)})
-	if err == nil || report.Errors == 0 {
+	if err != nil || report.Errors == 0 {
 		t.Fatal("source repair hidden")
 	}
 	found := false
