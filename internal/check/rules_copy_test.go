@@ -220,3 +220,20 @@ func TestAltText(t *testing.T) {
 		})
 	}
 }
+
+func TestGenericActions(t *testing.T) {
+	for body, want := range map[string]bool{
+		`<a href="#x">Learn more</a>`:                     true,
+		`<a href="#x">Learn more →</a>`:                   true,
+		`<button type=button>Mehr erfahren</button>`:      true,
+		`<input type=submit value="Submit">`:              true,
+		`<a href="#x">Learn more about the rota</a>`:      false,
+		`<a href="#x">Buy the guide for 12 €</a>`:         false,
+		`<a href="#x" aria-label="See the plan">More</a>`: false,
+		`<a href="#x" hidden>Learn more</a>`:              false,
+	} {
+		if got := runOn(t, actionsRule, "", body, Options{}); (len(got) > 0) != want {
+			t.Errorf("%s: %+v", body, got)
+		}
+	}
+}

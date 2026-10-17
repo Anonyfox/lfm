@@ -135,6 +135,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.defaults` | Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
 | `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and it's-not-it's constructions (German nicht nur … sondern from three), and ≥4 em dashes above one per hundred words. Quotations, code and data-design-reason subtrees are exempt. |
 | `copy.placeholder` | Warnings: lorem ipsum, TODO/TBD/FIXME (case-sensitive), "your … here" and [insert …] filler in text, alt, title and description metadata; after the starter page is replaced, the lfm init description, social alt text and share image. |
+| `copy.actions` | Warnings: a link, button or summary whose entire name is a generic label (learn more, click here, get started, submit, mehr erfahren, absenden…); one finding per label. |
 | `concept.fidelity` | Warnings, once the starter page is replaced: font families not declared in the Type table (var() tokens followed) or declared and unused; CSS colors outside the palette (tints and translucent black/white allowed); fewer distinct images than planned rows not marked Open; Copy `Use:` phrases missing and `Avoid:` phrases present outside quotations. |
 
 Size thresholds use decimal bytes conservatively, following the current

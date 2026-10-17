@@ -706,3 +706,38 @@ func hiddenStartRule(d *Document) []Diagnostic {
 	}
 	return nil
 }
+
+// ---------- copy.actions ----------
+
+// genericActionNames are complete control names that say nothing about where
+// they lead or what they do. Only the whole name is matched, so "Learn more
+// about the rota" passes.
+var genericActionNames = map[string]bool{
+	"click here": true, "here": true, "learn more": true, "read more": true, "more": true, "more…": true, "submit": true,
+	"send": true, "go": true, "get started": true, "start now": true, "start here": true, "details": true, "more info": true,
+	"discover more": true, "mehr": true, "weiter": true, "weiterlesen": true, "mehr erfahren": true, "hier": true,
+	"hier klicken": true, "klicken sie hier": true, "absenden": true, "senden": true, "jetzt starten": true,
+	"los geht's": true, "loslegen": true, "mehr entdecken": true, "zum angebot": true,
+}
+
+// actionsRule warns for links and buttons named only by a generic label.
+func actionsRule(d *Document) []Diagnostic {
+	var issues []Diagnostic
+	seen := map[string]bool{}
+	for _, n := range d.activeNodes("a[href], button, input[type=submit], input[type=button], summary") {
+		if hidden(n) || HasAttr(n, "data-design-reason") {
+			continue
+		}
+		name := strings.ToLower(strings.Join(strings.Fields(normalizeQuotes(d.controlName(n))), " "))
+		name = strings.TrimRight(name, " .!→›»>")
+		if n.Data == "input" {
+			name = strings.ToLower(strings.TrimSpace(Attr(n, "value")))
+		}
+		if !genericActionNames[name] || seen[name] {
+			continue
+		}
+		seen[name] = true
+		issues = append(issues, d.At(n, Warning, fmt.Sprintf("Action named %q says nothing about what happens.", name), "Name the next step and its outcome: \"See your sun plan\", \"Buy the guide for 12 €\", \"Send the request\"."))
+	}
+	return issues
+}
