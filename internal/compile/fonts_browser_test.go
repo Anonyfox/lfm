@@ -26,7 +26,7 @@ func TestBrowserFontPackingAndPreloadReuse(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	root := fontWorkbench(t, "", "")
+	root := fontProject(t, "", "")
 	font, err := os.ReadFile("../fontcheck/testdata/Go-Regular.woff2")
 	if err != nil {
 		t.Fatal(err)

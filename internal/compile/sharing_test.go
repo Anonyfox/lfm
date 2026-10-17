@@ -70,7 +70,7 @@ const sharingHead = `<meta name="twitter:card" content="player">
 <meta name="fc:miniapp" content='{"version":"1","imageUrl":"{{.urls.card}}","button":{"title":"Compare","action":{"type":"launch_miniapp","url":"{{.urls.result}}"}}}'>
 <script id="discord:component-embed" type="application/json">{"component":{"type":17,"components":[{"type":10,"content":"[Compare your result]({{.urls.result}})"},{"type":1,"components":[{"type":2,"style":5,"label":"Compare","url":"{{.urls.result}}"}]}]}}</script>`
 
-func sharingWorkbench(t *testing.T) string {
+func sharingProject(t *testing.T) string {
 	t.Helper()
 	root := fixture(t)
 	writeSharingPNG(t, root, "card.png", 600, 400)
@@ -88,7 +88,7 @@ func sharingWorkbench(t *testing.T) string {
 }
 
 func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
-	root := sharingWorkbench(t)
+	root := sharingProject(t)
 	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
@@ -138,7 +138,7 @@ func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
 }
 
 func TestVendorDiscordTemplateEscapingHasActionableFeedback(t *testing.T) {
-	root := sharingWorkbench(t)
+	root := sharingProject(t)
 	page := strings.Replace(read(t, root, "index.html.tmpl"), `id="discord:component-embed" type="application/json"`, `id="discord:component-embed" type="application/vnd.discord.component-embed+json"`, 1)
 	write(t, root, "index.html.tmpl", page)
 	r, err := Compile(root, Options{})
@@ -185,7 +185,7 @@ func TestLinkedDiscordFileIsInspectedWithoutFetch(t *testing.T) {
 }
 
 func TestStructuredSharingMediaFollowsAutomaticSidecarNames(t *testing.T) {
-	root := sharingWorkbench(t)
+	root := sharingProject(t)
 	changeConfig(t, root, func(c map[string]any) {
 		delete(c["build"].(map[string]any), "assets")
 		c["urls"].(map[string]any)["card"] = "card.png"

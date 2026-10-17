@@ -75,7 +75,7 @@ func (m *monitor) snapshot() map[string]stamp {
 			return nil
 		}
 		if entry.Type()&os.ModeSymlink != 0 {
-			// Compiler paths must remain within the workbench; never crawl symlink trees.
+			// Compiler paths must remain within the project; never crawl symlink trees.
 			real, err := filepath.EvalSymlinks(path)
 			if err != nil {
 				current[path] = stamp{Error: err.Error()}

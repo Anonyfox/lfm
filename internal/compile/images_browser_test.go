@@ -29,7 +29,7 @@ func TestBrowserInferredImageSizesPreserveLoadedLayout(t *testing.T) {
 		t.Skip(err)
 	}
 	body := `<div class="frame"><img id="plain" src="assets/images/photo.png" alt=""><img id="width" src="assets/images/photo.png" width="6" alt=""><img id="responsive" class="responsive" src="assets/images/photo.png" alt=""><img id="deliberate" src="assets/images/photo.png" width="20" height="20" alt=""><img id="CSS-only" style="width:50%" src="assets/images/photo.png" alt=""><div style="display:flex;width:6px"><img id="flex" src="assets/images/photo.png" alt=""></div><img id="rotated-jpeg" src="rotated.jpg" alt=""><img id="rotated-png" src="rotated.png" alt=""><img id="SVG" src="fixed.svg" alt=""></div>`
-	root := imageWorkbench(t, body, `body{margin:16px}.frame{width:80%}.responsive{width:100%;height:auto}`)
+	root := imageProject(t, body, `body{margin:16px}.frame{width:80%}.responsive{width:100%;height:auto}`)
 	// Valid JPEG/PNG files with EXIF orientation 6, not mocked dimensions.
 	tiff := []byte{'I', 'I', 42, 0, 8, 0, 0, 0, 1, 0, 0x12, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0}
 	var jpg bytes.Buffer

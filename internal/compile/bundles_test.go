@@ -208,7 +208,7 @@ func TestPackageFailurePreservesOutput(t *testing.T) {
 	}
 	write(t, root, "assets/scripts/app.js", `import "escape";`)
 	if _, err := Compile(root, Options{Publish: true}); err == nil {
-		t.Fatal("package symlink escaped workbench")
+		t.Fatal("package symlink escaped the project")
 	}
 }
 

@@ -24,7 +24,7 @@ func imagePNG(t testing.TB, width, height int) []byte {
 	return data.Bytes()
 }
 
-func imageWorkbench(t *testing.T, body, styles string) string {
+func imageProject(t *testing.T, body, styles string) string {
 	t.Helper()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", `<!doctype html><html lang="{{.language}}"><head><link rel="canonical" href="{{.url}}"><title>{{.title}}</title><style>`+styles+`</style></head><body><h1>{{.title}}</h1>`+body+`</body></html>`)
@@ -36,7 +36,7 @@ func imageWorkbench(t *testing.T, body, styles string) string {
 
 func TestImageInferencePreservesAuthoredSizing(t *testing.T) {
 	body := `<img id="plain" src="assets/images/photo.png" alt=""><img id="width" src="assets/images/photo.png" width="006" alt=""><img id="height" src="assets/images/photo.png" height="4" alt=""><img id="both" src="assets/images/photo.png" width="5" height="7" alt=""><img id="zero" src="assets/images/photo.png" width="0" alt=""><img id="empty" src="assets/images/photo.png" width="" alt=""><img id="relative" src="assets/images/photo.png" width="50%" alt=""><img id="fraction" src="assets/images/photo.png" width="5" alt=""><template><img id="dormant" src="assets/images/photo.png" alt=""></template>`
-	root := imageWorkbench(t, body, "")
+	root := imageProject(t, body, "")
 	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, report.Validation)
@@ -88,7 +88,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 			if test.wrapper != "" {
 				body = "<" + test.wrapper + ">" + body + "</" + test.wrapper + ">"
 			}
-			root := imageWorkbench(t, body, test.style)
+			root := imageProject(t, body, test.style)
 			report, err := Compile(root, Options{Publish: true})
 			if err != nil {
 				t.Fatal(err, report.Validation)
@@ -99,7 +99,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 			}
 		})
 	}
-	root := imageWorkbench(t, `<img src="assets/images/photo.png" style="width:100%;height:auto" alt="">`, "")
+	root := imageProject(t, `<img src="assets/images/photo.png" style="width:100%;height:auto" alt="">`, "")
 	report, err := Compile(root, Options{Publish: true})
 	if err != nil || len(report.Images[0].Added) != 2 {
 		t.Fatal(err, report.Images)
@@ -109,7 +109,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 func TestImageInferenceHandlesInlineFilesSVGAndResponsiveSelection(t *testing.T) {
 	data := "data:image/png;base64," + base64.StdEncoding.EncodeToString(imagePNG(t, 12, 8))
 	body := `<img id="data" src="` + data + `" alt=""><img id="file" src="assets/images/photo.png?v=1" alt=""><img id="svg" src="fixed.svg" alt=""><img id="viewbox" src="ratio.svg" alt=""><img id="fragment" src="fixed.svg#crop" alt=""><img id="srcset" src="assets/images/photo.png" srcset="assets/images/photo.png 1x, assets/images/photo.png 2x" alt=""><picture><source type="image/png" srcset="assets/images/photo.png" width="20" height="30"><img id="picture" src="assets/images/photo.png" alt=""></picture>`
-	root := imageWorkbench(t, body, "")
+	root := imageProject(t, body, "")
 	write(t, root, "fixed.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60"><view id="crop" viewBox="0 0 10 10"/></svg>`)
 	write(t, root, "ratio.svg", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60"/>`)
 	report, err := Compile(root, Options{Publish: true})
@@ -144,7 +144,7 @@ func TestImageInferenceHandlesInlineFilesSVGAndResponsiveSelection(t *testing.T)
 }
 
 func TestOversizedImageWarningsAreActionableAndDeduplicated(t *testing.T) {
-	root := imageWorkbench(t, `<img src="large.png" width="100" height="100" alt=""><img src="large.png" width="100" height="100" alt="">`, "")
+	root := imageProject(t, `<img src="large.png" width="100" height="100" alt=""><img src="large.png" width="100" height="100" alt="">`, "")
 	// Change only the valid IHDR and CRC. Header inspection must never allocate
 	// a 20-megapixel pixel buffer or pretend to validate the compressed payload.
 	raw := imagePNG(t, 12, 8)

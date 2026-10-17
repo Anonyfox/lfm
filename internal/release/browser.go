@@ -241,7 +241,7 @@ func settle(ctx context.Context) error {
 	return err
 }
 
-// Handler exposes only the in-memory artifact, never workbench/source files.
+// Handler exposes only the in-memory artifact, never project sources.
 func Handler(page []byte, assets map[string][]byte) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")

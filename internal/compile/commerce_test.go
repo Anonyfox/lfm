@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func commerceWorkbench(t *testing.T) string {
+func commerceProject(t *testing.T) string {
 	t.Helper()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
@@ -18,7 +18,7 @@ func commerceWorkbench(t *testing.T) string {
 }
 
 func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
-	root := commerceWorkbench(t)
+	root := commerceProject(t)
 	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
 		t.Fatal(err, r.Validation)
@@ -85,7 +85,7 @@ func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 }
 
 func TestCommerceDatasetLocationsAndSecretGate(t *testing.T) {
-	root := commerceWorkbench(t)
+	root := commerceProject(t)
 	if _, err := Compile(root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/htmlx"
 )
 
-func fontWorkbench(t *testing.T, style, head string) string {
+func fontProject(t *testing.T, style, head string) string {
 	t.Helper()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"] = map[string]any{"default": "auto"} })
@@ -30,7 +30,7 @@ func realFont(t *testing.T) []byte {
 func TestFontPackingAndHintRepairsPreserveBytes(t *testing.T) {
 	font := realFont(t)
 	// An arbitrary filename still gets recognized after bundling; no new author syntax.
-	root := fontWorkbench(t, `@font-face{font-family:"Demo";src:local("Absent Demo"),url(./type.bin) format(truetype);font-display:optional;font-weight:400;unicode-range:U+0-FF}h1{font-family:Demo,serif}`, `<link rel="preload" as="font" href="type.bin">`)
+	root := fontProject(t, `@font-face{font-family:"Demo";src:local("Absent Demo"),url(./type.bin) format(truetype);font-display:optional;font-weight:400;unicode-range:U+0-FF}h1{font-family:Demo,serif}`, `<link rel="preload" as="font" href="type.bin">`)
 	write(t, root, "type.bin", string(font))
 	report, err := Compile(root, Options{Publish: true})
 	if err != nil {
@@ -67,7 +67,7 @@ func TestFontPackingAndHintRepairsPreserveBytes(t *testing.T) {
 }
 
 func TestFontAuthoredCredentialTypeAndInlinePolicyPreserved(t *testing.T) {
-	root := fontWorkbench(t, `@font-face{font-family:Demo;src:url(./a.ttf);font-display:block}`, `<link rel="preload" as="font" href="a.ttf" crossorigin="use-credentials" type="font/woff2">`)
+	root := fontProject(t, `@font-face{font-family:Demo;src:url(./a.ttf);font-display:block}`, `<link rel="preload" as="font" href="a.ttf" crossorigin="use-credentials" type="font/woff2">`)
 	write(t, root, "a.ttf", string(realFont(t)))
 	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
@@ -104,7 +104,7 @@ func TestFontAuthoredCredentialTypeAndInlinePolicyPreserved(t *testing.T) {
 }
 
 func TestRemoteFontHintGetsCORSWithoutFetching(t *testing.T) {
-	root := fontWorkbench(t, `@font-face{font-family:Demo;src:url({{.urls.font}}) format(woff2);font-display:swap}`, `<link rel="preload" as="font" href="{{.urls.font}}">`)
+	root := fontProject(t, `@font-face{font-family:Demo;src:url({{.urls.font}}) format(woff2);font-display:swap}`, `<link rel="preload" as="font" href="{{.urls.font}}">`)
 	changeConfig(t, root, func(c map[string]any) { c["urls"] = map[string]any{"font": "https://example.invalid/demo.woff2"} })
 	r, err := Compile(root, Options{Publish: true})
 	if err != nil {
@@ -123,7 +123,7 @@ func TestRemoteFontHintGetsCORSWithoutFetching(t *testing.T) {
 }
 
 func TestFontOpaqueSourceAndRenamedContainer(t *testing.T) {
-	root := fontWorkbench(t, `@font-face{font-family:Bad;src:url(./response.bin);font-display:swap}`, "")
+	root := fontProject(t, `@font-face{font-family:Bad;src:url(./response.bin);font-display:swap}`, "")
 	write(t, root, "response.bin", `<html>not a font</html>`)
 	r, err := Compile(root, Options{Publish: true})
 	if err != nil {

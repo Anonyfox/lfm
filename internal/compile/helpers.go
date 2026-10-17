@@ -56,7 +56,7 @@ func (h *helperRegistry) functions(render bool) htmltemplate.FuncMap {
 }
 
 // Existing local paths win over package names. Explicit dot paths are relative
-// to the source template; bare local paths also have a workbench-root fallback.
+// to the source template; bare local paths also have a project-root fallback.
 // esbuild alone interprets extensions, directories, browser maps and exports.
 func (h *helperRegistry) resolve(kind, origin, ref string) (helperEntry, error) {
 	key := kind + "\x00" + origin + "\x00" + ref

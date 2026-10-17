@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -29,7 +28,7 @@ func write(t *testing.T, root, path, value string) {
 		t.Fatal(err)
 	}
 }
-func workbench(t *testing.T) string {
+func testProject(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	write(t, root, "lfm.json", `{"schemaVersion":1,"url":"https://example.com/product/","language":"en","title":"First","description":"Description"}`)
@@ -39,7 +38,7 @@ func workbench(t *testing.T) string {
 }
 
 func TestMonitorAtomicSavesDependenciesAndIgnoredOutputs(t *testing.T) {
-	root := workbench(t)
+	root := testProject(t)
 	m := newMonitor(root)
 	before := m.snapshot()
 	write(t, root, "output/index.html", "output")
@@ -159,7 +158,7 @@ func nextBuild(t *testing.T, built <-chan outcome) outcome {
 }
 
 func TestServeReloadFailureRecoveryAndOutputIsolation(t *testing.T) {
-	root := workbench(t)
+	root := testProject(t)
 	address, built := start(t, root)
 	initial := nextBuild(t, built)
 	if initial.err != nil {
@@ -266,7 +265,7 @@ func TestServeReloadFailureRecoveryAndOutputIsolation(t *testing.T) {
 }
 
 func TestServeStartsWithBrokenSourceAndRecovers(t *testing.T) {
-	root := workbench(t)
+	root := testProject(t)
 	write(t, root, "index.html.tmpl", `{{.missing}}`)
 	address, built := start(t, root)
 	if first := nextBuild(t, built); first.err == nil {
@@ -291,14 +290,6 @@ func TestServeStartsWithBrokenSourceAndRecovers(t *testing.T) {
 	t.Fatal("preview did not recover")
 }
 
-func ExampleServe() {
-	fmt.Println("micro serve --open")
-	fmt.Println("micro serve path/to/workbench --port 9000")
-	// Output:
-	// micro serve --open
-	// micro serve path/to/workbench --port 9000
-}
-
 func TestReloadCSPDetectionPreservesPolicy(t *testing.T) {
 	for _, tc := range []struct {
 		policy  string
@@ -314,7 +305,7 @@ func TestReloadCSPDetectionPreservesPolicy(t *testing.T) {
 }
 
 func TestPreviewBusyPortPolicy(t *testing.T) {
-	root := workbench(t)
+	root := testProject(t)
 	occupied, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)

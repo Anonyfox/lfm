@@ -148,14 +148,14 @@ func templateFiles(p project.Project) (map[string][]byte, []diagnostic.Diagnosti
 	read := func(name string) {
 		raw, err := p.Read(name)
 		if err != nil {
-			issues = append(issues, diagnostic.Diagnostic{Rule: "template.syntax", Severity: diagnostic.Error, Location: diagnostic.At(name, nil, 0), Message: err.Error(), Hint: "Make this template source readable inside the workbench."})
+			issues = append(issues, diagnostic.Diagnostic{Rule: "template.syntax", Severity: diagnostic.Error, Location: diagnostic.At(name, nil, 0), Message: err.Error(), Hint: "Make this template source readable inside the project."})
 			return
 		}
 		files[name] = raw
 	}
 	read(entryTemplate)
 	if dir, err := p.OptionalDir(project.PartialsDir); err != nil {
-		issues = append(issues, diagnostic.Diagnostic{Rule: "template.syntax", Severity: diagnostic.Error, Location: diagnostic.At("partials", nil, 0), Message: err.Error(), Hint: "Keep partials in a readable directory inside the workbench."})
+		issues = append(issues, diagnostic.Diagnostic{Rule: "template.syntax", Severity: diagnostic.Error, Location: diagnostic.At("partials", nil, 0), Message: err.Error(), Hint: "Keep partials in a readable directory inside the project."})
 	} else if dir != "" {
 		err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {

@@ -20,7 +20,7 @@ func TestBrowserReloadsSourcesAndRecoversFromErrors(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	root := workbench(t)
+	root := testProject(t)
 	address, built := start(t, root)
 	if first := nextBuild(t, built); first.err != nil {
 		t.Fatal(first.err)

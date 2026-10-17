@@ -216,7 +216,7 @@ func bundleError(messages []api.Message) error {
 	message := strings.Join(api.FormatMessages(messages, api.FormatMessagesOptions{Kind: api.ErrorMessage}), "\n")
 	for _, item := range messages {
 		if strings.Contains(item.Text, "Could not resolve") {
-			message += "\nPackage imports need dependencies installed in this workbench's node_modules/ (npm ci with a lockfile, or npm install during setup). Builds never install packages; Node-only packages need a browser-compatible alternative."
+			message += "\nPackage imports need dependencies installed in this project's node_modules/ (npm ci with a lockfile, or npm install during setup). Builds never install packages; Node-only packages need a browser-compatible alternative."
 			break
 		}
 	}
@@ -290,7 +290,7 @@ func (b *builder) bundleResult(result api.BuildResult, ext string, module bool) 
 }
 
 func (b *builder) assetPlugin() api.Plugin {
-	return api.Plugin{Name: "workbench-assets", Setup: func(build api.PluginBuild) {
+	return api.Plugin{Name: "project-assets", Setup: func(build api.PluginBuild) {
 		build.OnResolve(api.OnResolveOptions{Filter: ".*"}, func(args api.OnResolveArgs) (api.OnResolveResult, error) {
 			if marker, _ := args.PluginData.(string); marker == "lfm-default-resolve" {
 				return api.OnResolveResult{}, nil
