@@ -107,6 +107,7 @@ text). Interrupting or reversing works from the current state. A `prefers-reduce
 shows the concept's reduced state. Anything moving by itself for more than five seconds can be paused.
 
 **Copy.** Write from the Copy section and the voices it cites: the buyers' own words, the stated tone.
+`lfm compile` reports a `Use:` phrase the page never says and an `Avoid:` phrase it does.
 
 - Lead with the recognizable situation or useful outcome; name the product plainly. Every section answers
   one of: what is it, is it for me, what do I get, why believe it, what happens next.

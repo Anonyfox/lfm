@@ -114,4 +114,5 @@ decision path, mechanism, offer, axes, directions, spine, palette, type, form, i
 words inside them, every decision citing research IDs such as `V012` or `P003`. `lfm skills design` prints
 the process and the format. Every compile checks the file (`concept.*` rules) against the research; once the
 starter page is replaced, the page is held to its palette, typefaces and planned imagery
-(`concept.fidelity`). `Open: <question>` lines list what only the owner can answer.
+(`concept.fidelity`), including the Copy section's exact `Use: "…"` and `Avoid: "…"` phrases. `Open:
+<question>` lines list what only the owner can answer (`concept.open`).
