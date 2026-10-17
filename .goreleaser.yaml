@@ -2,10 +2,6 @@ version: 2
 
 project_name: lfm
 
-before:
-  hooks:
-    - go mod tidy
-
 builds:
   - id: lfm
     main: ./cmd/lfm
@@ -21,7 +17,7 @@ builds:
 archives:
   - formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
-    files: [LICENSE, README.md]
+    files: [LICENSE, README.md, docs/*]
 
 checksum:
   name_template: checksums.txt
