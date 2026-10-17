@@ -41,6 +41,8 @@ const maxFrames = 48
 type LayoutResult struct {
 	Frames   string          `json:"frames,omitempty"` // folder of the frame screenshots
 	Count    int             `json:"count"`
+	Previous bool            `json:"previous"`          // a former run left frames to compare with
+	Changed  []string        `json:"changed,omitempty"` // frames that differ from the former run, without .jpg
 	Findings []LayoutFinding `json:"findings,omitempty"`
 }
 
@@ -52,6 +54,10 @@ type LayoutFinding struct {
 	Hint    string `json:"hint"`
 }
 
+// signaturesFile records what each frame showed, to tell the next run which
+// frames changed.
+const signaturesFile = "signatures.json"
+
 // FramesPath is the screenshot folder of a project, in the system temp
 // directory like the Lighthouse report, so the project tree stays clean.
 func FramesPath(root string) string {
@@ -60,11 +66,12 @@ func FramesPath(root string) string {
 }
 
 type frameState struct {
-	Legible bool    `json:"legible"`
-	Faint   bool    `json:"faint"`
-	Y       float64 `json:"y"`
-	Seen    []int   `json:"seen"`
-	Covered []struct {
+	Legible   bool    `json:"legible"`
+	Faint     bool    `json:"faint"`
+	Y         float64 `json:"y"`
+	Signature string  `json:"signature"`
+	Seen      []int   `json:"seen"`
+	Covered   []struct {
 		ID   int    `json:"id"`
 		Text string `json:"text"`
 		By   string `json:"by"`
@@ -92,12 +99,22 @@ type splitValue struct {
 // writing one screenshot per frame into dir (emptied first; "" skips them).
 func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 	r := &LayoutResult{Frames: dir}
+	before, after := map[string]string{}, map[string]string{}
 	if dir != "" {
+		if raw, err := os.ReadFile(filepath.Join(dir, signaturesFile)); err == nil && json.Unmarshal(raw, &before) == nil {
+			r.Previous = len(before) > 0
+		}
+		defer func() {
+			if raw, err := json.MarshalIndent(after, "", "  "); err == nil && dir != "" {
+				_ = os.WriteFile(filepath.Join(dir, signaturesFile), raw, 0o644)
+			}
+		}()
 		if err := resetFrames(dir); err != nil {
 			r.Frames = ""
 			dir = ""
 		}
 	}
+	var sizes, contrasts perElement
 	for _, v := range Screens {
 		opts := []chromedp.EmulateViewportOption{}
 		if v.Mobile {
@@ -133,6 +150,18 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			if err != nil {
 				return r, err
 			}
+			if i == 0 {
+				first, err := chromedp.Run(tab, chromedp.Evaluate[struct{ Heading, Control bool }](`(()=>{const f=__lfmLayout.firstScreen();return {Heading:f.heading,Control:f.control}})()`))
+				if err != nil {
+					return r, err
+				}
+				if !first.Heading {
+					r.Findings = append(r.Findings, LayoutFinding{v.String(), "first-screen", fmt.Sprintf("At %s the first screen shows no legible main heading.", v), "Let the h1 that says what the page offers appear, readable, before any scrolling at every size."})
+				}
+				if !first.Control {
+					r.Findings = append(r.Findings, LayoutFinding{v.String(), "first-screen", fmt.Sprintf("At %s the first screen offers no link, button or field.", v), "Give the first screen a way to act: the tool's first input, the answer link or the way to the offer."})
+				}
+			}
 			if !f.Legible {
 				empty = append(empty, f)
 			}
@@ -150,9 +179,13 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 				quality, fast := int64(80), true
 				shot, err := chromedp.Call(tab, page.CaptureScreenshot, page.CaptureScreenshotParams{Format: page.CaptureScreenshotFormatJpeg, Quality: &quality, OptimizeForSpeed: &fast})
 				if err == nil {
-					name := filepath.Join(dir, fmt.Sprintf("%dx%d-%02d.jpg", v.Width, v.Height, i+1))
-					if os.WriteFile(name, shot.Data, 0o644) == nil {
+					name := fmt.Sprintf("%dx%d-%02d", v.Width, v.Height, i+1)
+					if os.WriteFile(filepath.Join(dir, name+".jpg"), shot.Data, 0o644) == nil {
 						r.Count++
+						after[name] = f.Signature
+						if r.Previous && before[name] != f.Signature {
+							r.Changed = append(r.Changed, name)
+						}
 					}
 				}
 			}
@@ -217,8 +250,70 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 		for _, s := range splits {
 			r.Findings = append(r.Findings, LayoutFinding{v.String(), "split", fmt.Sprintf("At %s %q breaks across two lines in %s.", v, s.Text, s.Selector), "Keep a number and its unit together: a no-break space (&nbsp;) between them or white-space: nowrap on the value."})
 		}
+		small, err := chromedp.Run(tab, chromedp.Evaluate[[]smallText](`__lfmLayout.small().map(s=>({Selector:s.selector,Size:s.size,Text:s.text}))`))
+		if err != nil {
+			return r, err
+		}
+		for _, t := range small {
+			sizes.add(v, t.Selector+" "+t.Text, fmt.Sprintf("%s (%q) renders at %.1f px", t.Selector, t.Text, t.Size))
+		}
+		low, err := chromedp.Run(tab, chromedp.Evaluate[[]contrastIssue](`__lfmLayout.contrast().map(c=>({Selector:c.selector,Ratio:c.ratio,Need:c.need,FG:c.fg,BG:c.bg}))`))
+		if err != nil {
+			return r, err
+		}
+		for _, c := range low {
+			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
+		}
 	}
+	r.Findings = append(r.Findings, sizes.findings("small", "Text too small to read: %s.", "Set text at 10 px or more where it renders, including SVG labels scaled down with their drawing; small print stays readable at 12 px.")...)
+	r.Findings = append(r.Findings, contrasts.findings("contrast", "Text below the WCAG contrast minimum: %s.", "Darken the text or lighten its ground until it reaches the ratio; large text (24 px, or 18.7 px bold) needs 3:1, other text 4.5:1.")...)
 	return r, nil
+}
+
+type smallText struct {
+	Selector, Text string
+	Size           float64
+}
+
+type contrastIssue struct {
+	Selector, FG, BG string
+	Ratio, Need      float64
+}
+
+// perElement merges per-screen observations of the same element, so a defect
+// seen at every size is one finding naming the sizes.
+type perElement struct {
+	order   []string
+	text    map[string]string
+	screens map[string][]string
+}
+
+func (p *perElement) add(v Screen, element, text string) {
+	if p.text == nil {
+		p.text, p.screens = map[string]string{}, map[string][]string{}
+	}
+	if _, ok := p.text[element]; !ok {
+		p.order = append(p.order, element)
+		p.text[element] = text
+	}
+	if s := p.screens[element]; len(s) == 0 || s[len(s)-1] != v.String() {
+		p.screens[element] = append(s, v.String())
+	}
+}
+
+func (p *perElement) findings(kind, message, hint string) []LayoutFinding {
+	if len(p.order) == 0 {
+		return nil
+	}
+	var parts []string
+	for i, e := range p.order {
+		if i == 3 {
+			parts = append(parts, fmt.Sprintf("%d more", len(p.order)-3))
+			break
+		}
+		parts = append(parts, p.text[e]+" at "+strings.Join(p.screens[e], ", "))
+	}
+	return []LayoutFinding{{p.screens[p.order[0]][0], kind, fmt.Sprintf(message, strings.Join(parts, "; ")), hint}}
 }
 
 // emptyFindings merges consecutive empty frames into ranges of the page.

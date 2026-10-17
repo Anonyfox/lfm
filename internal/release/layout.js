@@ -48,13 +48,20 @@
   const settleFrames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   // Jump finite animations and transitions on the document timeline to their
-  // end, so a reveal shows its settled state; looping and scroll-driven ones run.
+  // end, so a reveal shows its settled state; scroll-driven ones follow the scroll.
+  // Looping ones are paused at their start, so frames show the same moment in
+  // every run and compare across rounds.
   const finish = () => {
     for (const a of document.getAnimations()) {
       try {
         if (a.playState !== "running" || a.timeline !== document.timeline) continue;
         const end = a.effect && a.effect.getComputedTiming().endTime;
-        if (Number.isFinite(end)) a.finish();
+        if (Number.isFinite(end)) {
+          a.finish();
+        } else {
+          a.pause();
+          a.currentTime = 0;
+        }
       } catch (_) {}
     }
   };
@@ -130,6 +137,7 @@
         const layer = coverer(el, r.left + r.width / 2, r.top + r.height / 2);
         if (!layer) {
           seen.push(idOf(el));
+          checkContrast(el, r);
         } else {
           elements.set(idOf(el), el);
           covered.push({ id: idOf(el), text: describe(el), by: describe(layer) });
@@ -140,7 +148,100 @@
     return { seen, covered };
   };
 
+  // Contrast is measured only where the ground is certain: the text's own and
+  // ancestor backgrounds are flat colours, nothing else is painted between them
+  // and the text, and no ancestor is translucent. Anything else is skipped.
+  const lowContrast = new Map(); // element → finding, across frames
+  const rgba = (v) => {
+    const m = v.match(/[\d.]+/g);
+    if (!m || m.length < 3) return null;
+    return [+m[0], +m[1], +m[2], m.length > 3 ? +m[3] : 1];
+  };
+  const over = (top, bottom) => {
+    const a = top[3];
+    return [0, 1, 2].map((i) => top[i] * a + bottom[i] * (1 - a)).concat(1);
+  };
+  const luminance = (c) => {
+    const lin = (v) => ((v /= 255) <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  };
+  const hex = (c) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const ground = (el) => {
+    const layers = [];
+    for (let e = el; e; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      if (parseFloat(cs.opacity) < 1 || cs.backgroundImage !== "none" || cs.mixBlendMode !== "normal" || cs.filter !== "none" || cs.backdropFilter && cs.backdropFilter !== "none") return null;
+      const bg = rgba(cs.backgroundColor);
+      if (bg && bg[3] > 0) {
+        layers.push(bg);
+        if (bg[3] >= 1) break;
+      }
+    }
+    let c = [255, 255, 255, 1];
+    for (let i = layers.length - 1; i >= 0; i--) c = over(layers[i], c);
+    return c;
+  };
+  const checkContrast = (el, r) => {
+    if (lowContrast.has(el)) return;
+    // something other than an ancestor painted under the text makes the ground unknown
+    for (const e of document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2)) {
+      if (e === el || el.contains(e)) continue;
+      if (!e.contains(el)) return;
+    }
+    const cs = getComputedStyle(el);
+    const fg = rgba(cs.color), bg = ground(el);
+    if (!fg || !bg || cs.webkitTextFillColor && rgba(cs.webkitTextFillColor) && rgba(cs.webkitTextFillColor)[3] === 0) return;
+    const text = over(fg, bg);
+    const l1 = luminance(text), l2 = luminance(bg);
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    const size = parseFloat(cs.fontSize), weight = parseInt(cs.fontWeight, 10) || 400;
+    const need = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
+    if (ratio < need - 0.005) {
+      lowContrast.set(el, { selector: describe(el), ratio: Math.floor(ratio * 100) / 100, need, fg: hex(text), bg: hex(bg) });
+    }
+  };
+
+  // signature summarizes what a frame shows: every element on screen with its
+  // box rounded to 4 px, its own text, colours, image source and form state.
+  // Equal signatures mean the frame shows the same thing as in a former run.
+  // The frame is read twice, two animation frames apart, and elements that
+  // changed in between are left out: script-driven loops move on their own,
+  // and only the rest says whether the page changed.
+  const describeAll = () => {
+    const round = (v) => Math.round(v / 4);
+    const out = [];
+    for (const el of document.body.getElementsByTagName("*")) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0 || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === "hidden" || cs.display === "none") continue;
+      let own = "";
+      for (const c of el.childNodes) if (c.nodeType === 3) own += c.data;
+      // the audit server's origin has a random port; it is not page content
+      out.push([el.tagName, round(r.left), round(r.top), round(r.width), round(r.height), own.trim(), cs.color, cs.backgroundColor, cs.backgroundImage, Math.round(parseFloat(cs.opacity) * 10), cs.fontFamily, cs.fontSize, el.currentSrc || el.getAttribute("src") || "", el.value === undefined ? "" : String(el.value), el.checked ? "1" : "0"].join("|").split(location.origin).join(""));
+    }
+    return out;
+  };
+  const signature = async () => {
+    const first = describeAll();
+    await settleFrames();
+    const second = new Set(describeAll());
+    let h = 2166136261;
+    for (const line of first) {
+      if (!second.has(line)) continue;
+      for (let i = 0; i < line.length; i++) {
+        h ^= line.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+    }
+    return (h >>> 0).toString(16);
+  };
+
   window.__lfmLayout = {
+    contrast() {
+      return [...lowContrast.values()].sort((a, b) => a.ratio - b.ratio);
+    },
+
     prepare() {
       backgrounds = [];
       for (const el of document.body.querySelectorAll("*")) {
@@ -156,7 +257,7 @@
       await new Promise((r) => setTimeout(r, 50));
       finish();
       await settleFrames();
-      return Object.assign(this.legibility(), coverage());
+      return Object.assign(this.legibility(), coverage(), { signature: await signature() });
     },
 
     // recheck scrolls in small steps across the range where each element could
@@ -214,6 +315,42 @@
         if (shown && judge(el)) return { legible: true, y: scrollY };
       }
       return { legible: false, faint, y: scrollY };
+    },
+
+    // firstScreen reports what the top of the page offers before any scroll:
+    // whether the main heading is legible and whether any control is visible.
+    firstScreen() {
+      const opacity = new Map();
+      const onScreen = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 2 && r.height > 2 && visibleArea(r) > 0 && opacityOf(el, opacity) >= 0.5;
+      };
+      const h1 = [...document.querySelectorAll("h1")].find((h) => onScreen(h));
+      const controls = "a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [tabindex='0']";
+      const control = [...document.querySelectorAll(controls)].some((c) => onScreen(c));
+      return { heading: !!h1, control };
+    },
+
+    // small lists text rendered under 10 CSS px: computed size times the
+    // element's scale, which for SVG text is its screen transform.
+    small() {
+      const out = [], seen = new Set();
+      const opacity = new Map();
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n && out.length < 3; n = walker.nextNode()) {
+        const el = n.parentElement;
+        if (!el || seen.has(el) || skipTags.has(el.tagName) || n.data.trim().length < 2) continue;
+        seen.add(el);
+        const box = el.getBoundingClientRect();
+        if (box.width <= 2 || box.height <= 2 || opacityOf(el, opacity) < 0.5) continue;
+        let size = parseFloat(getComputedStyle(el).fontSize);
+        if (el instanceof SVGElement && el.getScreenCTM) {
+          const m = el.getScreenCTM();
+          if (m) size *= Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+        }
+        if (size > 0 && size < 10) out.push({ selector: describe(el), size: Math.round(size * 10) / 10, text: n.data.trim().slice(0, 30) });
+      }
+      return out;
     },
 
     // width is the screen's; a phone browser zooms out a page wider than it,

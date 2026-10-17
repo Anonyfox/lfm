@@ -111,7 +111,7 @@ func TestLayoutAuditKeepsCleanPagesQuiet(t *testing.T) {
 		t.Skip(err)
 	}
 	var b strings.Builder
-	b.WriteString(`<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="><style>body{margin:0 auto;max-width:40rem;padding:0 1rem;font:18px/1.6 serif}.v{white-space:nowrap}</style></head><body><main><h1>Plain page</h1>`)
+	b.WriteString(`<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="><style>body{margin:0 auto;max-width:40rem;padding:0 1rem;font:18px/1.6 serif}.v{white-space:nowrap}</style></head><body><main><h1>Plain page</h1><p><a href="#buy">See the offer</a></p>`)
 	for i := 0; i < 40; i++ {
 		b.WriteString(`<p>A paragraph of ordinary prose that keeps every frame legible, with a price of <span class=v>12 €</span> and 3 days of delivery.</p>`)
 	}
@@ -119,5 +119,39 @@ func TestLayoutAuditKeepsCleanPagesQuiet(t *testing.T) {
 	r := AuditRuntime([]byte(b.String()), nil, path, "")
 	if r.Layout == nil || len(r.Layout.Findings) != 0 {
 		t.Fatalf("%+v", r.Layout)
+	}
+}
+
+func TestLayoutAuditFirstScreenSmallTextAndContrast(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	path, err := BrowserPath()
+	if err != nil {
+		t.Skip(err)
+	}
+	page := `<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="><style>
+body{margin:0;font:16px/1.5 sans-serif;color:#111;background:#fff}
+.hero{height:120vh;background:#234}
+.faint{color:#aaa}
+.photo{background:url(data:image/gif;base64,R0lGODlhAQABAAAAACw=) #000;color:#777}
+svg text{font-size:8px}
+</style></head><body><div class=hero></div><main><h1>Late heading</h1>
+<p class=faint>Grey text on white.</p><p class=photo>Text over an image: unknown ground.</p>
+<svg viewBox="0 0 1000 100" width="100%"><text x="10" y="50">0 m</text></svg>
+<p><a href="#x">Act</a></p></main></body></html>`
+	r := AuditRuntime([]byte(page), nil, path, "")
+	var all []string
+	for _, f := range r.Layout.Findings {
+		all = append(all, f.Kind+": "+f.Message)
+	}
+	joined := strings.Join(all, "\n")
+	for _, want := range []string{"first screen shows no legible main heading", "first screen offers no link", "p.faint has 2.32:1 (#aaaaaa on #ffffff), needs 4.5:1", `text ("0 m") renders at`} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in\n%s", want, joined)
+		}
+	}
+	if strings.Contains(joined, "p.photo") {
+		t.Errorf("text over an image has no certain ground:\n%s", joined)
 	}
 }
