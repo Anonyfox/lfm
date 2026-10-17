@@ -38,8 +38,9 @@ whole brief for implementation, so a decision missing from it is a decision nobo
   research first (`lfm skills research`).
 - Choose the mode:
   - **New**: no concept yet. Write every section.
-  - **Rebuild**: a page exists without a concept (the starter page of `lfm init` does not count). Write `## Diagnosis` first (what is generic, what is
-    strong, what the visitor came to do), then set the old page aside until a direction is chosen.
+  - **Rebuild**: a page exists without a concept (the starter page of `lfm init` does not count). Write
+    `## Diagnosis` first (what is generic, what is strong, what the visitor came to do), then set the old
+    page aside until a direction is chosen.
   - **Grow**: research gained a batch since the concept's last changelog entry. Re-derive voices and axes
     from the whole files, then classify each change: depth (a new phrase, objection or proof: edit the
     affected sections), shift (an axis moves because the balance of evidence flipped, not because new
@@ -81,10 +82,11 @@ Work through the sections in order; each builds on the one before.
 9. **Directions.** Write at least [[.Design.MinDirections]] directions fast, each built from a spark and three facts,
    seen through ordinary people in the topic rather than a visionary. Make them differ in representation
    (scene, notation, data, type, sound, plain tool), interaction, time and what the visitor takes away.
-   Write them in the order they come. Push each one further, on a continuation line, before judging any. Then strike, with the reason: the first two; any whose
-   one-line description still works with a competitor's product swapped in; any that matches the market
-   baseline on opening, palette, imagery or mechanism; any that slows the first value; any that is merely
-   tasteful where the voices are not. Mark exactly one as chosen.
+   Write them in the order they come. Push each one further, on a continuation line, before judging any.
+   Then strike, with the reason: the first two; any whose one-line description still works with a
+   competitor's product swapped in; any that matches the market baseline on opening, palette, imagery or
+   mechanism; any that slows the first value; any that is merely tasteful where the voices are not. Mark
+   exactly one as chosen.
 10. **Concept.** The chosen direction, pushed once more: what would make it astonishing without slowing
    the visitor? Say how it builds on its sparks.
 11. **Spine.** The page's sections in order, each with its job and the evidence it shows.
@@ -93,11 +95,11 @@ Work through the sections in order; each builds on the one before.
     choose one below roughly 10% that serves the spine. Cite a voice, peer or fact for it: type and form
     rarely appear in voices, so derive them from facts and the topic's own artifacts (signs, labels, tools,
     documents) and cite those. The facts narrow the field; the final face among the fitting ones is a
-    choice, so say what the face must do and pick one that does it. Declare every color the page will use; the compiler checks that a text and
-    ground pair reaches 4.5:1. Plan the images by job
-    (protagonist, proof, atmosphere, explanation, share preview), with art direction taken from what the
-    buyers photograph and film. Decide one orchestrated motion moment, the feedback motion, and what the
-    page shows with reduced motion.
+    choice, so say what the face must do and pick one that does it. Declare every color the page will use;
+    the compiler checks that a text and ground pair reaches 4.5:1. Plan the images by job (protagonist,
+    proof, atmosphere, explanation, share preview), with art direction taken from what the buyers
+    photograph and film. Decide one orchestrated motion moment, the feedback motion, and what the page
+    shows with reduced motion.
 13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices. Write the
     exact phrases as `Use: "…"` and `Avoid: "…"` lines; `lfm compile` holds the page to them.
 
