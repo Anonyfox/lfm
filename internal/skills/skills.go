@@ -30,6 +30,8 @@ type Data struct {
 	MinVoices    int    // research minimums for a project started from zero
 	MinPlatforms int
 	MinPeers     int
+	Authors      string // allowed author types, "a | b"
+	Methods      string // allowed fetch methods, "a | b"
 }
 
 // NewData returns the facts of this binary.
@@ -41,6 +43,8 @@ func NewData(version string) Data {
 		MinVoices:    research.MinVoices,
 		MinPlatforms: research.MinPlatforms,
 		MinPeers:     research.MinPeers,
+		Authors:      strings.Join(research.Authors, " | "),
+		Methods:      strings.Join(research.Methods, " | "),
 	}
 }
 

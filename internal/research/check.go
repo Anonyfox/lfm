@@ -93,12 +93,13 @@ func checkSequence(ids []int, lines []int, prefix string, add reporter) {
 }
 
 // checkDates reports implausible posted/fetched dates relative to the batch.
-func checkDates(posted, fetched, batch time.Time, today time.Time, line int, add reporter) {
+// A posted period counts as plausible if its first day is.
+func checkDates(posted, fetched, batch, today time.Time, line int, add reporter) {
 	if !fetched.IsZero() && fetched.After(today) {
 		add(RuleSubstance, line, "Fetched date "+fetched.Format(time.DateOnly)+" is in the future.", "Use the day the source was opened.")
 	}
 	if !posted.IsZero() && posted.After(today) {
-		add(RuleSubstance, line, "Posted date "+posted.Format(time.DateOnly)+" is in the future.", "Copy the date the source shows, or write unknown.")
+		add(RuleSubstance, line, "Posted date is in the future.", "Copy the date the source shows, or write unknown.")
 	}
 	if !posted.IsZero() && !fetched.IsZero() && posted.After(fetched) {
 		add(RuleSubstance, line, "Posted after it was fetched.", "One of the two dates is wrong; check the source.")
@@ -154,14 +155,14 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 	dated := 0
 	for _, e := range v.Entries {
 		platforms[strings.ToLower(e.Platform)]++
-		if !e.Posted.IsZero() {
+		if e.Precision == Day {
 			days[e.Posted]++
 			dated++
 		}
 	}
 	total := len(v.Entries)
-	if total < MinVoices || len(platforms) < MinPlatforms {
-		add(RuleBalance, v.Batches[0].Line, fmt.Sprintf("%d voices from %d platforms; research from zero needs %d from %d.", total, len(platforms), MinVoices, MinPlatforms), "Collect more, preferring platforms not yet covered, or name the shortfall in the batch heading.")
+	if (total < MinVoices || len(platforms) < MinPlatforms) && !shortfall(v.Batches) {
+		add(RuleBalance, v.Batches[0].Line, fmt.Sprintf("%d voices from %d platforms; research from zero needs %d from %d.", total, len(platforms), MinVoices, MinPlatforms), "Collect more, preferring platforms not yet covered, or add \"· shortfall: <what and why>\" to the batch heading.")
 	}
 	if total >= 10 {
 		for _, name := range sortedKeys(platforms) {
@@ -243,6 +244,16 @@ func checkCompetitors(c Competitors, today time.Time, add reporter) {
 	if fromZero(c.Batches) && len(c.Entries) < MinPeers {
 		add(RuleBalance, c.Batches[0].Line, fmt.Sprintf("%d peers; research from zero needs %d.", len(c.Entries), MinPeers), "Add pages the buyer compares against, including some that rank in search.")
 	}
+}
+
+// shortfall reports whether a batch acknowledges unmet minimums.
+func shortfall(batches []Batch) bool {
+	for _, b := range batches {
+		if b.Shortfall != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func fromZero(batches []Batch) bool {

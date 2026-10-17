@@ -15,38 +15,42 @@ competitors already do, into two files that every later design decision cites by
 
 ## Rules that always hold
 
-1. **Verbatim or nothing.** Copy the relevant passage exactly as written, typos included; mark cuts with
-   `…`. Paraphrase, translation or cleanup turns a buyer's voice into model text, which is what this
-   research exists to avoid.
+1. **Verbatim or nothing.** Copy the relevant passage exactly as written, typos and emoji included; mark
+   every cut, including dropped hashtags and mentions, with `…`. Paraphrase, translation or cleanup turns
+   a buyer's voice into model text, which is what this research exists to avoid.
 2. **Never write from memory.** Every item comes from a source you opened in this session or the user
    supplied. A fluent invented quote cannot be told apart from a real one later, so a gap is always
    recorded as unreachable, never filled.
 3. **Read before write, append only.** Open the existing file first and add a new dated batch. Existing
    entries are never edited, reordered or deleted, because later decisions cite their IDs.
-4. **Every item is retrievable.** URL, platform, author type, post date when shown, fetch date and how it
-   was fetched. If someone cannot reopen it, it is not evidence.
-5. **Public access only.** Search engines, public pages and threads. Never log in, bypass a wall or scrape
-   at volume; record the platform as unreachable instead.
-6. **Facts only in these files.** Coding, themes, axes and conclusions belong in the project brief and are
-   derived again from these files each time, never from an earlier interpretation.
+4. **Every item is retrievable.** URL, platform, author type, post date as precise as the source shows,
+   fetch date and how it was fetched. If someone cannot reopen it, it is not evidence.
+5. **Public access only.** Search engines, public pages, feeds and threads. Never log in, bypass a wall or
+   scrape at volume. A browser where the user is already signed in counts as logging in; use it only when
+   the user explicitly allows it. Otherwise record the platform as unreachable.
+6. **Observations, not interpretation.** Voices are what people wrote; peers are what pages show, plus the
+   counted grid, baseline and gaps derived from those observations. Themes, conclusions and design
+   choices belong in the project brief and are derived again from these files each time.
 
-## Step 0: check what you can reach
+## Step 0: check your access
 
-Look at the tools you actually have; do not assume. Use the highest rung available for each source and
-say in one line which mode you are in before starting:
+Look at the tools you actually have; do not assume. For each source use the first option that works, and
+before collecting say in one line which access you have:
 
-1. A connector or API for the platform (social, reviews, analytics).
-2. Web search plus opening the result pages.
-3. A browser for pages that need JavaScript or render comments late.
-4. Sources the user pastes or exports into the conversation.
-5. None of the above for a platform: list it as unreachable in the batch header.
+1. A connector or API for the platform (social, reviews, analytics). Record `via connector`.
+2. Opening a page or public feed directly, found by web search or already known. Record `via fetch`.
+3. A browser, for pages that need JavaScript or load comments late. Record `via browser`.
+4. Sources the user pastes or exports into the conversation. Record `via user`.
+5. Nothing works for a platform: name it in the batch heading's `unreachable` list.
 
-The output format is the same in every mode; only how sources are obtained changes.
+Use a page tool only if it returns the page's own text. Some fetch tools hand back a model's summary of
+the page; quotes taken from such output are not verbatim, so switch to another option or record the
+platform as unreachable. The file format is the same whatever access you have.
 
 ## Choose the mode
 
-- **From zero** when a file is missing or below its minimum. Create it with the header from the format
-  section, then collect until both minimums hold.
+- **From zero** when a file is missing or below its minimum. Write its title line if it lacks one, then
+  collect until the minimums hold.
 - **Ongoing** when a new signal arrives (customer messages, reviews, analytics, launch reactions, a new
   competitor) or one aspect needs depth (an objection, a section, a platform not yet covered). Append one
   batch to the file it concerns.
@@ -56,13 +60,13 @@ The output format is the same in every mode; only how sources are obtained chang
 Copy this checklist into your notes and tick it off:
 
 ```
-- [ ] Step 0 done, mode stated
+- [ ] Access checked and stated; mode chosen
 - [ ] Both files read in full; next free IDs noted
 - [ ] Queries planned, including ones that could contradict the current view
 - [ ] Voices collected and written as a new batch
-- [ ] Peers visited and written as a new batch, grid and baseline updated
+- [ ] Peers visited and written as a new batch; grid, baseline and gaps updated
 - [ ] Validation passed for both files
-- [ ] Gaps and unreachable platforms reported to the user
+- [ ] Shortfalls and unreachable platforms reported to the user
 ```
 
 **Voices.** Prefer the platforms visitors arrive from: short video, image and microblog platforms first,
@@ -76,18 +80,19 @@ and what annoys them. Keep the mix honest:
 - at least one search per batch aimed at disagreement with the majority or the current page.
 
 Skip AI-generated posts, marketing posing as users, and affiliate or promotional content; when unsure,
-leave it out. For an image or video post, copy the caption or spoken words verbatim and add a factual
-observer note: subject, framing, colour, light, text overlay, format, pace.
+leave it out. For video, copy the caption, plus the spoken words when a transcript is available. Use the
+observer note for what you see beyond the words: for image and video posts the subject, framing, colour,
+light, text overlay, format and pace; for any post, visible counts such as likes or upvotes.
 
 **Peers.** Pick pages the buyer would compare against, including some that rank in search and some that
-circulate where the buyer looks. Open each at phone width when you can and record the facts below. Then
-recount the grid across all peers, update the market baseline (the most frequent value per column: the
-page this market already has) and list gaps no peer uses.
+circulate where the buyer looks. Open each at phone width when you can and record every fact. Then recount
+the grid across all peers, update the baseline (the most frequent value per fact: the page this market
+already has) and list gaps no peer uses.
 
 **Minimums from zero:** [[.MinVoices]] voices from [[.MinPlatforms]] platforms, including an image or video
-platform when one is reachable, and [[.MinPeers]] peers. **Stop** when the minimums hold and the last round
-of searches mostly returned kinds of items already in the file. Ongoing batches have no minimum; they end
-when the trigger is covered.
+platform when one is reachable, and [[.MinPeers]] peers. **Stop** when the minimums hold and your last 10
+voices brought no new platform, problem or wish. If the minimums cannot be met, add `shortfall: <what and
+why>` to the batch heading. Ongoing batches have no minimum; they end when the trigger is covered.
 
 ## [[.Voices]] format
 
@@ -96,20 +101,26 @@ Use exactly this structure, so batches from different sessions and tools stay co
 ```markdown
 # Human voices: <project>
 
-## Batch <YYYY-MM-DD> · <from zero | ongoing: trigger> · queries: "<query>", "<query>" · unreachable: <platforms or none>
+## Batch <YYYY-MM-DD> · <from zero | ongoing: trigger> · queries: "<query>", "<query>" · unreachable: <platforms or none> · shortfall: <only when minimums are not met>
 
-### V<NNN> · <platform> (<place>) · <buyer | creator | brand | expert> · posted <YYYY-MM-DD | unknown> · fetched <YYYY-MM-DD> · via <connector | search | browser | user>
+### V<NNN> · <platform> (<place>) · <[[.Authors]]> · posted <YYYY-MM-DD | YYYY-MM | YYYY | unknown> · fetched <YYYY-MM-DD> · via <[[.Methods]]>
 > <exact text>
 > <next line of the same text, if any>
 <https://source.url>
-Observer note: <only for image and video posts>
+Observer note: <only when there is something to observe>
 ```
 
-IDs are `V` plus three digits, continuing across batches (`V001`, `V002`, …), never reused. The place in
-parentheses is optional (a subreddit, a channel, a product's review page). Every line of a quote starts
-with `> `, including blank ones (`>`), so the text may contain anything. Fields never contain ` · `.
-Numbers that describe behaviour (sales, clicks, survey counts) go into their own table under the batch
-heading, each row with its source.
+- IDs are `V` plus three digits, continuing across batches (`V001`, `V002`, …), never reused.
+- The platform is the service (YouTube, Mumsnet, App Store); the optional place in parentheses narrows it
+  (a subreddit, a video title, an app's review page). This keeps platform counts meaningful.
+- Author: `buyer` would buy this; `adjacent` lives close to the problem (a partner, a colleague in another
+  role); `creator`, `brand` and `expert` speak about it publicly.
+- Posted: as precise as the source shows. "5 years ago" seen on 2026-10-17 becomes `2021`; never add a day
+  or month the source does not give.
+- Every line of a quote starts with `> `, blank ones with `>`, so the text may contain anything. Fields
+  never contain ` · `.
+- Numbers about behaviour (sales, clicks, survey counts) go into their own table under the batch heading,
+  each row with its source.
 
 ## [[.Competitors]] format
 
@@ -118,7 +129,7 @@ heading, each row with its source.
 
 ## Batch <YYYY-MM-DD> · <from zero | ongoing: trigger>
 
-### P<NNN> · <name> · https://peer.url · fetched <YYYY-MM-DD> · via <connector | search | browser | user>
+### P<NNN> · <name> · https://peer.url · fetched <YYYY-MM-DD> · via <[[.Methods]]>
 - Opening: <headline claim>; <hero>; <first action>
 - Palette: …
 - Type: …
@@ -128,7 +139,7 @@ heading, each row with its source.
 - Proof: …
 - Price: …
 - Tone: …
-- Takeaway: …
+- Takeaway: <what a visitor can save, share or receive>
 
 ### Grid after this batch
 
@@ -138,50 +149,56 @@ heading, each row with its source.
 
 ### Baseline
 
-<One paragraph: the most frequent value per column.>
+<One paragraph: the most frequent value per fact.>
 
 ### Gaps
 
 - <a value no peer uses>
 ```
 
+Every peer has all ten facts, one per line; write `none` when a page shows nothing. The grid has one row
+per value, and the counts of each fact add up to the number of peers in the file.
+
 ## Validate before saving
 
 `lfm compile` parses both files and reports every `research.*` finding with its line; when you can run
 it, fix what it reports. Either way, check each file yourself before you finish:
 
-- headings and field order match the format exactly; dates are `YYYY-MM-DD`;
+- headings and field order match the format exactly; dates are as precise as their sources;
 - IDs are unique, consecutive and continue from the previous batch;
 - each grid column's counts add up to the number of peers in the file;
 - every entry has a URL, every quote sits in a `>` block, and no field is an empty placeholder;
 - no earlier batch changed (compare against what you read);
-- from zero: the minimums and the diversity limits hold, or the shortfall is named in the batch header.
+- from zero: the minimums and the diversity limits hold, or a `shortfall` names what is missing.
 
 ## When a source is unreachable
 
-Name it in the batch header's `unreachable` list and move to the next rung or platform. If nothing is
-reachable at all, ask the user to paste or export sources, and stop rather than write anything else.
+Name it in the batch heading's `unreachable` list with the reason in parentheses and move to the next
+option or platform. If nothing is reachable at all, ask the user to paste or export sources, and stop
+rather than write anything else.
 
 ## Gotchas
 
 - Search result snippets are not the post. Open the page; snippets are cut and reordered.
-- Rendered comment threads often load late. Use a browser, or record the platform as unreachable.
+- Comment threads often load late. Use a browser, or record the platform as unreachable.
+- If a tool loses characters such as emoji or line breaks, reopen the source another way; if none
+  preserves them, keep the item and say so in its observer note.
 - Quoting your own summary of a page as a voice is fabrication with extra steps.
 - The same post often appears on several sites. Keep the original and skip the copies.
 
 ## Examples
 
 <example>
-### V014 · Reddit (r/pourover) · buyer · posted 2026-01-13 · fetched 2026-10-17 · via search
+### V014 · Reddit (r/pourover) · buyer · posted 2026-01-13 · fetched 2026-10-17 · via fetch
 > Numbering feels way less intimidating than words. And yeah, if someone suddenly goes 'I loved #3' it makes the follow up so much easier.
 <https://www.reddit.com/r/pourover/comments/1qbely1/>
 </example>
 
 <example>
-### V031 · TikTok · creator · posted unknown · fetched 2026-10-17 · via browser
-> the payoff is coming I can feel it
+### V031 · TikTok · creator · posted 2026-06 · fetched 2026-10-17 · via browser
+> the payoff is coming I can feel it …
 <https://www.tiktok.com/@example/video/7656547532020976910>
-Observer note: phone screen recording of a code editor, white caption box at the top, talk-show still inserted after two seconds, fast cuts.
+Observer note: phone screen recording of a code editor, white caption box at the top, talk-show still inserted after two seconds, fast cuts; 4,180 likes.
 </example>
 
 <example>

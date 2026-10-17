@@ -17,7 +17,7 @@ const goodVoices = `# Human voices: Night shift sleep
 | --- | --- | --- |
 | members | 120k | https://www.reddit.com/r/nightshift/ |
 
-### V001 · Reddit (r/nightshift) · buyer · posted 2026-03-02 · fetched 2026-10-17 · via search
+### V001 · Reddit (r/nightshift) · buyer · posted 2026-03-02 · fetched 2026-10-17 · via fetch
 > Blackout curtains changed my life.
 >
 > ### This line is part of the quote · not a heading
@@ -113,10 +113,10 @@ func TestFormatProblems(t *testing.T) {
 		"batch date": {strings.Replace(goodVoices, "Batch 2026-10-17", "Batch 17.10.2026", 1), "is not YYYY-MM-DD"},
 		"mode":       {strings.Replace(goodVoices, "· from zero ·", "· first pass ·", 1), "neither"},
 		"queries":    {strings.Replace(goodVoices, ` · unreachable: Instagram (login wall)`, "", 1), "lacks its queries"},
-		"fields":     {strings.Replace(goodVoices, " · via search", "", 1), "does not match the format"},
+		"fields":     {strings.Replace(goodVoices, " · via fetch", "", 1), "does not match the format"},
 		"author":     {strings.Replace(goodVoices, "· buyer ·", "· nurse ·", 1), "Author type"},
 		"posted":     {strings.Replace(goodVoices, "posted 2026-03-02", "posted March 2026", 1), "Posted date"},
-		"via":        {strings.Replace(goodVoices, "via search", "via memory", 1), "Fetch method"},
+		"via":        {strings.Replace(goodVoices, "via fetch", "via memory", 1), "Fetch method"},
 		"id":         {strings.Replace(goodVoices, "### V001", "### V1", 1), "is not V followed"},
 		"no quote":   {strings.Replace(goodVoices, "> POV: you're asleep at 3pm and the doorbell rings\n", "", 1), "has no quote"},
 		"no url":     {strings.Replace(goodVoices, "<https://www.tiktok.com/@nurse/video/123>\n", "", 1), "no source URL"},
@@ -171,7 +171,7 @@ func TestBalance(t *testing.T) {
 		if i > 15 {
 			platform = "Forum"
 		}
-		fmt.Fprintf(&b, "### V%03d · %s · buyer · posted 2026-05-01 · fetched 2026-10-17 · via search\n> voice number %d\n<https://example.com/%d>\n\n", i, platform, i, i)
+		fmt.Fprintf(&b, "### V%03d · %s · buyer · posted 2026-05-01 · fetched 2026-10-17 · via fetch\n> voice number %d\n<https://example.com/%d>\n\n", i, platform, i, i)
 	}
 	r := Check(map[string][]byte{VoicesFile: []byte(b.String())}, "research", today)
 	for _, want := range []string{"20 voices from 2 platforms", "come from reddit", "posted on 2026-05-01"} {
@@ -199,7 +199,7 @@ func FuzzBlockquoteRoundTrip(f *testing.F) {
 	f.Fuzz(func(t *testing.T, text string) {
 		text = strings.ReplaceAll(text, "\r", "")
 		file := "# Human voices: X\n\n## Batch 2026-10-17 · from zero · queries: \"q\" · unreachable: none\n\n" +
-			"### V001 · Reddit · buyer · posted unknown · fetched 2026-10-17 · via search\n" + Blockquote(text) + "\n<https://example.com/a>\n"
+			"### V001 · Reddit · buyer · posted unknown · fetched 2026-10-17 · via fetch\n" + Blockquote(text) + "\n<https://example.com/a>\n"
 		v, _ := ParseVoices(file)
 		if len(v.Entries) != 1 || v.Entries[0].Quote != text {
 			t.Fatalf("verbatim text did not survive: %q", text)
@@ -228,4 +228,20 @@ func found(r Report, rule, text string) bool {
 		}
 	}
 	return false
+}
+
+func TestPrecisionShortfallAndAdjacent(t *testing.T) {
+	text := strings.Replace(goodVoices, "posted 2026-03-02", "posted 2021", 1)
+	text = strings.Replace(text, "· creator ·", "· adjacent ·", 1)
+	text = strings.Replace(text, "unreachable: Instagram (login wall)", "unreachable: Instagram (login wall) · shortfall: niche has few public voices", 1)
+	v, problems := ParseVoices(text)
+	if len(problems) != 0 || v.Entries[0].Precision != Year || v.Batches[0].Shortfall != "niche has few public voices" {
+		t.Fatalf("%+v %+v", problems, v.Entries[0])
+	}
+	if found(Check(map[string][]byte{VoicesFile: []byte(text)}, "research", today), RuleBalance, "research from zero needs") {
+		t.Error("a named shortfall acknowledges the minimums")
+	}
+	if found(Check(map[string][]byte{VoicesFile: []byte(strings.Replace(text, "posted 2021", "posted 2026-10", 1))}, "research", today), RuleSubstance, "") {
+		t.Error("a month that includes the fetch date is plausible")
+	}
 }

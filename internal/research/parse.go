@@ -28,8 +28,8 @@ const (
 
 // Fixed vocabularies.
 var (
-	Authors = []string{"buyer", "creator", "brand", "expert"}
-	Methods = []string{"connector", "search", "browser", "user"}
+	Authors = []string{"buyer", "adjacent", "creator", "brand", "expert"}
+	Methods = []string{"connector", "fetch", "browser", "user"}
 	// PeerFields are the facts recorded for every competitor, in order.
 	PeerFields = []string{"Opening", "Palette", "Type", "Imagery", "Motion", "Mechanism", "Proof", "Price", "Tone", "Takeaway"}
 )
@@ -51,22 +51,60 @@ type Batch struct {
 	Trigger     string // ongoing batches name what triggered them
 	Queries     string
 	Unreachable string
+	Shortfall   string // why minimums are not met, when they are not
 }
 
 // Voice is one verbatim quote.
 type Voice struct {
-	Line     int
-	ID       int
-	Platform string
-	Place    string
-	Author   string
-	Posted   time.Time // zero when the source shows no date
-	Fetched  time.Time
-	Via      string
-	Quote    string
-	URL      string
-	Observer string
-	Batch    int // index into Voices.Batches
+	Line      int
+	ID        int
+	Platform  string
+	Place     string
+	Author    string
+	Posted    time.Time // start of the posted period; zero when the source shows no date
+	Precision Precision
+	Fetched   time.Time
+	Via       string
+	Quote     string
+	URL       string
+	Observer  string
+	Batch     int // index into Voices.Batches
+}
+
+// Precision is how exactly a source dates a post.
+type Precision int
+
+const (
+	Unknown Precision = iota
+	Year
+	Month
+	Day
+)
+
+// End returns the last day of the period starting at t.
+func (p Precision) End(t time.Time) time.Time {
+	switch p {
+	case Year:
+		return t.AddDate(1, 0, -1)
+	case Month:
+		return t.AddDate(0, 1, -1)
+	}
+	return t
+}
+
+// postedDate reads YYYY-MM-DD, YYYY-MM or YYYY.
+func postedDate(s string) (time.Time, Precision, bool) {
+	for _, f := range []struct {
+		layout    string
+		precision Precision
+	}{{time.DateOnly, Day}, {"2006-01", Month}, {"2006", Year}} {
+		if len(s) == len(f.layout) {
+			if t, err := time.Parse(f.layout, s); err == nil {
+				return t, f.precision, true
+			}
+		}
+	}
+	return time.Time{}, Unknown, false
 }
 
 // Voices is human-voices.md.
@@ -169,6 +207,12 @@ func parseBatch(line string, n int, withSources bool) (Batch, *Problem) {
 	}
 	tail := strings.Join(fields[2:], sep)
 	queries, unreachable, found := strings.Cut(tail, sep+"unreachable: ")
+	unreachable, shortfall, hasShortfall := strings.Cut(unreachable, sep+"shortfall: ")
+	if hasShortfall {
+		if b.Shortfall = strings.TrimSpace(shortfall); b.Shortfall == "" {
+			return Batch{}, &Problem{Line: n, Message: "Empty shortfall in the batch heading.", Hint: "Say what is missing and why, or drop the field."}
+		}
+	}
 	queries, hasQueries := strings.CutPrefix(queries, "queries: ")
 	if !found || !hasQueries || strings.TrimSpace(queries) == "" || strings.TrimSpace(unreachable) == "" {
 		return Batch{}, &Problem{Line: n, Message: "Voice batch heading lacks its queries or unreachable list.", Hint: "List the searches and the platforms that could not be reached (or none): " + format}
@@ -205,7 +249,7 @@ func ParseVoices(text string) (Voices, []Problem) {
 	} else {
 		add(1, "The file must start with \"# Human voices: <project>\".", "Restore the title line; the rest of the format hangs off it.")
 	}
-	entryFormat := "### V001 · Platform (place) · buyer|creator|brand|expert · posted YYYY-MM-DD|unknown · fetched YYYY-MM-DD · via connector|search|browser|user"
+	entryFormat := "### V001 · Platform (place) · " + strings.Join(Authors, "|") + " · posted YYYY-MM-DD|YYYY-MM|YYYY|unknown · fetched YYYY-MM-DD · via " + strings.Join(Methods, "|")
 	for i := 1; i < len(ls); i++ {
 		line, n := ls[i], i+1
 		switch {
@@ -254,17 +298,20 @@ func parseVoice(ls []string, i int, format string) (Voice, int, []Problem) {
 			add(n, "Voice ID "+quote(fields[0])+" is not V followed by at least three digits.", "Continue the sequence: V001, V002, …")
 		}
 		v.Platform, v.Place = platform(fields[1])
-		if v.Platform == "" {
-			add(n, "Voice has no platform.", "Name where it was posted, e.g. Reddit (r/nursing).")
+		switch {
+		case v.Platform == "":
+			add(n, "Voice has no platform.", "Name the service it was posted on, e.g. Reddit (r/nursing).")
+		case strings.ContainsAny(v.Platform, "\"“”()") || len([]rune(v.Platform)) > 32:
+			add(n, "Platform "+quote(v.Platform)+" reads like a place.", "Name the service only and put the thread, channel or page in parentheses: YouTube (\"Tips for nights\"). Otherwise platform counts break.")
 		}
 		if v.Author = fields[2]; !oneOf(v.Author, Authors) {
-			add(n, "Author type "+quote(v.Author)+" is not buyer, creator, brand or expert.", "Pick the closest of the four.")
+			add(n, "Author type "+quote(v.Author)+" is not one of "+strings.Join(Authors, ", ")+".", "Pick the closest; adjacent covers people close to the problem who would not buy.")
 		}
 		if posted, ok := strings.CutPrefix(fields[3], "posted "); !ok {
 			bad()
 		} else if posted != "unknown" {
-			if v.Posted, ok = date(posted); !ok {
-				add(n, "Posted date "+quote(posted)+" is not YYYY-MM-DD or unknown.", "Copy the date the source shows, or write unknown.")
+			if v.Posted, v.Precision, ok = postedDate(posted); !ok {
+				add(n, "Posted date "+quote(posted)+" is not YYYY-MM-DD, YYYY-MM, YYYY or unknown.", "Give the date as precisely as the source shows it: \"5 years ago\" becomes a year.")
 			}
 		}
 		if fetched, ok := strings.CutPrefix(fields[4], "fetched "); !ok {
@@ -273,7 +320,7 @@ func parseVoice(ls []string, i int, format string) (Voice, int, []Problem) {
 			add(n, "Fetched date "+quote(fetched)+" is not YYYY-MM-DD.", "Use the day you opened the source.")
 		}
 		if via, ok := strings.CutPrefix(fields[5], "via "); !ok || !oneOf(via, Methods) {
-			add(n, "Fetch method "+quote(fields[5])+" is not via connector, search, browser or user.", "Say how the source was obtained.")
+			add(n, "Fetch method "+quote(fields[5])+" is not via "+strings.Join(Methods, ", ")+".", "Say how the source was obtained.")
 		} else {
 			v.Via = via
 		}
@@ -425,7 +472,7 @@ func ParseCompetitors(text string) (Competitors, []Problem) {
 }
 
 func parsePeerHeading(line string, n int) (Peer, []Problem) {
-	format := "### P001 · <name> · https://… · fetched YYYY-MM-DD · via connector|search|browser|user"
+	format := "### P001 · <name> · https://… · fetched YYYY-MM-DD · via " + strings.Join(Methods, "|")
 	fields := strings.Split(strings.TrimPrefix(line, "### "), sep)
 	if len(fields) != 5 {
 		return Peer{}, []Problem{{n, "Peer heading does not match the format.", "Write it as: " + format}}
@@ -448,7 +495,7 @@ func parsePeerHeading(line string, n int) (Peer, []Problem) {
 		problems = append(problems, Problem{n, "Fetched date " + quote(fetched) + " is not YYYY-MM-DD.", "Use the day you opened the page."})
 	}
 	if via, found := strings.CutPrefix(fields[4], "via "); !found || !oneOf(via, Methods) {
-		problems = append(problems, Problem{n, "Fetch method " + quote(fields[4]) + " is not via connector, search, browser or user.", "Say how the page was obtained."})
+		problems = append(problems, Problem{n, "Fetch method " + quote(fields[4]) + " is not via " + strings.Join(Methods, ", ") + ".", "Say how the page was obtained."})
 	} else {
 		p.Via = via
 	}
