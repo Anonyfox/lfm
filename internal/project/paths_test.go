@@ -60,12 +60,12 @@ func TestPathKeepsSourcesInsideTheProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, ok := range map[string]bool{
-		"assets/a.css":         true,
-		"output/old.css":       false,
-		"../secret.txt":        false,
-		"assets/escape.txt":    false,
-		"assets/generated.css": false,
-		"assets/missing.css":   false,
+		"assets/a.css":                       true,
+		"output/old.css":                     false,
+		"../secret.txt":                      false,
+		"assets/escape.txt":                  false,
+		"assets/generated.css":               false,
+		"assets/missing.css":                 false,
 		filepath.Join(outside, "secret.txt"): false,
 	} {
 		_, err := p.Path(name)

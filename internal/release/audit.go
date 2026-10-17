@@ -284,6 +284,7 @@ func (b *cappedBuffer) Write(p []byte) (int, error) {
 	b.Truncated = b.Truncated || keep < n
 	return n, nil
 }
+
 // compact collapses whitespace and cuts s to limit runes, marking the cut.
 func compact(s string, limit int) string {
 	s = strings.Join(strings.Fields(s), " ")
