@@ -158,7 +158,7 @@ they are an `Open:` line for the owner, not URL parameters. No secret keys in th
 Run `lfm compile --release`. In headless Chrome it records runtime errors, scrolls the page by half a
 screen at [[.Screens]],
 and reports a first screen without heading or control, empty stretches, sideways scrolling, covered,
-tiny or low-contrast text and split values. It saves every frame; the `frames` line names the folder and,
+tiny or low-contrast text, split values and motion that ignores reduced motion. It saves every frame; the `frames` line names the folder and,
 from the second run on, the frames that changed. Then review by looking:
 
 1. **Frames.** The first time, open every frame in order at full size, phone first; afterwards the changed

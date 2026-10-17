@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 )
@@ -265,6 +266,12 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
 		}
 	}
+	if moving, err := reducedMotion(tab, url, Screens[0]); err != nil {
+		return r, err
+	} else if len(moving) > 0 {
+		r.Findings = append(r.Findings, LayoutFinding{Screens[0].String(), "motion", fmt.Sprintf("With reduced motion requested, the page still moves at %s: %s.", Screens[0], strings.Join(moving, "; ")),
+			"Inside @media (prefers-reduced-motion: reduce) stop loops and long moves (animation: none, or a short fade), and let scripts check matchMedia(\"(prefers-reduced-motion: reduce)\") before animating."})
+	}
 	r.Findings = append(r.Findings, sizes.findings("small", "Text too small to read: %s.", "Set text at 9 px or more where it renders, including SVG labels scaled down with their drawing; small print reads well from 12 px.")...)
 	r.Findings = append(r.Findings, contrasts.findings("contrast", "Text below the WCAG contrast minimum: %s.", "Darken the text or lighten its ground until it reaches the ratio; large text (24 px, or 18.7 px bold) needs 3:1, other text 4.5:1.")...)
 	return r, nil
@@ -314,6 +321,37 @@ func (p *perElement) findings(kind, message, hint string) []LayoutFinding {
 		parts = append(parts, p.text[e]+" at "+strings.Join(p.screens[e], ", "))
 	}
 	return []LayoutFinding{{p.screens[p.order[0]][0], kind, fmt.Sprintf(message, strings.Join(parts, "; ")), hint}}
+}
+
+// reducedMotion loads the page at screen v with prefers-reduced-motion:
+// reduce and lists what still moves in the first three frames.
+func reducedMotion(tab context.Context, url string, v Screen) ([]string, error) {
+	reduce := []*emulation.MediaFeature{{Name: "prefers-reduced-motion", Value: "reduce"}}
+	if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Features: reduce}); err != nil {
+		return nil, err
+	}
+	defer chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Features: []*emulation.MediaFeature{{Name: "prefers-reduced-motion", Value: ""}}})
+	if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), chromedp.EmulateMobile, chromedp.EmulateTouch), chromedp.Navigate(url)); err != nil {
+		return nil, err
+	}
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](layoutProbe)); err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	var out []string
+	for i := 0; i < 3; i++ {
+		found, err := chromedp.Run(tab, chromedp.Evaluate[[]struct{ Selector, How string }](fmt.Sprintf(`__lfmLayout.moving(%d).then(l=>l.map(m=>({Selector:m.selector,How:m.how})))`, i*v.Height/2), chromedp.EvalAwaitPromise))
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range found {
+			if item := m.Selector + " (" + m.How + ")"; !seen[item] && len(out) < 4 {
+				seen[item] = true
+				out = append(out, item)
+			}
+		}
+	}
+	return out, nil
 }
 
 // emptyFindings merges consecutive empty frames into ranges of the page.

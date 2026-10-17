@@ -251,7 +251,44 @@
     return (h >>> 0).toString(16);
   };
 
+  const motionProps = /transform|translate|rotate|scale|offset|^left|^top|^right|^bottom|margin/i;
+
   window.__lfmLayout = {
+    // moving lists what still moves at scroll position y: CSS and Web
+    // Animations that loop or run a second or longer and change a motion
+    // property, and elements a script moves (their box changes between two
+    // samples while the page stands still).
+    async moving(y) {
+      window.scrollTo({ top: y, left: 0, behavior: "instant" });
+      await settleFrames();
+      await new Promise((r) => setTimeout(r, 300));
+      const out = new Map();
+      for (const a of document.getAnimations()) {
+        try {
+          if (a.playState !== "running" || a.timeline !== document.timeline || !a.effect || !a.effect.target) continue;
+          const timing = a.effect.getComputedTiming();
+          const long = timing.iterations === Infinity || timing.activeDuration >= 1000;
+          const meta = new Set(["offset", "computedOffset", "easing", "composite"]);
+          const moves = a.effect.getKeyframes().some((k) => Object.keys(k).some((p) => !meta.has(p) && motionProps.test(p)));
+          if (long && moves) out.set(a.effect.target, (a.animationName ? "@keyframes " + a.animationName : "animation") + (timing.iterations === Infinity ? ", looping" : ""));
+        } catch (_) {}
+      }
+      const boxes = new Map();
+      for (const el of document.body.getElementsByTagName("*")) {
+        const r = el.getBoundingClientRect();
+        if (r.width && r.height && r.bottom > 0 && r.top < innerHeight) boxes.set(el, r);
+      }
+      await new Promise((r) => setTimeout(r, 400));
+      for (const [el, before] of boxes) {
+        if (out.has(el) || [...out.keys()].some((m) => m.contains(el))) continue;
+        const r = el.getBoundingClientRect();
+        if (Math.abs(r.left - before.left) > 2 || Math.abs(r.top - before.top) > 2) {
+          if (![...out.keys()].some((m) => m.contains(el) || el.contains(m))) out.set(el, "moved by a script");
+        }
+      }
+      return [...out].map(([el, how]) => ({ selector: describe(el), how }));
+    },
+
     contrast() {
       return [...lowContrast.values()].sort((a, b) => a.ratio - b.ratio);
     },

@@ -155,3 +155,37 @@ svg text{font-size:8px}
 		t.Errorf("text over an image has no certain ground:\n%s", joined)
 	}
 }
+
+func TestLayoutAuditFindsMotionThatIgnoresReducedMotion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	path, err := BrowserPath()
+	if err != nil {
+		t.Skip(err)
+	}
+	base := `<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="><style>
+body{margin:0;font:18px/1.6 serif}
+@keyframes float{0%{transform:translateY(0)}50%{transform:translateY(-12px)}100%{transform:translateY(0)}}
+.bob{width:80px;height:80px;background:#234;animation:float 3s infinite}
+.fade{animation:fadein 2s infinite}@keyframes fadein{from{opacity:.5}to{opacity:1}}
+REDUCE</style></head><body><main><h1>Motion</h1><p><a href="#x">Act</a></p><div class=bob></div><p class=fade>Only fades.</p><div id=js style="position:relative;width:40px;height:40px;background:#a00"></div></main>
+<script>JS</script></body></html>`
+	loop := `const el=document.getElementById("js");let t=0;(function f(){t+=4;el.style.left=(t%200)+"px";requestAnimationFrame(f)})()`
+	page := strings.NewReplacer("REDUCE", "", "JS", loop).Replace(base)
+	var motion string
+	for _, f := range AuditRuntime([]byte(page), nil, path, "").Layout.Findings {
+		if f.Kind == "motion" {
+			motion = f.Message
+		}
+	}
+	if !strings.Contains(motion, "div.bob (@keyframes float, looping)") || !strings.Contains(motion, "div#js (moved by a script)") || strings.Contains(motion, "fade") {
+		t.Fatalf("motion finding: %q", motion)
+	}
+	quiet := strings.NewReplacer("REDUCE", "@media (prefers-reduced-motion:reduce){.bob{animation:none}}", "JS", "if(!matchMedia('(prefers-reduced-motion: reduce)').matches){"+loop+"}").Replace(base)
+	for _, f := range AuditRuntime([]byte(quiet), nil, path, "").Layout.Findings {
+		if f.Kind == "motion" {
+			t.Fatalf("reduced page still reported: %s", f.Message)
+		}
+	}
+}
