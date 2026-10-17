@@ -63,12 +63,30 @@ func BrowserPath() (string, error) {
 		}
 		return found, nil
 	}
-	for _, path := range []string{"chromium", "chromium-browser", "chromium-headless-shell", "chrome-headless-shell", "headless_shell", "google-chrome", "google-chrome-stable", "chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Chromium.app/Contents/MacOS/Chromium", `C:\Program Files\Google\Chrome\Application\chrome.exe`} {
+	for _, path := range browserCandidates() {
 		if found, err := exec.LookPath(path); err == nil {
 			return found, nil
 		}
 	}
 	return "", fmt.Errorf("--release needs installed Chrome/Chromium; install it or set LFM_CHROME to its executable (ordinary builds need neither browser nor Node)")
+}
+
+// browserCandidates lists Chromium-based browsers in order of preference:
+// headless builds first, then regular installs on Linux and macOS.
+func browserCandidates() []string {
+	candidates := []string{
+		"chromium-headless-shell", "chrome-headless-shell", "headless_shell",
+		"chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "chrome",
+		"microsoft-edge", "brave-browser", "/snap/bin/chromium",
+	}
+	for _, app := range []string{"Google Chrome", "Chromium", "Microsoft Edge", "Brave Browser"} {
+		inApplications := filepath.Join("/Applications", app+".app", "Contents", "MacOS", app)
+		candidates = append(candidates, inApplications)
+		if home, err := os.UserHomeDir(); err == nil {
+			candidates = append(candidates, filepath.Join(home, inApplications))
+		}
+	}
+	return candidates
 }
 
 // Analyze observes static first paint at several widths, unions visible rules,
