@@ -271,9 +271,11 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
 		}
 	}
-	// a failed font report only skips this check, not the passes after it
+	// a failed font report is reported and skipped, never a silent pass
 	if found, err := fallbackFonts(tab); err == nil {
 		r.Findings = append(r.Findings, found...)
+	} else {
+		r.Findings = append(r.Findings, LayoutFinding{"", "incomplete", "The font check could not run: " + compact(err.Error(), 300), "Rerun --release; if it persists, report it with the page."})
 	}
 	if moving, err := reducedMotion(tab, url, Screens[0]); err != nil {
 		return r, err

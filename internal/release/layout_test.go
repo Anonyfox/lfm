@@ -239,7 +239,7 @@ body{font:18px/1.5 "Go Test",sans-serif}.gone{font-family:"Gone",serif}
 	r := AuditRuntime([]byte(page), map[string][]byte{"go.woff2": font}, path, "")
 	var fonts []string
 	for _, f := range r.Layout.Findings {
-		if f.Kind == "font" {
+		if f.Kind == "font" || f.Kind == "incomplete" {
 			fonts = append(fonts, f.Message)
 		}
 	}
