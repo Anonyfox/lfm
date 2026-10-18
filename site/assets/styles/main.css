@@ -236,20 +236,24 @@ code {
   overflow-wrap: anywhere;
 }
 
+/* Commands sit between printed equals rules and scroll sideways instead of breaking. */
 pre {
   margin: 0 0 1rem;
-  padding: 0.75rem 0;
+  padding: 0.85rem 0;
   overflow-x: auto;
   font-size: 0.8125rem;
   line-height: 1.6;
-  border-top: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
+  background:
+    linear-gradient(var(--ink), var(--ink)) 0 0 / 100% 2px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) 0 5px / 100% 2px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) 0 100% / 100% 2px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) 0 calc(100% - 5px) / 100% 2px no-repeat;
 }
 
 pre code {
   font-size: inherit;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .steps pre {
@@ -272,18 +276,15 @@ pre code {
   display: block;
   margin-bottom: 0.35rem;
   font-size: 0.8125rem;
+}
+
+.optional {
   color: var(--faded);
 }
 
-.field {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.field input {
-  flex: 1 1 12rem;
-  min-width: 0;
+.printer input {
+  display: block;
+  width: 100%;
   padding: 0.6rem 0.7rem;
   font: 400 1rem/1.4 var(--read);
   color: var(--ink);
@@ -292,8 +293,12 @@ pre code {
   border-radius: 0;
 }
 
+.printer input::placeholder {
+  color: var(--faded);
+  opacity: 1;
+}
+
 button {
-  flex: 0 0 auto;
   padding: 0.65rem 0.9rem;
   font-size: 0.875rem;
   font-weight: 700;
@@ -309,22 +314,36 @@ button:hover {
   border-color: var(--red);
 }
 
+/* The slip: the visitor's own little receipt with the prompt on it. */
 .slip {
   position: relative;
   margin: 1rem 0 0.75rem;
-  padding-top: 0.6rem;
+  padding: 0.6rem 0 0.5rem;
   overflow: hidden;
+  background:
+    linear-gradient(to right, var(--perforation) 55%, transparent 0) 0 0 / 0.6rem 2px repeat-x,
+    linear-gradient(to right, var(--perforation) 55%, transparent 0) 0 100% / 0.6rem 2px repeat-x;
+}
+
+.slip-head,
+.slip-foot {
+  margin: 0.25rem 0;
+}
+
+.slip-head span:last-child {
+  overflow-wrap: anywhere;
 }
 
 .prompt {
-  margin: 0;
-  padding: 0.9rem 0;
+  margin: 0.5rem 0;
   font-size: clamp(0.95rem, 4vw, 1.1rem);
   font-weight: 600;
   line-height: 1.5;
+}
+
+.prompt .url {
+  display: block;
   overflow-wrap: anywhere;
-  border-top: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
 }
 
 .prompt span {
@@ -334,7 +353,7 @@ button:hover {
 .stamp {
   position: absolute;
   right: 0.25rem;
-  top: -0.05rem;
+  top: 0.15rem;
   margin: 0;
   padding: 0.1rem 0.5rem;
   font-size: 0.8125rem;
@@ -358,10 +377,9 @@ button:hover {
   font-size: 1rem;
 }
 
-.fine {
-  margin: 0.75rem 0 0.5rem;
-  font-size: 0.875rem;
-  color: var(--faded);
+.trust {
+  margin: 0.85rem 0 0.5rem;
+  font-size: 0.9375rem;
 }
 
 /* The red strip: the ritual it answers. */
@@ -412,11 +430,11 @@ button:hover {
 
 .void-stamp {
   position: absolute;
-  left: 50%;
-  top: 38%;
+  right: -1.25rem;
+  bottom: 1.5rem;
   margin: 0;
-  padding: 0.15rem 0.9rem;
-  font-size: 2.5rem;
+  padding: 0.1rem 0.7rem;
+  font-size: 1.75rem;
   font-weight: 800;
   font-stretch: 112.5%;
   letter-spacing: 0.12em;
@@ -424,7 +442,7 @@ button:hover {
   color: var(--red);
   background: var(--paper);
   border: 4px solid var(--red);
-  transform: translate(-50%, -50%) rotate(-14deg);
+  transform: rotate(-12deg);
 }
 
 .voided figcaption {
@@ -434,9 +452,18 @@ button:hover {
   color: var(--faded);
 }
 
-.findings b {
-  font-weight: 800;
-  text-transform: uppercase;
+.findings li {
+  padding: 0.25rem 0;
+}
+
+.findings .row {
+  padding: 0;
+}
+
+.rule-id {
+  margin: 0;
+  font: 400 0.75rem/1.4 var(--print);
+  color: var(--faded);
 }
 
 .steps {
@@ -463,7 +490,7 @@ button:hover {
 
 /* Printing the prompt: the slip feeds out line by line. */
 
-.feeding .prompt {
+.feeding {
   animation: feed var(--feed, 320ms) steps(var(--lines, 4), end);
 }
 
@@ -478,26 +505,73 @@ button:hover {
   }
 }
 
+@media (max-width: 40rem) {
+  .tape-top {
+    padding-top: 1.1rem;
+  }
+
+  .tape-top .rule {
+    margin: 0.4rem 0;
+  }
+
+  h1 {
+    margin: 0.6rem 0 0.75rem;
+  }
+
+  .tape-top .total {
+    margin: 0.5rem 0 0.6rem;
+  }
+
+  .lede {
+    font-size: 1.0625rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .coupon {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+  }
+
+  .coupon h2 {
+    margin-bottom: 0.6rem;
+  }
+
+  .slip {
+    margin: 0.7rem 0 0.6rem;
+  }
+
+  pre {
+    font-size: 0.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .feeding .prompt {
+  .feeding {
     animation: none;
   }
 }
 
 /* A desktop till prints a wider slip: the headline as a poster on the left, the coupon on the
    right, and line items beside their explanation further down. */
+/* A desktop till prints a wider first slip: the headline as a poster on the left, the coupon
+   on the right. The slips below keep one receipt column. */
 @media (min-width: 64rem) {
-  :root {
-    --tape: 64rem;
-    --pad: 3rem;
-  }
-
   main {
     padding-top: 2rem;
   }
 
+  .tape {
+    max-width: 42rem;
+  }
+
   .tape-top {
-    padding-top: 1.75rem;
+    max-width: 66rem;
+    padding: 1.75rem 3rem 0.25rem;
+  }
+
+  .tape-top .tear {
+    margin-left: -3rem;
+    margin-right: -3rem;
   }
 
   .hero {
@@ -517,29 +591,21 @@ button:hover {
     margin: 0.5rem 0 0;
   }
 
-  .split {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 3.5rem;
-    align-items: start;
-  }
-
-  .split > .tear,
-  .split > h2 {
-    grid-column: 1 / -1;
-  }
-
-  .tape:not(.split):not(.tape-top) > :not(.tear) {
-    max-width: 40rem;
-  }
-
-  h2 {
-    font-size: 1.75rem;
-  }
-
   .nodm {
-    max-width: var(--tape);
+    max-width: 42rem;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .row {
+    font-size: 0.9375rem;
+  }
+
+  .row.small {
+    font-size: 0.8125rem;
+  }
+
+  .total {
+    font-size: 1.4rem;
   }
 }

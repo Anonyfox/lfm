@@ -144,7 +144,8 @@ printers use it: for the total and what changed.
 
 ## Form
 One paper tape about 48 characters wide, the width of a receipt line, centred on the paper-shade counter at
-desktop and edge to edge on a phone. Tape sections end in torn zigzag edges; rules are printed characters
+desktop and edge to edge on a phone. At desktop width only the first slip widens, so the headline stands as
+a poster beside the coupon and the prompt is in the first screen; every slip below keeps the one column. Tape sections end in torn zigzag edges; rules are printed characters
 (dashes and equals signs), not borders. No rounded corners, no shadows, no cards, no icons. Line items are
 two columns, label left and value right with dot leaders, as receipts align them. The only full-width band
 is the red No DM strip. Double-width mono for the store line, totals and the headline; reading text sits in
@@ -176,3 +177,12 @@ Reduced motion: the coupon updates at once and the stamp appears without movemen
 - Every number on the page is real and checked: from the research, the compiler or this page's own build. V086
 - Say what lfm does not do: it brings no traffic and hosts nothing. V033 V054
 - Never quote a research voice with a name or as praise; their words shape the copy, they are not testimonials. V020
+
+## Qualities
+- The hero: the buyers' own headline, SALES TODAY $0.00 in red, and the prompt on the first screen with no account.
+- The usual receipt's line items and TOTAL A SALE OR A NO: specific, funny about the zero, never about the visitor.
+- Honesty and agent-readability: what lfm does not do, the agent block with --json and exit codes, red only for totals and errors.
+
+## Changelog
+- 2026-10-18: first concept from the batch of 2026-10-18.
+- 2026-10-18: after an independent review of the first build: desktop widens only the first slip; added the after-you-paste receipt (decision path step 6), the trust line at the copy button, findings in plain words, and the house-look answer rung up as a receipt. No research changed.
