@@ -260,6 +260,8 @@
     return [...new Set(first.filter((line) => second.has(line)).map(hash))];
   };
 
+  const motionProps = /transform|translate|rotate|scale|offset|^left|^top|^right|^bottom|margin/i;
+
   window.__lfmLayout = {
     // moving lists what still moves at scroll position y: CSS and Web
     // Animations that loop or run a second or longer and change a motion

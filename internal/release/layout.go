@@ -271,16 +271,17 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
 		}
 	}
-	if found, err := withoutScripts(tab, url, Screens[0]); err != nil {
-		return r, err
-	} else {
-		r.Findings = append(r.Findings, found...)
-	}
 	if moving, err := reducedMotion(tab, url, Screens[0]); err != nil {
 		return r, err
 	} else if len(moving) > 0 {
 		r.Findings = append(r.Findings, LayoutFinding{Screens[0].String(), "motion", fmt.Sprintf("With reduced motion requested, the page still moves at %s: %s.", Screens[0], strings.Join(moving, "; ")),
 			"Inside @media (prefers-reduced-motion: reduce) stop loops and long moves (animation: none, or a short fade), and let scripts check matchMedia(\"(prefers-reduced-motion: reduce)\") before animating."})
+	}
+	// scripts off last: toggling script execution leaves later loads unlike a visitor's
+	if found, err := withoutScripts(tab, url, Screens[0]); err != nil {
+		return r, err
+	} else {
+		r.Findings = append(r.Findings, found...)
 	}
 	r.Findings = append(r.Findings, sizes.findings("small", "Text too small to read: %s.", "Set text at 9 px or more where it renders, including SVG labels scaled down with their drawing; small print reads well from 12 px.")...)
 	r.Findings = append(r.Findings, contrasts.findings("contrast", "Text below the WCAG contrast minimum: %s.", "Darken the text or lighten its ground until it reaches the ratio; large text (24 px, or 18.7 px bold) needs 3:1, other text 4.5:1.")...)
