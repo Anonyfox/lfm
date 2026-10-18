@@ -61,7 +61,13 @@ jobs:
           for pkg in $(go list ./...); do
             for target in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
               echo "::group::$pkg $target"
-              go test -run '^$' -fuzz "^${target}\$" -fuzztime 5s "$pkg"
+              # A short -fuzztime can end on "context deadline exceeded" while a
+              # worker minimizes a new input; only a reported failing input fails.
+              if ! out=$(go test -run '^$' -fuzz "^${target}\$" -fuzztime 5s "$pkg" 2>&1); then
+                echo "$out"
+                if echo "$out" | grep -q "Failing input" || ! echo "$out" | grep -q "context deadline exceeded"; then exit 1; fi
+                echo "::notice::$target ended on the fuzzing deadline without a failing input"
+              fi
               echo "::endgroup::"
             done
           done

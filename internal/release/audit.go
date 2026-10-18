@@ -179,7 +179,7 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root string) 
 		return r
 	}
 	defer func() {
-		if err := os.RemoveAll(profile); err != nil {
+		if err := removeProfile(profile); err != nil {
 			r.Warnings = append(r.Warnings, "Could not remove release browser profile "+profile+": "+err.Error())
 		}
 	}()
@@ -454,4 +454,18 @@ func auditItems(raw json.RawMessage) []json.RawMessage {
 func ReportPath(root string) string {
 	sum := sha256.Sum256([]byte(root))
 	return filepath.Join(os.TempDir(), fmt.Sprintf("lfm-lighthouse-%x.json", sum[:6]))
+}
+
+// removeProfile deletes a browser profile folder. Chrome's helper processes
+// can still write into it for a moment after the browser closed, so removal
+// is retried briefly before it counts as failed.
+func removeProfile(dir string) error {
+	var err error
+	for attempt := 0; attempt < 10; attempt++ {
+		if err = os.RemoveAll(dir); err == nil {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return err
 }

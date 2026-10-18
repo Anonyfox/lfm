@@ -46,7 +46,15 @@ func TestOwnedBrowserExposesPortForLighthouse(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
-	profile := t.TempDir()
+	profile, err := os.MkdirTemp("", "lfm-profile-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := removeProfile(profile); err != nil {
+			t.Error(err)
+		}
+	})
 	_, cleanup, err := startAuditBrowser(ctx, path, "http://127.0.0.1:1", profile)
 	if err != nil {
 		t.Fatal(err)
