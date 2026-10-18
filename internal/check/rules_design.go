@@ -173,6 +173,11 @@ func (a *designAnalysis) run() {
 	a.weakSurfaces()
 	a.contrast()
 	a.kit()
+	// a page without any image, video, canvas or drawing is a default only in
+	// combination with others; deliberately typographic pages stay quiet alone
+	if imageryCount(a.d) == 0 {
+		a.add(designSignal{rule: "design.defaults", kind: "imageless page"})
+	}
 }
 
 // ---------- component kit ----------
