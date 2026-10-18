@@ -1,0 +1,112 @@
+# lfm on the page an agent wrote from one sentence
+
+The agent got this request, with no research, no skills and no lfm:
+
+> Build me a landing page for my new SaaS: Threadly, an app that summarizes long Slack threads into decisions and to-dos for busy teams. Pricing is $12 per user per month with a 14-day free trial.
+
+Its file, default-agent-page.html, became the template of a fresh `lfm init` project whose lfm.json carries the page's own title and description. The five template.unused warnings come from that wrapping, not from the page, and are left out of the counts on lfm.cash.
+
+## lfm compile
+
+```
+error    seo.metadata  page
+         Canonical URL is missing.
+         fix: Render exactly one <link rel="canonical" href="{{.url}}"> in head; shared query
+              state never changes lfm.json url.
+warning  design.defaults  page
+         8 generator-default signals combine on this page; reported: eyebrow labels, hero badge;
+         weaker, review in context: accent word, backdrop blur, equal card grid, imageless page,
+         monospace microcopy, pills everywhere. The combination is what visitors recognize as
+         generated.
+         fix: Decide palette, type, shape, motion and layout from the subject in the brief; keep
+              each listed pattern only with a reason. Weak signals alone never warn.
+warning  seo.social  page
+         Social preview is missing nonempty og:title, og:type, og:url, og:image.
+         fix: Render the Open Graph core fields in head from config; use the canonical URL and a
+              public image file URL.
+warning  design.eyebrows  page <span.eyebrow>
+         Eyebrow "Works inside Slack. No new tab." above heading "147 replies.Three
+         decisions.Read those.": small tracked label restating or framing the heading.
+         fix: Delete it, or merge its information into the heading. Keep a label only for time,
+              step, price or status. Deliberate? Keep it and add data-design-reason="…" on the
+              element, or set build.validation.rules.design.eyebrows.
+warning  design.hero  page <span.eyebrow>
+         Pill badge "Works inside Slack. No new tab." above the hero headline: stock
+         'New/Introducing' chip.
+         fix: Delete it unless it states a real, current, dated status; then make it plain text.
+              Deliberate? Keep it and add data-design-reason="…" on the element, or set
+              build.validation.rules.design.hero.
+warning  a11y.link-purpose  page <a.btn>
+         2 links named "Start your 14-day free trial" lead to 2 different destinations.
+         fix: Name each link by where it goes or what it buys ("Buy the starter kit", "Read the
+              method"); a visually short label can carry the full name in aria-label.
+warning  design.eyebrows  page <p.kicker>
+         Eyebrow "The problem" above heading "Your team agreed on something. It's som…": small
+         tracked label restating or framing the heading.
+         fix: Delete it, or merge its information into the heading. Keep a label only for time,
+              step, price or status. Deliberate? Keep it and add data-design-reason="…" on the
+              element, or set build.validation.rules.design.eyebrows.
+warning  design.eyebrows  page <p.kicker>
+         Eyebrow "How it works" above heading "Three steps, all inside Slack.": small tracked
+         label restating or framing the heading.
+         fix: Delete it, or merge its information into the heading. Keep a label only for time,
+              step, price or status. Deliberate? Keep it and add data-design-reason="…" on the
+              element, or set build.validation.rules.design.eyebrows.
+warning  design.eyebrows  page <p.kicker>
+         Eyebrow "Features" above heading "Built for teams that talk a lot and rea…": small
+         tracked label restating or framing the heading.
+         fix: Delete it, or merge its information into the heading. Keep a label only for time,
+              step, price or status. Deliberate? Keep it and add data-design-reason="…" on the
+              element, or set build.validation.rules.design.eyebrows.
+warning  design.eyebrows  page <p.kicker>
+         Eyebrow "Pricing" above heading "One plan. Everything included.": small tracked label
+         restating or framing the heading.
+         fix: Delete it, or merge its information into the heading. Keep a label only for time,
+              step, price or status. Deliberate? Keep it and add data-design-reason="…" on the
+              element, or set build.validation.rules.design.eyebrows.
+warning  design.eyebrows  page <p.kicker>
+         Eyebrow "FAQ" above heading "Questions, answered briefly.": small tracked label
+         restating or framing the heading.
+         fix: Delete it, or merge its information into the heading. Keep a label only for time,
+              step, price or status. Deliberate? Keep it and add data-design-reason="…" on the
+              element, or set build.validation.rules.design.eyebrows.
+warning  template.unused  lfm.json:4:3
+         Unused config/data field: language.
+         fix: Remove stale data or reference it in the template; runtime-only data belongs in
+              build.browserData. Both conditional branches count as usage.
+warning  template.unused  lfm.json:5:3
+         Unused config/data field: title.
+         fix: Remove stale data or reference it in the template; runtime-only data belongs in
+              build.browserData. Both conditional branches count as usage.
+warning  template.unused  lfm.json:6:3
+         Unused config/data field: description.
+         fix: Remove stale data or reference it in the template; runtime-only data belongs in
+              build.browserData. Both conditional branches count as usage.
+warning  template.unused  lfm.json:8:5
+         Unused config/data field: socialImage.src.
+         fix: Remove stale data or reference it in the template; runtime-only data belongs in
+              build.browserData. Both conditional branches count as usage.
+warning  template.unused  lfm.json:9:5
+         Unused config/data field: socialImage.alt.
+         fix: Remove stale data or reference it in the template; runtime-only data belongs in
+              build.browserData. Both conditional branches count as usage.
+
+✗ oneshot-proj failed: 1 error, 15 warnings; output/ unchanged
+'lfm rules <id>' explains any rule above.
+Next (fix): fix the errors above and compile again; output/ is unchanged until none remain.
+```
+
+## lfm compile --release
+
+Run after adding only the missing canonical link, because the browser audit starts once no errors remain. Its new finding:
+
+```
+warning  release.layout  page
+         Text below the WCAG contrast minimum: a.btn.btn-primary has 2.55:1 (#4a4740 on
+         #e8553a), needs 4.5:1 at 390×844, 1280×680, 1440×900; span.tag.open has 2.97:1 (#e8553a
+         on #fbe4dd), needs 4.5:1 at 390×844, 1280×680, 1440×900; p.kicker has 3.02:1 (#e8553a
+         on #efeae2), needs 4.5:1 at 390×844, 1280×680, 1440×900; 7 more.
+         fix: Darken the text or lighten its ground until it reaches the ratio; large text (24
+              px, or 18.7 px bold) needs 3:1, other text 4.5:1. Frames:
+              <frames folder>
+```

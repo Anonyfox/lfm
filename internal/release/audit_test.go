@@ -14,12 +14,12 @@ import (
 )
 
 func TestLighthouseParsingSeparatesScoresDiagnosticsAndManualChecks(t *testing.T) {
-	raw := `{"lighthouseVersion":"13.5.0","userAgent":"Chrome","categories":{"performance":{"score":1,"auditRefs":[{"id":"speed","weight":10},{"id":"size","weight":0}]},"accessibility":{"score":1},"best-practices":{"score":0.96,"auditRefs":[{"id":"console","weight":1}]},"seo":{"score":1}},"audits":{"speed":{"score":1},"console":{"title":"Browser errors","description":"Fix errors.","score":0,"details":{"items":[{"url":"http://local/favicon.ico"}]}},"size":{"title":"Transfer bytes","description":"Compress.","score":0.5},"keyboard":{"title":"Logical tab order","description":"Test it.","score":null,"scoreDisplayMode":"manual"}}}`
+	raw := `{"lighthouseVersion":"13.5.0","userAgent":"Chrome","categories":{"performance":{"score":1,"auditRefs":[{"id":"speed","weight":10},{"id":"size","weight":0}]},"accessibility":{"score":1},"best-practices":{"score":0.96,"auditRefs":[{"id":"console","weight":1}]},"seo":{"score":1}},"audits":{"speed":{"score":1},"console":{"title":"Browser errors","description":"Fix errors.","score":0,"details":{"items":[{"url":"http://local/favicon.ico"}]}},"size":{"title":"Transfer bytes","description":"Compress.","score":0.5},"keyboard":{"title":"Logical tab order","description":"Test it.","score":null,"scoreDisplayMode":"manual"},"cache-insight":{"title":"Use efficient cache lifetimes","description":"Cache.","score":0.5}}}`
 	r, err := parseLighthouse([]byte(raw), "http://local")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if *r.Scores["best-practices"] != 96 || len(r.Findings) != 2 || len(r.Manual) != 1 {
+	if *r.Scores["best-practices"] != 96 || len(r.Findings) != 2 || len(r.Manual) != 1 || len(r.Host) != 1 || r.Host[0].ID != "cache-insight" {
 		t.Fatal(r)
 	}
 	if len(r.Findings[0].Categories) != 1 || r.Findings[0].Samples[0] != "url=/favicon.ico" || len(r.Findings[1].Categories) != 0 {

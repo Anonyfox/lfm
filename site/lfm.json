@@ -2,19 +2,80 @@
   "schemaVersion": 1,
   "url": "https://lfm.cash/",
   "language": "en",
-  "title": "lfm: looking for money",
-  "description": "Onepagers that sell, built by agents on rails.",
+  "title": "lfm: sell it before you build it",
+  "description": "A free CLI and skills that make your coding agent research real buyers, design from their words and ship one checked static page with a payment link, before you build the product.",
   "socialImage": {
     "src": "assets/images/share.png",
-    "alt": "A trade chat line in orange on black: LFM, need 1 more buyer."
+    "alt": "A receipt from LFM.CASH: in wide print, Nobody screenshots a dead product. Sales today $0.00 in red. Below: Sell it first. Build it when someone pays."
   },
   "urls": {
-    "repository": "https://github.com/Anonyfox/lfm"
+    "repository": "https://github.com/Anonyfox/lfm",
+    "authoring": "https://github.com/Anonyfox/lfm/blob/main/docs/authoring.md",
+    "voices": "https://github.com/Anonyfox/lfm/blob/main/site/research/human-voices.md",
+    "competitors": "https://github.com/Anonyfox/lfm/blob/main/site/research/competitor-analysis.md",
+    "concept": "https://github.com/Anonyfox/lfm/blob/main/site/concept.md",
+    "proofSource": "https://github.com/Anonyfox/lfm/blob/main/site/proof/default-agent-page.html",
+    "proofReport": "https://github.com/Anonyfox/lfm/blob/main/site/proof/default-agent-page.report.txt",
+    "license": "https://github.com/Anonyfox/lfm/blob/main/LICENSE",
+    "mit": "https://opensource.org/licenses/MIT"
+  },
+  "data": {
+    "prompt": {
+      "example": "my sourdough course",
+      "skill": "https://lfm.cash/SKILL.md"
+    },
+    "install": {
+      "script": "curl -fsSL https://lfm.cash/install.sh | sh",
+      "go": "go install \\\n  github.com/Anonyfox/lfm/cmd/lfm@latest"
+    },
+    "rules": 104,
+    "minimums": {
+      "voices": 60,
+      "platforms": 5,
+      "peers": 12
+    },
+    "voided": {
+      "errors": 1,
+      "warnings": 10,
+      "lowContrast": 10,
+      "buttonContrast": "2.55:1",
+      "defaults": 8
+    },
+    "receipt": {
+      "voices": 120,
+      "platforms": 7,
+      "peers": 20,
+      "directions": 10,
+      "frames": 0,
+      "gzip": "8 KB gzip",
+      "lighthouse": "4 × 100"
+    }
+  },
+  "jsonld": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "lfm",
+    "description": "{{.description}}",
+    "url": "{{.url}}",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Linux",
+    "license": "{{.urls.mit}}",
+    "codeRepository": "{{.urls.repository}}",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
   },
   "build": {
-    "validation": {
-      "rules": {
-        "seo.indexability": "off"
+    "browserData": [
+      "data.prompt"
+    ],
+    "assets": {
+      "overrides": {
+        "assets/agents/SKILL.md": "file",
+        "assets/agents/install.sh": "file",
+        "assets/agents/llms.txt": "file"
       }
     }
   }

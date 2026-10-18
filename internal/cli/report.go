@@ -206,6 +206,13 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 		fmt.Fprintf(w, "  %s performance %s · accessibility %s · best practices %s · SEO %s\n", term.Pad("lighthouse", 12),
 			score(lh.Scores["performance"]), score(lh.Scores["accessibility"]), score(lh.Scores["best-practices"]), score(lh.Scores["seo"]))
 		fmt.Fprintf(w, "  %s LCP %s · TBT %s · CLS %s · %s\n", term.Pad("", 12), lh.Metrics["largest-contentful-paint"], lh.Metrics["total-blocking-time"], lh.Metrics["cumulative-layout-shift"], term.Plural(len(lh.Findings), "open audit"))
+		if len(lh.Host) > 0 {
+			var titles []string
+			for _, f := range lh.Host {
+				titles = append(titles, strings.ToLower(f.Title[:1])+f.Title[1:])
+			}
+			fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(term.Wrap("set on your host, not the page: "+strings.Join(titles, "; "), term.Width-15, strings.Repeat(" ", 15))))
+		}
 		if lh.Report != "" {
 			fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim("full report: "+lh.Report))
 		}

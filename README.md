@@ -13,14 +13,14 @@ No framework, no platform, no runtime: one binary, one page, one folder you uplo
 
 Give any coding agent (Claude Code, Codex, Cursor, OpenCode, Gemini CLI and others) this request:
 
-> Make a landing page for my sourdough course with lfm: https://github.com/Anonyfox/lfm/blob/main/SKILL.md
+> Make a landing page for my sourdough course with lfm: https://lfm.cash/SKILL.md
 
 [SKILL.md](SKILL.md) tells the agent how to install `lfm`, set up a project and follow the process.
 To have every agent session pick it up by itself for requests like "generate me a landing page", install
 it once as a user skill:
 
 ```sh
-for d in ~/.agents/skills/lfm ~/.claude/skills/lfm; do mkdir -p "$d" && curl -fsSL https://raw.githubusercontent.com/Anonyfox/lfm/main/SKILL.md -o "$d/SKILL.md"; done
+for d in ~/.agents/skills/lfm ~/.claude/skills/lfm; do mkdir -p "$d" && curl -fsSL https://lfm.cash/SKILL.md -o "$d/SKILL.md"; done
 ```
 
 `~/.agents/skills` is read by Codex, Cursor, OpenCode, Gemini CLI and GitHub Copilot; `~/.claude/skills`
@@ -29,7 +29,7 @@ by Claude Code. Keep only the one your agents need.
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Anonyfox/lfm/main/install.sh | sh
+curl -fsSL https://lfm.cash/install.sh | sh
 ```
 
 The script downloads the [release](https://github.com/Anonyfox/lfm/releases) for macOS or Linux (amd64

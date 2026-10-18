@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threadly</title>
+<meta name="description" content="Threadly turns long Slack threads into clear decisions and to-dos. $12 per user per month, 14-day free trial.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8553a'/%3E%3Cpath d='M8 11h16M8 16h11M8 21h6' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --paper:#f6f3ee;
+  --paper-2:#efeae2;
+  --card:#ffffff;
+  --ink:#1b1a17;
+  --ink-2:#4a4740;
+  --ink-3:#7a766c;
+  --line:#e2dcd1;
+  --accent:#e8553a;
+  --accent-ink:#ffffff;
+  --accent-soft:#fbe4dd;
+  --ok:#2f7d5b;
+  --ok-soft:#dcefe5;
+  --todo:#3b5bdb;
+  --todo-soft:#e1e7fb;
+  --shadow:0 1px 2px rgba(27,26,23,.06),0 12px 32px -12px rgba(27,26,23,.18);
+  --radius:14px;
+  --sans:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141311;--paper-2:#1b1a17;--card:#211f1c;--ink:#f2eee6;--ink-2:#c8c2b6;--ink-3:#8f897d;
+    --line:#2f2c27;--accent:#f06a4f;--accent-soft:#3a211b;--ok:#5cc196;--ok-soft:#18302a;--todo:#8aa2ff;--todo-soft:#1d2440;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141311;--paper-2:#1b1a17;--card:#211f1c;--ink:#f2eee6;--ink-2:#c8c2b6;--ink-3:#8f897d;
+  --line:#2f2c27;--accent:#f06a4f;--accent-soft:#3a211b;--ok:#5cc196;--ok-soft:#18302a;--todo:#8aa2ff;--todo-soft:#1d2440;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -16px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+@media (max-width:600px){.wrap{padding:0 16px}}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border-radius:999px;font-weight:600;font-size:16px;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .15s ease,background .15s ease}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-ghost{border-color:var(--line);background:transparent;color:var(--ink)}
+.btn-ghost:hover{background:var(--paper-2)}
+.btn:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* nav */
+header.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;text-decoration:none;letter-spacing:-.01em}
+.nav-links{display:flex;gap:28px;align-items:center;font-size:15px}
+.nav-links a{text-decoration:none;color:var(--ink-2)}
+.nav-links a:hover{color:var(--ink)}
+.nav .btn{padding:9px 16px;font-size:15px}
+@media (max-width:760px){.nav-links a:not(.btn){display:none}}
+
+/* hero */
+.hero{padding:72px 0 56px}
+.hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
+@media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:40px}.hero{padding:48px 0 40px}}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-2);background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:block}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(40px,6vw,68px);line-height:1.02;letter-spacing:-.025em;margin:20px 0 20px}
+h1 em{font-style:italic;color:var(--accent)}
+.lede{font-size:clamp(17px,2vw,20px);color:var(--ink-2);max-width:34em;margin:0 0 30px}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.fine{font-size:14px;color:var(--ink-3);margin-top:14px}
+
+/* demo */
+.demo{position:relative}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);font-size:14px}
+.panel-head b{font-weight:650}
+.panel-head span{color:var(--ink-3);font-size:13px}
+.msgs{padding:6px 16px 10px;max-height:330px;overflow:hidden;position:relative}
+.msgs::after{content:"";position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(transparent,var(--card))}
+.msg{display:grid;grid-template-columns:32px 1fr;gap:10px;padding:9px 0}
+.av{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff}
+.msg .who{font-size:14px;font-weight:650}
+.msg .who small{font-weight:400;color:var(--ink-3);margin-left:6px;font-size:12px}
+.msg p{margin:1px 0 0;font-size:14.5px;color:var(--ink-2);line-height:1.45}
+.more{font-size:13px;color:var(--ink-3);padding:0 16px 14px;position:relative;z-index:1}
+.summ-btn{position:absolute;left:50%;transform:translateX(-50%);bottom:-22px;z-index:3;box-shadow:var(--shadow)}
+.summary{margin-top:40px;transition:opacity .45s ease,transform .45s ease}
+.summary.hidden{opacity:0;transform:translateY(12px);pointer-events:none}
+.summary .body{padding:14px 16px 16px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;margin-bottom:8px}
+.tag.dec{background:var(--ok-soft);color:var(--ok)}
+.tag.todo{background:var(--todo-soft);color:var(--todo)}
+.tag.open{background:var(--accent-soft);color:var(--accent)}
+.summary ul{list-style:none;margin:0 0 14px;padding:0}
+.summary li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;padding:4px 0}
+.summary li svg{flex:none;margin-top:3px}
+.who-chip{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:auto;white-space:nowrap;padding-left:8px}
+
+/* logos-ish strip */
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:22px 0;color:var(--ink-3);font-size:15px}
+.strip .wrap{display:flex;flex-wrap:wrap;gap:12px 36px;justify-content:center;align-items:center}
+.strip b{color:var(--ink);font-weight:650}
+
+/* sections */
+section{padding:96px 0}
+@media (max-width:700px){section{padding:64px 0}}
+.kicker{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4vw,46px);line-height:1.08;letter-spacing:-.02em;margin:0 0 16px;max-width:18em}
+.sub{color:var(--ink-2);max-width:36em;margin:0 0 48px;font-size:18px}
+
+.problem{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media (max-width:820px){.problem{grid-template-columns:1fr}}
+.pcard{padding:24px;border-radius:var(--radius);background:var(--paper-2);border:1px solid var(--line)}
+.pcard .big{font-family:var(--serif);font-size:40px;line-height:1;margin-bottom:10px}
+.pcard p{margin:0;color:var(--ink-2);font-size:16px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;counter-reset:s}
+@media (max-width:820px){.steps{grid-template-columns:1fr}}
+.step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px;position:relative}
+.step::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:13px;color:var(--ink-3)}
+.step h3{font-size:20px;margin:14px 0 8px;letter-spacing:-.01em}
+.step p{margin:0;color:var(--ink-2);font-size:16px}
+.step code{font-family:var(--mono);font-size:14px;background:var(--paper-2);border:1px solid var(--line);padding:1px 6px;border-radius:5px}
+
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+@media (max-width:760px){.features{grid-template-columns:1fr}}
+.feat{background:var(--card);padding:30px;display:grid;grid-template-columns:40px 1fr;gap:16px}
+.feat .ic{width:40px;height:40px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;color:var(--accent)}
+.feat h3{margin:0 0 6px;font-size:18px}
+.feat p{margin:0;color:var(--ink-2);font-size:15.5px}
+
+/* pricing */
+.pricing{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+@media (max-width:880px){.price-grid{grid-template-columns:1fr}}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:32px;box-shadow:var(--shadow)}
+.plan .name{display:flex;justify-content:space-between;align-items:center;font-weight:650}
+.badge{font-size:12px;font-weight:700;background:var(--ok-soft);color:var(--ok);padding:4px 10px;border-radius:999px}
+.amount{display:flex;align-items:baseline;gap:8px;margin:18px 0 4px}
+.amount .n{font-family:var(--serif);font-size:72px;line-height:1;letter-spacing:-.03em}
+.amount .u{color:var(--ink-2)}
+.plan ul{list-style:none;padding:0;margin:24px 0 28px}
+.plan li{display:flex;gap:10px;padding:7px 0;font-size:16px;border-top:1px dashed var(--line)}
+.plan li:first-child{border-top:0}
+.plan .btn{width:100%;justify-content:center}
+.calc{padding:8px 0}
+.calc label{display:block;font-weight:650;margin-bottom:6px}
+.calc .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.calc output{font-family:var(--mono);font-size:15px;color:var(--ink-2)}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+.total{margin-top:26px;padding:22px;border-radius:var(--radius);background:var(--card);border:1px solid var(--line)}
+.total .line{display:flex;justify-content:space-between;padding:6px 0;font-size:16px;color:var(--ink-2)}
+.total .line.main{color:var(--ink);font-weight:700;font-size:20px;border-top:1px solid var(--line);margin-top:6px;padding-top:12px}
+.total .line.trial{color:var(--ok);font-weight:600}
+.calc .note{font-size:14px;color:var(--ink-3);margin-top:14px}
+
+/* faq */
+.faq{max-width:760px}
+details{border-bottom:1px solid var(--line);padding:18px 0}
+summary{cursor:pointer;font-weight:650;font-size:18px;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--mono);color:var(--ink-3);font-size:20px;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:10px 0 0;color:var(--ink-2)}
+
+/* final */
+.final{text-align:center}
+.final h2{margin-left:auto;margin-right:auto}
+.final .sub{margin-left:auto;margin-right:auto}
+.final .cta-row{justify-content:center}
+footer{border-top:1px solid var(--line);padding:28px 0;color:var(--ink-3);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+footer a{text-decoration:none}
+.theme-btn{background:none;border:1px solid var(--line);color:var(--ink-2);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Threadly home">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M8 11h16M8 16h11M8 21h6" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
+      Threadly
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn btn-primary" href="#pricing">Start free trial</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero" style="padding-top:72px">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><i></i>Works inside Slack. No new tab.</span>
+        <h1>147 replies.<br><em>Three decisions.</em><br>Read those.</h1>
+        <p class="lede">Threadly reads your long Slack threads and posts back what was decided, who owns what, and what is still open. Your team catches up in thirty seconds instead of scrolling for twenty minutes.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#pricing">Start your 14-day free trial
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#how">See how it works</a>
+        </div>
+        <p class="fine">$12 per user per month after the trial. Cancel anytime.</p>
+      </div>
+
+      <div class="demo" aria-label="Example of a Slack thread summarized by Threadly">
+        <div class="panel" style="position:relative;overflow:visible">
+          <div class="panel-head"><b># launch-planning</b><span>Thread · 147 replies</span></div>
+          <div class="msgs">
+            <div class="msg"><div class="av" style="background:#7c5cbf">MK</div><div><div class="who">Maya K.<small>9:02</small></div><p>Are we still shipping the new onboarding on the 14th? Legal hasn't signed off on the consent copy yet.</p></div></div>
+            <div class="msg"><div class="av" style="background:#2f7d5b">DO</div><div><div class="who">Dev O.<small>9:06</small></div><p>Eng is ready. Honestly I'd rather slip a week than ship the old copy again.</p></div></div>
+            <div class="msg"><div class="av" style="background:#c0712d">SR</div><div><div class="who">Sam R.<small>9:11</small></div><p>Could we ship behind a flag for 10% and swap copy when legal is done? Also, did anyone ping Priya about the email sequence?</p></div></div>
+            <div class="msg"><div class="av" style="background:#3b5bdb">PL</div><div><div class="who">Priya L.<small>9:24</small></div><p>Here. Emails can go out on the 21st, not before. Re: the flag, works for me if analytics is wired.</p></div></div>
+            <div class="msg"><div class="av" style="background:#2f7d5b">DO</div><div><div class="who">Dev O.<small>9:31</small></div><p>Analytics events are in. OK, flag at 10% on the 14th, full rollout after legal...</p></div></div>
+          </div>
+          <div class="more">+ 142 more replies across 3 days</div>
+          <button class="btn btn-primary summ-btn" id="summBtn" type="button" aria-controls="summary" aria-expanded="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.6 4.2 4.4.3-3.4 2.8 1.1 4.3L8 10.7 4.3 13.1l1.1-4.3L2 6l4.4-.3z" fill="currentColor"/></svg>
+            <span>Summarized</span>
+          </button>
+        </div>
+
+        <div class="panel summary" id="summary">
+          <div class="panel-head"><b>Threadly summary</b><span>Read time: 30 sec</span></div>
+          <div class="body">
+            <span class="tag dec">Decisions</span>
+            <ul>
+              <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="var(--ok)"/><path d="M5 8.2l2 2 4-4.2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>New onboarding ships on the 14th behind a flag at 10%.</li>
+              <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="var(--ok)"/><path d="M5 8.2l2 2 4-4.2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Full rollout waits for legal sign-off on consent copy.</li>
+            </ul>
+            <span class="tag todo">To-dos</span>
+            <ul>
+              <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3.5" fill="none" stroke="var(--todo)" stroke-width="1.6"/></svg>Get consent copy approved<span class="who-chip">@maya · Fri</span></li>
+              <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3.5" fill="none" stroke="var(--todo)" stroke-width="1.6"/></svg>Schedule email sequence for the 21st<span class="who-chip">@priya</span></li>
+            </ul>
+            <span class="tag open">Still open</span>
+            <ul style="margin-bottom:0">
+              <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="var(--accent)" stroke-width="1.6"/><path d="M8 5v3.5M8 10.8v.2" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/></svg>Who decides the date for full rollout?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="strip">
+    <div class="wrap">
+      <span><b>Decisions</b> pulled out</span>
+      <span><b>Owners</b> attached to every to-do</span>
+      <span><b>Open questions</b> flagged</span>
+      <span><b>Links</b> back to the source message</span>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <p class="kicker">The problem</p>
+      <h2>Your team agreed on something. It's somewhere in reply 83.</h2>
+      <p class="sub">Slack is great for talking things through. It is terrible at remembering what you landed on. So people scroll, re-ask, or miss the call entirely.</p>
+      <div class="problem">
+        <div class="pcard"><div class="big">Scroll</div><p>Anyone who was offline has to read the whole thread to find the one line that matters to them.</p></div>
+        <div class="pcard"><div class="big">Re-ask</div><p>"Wait, what did we decide?" restarts a conversation that was already finished.</p></div>
+        <div class="pcard"><div class="big">Drop</div><p>To-dos mentioned in passing never get an owner, so they quietly never happen.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="padding-top:0">
+    <div class="wrap">
+      <p class="kicker">How it works</p>
+      <h2>Three steps, all inside Slack.</h2>
+      <p class="sub">Nothing to learn and no dashboard to check. Threadly lives where the conversation already is.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Add Threadly to Slack</h3>
+          <p>Install it to your workspace in about a minute and invite it to the channels you want covered.</p>
+        </div>
+        <div class="step">
+          <h3>Ask for a summary</h3>
+          <p>Type <code>/threadly</code> in any thread, or let it auto-summarize threads that pass a reply count you choose.</p>
+        </div>
+        <div class="step">
+          <h3>Get decisions and to-dos</h3>
+          <p>A short summary is posted in the thread: decisions, to-dos with owners and dates, and anything still unresolved.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" style="padding-top:0">
+    <div class="wrap">
+      <p class="kicker">Features</p>
+      <h2>Built for teams that talk a lot and read a little.</h2>
+      <p class="sub">Every summary has the same shape, so people learn where to look.</p>
+      <div class="features">
+        <div class="feat"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><h3>Decisions, not recaps</h3><p>Threadly separates what was agreed from what was only discussed, so the summary is short and you can act on it.</p></div></div>
+        <div class="feat"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 17c1.2-3 3.6-4.5 6.5-4.5s5.3 1.5 6.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><h3>To-dos with owners</h3><p>Action items are attributed to the person who took them on, with due dates when someone mentioned one.</p></div></div>
+        <div class="feat"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M8 12l4-4M7 6.5L9 4.5a3.5 3.5 0 015 5l-2 2M13 13.5l-2 2a3.5 3.5 0 01-5-5l2-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><h3>Every line links to its source</h3><p>Click any decision to jump to the exact message it came from. Easy to check, easy to trust.</p></div></div>
+        <div class="feat"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 6v4.5M10 13.5v.3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div><div><h3>Open questions flagged</h3><p>Unresolved points are called out so the thread ends with a clear next step instead of fading out.</p></div></div>
+        <div class="feat"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v3M10 14v3M3 10h3M14 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="2.5" fill="currentColor"/></svg></div><div><h3>Auto-summarize long threads</h3><p>Set a threshold per channel, like 30 replies, and Threadly steps in without anyone asking.</p></div></div>
+        <div class="feat"><div class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 9V6.5a3 3 0 016 0V9" fill="none" stroke="currentColor" stroke-width="2"/></svg></div><div><h3>Only where you invite it</h3><p>Threadly only reads channels it has been added to. Remove it from a channel and it stops reading that channel.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="wrap">
+      <p class="kicker">Pricing</p>
+      <h2>One plan. Everything included.</h2>
+      <p class="sub">No tiers to compare. Try it free for 14 days, then pay per person who uses it.</p>
+      <div class="price-grid">
+        <div class="plan">
+          <div class="name">Threadly Team <span class="badge">14-day free trial</span></div>
+          <div class="amount"><span class="n">$12</span><span class="u">per user / month</span></div>
+          <ul>
+            <li><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited thread summaries</li>
+            <li><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Decisions, to-dos with owners, open questions</li>
+            <li><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Auto-summarize with per-channel thresholds</li>
+            <li><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Source links on every line</li>
+            <li><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.6" fill="none" stroke="var(--ok)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Cancel anytime</li>
+          </ul>
+          <a class="btn btn-primary" href="#top">Start your free trial</a>
+        </div>
+
+        <div class="calc">
+          <div class="row"><label for="seats">How big is your team?</label><output id="seatsOut" for="seats">10 users</output></div>
+          <input type="range" id="seats" min="1" max="200" value="10" aria-describedby="calcNote">
+          <div class="total" aria-live="polite">
+            <div class="line"><span id="lineCalc">10 users × $12</span><span id="lineSub">$120</span></div>
+            <div class="line trial"><span>First 14 days</span><span>$0</span></div>
+            <div class="line main"><span>Per month after trial</span><span id="lineTotal">$120</span></div>
+          </div>
+          <p class="note" id="calcNote">Billed monthly per user. Add or remove people anytime; you only pay for who is on the plan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <p class="kicker">FAQ</p>
+      <h2>Questions, answered briefly.</h2>
+      <div class="faq">
+        <details open><summary>How does the free trial work?</summary><p>You get the full product for 14 days. When the trial ends you choose whether to continue at $12 per user per month. If you don't, Threadly simply stops summarizing.</p></details>
+        <details><summary>Who counts as a user?</summary><p>Anyone on your Threadly plan who can request or receive summaries. You decide who is on it, and you can change that at any time.</p></details>
+        <details><summary>Can Threadly see all my Slack messages?</summary><p>No. It only reads channels it has been invited to, and only when summarizing. Remove it from a channel and it stops reading there.</p></details>
+        <details><summary>What if a summary gets something wrong?</summary><p>Every line links to the message it came from, so checking takes a click. You can also edit or delete a summary right in the thread.</p></details>
+        <details><summary>Can I cancel anytime?</summary><p>Yes. There are no annual contracts. Cancel from your workspace settings and you won't be billed again.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" style="padding-top:0">
+    <div class="wrap">
+      <h2>Stop scrolling. Start deciding.</h2>
+      <p class="sub">Add Threadly to Slack and get your first summary in minutes. Free for 14 days.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#top">Start your 14-day free trial</a>
+        <a class="btn btn-ghost" href="#pricing">See pricing</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Threadly</span>
+    <span style="display:flex;gap:18px;align-items:center">
+      <a href="#pricing">Pricing</a><a href="#faq">FAQ</a>
+      <button class="theme-btn" id="themeBtn" type="button">Toggle theme</button>
+    </span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var btn=document.getElementById('summBtn'),sum=document.getElementById('summary'),label=btn.querySelector('span');
+  btn.addEventListener('click',function(){
+    var hidden=sum.classList.toggle('hidden');
+    btn.setAttribute('aria-expanded',String(!hidden));
+    label.textContent=hidden?'Summarize thread':'Summarized';
+  });
+
+  var seats=document.getElementById('seats'),out=document.getElementById('seatsOut');
+  var fmt=function(n){return '$'+n.toLocaleString('en-US')};
+  function upd(){
+    var n=+seats.value,u=n===1?' user':' users';
+    out.textContent=n+u;
+    document.getElementById('lineCalc').textContent=n+u+' × $12';
+    document.getElementById('lineSub').textContent=fmt(n*12);
+    document.getElementById('lineTotal').textContent=fmt(n*12);
+  }
+  seats.addEventListener('input',upd);upd();
+
+  var root=document.documentElement;
+  try{var t=localStorage.getItem('threadly-theme');if(t)root.setAttribute('data-theme',t);}catch(e){}
+  document.getElementById('themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('threadly-theme',next);}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

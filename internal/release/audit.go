@@ -42,8 +42,25 @@ type LighthouseResult struct {
 	Metrics    map[string]string `json:"metrics,omitempty"`
 	Findings   []AuditFinding    `json:"findings,omitempty"`
 	Manual     []AuditFinding    `json:"manualChecks,omitempty"`
+	Host       []AuditFinding    `json:"hostChecks,omitempty"` // delivery the host decides, not the page
 	Warnings   []string          `json:"warnings,omitempty"`
 }
+
+// hostAudits judge delivery that the static host configures: cache lifetimes,
+// compression and server latency. The audit server serves the artifact plainly
+// on purpose, so these always fire; they are reported as host settings, never
+// as page findings an agent could fix.
+var hostAudits = map[string]bool{
+	"cache-insight":            true,
+	"uses-long-cache-ttl":      true,
+	"document-latency-insight": true,
+	"uses-text-compression":    true,
+	"server-response-time":     true,
+	"uses-http2":               true,
+	"redirects-http":           true,
+	"is-on-https":              true,
+}
+
 type AuditFinding struct {
 	ID         string   `json:"id"`
 	Title      string   `json:"title"`
@@ -386,9 +403,12 @@ func parseLighthouse(raw []byte, origin string) (*LighthouseResult, error) {
 				f.Samples = append(f.Samples, sample)
 			}
 		}
-		if manual {
+		switch {
+		case manual:
 			r.Manual = append(r.Manual, f)
-		} else {
+		case hostAudits[id]:
+			r.Host = append(r.Host, f)
+		default:
 			r.Findings = append(r.Findings, f)
 		}
 	}

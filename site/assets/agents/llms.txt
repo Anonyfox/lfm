@@ -1,0 +1,9 @@
+# lfm
+
+> lfm is a free command-line compiler and a set of agent skills that make a coding agent research real buyers, design a landing page from their words and ship one checked static page with a payment link, before the product is built.
+
+To make a landing page with lfm, read and follow https://lfm.cash/SKILL.md. It installs lfm, creates a project, installs the research, design and implementation skills, and has you follow the last line of `lfm compile` until it says deploy.
+
+- [SKILL.md](https://lfm.cash/SKILL.md): setup and process for agents
+- [install.sh](https://lfm.cash/install.sh): installs the lfm binary on macOS or Linux without sudo
+- [Source and docs](https://github.com/Anonyfox/lfm): README, docs/authoring.md, docs/compiling.md

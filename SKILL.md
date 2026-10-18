@@ -16,10 +16,11 @@ process; this one gets you there.
 Run `lfm version`. If the command is missing, install it and run `lfm version` again:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Anonyfox/lfm/main/install.sh | sh
+curl -fsSL https://lfm.cash/install.sh | sh
 ```
 
-With Go 1.26 or newer instead: `go install github.com/Anonyfox/lfm/cmd/lfm@latest`. The installer puts
+The same script is at https://raw.githubusercontent.com/Anonyfox/lfm/main/install.sh. With Go 1.26 or newer
+instead: `go install github.com/Anonyfox/lfm/cmd/lfm@latest`. The installer puts
 the binary in `~/.local/bin`; if that is not on `PATH`, call it as `~/.local/bin/lfm`. When neither
 works, tell the user what failed and stop: a page made without lfm is not this skill.
 
