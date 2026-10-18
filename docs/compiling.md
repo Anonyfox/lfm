@@ -70,7 +70,9 @@ Ctrl-C stops a compile between stages; a stopped compile never publishes.
    Images get the hints the author left out: those below the first screen at every size load lazily, and
    the largest file image of the phone's first screen is fetched first; authored hints are kept.
 3. **Lighthouse** (45 s, when installed): one mobile lab run. Scores, metrics and every failing audit are
-   reported; the complete JSON is saved in the system temp directory.
+   reported; the complete JSON is saved in the system temp directory. Audits of what the static host
+   decides (cache lifetimes, compression, HTTPS) are listed as host settings instead of warnings, because
+   the audit serves the artifact plainly on purpose.
 
 Chrome or Chromium is found on `PATH` and in standard locations, or set `LFM_CHROME`. Lighthouse is found on
 `PATH`, in `node_modules/.bin`, or via `LFM_LIGHTHOUSE` (`npm install -g lighthouse`). A missing tool is a

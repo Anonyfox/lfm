@@ -17,7 +17,8 @@
     "proofSource": "https://github.com/Anonyfox/lfm/blob/main/site/proof/default-agent-page.html",
     "proofReport": "https://github.com/Anonyfox/lfm/blob/main/site/proof/default-agent-page.report.txt",
     "license": "https://github.com/Anonyfox/lfm/blob/main/LICENSE",
-    "mit": "https://opensource.org/licenses/MIT"
+    "mit": "https://opensource.org/licenses/MIT",
+    "grokBot": "https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf"
   },
   "data": {
     "prompt": {
@@ -47,7 +48,7 @@
       "platforms": 7,
       "peers": 20,
       "directions": 10,
-      "frames": 47,
+      "frames": 48,
       "lighthouse": "4 × 100",
       "researchTime": "under an hour",
       "html": "9 KB",

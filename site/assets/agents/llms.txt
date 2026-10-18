@@ -6,4 +6,5 @@ To make a landing page with lfm, read and follow https://lfm.cash/SKILL.md. It i
 
 - [SKILL.md](https://lfm.cash/SKILL.md): setup and process for agents
 - [install.sh](https://lfm.cash/install.sh): installs the lfm binary on macOS or Linux without sudo
+- [lfm.cash Grok Bot](https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf): the same process as a Grok Bot template
 - [Source and docs](https://github.com/Anonyfox/lfm): README, docs/authoring.md, docs/compiling.md

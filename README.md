@@ -26,6 +26,9 @@ for d in ~/.agents/skills/lfm ~/.claude/skills/lfm; do mkdir -p "$d" && curl -fs
 `~/.agents/skills` is read by Codex, Cursor, OpenCode, Gemini CLI and GitHub Copilot; `~/.claude/skills`
 by Claude Code. Keep only the one your agents need.
 
+On Grok Bot, add the [lfm.cash bot](https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf): it installs lfm on its own computer and runs the same
+process, asking you only what you decide. Its setup is in [docs/grok-bot.md](docs/grok-bot.md).
+
 ## Install
 
 ```sh
@@ -87,7 +90,17 @@ update replaces untouched copies and keeps copies the project changed (`--force`
 
 `lfm compile --json` prints the result as one object with `errors`, `warnings`, the findings under
 `validation`, `next` (`phase`, `do`, `skill`) and the installed `skills`. Exit status is 0 when
-`output/` was written, 1 when errors kept it unchanged, and 2 for a mistake in the command line.
+`output/` was written, 1 when errors kept it unchanged or there is no project, and 2 for a mistake in the
+command line.
+
+## Made with lfm
+
+[lfm.cash](https://lfm.cash) is an lfm project in [site/](site/), built by an agent through the same three
+phases: [120 buyer posts and 20 competitor pages](site/research/), a [concept](site/concept.md) that chose
+one of ten directions with every decision cited, and a page that compiles with 0 errors and 0 warnings. Its
+proof section compiles the page an agent wrote from one sentence without lfm; that
+[page](site/proof/default-agent-page.html) and its [report](site/proof/default-agent-page.report.txt) are
+there too.
 
 ## What a compile guarantees
 
@@ -112,6 +125,7 @@ update replaces untouched copies and keeps copies the project changed (`--force`
 
 - [Authoring a project](docs/authoring.md): layout, `lfm.json`, templates, assets, research and concept.
 - [What `lfm compile` does](docs/compiling.md): lifecycle, packing, output, release, preview.
+- [The lfm.cash Grok Bot](docs/grok-bot.md): the handoff a Grok Bot follows to set up and share it.
 - [Architecture](docs/architecture.md) and [contributing](CONTRIBUTING.md): building, testing, the package map.
 
 ## License
