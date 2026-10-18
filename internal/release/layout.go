@@ -6,6 +6,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/css"
+	"github.com/chromedp/cdproto/dom"
 	"os"
 	"path/filepath"
 	"strings"
@@ -341,27 +344,74 @@ func (p *perElement) findings(kind, message, hint string) []LayoutFinding {
 }
 
 // fallbackFonts reports web fonts that failed to load and characters a web
-// font has no glyph for, which the browser then draws in another face.
+// font has no glyph for, which the browser then draws in another face. It
+// asks the browser which font drew each character, so the answer is exact.
 func fallbackFonts(tab context.Context) ([]LayoutFinding, error) {
-	type font struct {
-		Family, Chars, Sample string
-		Failed                bool
+	type glyph struct{ Family, Ch, Sample string }
+	type report struct {
+		Failed []struct{ Family, Sample string }
+		Glyphs []glyph
 	}
-	found, err := chromedp.Run(tab, chromedp.Evaluate[[]font](`__lfmLayout.fonts().map(f=>({Family:f.family,Chars:f.chars,Sample:f.sample,Failed:f.failed}))`))
+	found, err := chromedp.Run(tab, chromedp.Evaluate[report](`__lfmLayout.fonts().then(f=>({Failed:f.failed.map(x=>({Family:x.family,Sample:x.sample})),Glyphs:f.glyphs.map(g=>({Family:g.family,Ch:g.ch,Sample:g.sample}))}))`, chromedp.EvalAwaitPromise))
 	if err != nil {
 		return nil, err
 	}
 	var out []LayoutFinding
-	for _, f := range found {
-		if f.Failed {
-			out = append(out, LayoutFinding{"", "font", fmt.Sprintf("The web font %q failed to load; its text shows in a fallback face, e.g. %s.", f.Family, f.Sample), "Check the @font-face src path and format; the file must exist in the project and be WOFF2, WOFF or TrueType."})
+	for _, f := range found.Failed {
+		out = append(out, LayoutFinding{"", "font", fmt.Sprintf("The web font %q failed to load; its text shows in a fallback face, e.g. %s.", f.Family, f.Sample), "Check the @font-face src path and format; the file must exist in the project and be WOFF2, WOFF or TrueType."})
+	}
+	if len(found.Glyphs) == 0 {
+		return out, nil
+	}
+	if _, err := chromedp.Call(tab, dom.Enable, dom.EnableParams{}); err != nil {
+		return out, err
+	}
+	if _, err := chromedp.Call(tab, css.Enable, cdp.Empty{}); err != nil {
+		return out, err
+	}
+	doc, err := chromedp.Call(tab, dom.GetDocument, dom.GetDocumentParams{})
+	if err != nil {
+		return out, err
+	}
+	nodes, err := chromedp.Call(tab, dom.QuerySelectorAll, dom.QuerySelectorAllParams{NodeID: doc.Root.NodeID, Selector: "[data-lfm-glyph]"})
+	if err != nil {
+		return out, err
+	}
+	if len(nodes.NodeIDs) != len(found.Glyphs) {
+		return out, fmt.Errorf("%d glyph probes, %d nodes", len(found.Glyphs), len(nodes.NodeIDs))
+	}
+	missing := map[string][]string{}
+	sample := map[string]string{}
+	var order []string
+	for i, id := range nodes.NodeIDs {
+		used, err := chromedp.Call(tab, css.GetPlatformFontsForNode, css.GetPlatformFontsForNodeParams{NodeID: id})
+		if err != nil || len(used.Fonts) == 0 {
 			continue
 		}
+		downloaded := false
+		for _, f := range used.Fonts {
+			downloaded = downloaded || f.IsCustomFont && f.GlyphCount > 0
+		}
+		if downloaded {
+			continue
+		}
+		g := found.Glyphs[i]
+		if _, ok := missing[g.Family]; !ok {
+			order = append(order, g.Family)
+			sample[g.Family] = g.Sample
+		}
+		missing[g.Family] = append(missing[g.Family], g.Ch)
+	}
+	for _, family := range order {
+		chars := missing[family]
 		them := "them"
-		if !strings.Contains(f.Chars, " ") {
+		if len(chars) == 1 {
 			them = "it"
 		}
-		out = append(out, LayoutFinding{"", "font", fmt.Sprintf("%q has no glyph for %s, so another face draws %s, e.g. in %s.", f.Family, f.Chars, them, f.Sample), "Use a font file or subset that covers these characters (Latin Extended, quotes, currency, arrows), or set them in another declared face."})
+		if len(chars) > 12 {
+			chars = append(chars[:12], "…")
+		}
+		out = append(out, LayoutFinding{"", "font", fmt.Sprintf("%q has no glyph for %s, so another face draws %s, e.g. in %s.", family, strings.Join(chars, " "), them, sample[family]), "Use a font file or subset that covers these characters (Latin Extended, quotes, currency, arrows), or set them in another declared face."})
 	}
 	return out, nil
 }

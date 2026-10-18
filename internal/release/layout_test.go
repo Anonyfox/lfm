@@ -235,7 +235,7 @@ func TestLayoutAuditFindsFallbackFonts(t *testing.T) {
 @font-face{font-family:"Gone";src:url(missing.woff2) format("woff2");font-display:swap}
 body{font:18px/1.5 "Go Test",sans-serif}.gone{font-family:"Gone",serif}
 </style></head><body><main><h1>Fonts</h1><p><a href="#x">Act</a></p>
-<p class=ok>Plain Latin text, Grüße and €.</p><p class=cjk>日本語のテキスト</p><p class=emoji>Party 🎉</p><p class=gone>Lost face</p></main></body></html>`
+<p class=ok>Plain Latin text, Grüße and €.</p><p class=hebrew>שלום עולם</p><p class=emoji>Party 🎉</p><p class=gone>Lost face</p></main></body></html>`
 	r := AuditRuntime([]byte(page), map[string][]byte{"go.woff2": font}, path, "")
 	var fonts []string
 	for _, f := range r.Layout.Findings {
@@ -244,7 +244,7 @@ body{font:18px/1.5 "Go Test",sans-serif}.gone{font-family:"Gone",serif}
 		}
 	}
 	joined := strings.Join(fonts, "\n")
-	if !strings.Contains(joined, `"Gone" failed to load`) || !strings.Contains(joined, `"Go Test" has no glyph for 日 本 語 の テ キ ス ト`) || !strings.Contains(joined, "p.cjk") {
+	if !strings.Contains(joined, `"Gone" failed to load`) || !strings.Contains(joined, `"Go Test" has no glyph for ש ל ו ם ע`) || !strings.Contains(joined, "p.hebrew") {
 		t.Fatalf("font findings:\n%s", joined)
 	}
 	if strings.Contains(joined, "p.ok") || strings.Contains(joined, "🎉") || strings.Count(joined, "no glyph") != 1 {
