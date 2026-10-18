@@ -34,8 +34,8 @@ whole brief for implementation, so a decision missing from it is a decision nobo
 
 ## Before you start
 
-- Run `lfm compile` if you can. It must report no `research.*` findings: the minimums ([[.MinVoices]] voices
-  from [[.MinPlatforms]] platforms, [[.MinPeers]] peers) are met or a shortfall is named. Otherwise collect
+- Run `lfm compile` if you can. Its report must show a `research` line and no `research.*` findings: the
+  minimums ([[.MinVoices]] voices from [[.MinPlatforms]] platforms, [[.MinPeers]] peers) are met or a shortfall is named. Otherwise collect
   research first (`lfm skills research`).
 - Choose the mode:
   - **New**: no concept yet. Write every section.

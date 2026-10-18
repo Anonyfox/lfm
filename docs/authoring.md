@@ -46,7 +46,7 @@ Sources may live anywhere inside the folder, except `output/`. Symlinks may not 
 | `links` | Optional free-form labels or key references for links. |
 | `jsonld` | Optional structured data object or array; see below. |
 | `data` | Every product value the page uses: offers, prices, copy blocks, FAQ entries. |
-| `build.browserData` | Dot paths copied into `<script type="application/json" id="product-data">` for scripts. |
+| `build.browserData` | Dot paths copied into `<script type="application/json" id="product-data">` for scripts, keeping their nesting: `"data.offer"` arrives as `{"data":{"offer":…}}`. |
 | `build.assets` | Packing policy: `default` is `auto` (the compiler decides), `inline` or `file`; `overrides` pins single source paths. |
 | `build.validation.rules` | Per-rule levels: `off`, `warn` or `error`. Required rules stay errors. See `lfm rules`. |
 
