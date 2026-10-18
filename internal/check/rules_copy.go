@@ -3,6 +3,7 @@ package check
 import (
 	"crypto/sha256"
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
 	"strconv"
@@ -73,9 +74,19 @@ var copyTells = func() []tell {
 		{1, []string{"entfesseln"}, `entfesseln sie`},
 		{1, []string{"potenzial"}, `(?:schöpfen sie|entfalten sie) (?:das|ihr) (?:volle[sn]? )?potenzial`},
 		{1, []string{". kein"}, `kein(?:e)? [a-zäöüß]+\. kein(?:e)? [a-zäöüß]+\. (?:nur|einfach|sondern)`},
+		{2, []string{"mühelos"}, `mühelos\p{L}*`},
+		{2, []string{"nahtlos"}, `nahtlos\p{L}*`},
+		{2, []string{"maßgeschneidert"}, `maßgeschneidert\p{L}*`},
+		{2, []string{"ganzheitlich"}, `ganzheitlich\p{L}*`},
+		{2, []string{"innovativ"}, `innovativ\p{L}*`},
+		{2, []string{"revolutionär"}, `revolutionär\p{L}*`},
+		{2, []string{"entdecken sie"}, `entdecken sie`},
+		{2, []string{"effortless"}, `effortless(?:ly)?`},
+		{2, []string{"revolutionary"}, `revolutionary`},
+		{2, []string{"holistic"}, `holistic`},
 		{2, []string{"not "}, `not (?:just|only|merely) (?:a |an |the )?[^.!?;:]{1,60}?[,;—–-]? but`},
 		{2, []string{"not "}, `(?:it'?s|this is|that'?s) not (?:just )?(?:about )?[^.!?;:]{1,50}?[.,;—–]\s*(?:it'?s|this is|that'?s)`},
-		{3, []string{"nicht nur"}, `nicht nur [^.!?;:]{1,60}?,? sondern (?:auch)?`},
+		{2, []string{"nicht nur"}, `nicht nur [^.!?;:]{1,60}?,? sondern (?:auch)?`},
 	}
 	out := make([]tell, len(sources))
 	for i, src := range sources {
@@ -633,6 +644,14 @@ func placeholderRule(d *Document) []Diagnostic {
 			}
 		case n.Data == "title" && n.Namespace == "":
 			check(n, "title", Text(n))
+		}
+	}
+	// once the page is built, the starter's example.com address is a placeholder too
+	if len(d.Options.StarterTexts) > 0 {
+		if u, err := url.Parse(d.Options.URL); err == nil {
+			if host := strings.TrimPrefix(strings.ToLower(u.Hostname()), "www."); host == "example.com" || host == "example.org" || host == "example.net" {
+				issues = append(issues, d.Whole(Warning, fmt.Sprintf("The page URL is still the placeholder %s.", d.Options.URL), "Set url in lfm.json to the address the page will be served from; the canonical, share links and previews are built from it."))
+			}
 		}
 	}
 	if len(d.Options.StarterImages) > 0 {

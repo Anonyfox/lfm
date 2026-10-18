@@ -139,7 +139,7 @@ func TestBuiltPageMustReplaceStarterTexts(t *testing.T) {
 		}
 	}
 	joined := strings.Join(messages, "\n")
-	for _, want := range []string{"One sentence: who this page is for", "Placeholder preview", "still the starter placeholder image"} {
+	for _, want := range []string{"One sentence: who this page is for", "Placeholder preview", "still the starter placeholder image", "URL is still the placeholder"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("missing %q in\n%s", want, joined)
 		}

@@ -387,8 +387,8 @@ func (c checker) sections(d Document) Summary {
 		items := s.Items()
 		c.need(s, len(items) >= MinCopy, fmt.Sprintf("Copy lists %d rules; write at least %d.", len(items), MinCopy), "The buyers' words to use, the tone, the words to avoid; each citing voices.")
 		for _, it := range items {
-			if len(ids(it.Text, 'V')) == 0 {
-				c.add(RuleFormat, it.N, "Copy rule without a voice ID.", "Cite the voices whose words or tone it follows.")
+			if len(ids(it.Text, 'V')) == 0 && len(ids(it.Text, 'P')) == 0 {
+				c.add(RuleFormat, it.N, "Copy rule without a voice or peer ID.", "Cite the voices whose words or tone it follows, or the peers whose wording it avoids.")
 			}
 			for _, field := range []string{"Use", "Avoid"} {
 				rest, ok := strings.CutPrefix(it.Text, field+": ")

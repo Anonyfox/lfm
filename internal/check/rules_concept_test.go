@@ -128,3 +128,16 @@ func TestConceptCopyPhrases(t *testing.T) {
 		}
 	}
 }
+
+func TestWordsInOrder(t *testing.T) {
+	for text, want := range map[string]bool{
+		"Seit Tag 3 geht er nicht mehr auf.":        true,
+		"geht er seit Tag 3 nicht mehr auf":         true,
+		"Er geht auf, aber nicht mehr.":             false,
+		"Der Teig geht nicht. Mehr Zeit, dann auf.": true,
+	} {
+		if got := wordsInOrder(text, "geht nicht mehr auf", 5); got != want {
+			t.Errorf("%q: %v", text, got)
+		}
+	}
+}

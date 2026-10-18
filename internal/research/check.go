@@ -115,10 +115,11 @@ func checkDates(posted, fetched, batch, today time.Time, line int, add reporter)
 	if !fetched.IsZero() && fetched.After(today) {
 		add(RuleSubstance, line, "Fetched date "+fetched.Format(time.DateOnly)+" is in the future.", "Use the day the source was opened.")
 	}
-	if !posted.IsZero() && posted.After(today) {
+	future := !posted.IsZero() && posted.After(today)
+	if future {
 		add(RuleSubstance, line, "Posted date is in the future.", "Copy the date the source shows, or write unknown.")
 	}
-	if !posted.IsZero() && !fetched.IsZero() && posted.After(fetched) {
+	if !future && !posted.IsZero() && !fetched.IsZero() && posted.After(fetched) {
 		add(RuleSubstance, line, "Posted after it was fetched.", "One of the two dates is wrong; check the source.")
 	}
 	if !batch.IsZero() && !fetched.IsZero() && (fetched.Before(batch.AddDate(0, 0, -1)) || fetched.After(batch.AddDate(0, 0, 7))) {

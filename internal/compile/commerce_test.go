@@ -10,11 +10,11 @@ func commerceProject(t *testing.T) string {
 	t.Helper()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
-		c["urls"] = map[string]any{"buy": "https://buy.stripe.com/ABC123"}
+		c["urls"] = map[string]any{"buy": "https://buy.stripe.com/ABC123", "privacy": "https://example.com/privacy/"}
 		c["data"].(map[string]any)["commerce"] = map[string]any{"offers": map[string]any{"audit": map[string]any{"name": "Audit", "sku": "lab-audit", "checkoutUrlKey": "buy", "price": map[string]any{"amountMinor": 4900, "currency": "EUR"}, "stripe": map[string]any{"productId": "prod_ABC", "priceId": "price_ABC", "paymentLinkId": "plink_ABC", "customFields": []any{}}}}}
 		c["jsonld"] = map[string]any{"@context": "https://schema.org", "@type": "Service", "name": "{{.data.commerce.offers.audit.name}}", "sku": "{{.data.commerce.offers.audit.sku}}", "offers": map[string]any{"@type": "Offer", "price": "49.00", "priceCurrency": "{{.data.commerce.offers.audit.price.currency}}"}, "potentialAction": map[string]any{"@type": "BuyAction", "target": "{{.urls.buy}}"}}
 	})
-	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="{{.urls.buy}}">{{.data.commerce.offers.audit.name}} · €49</a></body>`, 1))
+	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="{{.urls.buy}}">{{.data.commerce.offers.audit.name}} · €49</a><a href="{{.urls.privacy}}">Privacy</a></body>`, 1))
 	return root
 }
 

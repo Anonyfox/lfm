@@ -241,3 +241,15 @@ func TestRelativeStructuredURLsAndIdentifiers(t *testing.T) {
 		t.Fatal(refs)
 	}
 }
+
+func TestSchemaOrgTermsAreNotDestinations(t *testing.T) {
+	refs := AllReferences([]byte(`<script type="application/ld+json">{"@context":"https://schema.org","@type":"Offer","availability":"https://schema.org/InStock","url":"https://example.com/buy"}</script>`))
+	for _, r := range refs {
+		if strings.Contains(r.Value, "schema.org") {
+			t.Fatalf("vocabulary term read as a link: %+v", r)
+		}
+	}
+	if len(refs) != 1 {
+		t.Fatalf("the offer url is still a reference: %+v", refs)
+	}
+}

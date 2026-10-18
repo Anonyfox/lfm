@@ -222,3 +222,26 @@ func TestCommercePriceVisible(t *testing.T) {
 		}
 	}
 }
+
+func TestLegalLinks(t *testing.T) {
+	run := func(lang, body string) []Diagnostic {
+		d, err := Parse([]byte(`<!doctype html><html lang="`+lang+`"><head><title>t</title></head><body>`+body+`</body></html>`), Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return legalRule(d)
+	}
+	buy := `<a href="https://buy.stripe.com/abc">Kaufen für 12 €</a>`
+	if got := run("de", buy); len(got) != 2 {
+		t.Fatalf("german page without both: %+v", got)
+	}
+	if got := run("de", buy+`<footer><a href="/impressum/">Impressum</a> <a href="/datenschutz/">Datenschutz</a></footer>`); len(got) != 0 {
+		t.Fatalf("german page with both: %+v", got)
+	}
+	if got := run("en", buy+`<a href="/privacy">Privacy</a>`); len(got) != 0 {
+		t.Fatalf("english page with privacy: %+v", got)
+	}
+	if got := run("de", `<a href="/x">Mehr über Brot</a>`); len(got) != 0 {
+		t.Fatalf("a page that sells nothing: %+v", got)
+	}
+}

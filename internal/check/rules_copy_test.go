@@ -29,7 +29,10 @@ func TestCopyTells(t *testing.T) {
 		"not just twice":    {`<p>Not just a planner, but a habit.</p><p>Not only fast, but kind.</p>`, "more like it"},
 		"not just once":     {`<p>Not just a planner, but a habit.</p>`, ""},
 		"its not its twice": {`<p>It's not a diet. It's a rota.</p><p>This is not a course, this is a kit.</p>`, "more like it"},
-		"nicht nur twice":   {`<p>Nicht nur schön, sondern auch nützlich.</p><p>Nicht nur Basilikum, sondern Minze.</p>`, ""},
+		"nicht nur twice":   {`<p>Nicht nur schön, sondern auch nützlich.</p><p>Nicht nur Basilikum, sondern Minze.</p>`, "more like it"},
+		"nicht nur once":    {`<p>Nicht nur schön, sondern auch nützlich.</p>`, ""},
+		"mühelos twice":     {`<p>Mühelos backen.</p><p>Ein müheloser Start.</p>`, "more like it"},
+		"mühelos once":      {`<p>Mühelos backen.</p>`, ""},
 		"nicht nur thrice":  {`<p>Nicht nur schön, sondern auch nützlich.</p><p>Nicht nur Basilikum, sondern Minze.</p><p>Nicht nur heute, sondern immer.</p>`, "more like it"},
 		"no x no y just":    {`<p>No fluff. No jargon. Just results.</p>`, "stock phrase"},
 		"seamless knitting": {`<p>Seamless socks knitted in the round.</p>`, ""},
@@ -151,6 +154,9 @@ func TestPlaceholders(t *testing.T) {
 				t.Fatalf("want one finding with %q, got %+v", tc.want, got)
 			}
 		})
+	}
+	if got := runOn(t, placeholderRule, "", "", Options{URL: "https://example.com/herbs/", StarterTexts: []string{"x"}}); len(got) != 1 || !strings.Contains(got[0].Message, "still the placeholder") {
+		t.Fatalf("starter url: %+v", got)
 	}
 	img := []byte("starter-png")
 	got := runOn(t, placeholderRule, "", "", Options{Assets: map[string][]byte{"share-1.png": img}, StarterImages: [][32]byte{sha256.Sum256(img)}})

@@ -249,7 +249,7 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			r.Findings = append(r.Findings, LayoutFinding{v.String(), "overflow", msg, "Let the named element wrap, shrink or scroll inside itself; content must reflow at phone width without horizontal scrolling."})
 		}
 		for _, s := range splits {
-			r.Findings = append(r.Findings, LayoutFinding{v.String(), "split", fmt.Sprintf("At %s %q breaks across two lines in %s.", v, s.Text, s.Selector), "Keep a number and its unit together: a no-break space (&nbsp;) between them or white-space: nowrap on the value."})
+			r.Findings = append(r.Findings, LayoutFinding{v.String(), "split", fmt.Sprintf("At %s %q breaks across two lines in %s.", v, s.Text, s.Selector), "Keep a number with its unit, or a short compound like E-Mail, on one line: a no-break space (&nbsp;) or non-breaking hyphen (U+2011) inside it, or white-space: nowrap on it."})
 		}
 		small, err := chromedp.Run(tab, chromedp.Evaluate[[]smallText](`__lfmLayout.small().map(s=>({Selector:s.selector,Size:s.size,Text:s.text}))`))
 		if err != nil {

@@ -438,6 +438,9 @@
     // A number and its unit on different lines read as two values.
     splits() {
       const unit = /(?:[€$£¥]\s+\d[\d.,']*|\d[\d.,']*\s+(?:€|EUR|USD|CHF|GBP|%|‰|°C|°F|°|kg|g|mg|ml|cl|l|km|m|cm|mm|m²|m³|h|min|s|ms|kWh|kW|W|V|Hz|px|KB|MB|GB|TB|km\/h|mph|x|×|Std\.|Min\.))(?![\p{L}\p{N}])/gu;
+      // short compounds (E-Mail, U-Bahn, T-Shirt) read as nonsense when the
+      // line breaks at their hyphen
+      const compound = /(?<![\p{L}\p{N}])[\p{L}\p{N}]{1,2}-\p{L}{2,}/gu;
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       const range = document.createRange();
       const opacity = new Map();
@@ -445,7 +448,7 @@
       for (let n = walker.nextNode(); n && out.length < 5; n = walker.nextNode()) {
         const el = n.parentElement;
         if (!el || skipTags.has(el.tagName) || opacityOf(el, opacity) < 0.15) continue;
-        for (const m of n.data.matchAll(unit)) {
+        for (const m of [...n.data.matchAll(unit), ...n.data.matchAll(compound)]) {
           range.setStart(n, m.index);
           range.setEnd(n, m.index + m[0].length);
           const tops = [...range.getClientRects()].filter((r) => r.width > 0).map((r) => r.top);

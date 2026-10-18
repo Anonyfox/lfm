@@ -388,6 +388,11 @@ func AllReferences(raw []byte) []Reference {
 
 func jsonURLLike(key, value string) bool {
 	key = strings.ToLower(key)
+	// Schema.org enumeration members (availability: https://schema.org/InStock)
+	// are vocabulary terms, not destinations anyone navigates to.
+	if lower := strings.ToLower(value); strings.HasPrefix(lower, "https://schema.org/") || strings.HasPrefix(lower, "http://schema.org/") {
+		return false
+	}
 	if key == "@id" && strings.HasPrefix(value, "_:") {
 		return false
 	} // JSON-LD blank-node identifier

@@ -77,6 +77,9 @@ func DefaultRules() []Rule {
 			commerceSecretsRule),
 
 		// seo
+		rule("commerce.legal", "A page that sells links the owner's privacy policy, and an Impressum in German",
+			"Warns when a page with declared offers or a Stripe checkout link has no visible link to a privacy policy (privacy, Datenschutz…), and, on a German page, none to an Impressum. Selling without them is unlawful in the EU and Germany and makes a careful buyer stop. Link the owner's pages, typically in the footer; legal text comes from the owner, never from the page's author.",
+			legalRule),
 		rule("seo.metadata", "One title, description, language and exact HTTPS canonical in head",
 			"Errors for duplicate or out-of-head titles and a missing, duplicate, misplaced, non-HTTPS, query or fragment-bearing canonical, or one that differs from lfm.json url; warnings for a missing title, description or html lang, a duplicate or misplaced description and an unrecognized language tag. Search engines use these to decide which URL to index and what to show in results. Render <title>, the description meta and <link rel=\"canonical\" href=\"{{.url}}\"> once in head, and set html lang from the configured language.",
 			metadataRule),

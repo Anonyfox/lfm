@@ -242,3 +242,43 @@ func formatMinor(price commercecheck.Money) string {
 	}
 	return fmt.Sprintf("%d %s", price.AmountMinor/max(price.Scale, 1), strings.ToUpper(price.Currency))
 }
+
+// legalRule asks a page that sells for links to the owner's legal pages: a
+// privacy policy everywhere, and an Impressum on German pages, where the law
+// requires one for commercial sites.
+func legalRule(d *Document) []Diagnostic {
+	links := d.activeNodes("a[href]")
+	sells := len(d.Options.Commerce.Offers) > 0
+	for _, n := range links {
+		if u, err := url.Parse(Attr(n, "href")); err == nil && (u.Hostname() == "buy.stripe.com" || u.Hostname() == "checkout.stripe.com") {
+			sells = true
+		}
+	}
+	if !sells {
+		return nil
+	}
+	privacy, imprint := false, false
+	for _, n := range links {
+		if hidden(n) {
+			continue
+		}
+		about := strings.ToLower(d.controlName(n) + " " + Attr(n, "href"))
+		privacy = privacy || strings.Contains(about, "datenschutz") || strings.Contains(about, "privacy") || strings.Contains(about, "privacidad") || strings.Contains(about, "confidentialit")
+		imprint = imprint || strings.Contains(about, "impressum") || strings.Contains(about, "imprint") || strings.Contains(about, "legal notice") || strings.Contains(about, "mentions légales")
+	}
+	var issues []Diagnostic
+	if !privacy {
+		issues = append(issues, d.Whole(Warning, "The page sells but links no privacy policy.", "Link the owner's privacy policy (a footer link is enough); never write legal text yourself. Missing text is an Open: question for the owner."))
+	}
+	lang := ""
+	for _, n := range d.Elements {
+		if n.Data == "html" {
+			lang = strings.ToLower(Attr(n, "lang"))
+			break
+		}
+	}
+	if strings.HasPrefix(lang, "de") && !imprint {
+		issues = append(issues, d.Whole(Warning, "A German page that sells links no Impressum.", "Link the owner's Impressum; for digital goods also show the Widerrufsbelehrung and collect consent to immediate delivery at checkout. Never write legal text yourself."))
+	}
+	return issues
+}

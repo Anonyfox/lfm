@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/stock"
@@ -164,7 +165,7 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 			}
 			list = append(list, fmt.Sprintf("%s (%s)", k, undeclared[k].selector))
 		}
-		issues = append(issues, d.Whole(Warning, fmt.Sprintf("%d colors are not in the concept palette: %s.", len(keys), strings.Join(list, ", ")), "Use the declared palette roles, or add a color to the Palette table with its role and source; tints of a declared color and translucent black or white are fine."))
+		issues = append(issues, d.Whole(Warning, fmt.Sprintf("%d colors are not in the concept palette: %s.", len(keys), strings.Join(list, ", ")), "Use the declared palette roles, or add the color to the Palette table with its role and source. Tints of a declared color pass; translucent black or white pass only as shadows and overlays, not as a way around the palette."))
 	}
 	if shown := imageryCount(d); shown < facts.Imagery {
 		what := "none"
@@ -185,9 +186,9 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 			}
 		}
 		for _, phrase := range facts.Use {
-			re, found := phraseMatcher(phrase), false
+			found := false
 			for _, s := range all {
-				if found = re.MatchString(normalizeQuotes(s.text)); found {
+				if found = wordsInOrder(s.text, phrase, 5); found {
 					break
 				}
 			}
@@ -197,6 +198,45 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 		}
 	}
 	return issues
+}
+
+// wordsInOrder reports whether the words of phrase occur in text in order,
+// at most gap words apart. German moves verb parts and inserts words ("geht
+// nicht mehr auf" is said as "geht er seit Tag 3 nicht mehr auf"), so a
+// phrase to use counts when its words appear in that order nearby.
+func wordsInOrder(text, phrase string, gap int) bool {
+	split := func(s string) []string {
+		return strings.FieldsFunc(strings.ToLower(normalizeQuotes(s)), func(r rune) bool {
+			return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '\''
+		})
+	}
+	words, want := split(text), split(phrase)
+	if len(want) == 0 {
+		return false
+	}
+	for start, w := range words {
+		if w != want[0] {
+			continue
+		}
+		at, k := start, 1
+		for k < len(want) {
+			next := -1
+			for j := at + 1; j < len(words) && j <= at+1+gap; j++ {
+				if words[j] == want[k] {
+					next = j
+					break
+				}
+			}
+			if next < 0 {
+				break
+			}
+			at, k = next, k+1
+		}
+		if k == len(want) {
+			return true
+		}
+	}
+	return false
 }
 
 // phraseMatcher matches a phrase case-insensitively as whole words.
