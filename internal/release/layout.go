@@ -55,8 +55,8 @@ type LayoutFinding struct {
 	Hint    string `json:"hint"`
 }
 
-// signaturesFile records what each frame showed, to tell the next run which
-// frames changed.
+// signaturesFile records what each screen size showed, as element hashes, to
+// tell the next run which frames show something new.
 const signaturesFile = "signatures.json"
 
 // FramesPath is the screenshot folder of a project, in the system temp
@@ -67,11 +67,11 @@ func FramesPath(root string) string {
 }
 
 type frameState struct {
-	Legible   bool    `json:"legible"`
-	Faint     bool    `json:"faint"`
-	Y         float64 `json:"y"`
-	Signature string  `json:"signature"`
-	Seen      []int   `json:"seen"`
+	Legible   bool     `json:"legible"`
+	Faint     bool     `json:"faint"`
+	Y         float64  `json:"y"`
+	Signature []string `json:"signature"`
+	Seen      []int    `json:"seen"`
 	Covered   []struct {
 		ID   int    `json:"id"`
 		Text string `json:"text"`
@@ -100,13 +100,14 @@ type splitValue struct {
 // writing one screenshot per frame into dir (emptied first; "" skips them).
 func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 	r := &LayoutResult{Frames: dir}
-	before, after := map[string]string{}, map[string]string{}
+	// what each screen showed in the former run, as element hashes
+	before, after := map[string][]string{}, map[string][]string{}
 	if dir != "" {
 		if raw, err := os.ReadFile(filepath.Join(dir, signaturesFile)); err == nil && json.Unmarshal(raw, &before) == nil {
 			r.Previous = len(before) > 0
 		}
 		defer func() {
-			if raw, err := json.MarshalIndent(after, "", "  "); err == nil && dir != "" {
+			if raw, err := json.Marshal(after); err == nil && dir != "" {
 				_ = os.WriteFile(filepath.Join(dir, signaturesFile), raw, 0o644)
 			}
 		}()
@@ -137,6 +138,10 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 		step := v.Height / 2
 		if last := int(size.Height) - v.Height; last > 0 && last/step+1 > maxFrames {
 			step = last/(maxFrames-1) + 1
+		}
+		known := map[string]bool{}
+		for _, h := range before[v.String()] {
+			known[h] = true
 		}
 		var empty []frameState
 		readable := map[int]bool{}
@@ -183,8 +188,8 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 					name := fmt.Sprintf("%dx%d-%02d", v.Width, v.Height, i+1)
 					if os.WriteFile(filepath.Join(dir, name+".jpg"), shot.Data, 0o644) == nil {
 						r.Count++
-						after[name] = f.Signature
-						if r.Previous && before[name] != f.Signature {
+						after[v.String()] = append(after[v.String()], f.Signature...)
+						if r.Previous && !subset(f.Signature, known) {
 							r.Changed = append(r.Changed, name)
 						}
 					}
@@ -397,6 +402,15 @@ func reducedMotion(tab context.Context, url string, v Screen) ([]string, error) 
 		}
 	}
 	return out, nil
+}
+
+func subset(hashes []string, known map[string]bool) bool {
+	for _, h := range hashes {
+		if !known[h] {
+			return false
+		}
+	}
+	return true
 }
 
 // emptyFindings merges consecutive empty frames into ranges of the page.

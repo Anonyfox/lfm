@@ -215,12 +215,12 @@
     }
   };
 
-  // signature summarizes what a frame shows: every element on screen with its
-  // box rounded to 4 px, its own text, colours, image source and form state.
-  // Equal signatures mean the frame shows the same thing as in a former run.
+  // signature lists what a frame shows, one hash per element on screen: its
+  // own text, colours, image source, form state and size, but not where it
+  // sits vertically, so content that only moved down after an insertion keeps
+  // its hash. Containers leave out their height, which follows their children.
   // The frame is read twice, two animation frames apart, and elements that
-  // changed in between are left out: script-driven loops move on their own,
-  // and only the rest says whether the page changed.
+  // changed in between are left out: script-driven loops move on their own.
   const describeAll = () => {
     const round = (v) => Math.round(v / 4);
     const out = [];
@@ -231,27 +231,34 @@
       if (cs.visibility === "hidden" || cs.display === "none") continue;
       let own = "";
       for (const c of el.childNodes) if (c.nodeType === 3) own += c.data;
+      own = own.trim();
+      const leaf = own !== "" || el.children.length === 0;
       // the audit server's origin has a random port; it is not page content
-      out.push([el.tagName, round(r.left), round(r.top), round(r.width), round(r.height), own.trim(), cs.color, cs.backgroundColor, cs.backgroundImage, Math.round(parseFloat(cs.opacity) * 10), cs.fontFamily, cs.fontSize, el.currentSrc || el.getAttribute("src") || "", el.value === undefined ? "" : String(el.value), el.checked ? "1" : "0"].join("|").split(location.origin).join(""));
+      out.push([el.tagName, round(r.left), round(r.width), leaf ? round(r.height) : "", own, cs.color, cs.backgroundColor, cs.backgroundImage, Math.round(parseFloat(cs.opacity) * 10), cs.fontFamily, cs.fontSize, el.currentSrc || el.getAttribute("src") || "", el.value === undefined ? "" : String(el.value), el.checked ? "1" : "0"].join("|").split(location.origin).join(""));
     }
     return out;
   };
-  const signature = async () => {
-    const first = describeAll();
-    await settleFrames();
-    const second = new Set(describeAll());
+  const hash = (line) => {
     let h = 2166136261;
-    for (const line of first) {
-      if (!second.has(line)) continue;
-      for (let i = 0; i < line.length; i++) {
-        h ^= line.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-      }
+    for (let i = 0; i < line.length; i++) {
+      h ^= line.charCodeAt(i);
+      h = Math.imul(h, 16777619);
     }
-    return (h >>> 0).toString(16);
+    return (h >>> 0).toString(36);
   };
-
-  const motionProps = /transform|translate|rotate|scale|offset|^left|^top|^right|^bottom|margin/i;
+  const signature = async () => {
+    // let script-driven intros finish: wait until two reads agree, at most ~2 s
+    let first = describeAll();
+    await settleFrames();
+    let second = new Set(describeAll());
+    for (let tries = 0; tries < 12 && (first.length !== second.size || first.some((l) => !second.has(l))); tries++) {
+      await new Promise((r) => setTimeout(r, 150));
+      first = [...second];
+      await settleFrames();
+      second = new Set(describeAll());
+    }
+    return [...new Set(first.filter((line) => second.has(line)).map(hash))];
+  };
 
   window.__lfmLayout = {
     // moving lists what still moves at scroll position y: CSS and Web
@@ -316,7 +323,9 @@
       await new Promise((r) => setTimeout(r, 50));
       finish();
       await settleFrames();
-      return Object.assign(this.legibility(), coverage(), { signature: await signature() });
+      // the signature waits for script-driven intros to settle; measure after it
+      const sig = await signature();
+      return Object.assign(this.legibility(), coverage(), { signature: sig });
     },
 
     // recheck scrolls in small steps across the range where each element could
