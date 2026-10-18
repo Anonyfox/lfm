@@ -27,7 +27,8 @@ competitors already do, into two files that every later design decision cites by
    fetch date and how it was fetched. If someone cannot reopen it, it is not evidence.
 5. **Public access only.** Search engines, public pages, feeds and threads. Never log in, bypass a wall or
    scrape at volume. A browser where the user is already signed in counts as logging in; use it only when
-   the user explicitly allows it. Otherwise record the platform as unreachable.
+   the user explicitly allows it. A page a plain browser opens without a challenge is public; a challenge,
+   a login or a paywall is a wall. Otherwise record the platform as unreachable.
 6. **Observations, not interpretation.** Voices are what people wrote; peers are what pages show, plus the
    counted grid, baseline and gaps derived from those observations. Themes, conclusions and design
    choices belong in the project brief and are derived again from these files each time.
@@ -91,10 +92,11 @@ the grid across all peers, update the baseline (the most frequent value per fact
 already has) and list gaps no peer uses.
 
 **Minimums from zero:** [[.MinVoices]] voices from [[.MinPlatforms]] platforms, including an image or video
-platform when one is reachable, and [[.MinPeers]] peers. **Stop** when the minimums hold and your last 10
-voices brought no new platform and no new kind of problem or wish (a new detail of a known problem does
-not count), or at twice the minimums, whichever comes first. If the minimums cannot be met, add
-`shortfall: <what and why>` to the batch heading. Ongoing batches have no minimum; they end when the trigger is covered.
+platform when one is reachable, and [[.MinPeers]] peers. **Stop** when the minimums hold and the last 10
+voices you found, in the order you found them, brought no new platform and no new kind of problem or
+wish (a new detail of a known problem does not count), or at twice the minimums, whichever comes first.
+If the minimums cannot be met, add `shortfall: <what and why>` to the batch heading. Ongoing batches have
+no minimum; they end when the trigger is covered.
 
 ## [[.Voices]] format
 
@@ -114,12 +116,15 @@ Observer note: <only when there is something to observe>
 
 - IDs are `V` plus three digits, continuing across batches (`V001`, `V002`, …), never reused.
 - The platform is the service (YouTube, Mumsnet, App Store); the optional place in parentheses narrows it
-  (a subreddit, a video title, an app's review page). This keeps platform counts meaningful.
+  (a subreddit, a video title, an app's review page). Comments on independent blogs are platform `Blog`
+  with the blog as the place. This keeps platform counts meaningful.
 - Author: `buyer` would buy this; `adjacent` lives close to the problem (a partner, a colleague in another
-  role); `creator`, `brand` and `expert` speak about it publicly.
+  role, a fellow hobbyist answering in a forum); `creator`, `brand` and `expert` (a professional answering)
+  speak about it publicly.
 - Fetched: today's date where you are.
-- Posted: as precise as the source shows. "5 years ago" seen on 2026-10-17 becomes `2021`; never add a day
-  or month the source does not give.
+- Posted: as precise as the source shows. A relative age counts back from the fetch date and keeps only
+  its unit's precision: "5 years ago" seen on 2026-10-17 is `2021`, "8 months ago" is `2026-02`, "3 days
+  ago" is `2026-10-14`. Never add a day or month the source does not give.
 - Every line of a quote starts with `> `, blank ones with `>`, so the text may contain anything. Fields
   never contain ` · `.
 - Numbers about behaviour (sales, clicks, survey counts) go into their own table under the batch heading,
@@ -160,8 +165,10 @@ Observer note: <only when there is something to observe>
 ```
 
 Every peer has all ten facts, one per line; write `none` when a page shows nothing. Decline optional
-cookies and record the page behind the banner. Group free-text values into grid buckets you name; the
-fact lines keep the exact values. The grid has one row
+cookies and record the page behind the banner; where a banner offers no decline, record what shows
+without accepting. Peers are whatever the buyer weighs instead: other pages, books, shops, free
+articles, apps. Group free-text values into grid buckets you name, a peer with
+several values under the one its first screen leads with; the fact lines keep the exact values. The grid has one row
 per value, and the counts of each fact add up to the number of peers in the file.
 
 ## Validate before saving
@@ -190,6 +197,8 @@ rather than write anything else.
   preserves them, keep the item and say so in its observer note. Emoji shown as images carry the
   character in their alt text.
 - A comment without its own link uses the URL of the page that shows it; the place names the thread.
+- Interface text inside a post (a rating widget's "5 stars", a "Reply" button) is not the author's words;
+  leave it out without a cut mark.
 - Quoting your own summary of a page as a voice is fabrication with extra steps.
 - The same post often appears on several sites. Keep the original and skip the copies.
 

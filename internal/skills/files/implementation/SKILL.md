@@ -59,8 +59,9 @@ Make the core loop work with real content before any polish.
    FAQ answers); every destination into `urls`, except same-page `#fragment` links. The template renders
    them; it never repeats a literal. Templates are Go `html/template`: config numbers compare by value
    (`{{if ge .data.hours 6}}`) but there is no arithmetic, so store the values the first screen shows in
-   `data`, and compute the rest in the script. `build.browserData` lists the `data` paths the script needs;
-   it reads them with `JSON.parse(document.getElementById("product-data").textContent)`. A value that
+   `data`, and compute the rest in the script. `build.browserData` lists the config paths the script needs
+   (`"data.check"`); the script reads the same shape back:
+   `JSON.parse(document.getElementById("product-data").textContent).data.check`. A value that
    depends on today (this month's task) renders a default that is true all year in HTML, and the script
    replaces it.
 2. **One section per spine item**, in order, each doing the job [[.ConceptFile]] gives it. Headings name
@@ -74,17 +75,22 @@ Make the core loop work with real content before any polish.
    Body text meets 4.5:1 against its actual ground, including over images (the release audit measures it
    on flat grounds; over images, check it yourself). Font files are WOFF2 in the
    project (from the foundry or an open font host such as Fontsource, with the licence), a small set of
-   weights, the variable file when the concept uses an axis such as width.
+   weights, the variable file when the concept uses an axis such as width, a subset that covers the page's
+   language (quotes, umlauts, €). Reference images and fonts from HTML and CSS like any page; lfm packs
+   and names them.
 5. **Offer and checkout.** The Offer of [[.ConceptFile]]: price, what arrives, how and when, beside a native
    `<a href>` to the hosted checkout (see Commerce). The spine decides where the offer section sits; the
-   first screen still links to it, so a ready buyer never scrolls the whole story.
+   first screen still links to it, so a ready buyer never scrolls the whole story. A page that sells links
+   the owner's privacy policy, and in Germany the Impressum; selling digital goods in the EU also needs the
+   withdrawal notice and consent to immediate delivery at checkout. Legal text comes from the owner: an
+   `Open:` line until it does, never your own wording.
 
 Compile now and fix everything before continuing.
 
 ## Round 2: pixels, motion and words
 
 **Imagery.** Produce each image of the Imagery table for its job. Brief every image in writing before
-generating it: job and placement; the one visual idea; fixed facts that must stay accurate; medium,
+generating it, in your notes or a file outside `assets/`: job and placement; the one visual idea; fixed facts that must stay accurate; medium,
 viewpoint, framing and focal point; light source and how the materials respond; palette roles; aspect
 ratios with mobile crop and copy space; acceptance criteria. Take art direction from what the buyers
 photograph and film (cited in [[.ConceptFile]]), not from stock aesthetics. Then:
@@ -207,6 +213,7 @@ These ship on pages that looked finished in chosen screenshots; check each in th
 | Long uniform stretch | Fold secondary detail into disclosures; vary each screen's composition |
 | One rich asset beside rough secondary art | Raise the secondary art or present it typographically |
 | Orphans in short text | `text-wrap: balance` for four lines or fewer; tighten the copy first |
+| Result off screen after input on phones | Put the answer beside the input, or bring it into view when it changes |
 
 ## Gotchas
 

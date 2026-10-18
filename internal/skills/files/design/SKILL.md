@@ -17,8 +17,9 @@ whole brief for implementation, so a decision missing from it is a decision nobo
 ## Rules that always hold
 
 1. **The research is the only source of taste.** Read [[.Voices]] and
-   [[.Competitors]] in full and cite them by ID (`V012`, `P003`) wherever a decision rests on them. Your own preferences, other projects and
-   example pages are not evidence; they pull every page toward the same average.
+   [[.Competitors]] in full and cite them by ID (`V012`, `P003`) wherever a decision
+   rests on them. Your own preferences, other projects and example pages are not evidence; they pull every
+   page toward the same average.
 2. **Derive, do not recall.** Work from the files as they are now. When a concept exists, read it, but
    re-derive the voices and axes from the research rather than copying the old interpretation forward.
 3. **Write only [[.ConceptFile]].** No markup, styles or assets in this phase; implementation follows the file.
@@ -74,9 +75,10 @@ Work through the sections in order; each builds on the one before.
    words such as modern, premium or clean are not facts. Each fact cites its source.
 7. **Axes.** At least [[.Design.MinAxes]] design axes on which the data separates. Per axis: the market
    position with the peers that hold it, the voice position with the voices that hold it, and your chosen
-   position: break from the market where it clusters, match the voices. Then imagine the page a generator
-   makes for this topic with no research; if a chosen position lands there, it is no break, unless it is
-   the subject's literal material and the voices support it.
+   position: break from the market where it clusters, match the voices; where both agree, the axis is free,
+   so choose by the spine and the sparks. Then imagine the page a generator makes for this topic with no
+   research; if a chosen position lands there, it is no break, unless it is the subject's literal material
+   and the voices support it.
 8. **Sparks.** [[.Design.MinSparks]] to [[.Design.MaxSparks]] details that are specific, surprising, recur in the voices (two or more
    IDs each) and appear in no peer. Check [[.Competitors]] before you call something unused.
 9. **Directions.** Write at least [[.Design.MinDirections]] directions fast, each built from a spark and three facts,
@@ -91,7 +93,8 @@ Work through the sections in order; each builds on the one before.
    the visitor? Say how it builds on its sparks.
 11. **Spine.** The page's sections in order, each with its job and the evidence it shows.
 12. **Visual system.** Derive palette, type, form, imagery and motion from the concept and the axes. For
-    each, list about eight candidates of your own, estimate the chance a typical generator picks each, and
+    each, list about eight candidates of your own in your notes (not in the file), estimate the chance a
+    typical generator picks each, and
     choose one below roughly 10% that serves the spine. Cite a voice, peer or fact for it: type and form
     rarely appear in voices, so derive them from facts and the topic's own artifacts (signs, labels, tools,
     documents) and cite those. The facts narrow the field; the final face among the fitting ones is a
