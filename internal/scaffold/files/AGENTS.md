@@ -2,13 +2,23 @@
 
 An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
+## Start here
+
+Run `lfm skills install` once. It puts the research, design and implementation skills where your
+agent loads them (`.agents/skills`, or `.claude/skills` under Claude Code); run it again after
+updating lfm. Without installed skills, `lfm skills <topic>` prints the one you need.
+
+Then run `lfm compile`. Its last line names the next step (research, design, implementation, fix,
+review or deploy) and the skill that covers it. Follow that line until it says deploy.
+
 ## Commands
 
 - `lfm compile` checks and builds. Fix every error and warning it prints; each one says how.
+  `--json` prints the same result, the findings and the next step as JSON.
 - `lfm compile --release` also measures the page in headless Chrome, and with Lighthouse when installed.
 - `lfm serve --open` previews the page and recompiles on every save.
 - `lfm rules` lists every check; `lfm rules <id>` explains one.
-- `lfm skills` lists process guides; `lfm skills <topic>` prints one to follow or install as a skill.
+- `lfm skills` lists the skills; `lfm skills <topic>` prints one; `lfm skills install` installs all.
 
 ## Layout
 
@@ -24,7 +34,7 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
 ## Working rules
 
-Every page goes through three phases, each with its own skill (`lfm skills <topic>` prints it):
+Every page goes through three phases, each with its own skill:
 
 1. **research**: real buyer voices and competitor pages into `research/`, verbatim and dated.
 2. **design**: `concept.md` from the research, the only brief for the page; every decision cites research.

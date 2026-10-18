@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/term"
@@ -19,6 +20,22 @@ type Build struct{ Version, Commit, Date string }
 type Env struct {
 	Stdout, Stderr io.Writer
 	Build          Build
+	Getenv         func(string) string // os.Getenv when nil
+	Home           string              // the user's home directory; os.UserHomeDir when empty
+}
+
+func (e Env) getenv(key string) string {
+	if e.Getenv == nil {
+		return os.Getenv(key)
+	}
+	return e.Getenv(key)
+}
+
+func (e Env) home() (string, error) {
+	if e.Home != "" {
+		return e.Home, nil
+	}
+	return os.UserHomeDir()
 }
 
 type command struct {
@@ -101,6 +118,11 @@ func find(name string) (command, bool) {
 func printHelp(w io.Writer) {
 	s := term.For(w)
 	fmt.Fprintf(w, "%s compiles agent-built sales pages into fast, checked, static output.\n\n", s.Bold("lfm"))
+	fmt.Fprintln(w, "Start a page:")
+	fmt.Fprintln(w, "  lfm init my-page && cd my-page")
+	fmt.Fprintln(w, "  lfm skills install    the research, design and implementation skills, where your agent loads them")
+	fmt.Fprintln(w, "  lfm compile           after every change; it reports findings and the next step")
+	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  lfm <command> [arguments]")
 	fmt.Fprintln(w)
@@ -109,7 +131,7 @@ func printHelp(w io.Writer) {
 		fmt.Fprintf(w, "  %s  %s\n", term.Pad(c.name, 8), c.summary)
 	}
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Run 'lfm help <command>' for details.")
+	fmt.Fprintln(w, "Run 'lfm help <command>' or 'lfm <command> -h' for details.")
 }
 
 func printCommandHelp(w io.Writer, c command) {
@@ -140,7 +162,17 @@ var versionCommand = command{
 		if len(p.args) > 0 {
 			return usageError("lfm version takes no arguments")
 		}
-		fmt.Fprintf(env.Stdout, "lfm %s (%s, %s)\n", env.Build.Version, env.Build.Commit, env.Build.Date)
+		var about []string
+		for _, v := range []string{env.Build.Commit, env.Build.Date} {
+			if v != "" && v != "none" && v != "unknown" {
+				about = append(about, v)
+			}
+		}
+		line := "lfm " + env.Build.Version
+		if len(about) > 0 {
+			line += " (" + strings.Join(about, ", ") + ")"
+		}
+		fmt.Fprintln(env.Stdout, line)
 		return nil
 	},
 }

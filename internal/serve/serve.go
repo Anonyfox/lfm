@@ -56,6 +56,9 @@ func Serve(ctx context.Context, directory string, options Options) error {
 		return fmt.Errorf("preview port must be between 0 and 65535")
 	}
 	p0, err := project.Open(directory)
+	if err == nil {
+		err = p0.Expect(directory)
+	}
 	if err != nil {
 		return err
 	}

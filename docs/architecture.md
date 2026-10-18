@@ -11,7 +11,7 @@ one package per responsibility, each testable on its own.
 | `term` | Color detection, wrapping, padding and human units. No knowledge of lfm. |
 | `project` | The fixed layout, the source boundary every read goes through, and `lfm.json` loading. |
 | `scaffold` | The embedded starter project written by `lfm init`. |
-| `skills` | Agent Skills embedded in the binary and rendered with its facts. |
+| `skills` | Agent Skills embedded in the binary, rendered with its facts, stamped, installed and found on disk. |
 | `compile` | The compile lifecycle and the assemble stage: bundling with esbuild, packing, images, fonts, hints. |
 | `research` | Parses, checks and summarizes the two research files. |
 | `concept` | Parses `concept.md`, the design handover, and checks it against the research. |

@@ -3,16 +3,33 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/compile"
+	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/research"
+	"github.com/Anonyfox/lfm/internal/skills"
 )
 
 func run(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	t.Helper()
+	return runWith(t, nil, args...)
+}
+
+// runWith runs with the given environment variables only, so the agent that
+// runs the tests does not change what they see.
+func runWith(t *testing.T, vars map[string]string, args ...string) (code int, stdout, stderr string) {
+	t.Helper()
 	var out, errs bytes.Buffer
-	code = Run(context.Background(), Env{Stdout: &out, Stderr: &errs, Build: Build{Version: "1.2.3", Commit: "abc", Date: "today"}}, args)
+	env := Env{Stdout: &out, Stderr: &errs, Build: Build{Version: "1.2.3", Commit: "abc", Date: "today"},
+		Getenv: func(k string) string { return vars[k] }, Home: t.TempDir()}
+	code = Run(context.Background(), env, args)
 	return code, out.String(), errs.String()
 }
 
@@ -54,6 +71,10 @@ func TestUsageErrorsExitTwo(t *testing.T) {
 		{[]string{"serve", "--open", "--open"}, "--open given twice"},
 		{[]string{"version", "x"}, "takes no arguments"},
 		{[]string{"help", "compile", "extra"}, "at most one command"},
+		{[]string{"skills", "research", "--force"}, "--force belongs to 'lfm skills install'"},
+		{[]string{"skills", "install", "a", "b"}, "takes one directory"},
+		{[]string{"skills", "install", "x", "--global"}, "--global installs into the home directory"},
+		{[]string{"skills", "a", "b"}, "takes one topic"},
 	} {
 		code, out, errs := run(t, tc.args...)
 		if code != 2 || out != "" || !strings.Contains(errs, tc.want) {
@@ -65,14 +86,15 @@ func TestUsageErrorsExitTwo(t *testing.T) {
 func TestInitThenCompile(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "tea-shop")
 	code, out, errs := run(t, "init", dir)
-	if code != 0 || !strings.Contains(out, "created") || !strings.Contains(out, "lfm.json") || !strings.Contains(out, "lfm serve --open") {
+	if code != 0 || !strings.Contains(out, "created") || !strings.Contains(out, "lfm.json") || !strings.Contains(out, "lfm serve --open") || !strings.Contains(out, "lfm skills install") {
 		t.Fatalf("init: %d %q %q", code, out, errs)
 	}
 	if code, _, errs := run(t, "init", dir); code != 1 || !strings.Contains(errs, "already contains") {
 		t.Fatalf("second init: %d %q", code, errs)
 	}
 	code, out, errs = run(t, "compile", dir)
-	if code != 0 || !strings.Contains(out, "✓ tea-shop compiled → output/") || strings.Contains(out, "warning") || errs != "" {
+	if code != 0 || !strings.Contains(out, "✓ tea-shop compiled → output/") || strings.Contains(out, "warning") || errs != "" ||
+		!strings.Contains(out, "Next (research):") || !strings.Contains(out, "'lfm skills research'") {
 		t.Fatalf("compile: %d %q %q", code, out, errs)
 	}
 	if strings.Contains(out, "\x1b[") {
@@ -130,13 +152,13 @@ func TestSkillsListAndPrint(t *testing.T) {
 		t.Fatalf("list: %d %q", code, out)
 	}
 	code, out, _ = run(t, "skills", "research")
-	if code != 0 || !strings.HasPrefix(out, "---\nname: lfm-research\n") || !strings.Contains(out, "generator: lfm 1.2.3") {
+	if code != 0 || !strings.HasPrefix(out, "---\nname: lfm-research\n") || !strings.Contains(out, `lfm-version: "1.2.3"`) {
 		t.Fatalf("print: %d %q", code, out[:min(len(out), 200)])
 	}
 	if code, _, errs := run(t, "skills", "nope"); code != 2 || !strings.Contains(errs, `no skill named "nope"`) {
 		t.Fatalf("unknown: %d %q", code, errs)
 	}
-	if code, out, _ := run(t, "help", "skills"); code != 0 || !strings.Contains(out, ".claude/skills/<name>/SKILL.md") {
+	if code, out, _ := run(t, "help", "skills"); code != 0 || !strings.Contains(out, ".claude/skills   Claude Code") || !strings.Contains(out, "--force") {
 		t.Fatalf("help: %d %q", code, out)
 	}
 }
@@ -201,5 +223,94 @@ func TestQuoteIsShellSafe(t *testing.T) {
 		if got := quote(in); got != want {
 			t.Errorf("quote(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestSkillsInstallPicksTheFolderAgentsRead(t *testing.T) {
+	dir := t.TempDir()
+	code, out, errs := runWith(t, nil, "skills", "install", dir)
+	if code != 0 || !strings.Contains(out, ".agents/skills") || !strings.Contains(out, "created   lfm-implementation") {
+		t.Fatalf("default: %d %q %q", code, out, errs)
+	}
+	// Claude Code gets its own folder; the first install stays where it is.
+	code, out, _ = runWith(t, map[string]string{"CLAUDECODE": "1"}, "skills", "install", dir)
+	if code != 0 || !strings.Contains(out, "unchanged lfm-research") || strings.Contains(out, ".claude/skills for") {
+		t.Fatalf("existing: %d %q", code, out)
+	}
+	fresh := t.TempDir()
+	code, out, _ = runWith(t, map[string]string{"AI_AGENT": "claude-code_2_agent"}, "skills", "install", fresh)
+	if code != 0 || !strings.Contains(out, ".claude/skills for Claude Code, since Claude Code runs this") || !strings.Contains(out, "--agents") {
+		t.Fatalf("claude: %d %q", code, out)
+	}
+	code, out, _ = runWith(t, nil, "skills", "install", fresh, "--agents")
+	if code != 0 || !strings.Contains(out, "OpenCode and Cursor read both") {
+		t.Fatalf("both: %d %q", code, out)
+	}
+	if _, err := os.Stat(filepath.Join(fresh, ".agents", "skills", "lfm-design", "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+	onlyClaude := t.TempDir()
+	os.Mkdir(filepath.Join(onlyClaude, ".claude"), 0o755)
+	if _, out, _ := runWith(t, nil, "skills", "install", onlyClaude); !strings.Contains(out, "since the project has a .claude folder") {
+		t.Fatalf("claude folder: %q", out)
+	}
+	if code, out, _ := runWith(t, nil, "skills", "install", "--global"); code != 0 || !strings.Contains(out, "~/.agents/skills") {
+		t.Fatalf("global: %d %q", code, out)
+	}
+}
+
+func TestCompileNamesTheNextPhase(t *testing.T) {
+	dir := t.TempDir()
+	run(t, "init", dir)
+	run(t, "skills", "install", dir)
+	code, out, _ := run(t, "compile", dir)
+	if code != 0 || !strings.Contains(out, "Follow the lfm-research skill.") {
+		t.Fatalf("installed: %d %q", code, out)
+	}
+	code, out, _ = run(t, "compile", dir, "--json")
+	var got struct {
+		Errors int `json:"errors"`
+		Next   next
+		Skills []skills.Copy
+	}
+	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 3 {
+		t.Fatalf("json: %d %v %+v", code, err, got)
+	}
+	if code, _, errs := run(t, "compile", t.TempDir()); code != 1 || !strings.Contains(errs, "not an lfm project") || !strings.Contains(errs, "lfm init") {
+		t.Fatalf("empty directory: %d %q", code, errs)
+	}
+}
+
+func TestNextStepOrder(t *testing.T) {
+	r := compile.Result{Research: research.Summary{Voices: 3}, Concept: concept.Summary{Present: true}, PageURL: "https://x.test/"}
+	for _, tc := range []struct {
+		edit func(*compile.Result)
+		want string
+	}{
+		{func(r *compile.Result) { r.Research = research.Summary{} }, "research"},
+		{func(r *compile.Result) { r.Concept.Present = false }, "design"},
+		{func(r *compile.Result) { r.Starter = true }, "implementation"},
+		{func(r *compile.Result) { r.Validation = &check.Report{Warnings: 1} }, "fix"},
+		{func(r *compile.Result) { r.Validation = &check.Report{Errors: 1}; r.Research = research.Summary{} }, "fix"},
+		{func(r *compile.Result) {}, "review"},
+		{func(r *compile.Result) { r.Release = &release.Result{} }, "deploy"},
+	} {
+		c := r
+		tc.edit(&c)
+		if n := nextStep(c, nil, nil); n.Phase != tc.want {
+			t.Errorf("want %s, got %+v", tc.want, n)
+		}
+	}
+	old := []skills.Copy{{Name: "lfm-design", Path: "/p/.agents/skills/lfm-design/SKILL.md", Version: "0.1", State: skills.Outdated}}
+	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm-design in .agents/skills is from lfm 0.1") {
+		t.Fatalf("%+v", n)
+	}
+}
+
+func TestVersionLeavesOutUnknownParts(t *testing.T) {
+	var out bytes.Buffer
+	Run(context.Background(), Env{Stdout: &out, Stderr: &out, Build: Build{Version: "dev", Commit: "none", Date: "unknown"}}, []string{"version"})
+	if out.String() != "lfm dev\n" {
+		t.Fatalf("%q", out.String())
 	}
 }

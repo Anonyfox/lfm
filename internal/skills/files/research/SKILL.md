@@ -3,8 +3,6 @@ name: lfm-research
 description: Collects verbatim posts, comments and reviews from real buyers and records how competing pages open and sell, keeping [[.Voices]] and [[.Competitors]] exact. Use before designing or rewriting a sales page, when new customer signals arrive, or when asked for voice-of-customer research, review mining, what people say about a topic, or a competitor analysis in an lfm project. Not for writing copy or making design decisions; those read these files.
 license: MIT
 compatibility: Works with any toolset. Uses web search, page fetching, a browser or data connectors when available, and asks the user for sources otherwise.
-metadata:
-  generator: lfm [[.Version]]
 ---
 
 # Research for an lfm page
@@ -69,6 +67,7 @@ Copy this checklist into your notes and tick it off:
 - [ ] Peers visited and written as a new batch; grid, baseline and gaps updated
 - [ ] Validation passed for both files
 - [ ] Shortfalls and unreachable platforms reported to the user
+- [ ] `lfm compile` run; its `Next` line names the step that follows, normally the lfm-design skill
 ```
 
 **Voices.** Prefer the platforms visitors arrive from: short video, image and microblog platforms first,

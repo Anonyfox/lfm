@@ -25,7 +25,8 @@ var initCommand = command{
 	details: `
 Writes the starter files into the directory (default: the current one),
 creating it when needed. Unrelated files may exist; if any starter file is
-already there, nothing is written at all.`,
+already there, nothing is written at all. Then run 'lfm skills install' in
+it so your agent has the research, design and implementation skills.`,
 	run: func(_ context.Context, env Env, p parsed) error {
 		dir, err := p.directory("init")
 		if err != nil {
@@ -40,18 +41,20 @@ already there, nothing is written at all.`,
 		for _, name := range created {
 			fmt.Fprintf(env.Stdout, "  %s\n", s.Dim(name))
 		}
-		next := "lfm serve --open"
+		fmt.Fprintln(env.Stdout, "\nNext:")
 		if dir != "." {
-			next = "cd " + quote(dir) + " && " + next
+			fmt.Fprintf(env.Stdout, "  %s\n", s.Bold("cd "+quote(dir)))
 		}
-		fmt.Fprintf(env.Stdout, "\nNext: %s\n", s.Bold(next))
+		fmt.Fprintf(env.Stdout, "  %s  %s\n", s.Bold("lfm skills install"), s.Dim("the research, design and implementation skills for your agent"))
+		fmt.Fprintf(env.Stdout, "  %s    %s\n", s.Bold("lfm serve --open"), s.Dim("live preview while the page is built"))
+		fmt.Fprintln(env.Stdout, "A page starts with research; 'lfm compile' names the next step each time.")
 		return nil
 	},
 }
 
 var compileCommand = command{
 	name:    "compile",
-	args:    "[directory] [--release]",
+	args:    "[directory] [--release] [--json]",
 	summary: "Check the project and build output/",
 	details: `
 Runs every check and replaces output/ only when no errors remain; warnings
@@ -60,19 +63,41 @@ critical CSS measured in headless Chrome, a runtime probe and Lighthouse when
 installed. Missing tools are reported and skipped, never installed.
 
 Chrome is found on PATH and in standard locations, or via LFM_CHROME.
-Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.`,
-	flags: []flagSpec{{name: "release", usage: "also run browser-backed optimization and audits"}},
+Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.
+
+The report ends with the next step: the missing phase (research, design,
+implementation), the findings to resolve, the release review, or deploy.
+--json prints the same result, findings and next step as one JSON object.
+Exit status: 0 when output/ was written, 1 when errors kept it unchanged,
+2 for a mistake in the command line.`,
+	flags: []flagSpec{
+		{name: "release", usage: "also run browser-backed optimization and audits"},
+		{name: "json", usage: "print the result as JSON instead of the report"},
+	},
 	run: func(ctx context.Context, env Env, p parsed) error {
 		dir, err := p.directory("compile")
 		if err != nil {
 			return err
 		}
 		s := term.For(env.Stdout)
-		result, err := compile.Compile(ctx, dir, compile.Options{Publish: true, Release: p.has("release"), Waiting: waiting(env.Stdout, s)})
+		wait := waiting(env.Stdout, s)
+		if p.has("json") {
+			wait = waiting(env.Stderr, term.For(env.Stderr))
+		}
+		result, err := compile.Compile(ctx, dir, compile.Options{Publish: true, Release: p.has("release"), Waiting: wait})
 		if result.Root == "" || errors.Is(err, context.Canceled) {
 			return err // nothing was compiled: a missing directory or Ctrl-C
 		}
-		renderResult(env.Stdout, s, result, err)
+		installed := skills.Find(result.Root, skills.NewData(env.Build.Version))
+		next := nextStep(result, err, installed)
+		if p.has("json") {
+			if jerr := printJSON(env.Stdout, result, next, installed); jerr != nil {
+				return jerr
+			}
+		} else {
+			renderResult(env.Stdout, s, result, err)
+			renderNext(env.Stdout, s, next)
+		}
 		if err != nil {
 			return errReported
 		}
@@ -130,52 +155,6 @@ Levels are off, warn and error; required rules always stay errors.`,
 			filter = p.args[0]
 		}
 		return printRules(env.Stdout, filter)
-	},
-}
-
-var skillsCommand = command{
-	name:    "skills",
-	args:    "[topic]",
-	summary: "Print process guides for agents",
-	details: `
-Without a topic, lists the skills. With one, prints its SKILL.md for the
-version of lfm you run; save it where your agent loads skills:
-
-  .agents/skills/<name>/SKILL.md   Codex, Cursor, Gemini CLI and most agents
-  .claude/skills/<name>/SKILL.md   Claude Code
-
-For example:
-
-  mkdir -p .agents/skills/lfm-research
-  lfm skills research > .agents/skills/lfm-research/SKILL.md`,
-	run: func(_ context.Context, env Env, p parsed) error {
-		data := skills.NewData(env.Build.Version)
-		switch len(p.args) {
-		case 0:
-			all, err := skills.All(data)
-			if err != nil {
-				return err
-			}
-			s := term.For(env.Stdout)
-			fmt.Fprintln(env.Stdout, "Skills for agents working on an lfm project:")
-			fmt.Fprintln(env.Stdout)
-			for _, skill := range all {
-				first, _, _ := strings.Cut(skill.Description, ". ")
-				fmt.Fprintf(env.Stdout, "  %s  %s\n", s.Bold(term.Pad(skill.Topic, 10)), term.Wrap(first+".", term.Width-14, strings.Repeat(" ", 14)))
-			}
-			fmt.Fprintln(env.Stdout)
-			fmt.Fprintln(env.Stdout, "'lfm skills <topic>' prints one; 'lfm help skills' shows where to save it.")
-			return nil
-		case 1:
-			skill, err := skills.Get(p.args[0], data)
-			if err != nil {
-				return usageError("%v; run 'lfm skills' for the list", err)
-			}
-			fmt.Fprint(env.Stdout, skill.Text)
-			return nil
-		default:
-			return usageError("lfm skills takes at most one topic")
-		}
 	},
 }
 

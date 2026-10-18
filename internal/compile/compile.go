@@ -73,7 +73,8 @@ type Result struct {
 	Research   research.Summary    `json:"research"`
 	Concept    concept.Summary     `json:"concept"`
 	FontHints  int                 `json:"fontHintRepairs,omitempty"`
-	Inputs     []string            `json:"-"` // resolved source files, for watchers
+	Starter    bool                `json:"starter"` // the template is still the starter page of lfm init
+	Inputs     []string            `json:"-"`       // resolved source files, for watchers
 	Duration   time.Duration       `json:"duration"`
 }
 
@@ -137,6 +138,9 @@ type builder struct {
 // between stages; a cancelled compile never publishes.
 func Compile(ctx context.Context, dir string, options Options) (result Result, err error) {
 	p, err := project.Open(dir)
+	if err == nil {
+		err = p.Expect(dir)
+	}
 	if err != nil {
 		return result, err
 	}
@@ -169,6 +173,8 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	var starterImages [][32]byte
 	if page, err := p.Read(project.TemplateFile); err == nil && !scaffold.IsStarterPage(page) {
 		starterTexts, starterImages = scaffold.Placeholders()
+	} else if err == nil {
+		result.Starter = true
 	}
 
 	// 2. prepare

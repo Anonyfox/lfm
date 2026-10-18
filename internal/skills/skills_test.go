@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -52,7 +53,7 @@ func TestSkillsFollowTheSpec(t *testing.T) {
 					t.Errorf("skill contains %q", banned)
 				}
 			}
-			if !strings.Contains(s.Text, "lfm 1.2.3") {
+			if !strings.Contains(s.Text, "\nmetadata:\n  lfm-version: \"1.2.3\"\n  lfm-sha256: \"") {
 				t.Error("skill does not name the version that printed it")
 			}
 		})
@@ -144,6 +145,41 @@ func TestDesignTemplateMatchesTheParser(t *testing.T) {
 	for _, want := range []string{"least 8 observations", "At least 10 checked facts", "3 to 5 details", "at least 8 directions"} {
 		if !strings.Contains(flat, want) {
 			t.Errorf("rendered skill lacks %q", want)
+		}
+	}
+}
+
+// The repository's SKILL.md brings an agent from nothing to the installed
+// skills. It must stay a valid skill and name only commands and topics that
+// exist.
+func TestRootSkillNamesRealCommands(t *testing.T) {
+	raw, err := os.ReadFile("../../SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(raw)
+	name, description, err := frontmatter(text)
+	if err != nil || name != "lfm" {
+		t.Fatalf("frontmatter: %q %v", name, err)
+	}
+	if n := utf8.RuneCountInString(description); n > 1024 || n < 200 || !strings.Contains(description, "Use when") || !strings.Contains(description, "Not for") {
+		t.Errorf("description of %d characters must say when to use it and when not", n)
+	}
+	topics := map[string]bool{"install": true}
+	all, _ := All(NewData("dev"))
+	for _, s := range all {
+		topics[s.Topic] = true
+		if !strings.Contains(text, s.Name) {
+			t.Errorf("does not name %s", s.Name)
+		}
+	}
+	commands := map[string]bool{"init": true, "compile": true, "serve": true, "rules": true, "skills": true, "version": true}
+	for _, m := range regexp.MustCompile("`lfm ([a-z]+)( [a-z]+)?").FindAllStringSubmatch(text, -1) {
+		if !commands[m[1]] {
+			t.Errorf("names unknown command %q", m[0])
+		}
+		if m[1] == "skills" && m[2] != "" && !topics[strings.TrimSpace(m[2])] {
+			t.Errorf("names unknown skill %q", m[0])
 		}
 	}
 }

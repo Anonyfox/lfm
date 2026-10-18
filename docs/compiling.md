@@ -17,6 +17,12 @@ of them report through the same findings, so a single run lists everything that 
 Nothing is written before verify passes. A failed compile keeps the previous `output/` and exits with code 1.
 Findings carry a rule ID, the location, what is wrong and how to fix it; `lfm rules <id>` explains a rule.
 
+The report ends with the next step and the skill for it, in this order: fix errors; collect research when
+`research/` is empty; write `concept.md` when it is missing; replace the starter page; resolve warnings;
+run `--release` and review the frames; deploy. It also notes installed lfm skills older than the binary.
+`--json` prints the same result as one object (`errors`, `warnings`, `validation`, `next`, `skills`, and
+the build details) and keeps progress messages on stderr.
+
 ## Packing
 
 With the default policy the compiler decides per resource whether it is inlined into `index.html` or emitted

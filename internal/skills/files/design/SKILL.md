@@ -3,8 +3,6 @@ name: lfm-design
 description: Turns an lfm project's research into concept.md, the single brief implementation builds from - buyer, decision path, mechanism, design axes, the chosen direction, page spine, palette, type, form, imagery, motion and copy, every decision cited to research IDs. Use after research is collected and before building or rebuilding a page, when new research batches should reshape an existing page, or when asked to design, concept or art-direct an lfm page. Not for collecting research or writing the page's code.
 license: MIT
 compatibility: Needs the research files of the project; works with any toolset. Running lfm compile checks the result.
-metadata:
-  generator: lfm [[.Version]]
 ---
 
 # Design for an lfm page
@@ -105,6 +103,8 @@ Work through the sections in order; each builds on the one before.
     shows with reduced motion.
 13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices. Write the
     exact phrases as `Use: "…"` and `Avoid: "…"` lines; `lfm compile` holds the page to them.
+
+Then run `lfm compile`. Its `Next` line names the step that follows, normally the lfm-implementation skill.
 
 ## [[.ConceptFile]] format
 

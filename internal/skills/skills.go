@@ -143,11 +143,12 @@ func render(topic string, data Data) (Skill, error) {
 	if err := t.Execute(&out, data); err != nil {
 		return Skill{}, fmt.Errorf("skill %s: %w", topic, err)
 	}
-	skill := Skill{Topic: topic, Text: out.String()}
-	skill.Name, skill.Description, err = frontmatter(skill.Text)
+	skill := Skill{Topic: topic}
+	skill.Name, skill.Description, err = frontmatter(out.String())
 	if err != nil {
 		return Skill{}, fmt.Errorf("skill %s: %w", topic, err)
 	}
+	skill.Text = stamp(out.String(), data.Version)
 	return skill, nil
 }
 

@@ -3,8 +3,6 @@ name: lfm-implementation
 description: Builds or improves the lfm sales page from [[.ConceptFile]] - template, styles, scripts, imagery, motion, copy, metadata, sharing and Stripe checkout - and iterates until lfm compile is clean and every frame of the page holds up on phone and desktop. Use when concept.md exists and the page must be built, rebuilt, extended or polished, or when asked to implement, fix or optimize an lfm page. Not for research or for design decisions; those live in their own skills and files.
 license: MIT
 compatibility: Needs lfm, the project's research files and [[.ConceptFile]]. Uses image generation, a browser and screenshots when available, and asks the user for what it cannot produce.
-metadata:
-  generator: lfm [[.Version]]
 ---
 
 # Implement an lfm page
@@ -196,6 +194,9 @@ frames that changed. Then review by looking:
 
 Without Chrome, ask the user for phone and desktop screenshots of the whole page, and report the visual
 review as not done rather than passed.
+
+The page is done when `lfm compile --release` reports 0 errors and 0 warnings, the review left nothing
+above detail level, and the report's `Next` line says deploy.
 
 ## Detail failure modes
 

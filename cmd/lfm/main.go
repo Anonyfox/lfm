@@ -19,8 +19,18 @@ var (
 )
 
 func main() {
-	if info, ok := debug.ReadBuildInfo(); ok && version == "dev" && info.Main.Version != "" && info.Main.Version != "(devel)" {
-		version = info.Main.Version // installed with go install
+	if info, ok := debug.ReadBuildInfo(); ok && version == "dev" {
+		if info.Main.Version != "" && info.Main.Version != "(devel)" {
+			version = info.Main.Version // go install, or go build in a checkout
+		}
+		for _, s := range info.Settings {
+			switch {
+			case s.Key == "vcs.revision" && commit == "none":
+				commit = s.Value[:min(12, len(s.Value))]
+			case s.Key == "vcs.time" && date == "unknown":
+				date = s.Value
+			}
+		}
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	// The first signal cancels the running command; restoring the default

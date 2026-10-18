@@ -58,6 +58,25 @@ func Open(dir string) (Project, error) {
 	return Project{Root: root, resolved: &sync.Map{}}, nil
 }
 
+// ErrNoProject means a directory holds neither lfm.json nor the template.
+var ErrNoProject = errors.New("not an lfm project")
+
+// Expect reports ErrNoProject, with what to do, when the root holds neither
+// lfm.json nor index.html.tmpl. A project missing only one of them is still
+// a project: the compile reports the missing file as a finding.
+func (p Project) Expect(dir string) error {
+	for _, name := range []string{ConfigFile, TemplateFile} {
+		if _, err := os.Lstat(filepath.Join(p.Root, name)); err == nil {
+			return nil
+		}
+	}
+	init := "lfm init"
+	if dir != "." {
+		init += " " + dir
+	}
+	return fmt.Errorf("%w: %s has no %s or %s; create one with '%s'", ErrNoProject, dir, ConfigFile, TemplateFile, init)
+}
+
 // Output is the directory a successful compile replaces.
 func (p Project) Output() string { return filepath.Join(p.Root, OutputDir) }
 
