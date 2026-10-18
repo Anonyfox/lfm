@@ -44,6 +44,8 @@ type Document struct {
 	designFacts    *designFacts
 	sheets         []styleSource
 	keyframeIndex  map[string]keyframe
+	ownText        []copySegment // visible text blocks without quotations
+	allText        []copySegment // visible text blocks with quotations
 }
 
 func Parse(raw []byte, options Options) (*Document, error) {

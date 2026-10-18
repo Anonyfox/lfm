@@ -204,10 +204,20 @@ var copyBlocks = words("address article aside button caption dd details dialog d
 // copySegments returns the visible text of the body block by block. Quotations
 // (blockquote, q) are someone else's words; decorative, hidden, inert and
 // explicitly justified subtrees are skipped.
-func copySegments(d *Document) []copySegment { return segments(d, false) }
+func copySegments(d *Document) []copySegment {
+	if d.ownText == nil {
+		d.ownText = segments(d, false)
+	}
+	return d.ownText
+}
 
 // visibleSegments is copySegments with quotations included.
-func visibleSegments(d *Document) []copySegment { return segments(d, true) }
+func visibleSegments(d *Document) []copySegment {
+	if d.allText == nil {
+		d.allText = segments(d, true)
+	}
+	return d.allText
+}
 
 func segments(d *Document, quotes bool) []copySegment {
 	var body *html.Node
