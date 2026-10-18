@@ -75,7 +75,7 @@ type Result struct {
 	FontHints  int                 `json:"fontHintRepairs,omitempty"`
 	Starter    bool                `json:"starter"` // the template is still the starter page of lfm init
 	Inputs     []string            `json:"-"`       // resolved source files, for watchers
-	Duration   time.Duration       `json:"duration"`
+	Duration   time.Duration       `json:"-"`
 }
 
 // Errors and Warnings count the reported diagnostics.

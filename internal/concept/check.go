@@ -63,16 +63,19 @@ func Rules() []diagnostic.RuleInfo {
 
 // Summary describes a concept for the compile report.
 type Summary struct {
-	Present        bool
-	Chosen         string // the chosen direction
-	Voices, Peers  int    // distinct IDs cited
-	Platforms      int    // distinct platforms among cited voices
-	Colors, Faces  int
-	DeclaredColors []color.Color
-	Families       []string
-	Imagery        int
-	Open           int      // open questions
-	Use, Avoid     []string // exact phrases the Copy section requires or forbids
+	Present        bool          `json:"present"`
+	Chosen         string        `json:"chosen,omitempty"` // the chosen direction
+	Voices         int           `json:"voices"`           // distinct IDs cited
+	Peers          int           `json:"peers"`
+	Platforms      int           `json:"platforms"` // distinct platforms among cited voices
+	Colors         int           `json:"colors"`
+	Faces          int           `json:"typefaces"`
+	DeclaredColors []color.Color `json:"-"`
+	Families       []string      `json:"families,omitempty"`
+	Imagery        int           `json:"plannedImages"`
+	Open           int           `json:"openQuestions"`
+	Use            []string      `json:"use,omitempty"` // exact phrases the Copy section requires or forbids
+	Avoid          []string      `json:"avoid,omitempty"`
 }
 
 var quotedPhrase = regexp.MustCompile(`"([^"]+)"|“([^”]+)”`)

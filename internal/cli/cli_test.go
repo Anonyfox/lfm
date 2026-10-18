@@ -264,7 +264,7 @@ func TestCompileNamesTheNextPhase(t *testing.T) {
 	run(t, "init", dir)
 	run(t, "skills", "install", dir)
 	code, out, _ := run(t, "compile", dir)
-	if code != 0 || !strings.Contains(out, "Follow the lfm-research skill.") {
+	if code != 0 || !strings.Contains(out, "Follow the lfm-research skill;") {
 		t.Fatalf("installed: %d %q", code, out)
 	}
 	code, out, _ = run(t, "compile", dir, "--json")
@@ -312,5 +312,16 @@ func TestVersionLeavesOutUnknownParts(t *testing.T) {
 	Run(context.Background(), Env{Stdout: &out, Stderr: &out, Build: Build{Version: "dev", Commit: "none", Date: "unknown"}}, []string{"version"})
 	if out.String() != "lfm dev\n" {
 		t.Fatalf("%q", out.String())
+	}
+}
+
+func TestCompileJSONOutsideAProject(t *testing.T) {
+	code, out, errs := run(t, "compile", t.TempDir(), "--json")
+	var got struct {
+		Error string
+		Next  next
+	}
+	if err := json.Unmarshal([]byte(out), &got); code != 1 || err != nil || got.Next.Phase != "init" || !strings.Contains(errs, "not an lfm project") {
+		t.Fatalf("%d %q %q", code, out, errs)
 	}
 }

@@ -71,7 +71,8 @@ Copy this checklist into your notes and tick it off:
 ```
 
 **Voices.** Prefer the platforms visitors arrive from: short video, image and microblog platforms first,
-then communities and reviews (forums, app and marketplace reviews, review sites, Q&A threads). Seek the
+then communities and reviews (forums, app and marketplace reviews, review sites, Q&A threads). Search in
+the buyers' language; for a local offer add map and booking reviews and the area's groups and forums. Seek the
 buyers' own words about the problem, the current options, the result they want, what they make and post,
 and what annoys them. Keep the mix honest:
 

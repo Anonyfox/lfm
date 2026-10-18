@@ -27,7 +27,9 @@ works, tell the user what failed and stop: a page made without lfm is not this s
 
 - A folder with `lfm.json` is a project: work there.
 - Otherwise create one in a new folder named after the offer, such as `lfm init sourdough-course`, then
-  `cd` into it. Never run `lfm init` in a folder holding unrelated work.
+  `cd` into it. Inside an unrelated repository, ask where the page should live; without anyone to ask,
+  use a new subfolder of the current folder. Never initialize into a folder holding other work.
+- Set `language` in `lfm.json` to the language the buyers speak (`de` for buyers in Germany).
 
 ## 3. Install the process skills
 
@@ -38,7 +40,7 @@ session, read each one when its phase starts with `lfm skills research`, `lfm sk
 
 ## 4. Follow the compiler
 
-Run `lfm compile`. Its last line is `Next (<phase>): …` and names the skill for that phase. Do that step,
+Run `lfm compile`. The report ends with `Next (<phase>): …` and the skill for that phase. Do that step,
 compile again, and repeat until it says deploy:
 
 1. **research**: real buyer voices and competitor pages, verbatim, into `research/`.
@@ -52,7 +54,7 @@ compile again, and repeat until it says deploy:
 ## Rules
 
 - Do not skip research or design to save time: the page without them is the generic page lfm warns about.
-- Ask the user only what they decide: product, price, delivery, legal pages and the payment link. Start
-  research while waiting; the design skill records what is still open.
+- Ask the user only what they decide: product, price, delivery, the page's language, legal pages and the
+  payment link. Start research while waiting; the design skill records what is still open.
 - Edit the template, `lfm.json` and `assets/`; never edit `output/`.
 - Each finding says how to fix it; `lfm rules <id>` explains one.

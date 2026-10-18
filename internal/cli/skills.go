@@ -156,7 +156,7 @@ func installSkills(env Env, p parsed, data skills.Data) error {
 	if !both {
 		fmt.Fprintf(env.Stdout, "%s\n", term.Wrap(fmt.Sprintf("For %s, add %s (%s).", readers[others], others, "lfm skills install "+flag), term.Width, ""))
 	}
-	fmt.Fprintln(env.Stdout, term.Wrap("Agents pick a skill by its description; a session that was already running may need a restart to see new ones. A page starts with lfm-research.", term.Width, ""))
+	fmt.Fprintln(env.Stdout, term.Wrap("Agents pick a skill by its description. One that is not loaded in this session reads the same text with 'lfm skills <topic>'. A page starts with research.", term.Width, ""))
 	return nil
 }
 

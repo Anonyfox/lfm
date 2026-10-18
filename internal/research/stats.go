@@ -8,18 +8,21 @@ import (
 
 // Count is a value with its frequency.
 type Count struct {
-	Name string
-	N    int
+	Name string `json:"name"`
+	N    int    `json:"voices"`
 }
 
 // Summary describes the research a page stands on.
 type Summary struct {
-	Voices, Peers, Batches int
-	Platforms              []Count // by voice count, largest first
-	Dated                  int     // voices with a posted date
-	Oldest, Newest         time.Time
-	Recent                 int // voices posted within a year of the latest fetch
-	Latest                 time.Time
+	Voices    int       `json:"voices"`
+	Peers     int       `json:"peers"`
+	Batches   int       `json:"batches"`
+	Platforms []Count   `json:"platforms,omitempty"` // by voice count, largest first
+	Dated     int       `json:"dated"`               // voices with a posted date
+	Oldest    time.Time `json:"oldest,omitzero"`
+	Newest    time.Time `json:"newest,omitzero"`
+	Recent    int       `json:"recent"` // voices posted within a year of the latest fetch
+	Latest    time.Time `json:"latestBatch,omitzero"`
 }
 
 // Empty reports whether there is no research to describe.

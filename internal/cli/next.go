@@ -2,12 +2,14 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/compile"
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/term"
 )
@@ -37,7 +39,7 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 	skill := func(topic string) string {
 		n.Skill = "lfm-" + topic
 		if have[n.Skill] {
-			return "Follow the " + n.Skill + " skill."
+			return "Follow the " + n.Skill + " skill; if it is not loaded, 'lfm skills " + topic + "' prints it."
 		}
 		return "Follow 'lfm skills " + topic + "', or install all three with 'lfm skills install'."
 	}
@@ -84,15 +86,31 @@ func renderNext(w io.Writer, s term.Style, n next) {
 	}
 }
 
+// printJSONError reports a compile that could not start, such as a folder
+// that is no project, in the same shape agents parse for results.
+func printJSONError(w io.Writer, err error) error {
+	out := struct {
+		Error string `json:"error"`
+		Next  next   `json:"next"`
+	}{Error: err.Error(), Next: next{Phase: "fix", Do: err.Error()}}
+	if errors.Is(err, project.ErrNoProject) {
+		out.Next = next{Phase: "init", Do: "create the project with 'lfm init <folder>', then run 'lfm skills install' in it."}
+	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
+}
+
 // printJSON writes the compile result, the next step and the installed skills.
 func printJSON(w io.Writer, r compile.Result, n next, installed []skills.Copy) error {
 	out := struct {
 		compile.Result
-		Errors   int           `json:"errors"`
-		Warnings int           `json:"warnings"`
-		Next     next          `json:"next"`
-		Skills   []skills.Copy `json:"skills"`
-	}{r, r.Errors(), r.Warnings(), n, installed}
+		Errors     int           `json:"errors"`
+		Warnings   int           `json:"warnings"`
+		DurationMS int64         `json:"durationMs"`
+		Next       next          `json:"next"`
+		Skills     []skills.Copy `json:"skills"`
+	}{r, r.Errors(), r.Warnings(), r.Duration.Milliseconds(), n, installed}
 	if out.Skills == nil {
 		out.Skills = []skills.Copy{}
 	}

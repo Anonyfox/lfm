@@ -46,8 +46,9 @@ it so your agent has the research, design and implementation skills.`,
 			fmt.Fprintf(env.Stdout, "  %s\n", s.Bold("cd "+quote(dir)))
 		}
 		fmt.Fprintf(env.Stdout, "  %s  %s\n", s.Bold("lfm skills install"), s.Dim("the research, design and implementation skills for your agent"))
-		fmt.Fprintf(env.Stdout, "  %s    %s\n", s.Bold("lfm serve --open"), s.Dim("live preview while the page is built"))
-		fmt.Fprintln(env.Stdout, "A page starts with research; 'lfm compile' names the next step each time.")
+		fmt.Fprintf(env.Stdout, "  %s         %s\n", s.Bold("lfm compile"), s.Dim("findings and the next step, after every change"))
+		fmt.Fprintf(env.Stdout, "  %s    %s\n", s.Bold("lfm serve --open"), s.Dim("optional live preview in the browser"))
+		fmt.Fprintln(env.Stdout, "Set language in lfm.json to the buyers' language; a page starts with research.")
 		return nil
 	},
 }
@@ -68,8 +69,8 @@ Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.
 The report ends with the next step: the missing phase (research, design,
 implementation), the findings to resolve, the release review, or deploy.
 --json prints the same result, findings and next step as one JSON object.
-Exit status: 0 when output/ was written, 1 when errors kept it unchanged,
-2 for a mistake in the command line.`,
+Exit status: 0 when output/ was written; 1 when errors kept it unchanged or
+there is no project to compile; 2 for a mistake in the command line.`,
 	flags: []flagSpec{
 		{name: "release", usage: "also run browser-backed optimization and audits"},
 		{name: "json", usage: "print the result as JSON instead of the report"},
@@ -86,7 +87,15 @@ Exit status: 0 when output/ was written, 1 when errors kept it unchanged,
 		}
 		result, err := compile.Compile(ctx, dir, compile.Options{Publish: true, Release: p.has("release"), Waiting: wait})
 		if result.Root == "" || errors.Is(err, context.Canceled) {
-			return err // nothing was compiled: a missing directory or Ctrl-C
+			// Nothing was compiled: no project there, or Ctrl-C.
+			if p.has("json") && err != nil && !errors.Is(err, context.Canceled) {
+				if jerr := printJSONError(env.Stdout, err); jerr != nil {
+					return jerr
+				}
+				fmt.Fprintf(env.Stderr, "lfm: %v\n", err)
+				return errReported
+			}
+			return err
 		}
 		installed := skills.Find(result.Root, skills.NewData(env.Build.Version))
 		next := nextStep(result, err, installed)
