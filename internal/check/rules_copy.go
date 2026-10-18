@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/aitext"
 	"golang.org/x/net/html"
 )
 
@@ -113,7 +114,7 @@ func copyTellsRule(d *Document) []Diagnostic {
 		text := normalizeQuotes(s.text)
 		lower := strings.ToLower(text)
 		words += len(strings.Fields(text))
-		if n := proseDashes(text); n > 0 {
+		if n := ProseDashes(text); n > 0 {
 			if firstDash == nil {
 				firstDash = s.node
 			}
@@ -161,7 +162,7 @@ func copyTellsRule(d *Document) []Diagnostic {
 
 // proseDashes counts em dashes used as sentence breaks; ranges between
 // numbers ("13—14 Nov") are not counted.
-func proseDashes(s string) int {
+func ProseDashes(s string) int {
 	n := 0
 	for i := strings.Index(s, "—"); i >= 0; {
 		before, after := strings.TrimRight(s[:i], " "), strings.TrimLeft(s[i+len("—"):], " ")
@@ -769,4 +770,141 @@ func actionsRule(d *Document) []Diagnostic {
 		issues = append(issues, d.At(n, Warning, fmt.Sprintf("Action named %q says nothing about what happens.", name), "Name the next step and its outcome: \"See your sun plan\", \"Buy the guide for 12 €\", \"Send the request\"."))
 	}
 	return issues
+}
+
+// ---------- prose tells for other text than the page ----------
+
+// TellHit is one stock phrase or repeated construction found in a sequence of
+// prose segments: the segment of its first match, that match and how often it
+// occurred across all segments.
+type TellHit struct {
+	Segment int
+	Phrase  string
+	Count   int
+	Repeat  bool // a construction that counts only from its second use
+}
+
+// FindTells applies the copy tells of copy.tells to plain prose segments, such
+// as the paragraphs of a book chapter, with the same thresholds.
+func FindTells(segments []string) []TellHit {
+	hits := make([]TellHit, len(copyTells))
+	for i := range hits {
+		hits[i].Segment = -1
+	}
+	for n, segment := range segments {
+		text := normalizeQuotes(segment)
+		lower := strings.ToLower(text)
+		for i, t := range copyTells {
+			if !containsAny(lower, t.keys) {
+				continue
+			}
+			for _, m := range t.re.FindAllString(text, -1) {
+				if hits[i].Count == 0 {
+					hits[i].Segment, hits[i].Phrase = n, strings.Join(strings.Fields(m), " ")
+				}
+				hits[i].Count++
+			}
+		}
+	}
+	var out []TellHit
+	for i, h := range hits {
+		if h.Count == 0 || h.Count < copyTells[i].min {
+			continue
+		}
+		h.Repeat = copyTells[i].min > 1
+		out = append(out, h)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Segment < out[j].Segment })
+	return out
+}
+
+// Placeholder returns template filler found in text (lorem ipsum, TODO,
+// "your … here", [insert …]), or "".
+func Placeholder(text string) string {
+	for _, re := range placeholderText {
+		if m := re.FindString(text); m != "" {
+			return m
+		}
+	}
+	return ""
+}
+
+// ---------- copy.machine ----------
+
+// minMachineParagraph is the shortest block counted as prose for the
+// detector estimate: buttons, labels and headings are not prose.
+const minMachineParagraph = 20
+
+func copyMachineRule(d *Document) []Diagnostic {
+	lang := ""
+	for _, n := range d.Elements {
+		if n.Data == "html" && n.Namespace == "" {
+			lang = Attr(n, "lang")
+			break
+		}
+	}
+	var paragraphs []string
+	var first *html.Node
+	for _, s := range copySegments(d) {
+		if len(strings.Fields(s.text)) >= minMachineParagraph {
+			if first == nil {
+				first = s.node
+			}
+			paragraphs = append(paragraphs, s.text)
+		}
+	}
+	r := aitext.Analyze(paragraphs, lang)
+	if !r.Likely {
+		return nil
+	}
+	return []Diagnostic{d.At(first, Warning, MachineMessage("the page's copy", r), MachineHint(r))}
+}
+
+// MachineMessage says why detectors would flag a text.
+func MachineMessage(what string, r aitext.Result) string {
+	var why []string
+	for _, s := range r.Signals {
+		why = append(why, s.Detail)
+	}
+	reason := ""
+	if len(why) > 0 {
+		reason = ": " + strings.Join(why, "; ")
+	}
+	return fmt.Sprintf("AI-text detectors would likely flag %s as generated (%d words)%s.", what, r.Words, reason)
+}
+
+// machineAdvice is what to change for each measured habit.
+var machineAdvice = map[string]string{
+	"claude-likeness":         "say it the way the readers would, in their words from the research, not the stock phrasing models reach for",
+	"model-likeness":          "drop the stock phrases of marketing copy and say the specific thing",
+	"lexical-diversity":       "keep the plain word when it returns instead of a new synonym each time",
+	"repeated-trigrams":       "let the key phrase come back where the thought returns, as people do",
+	"word-length-spread":      "mix plain short words with the exact long term where it belongs",
+	"mid-length-sentences":    "let a sentence run long where the thought needs it and stop short where it lands",
+	"sentence-burstiness":     "let sentence length follow the thought: long for the explanation, short for the turn",
+	"short-sentences":         "join the clipped fragments to the sentences they belong to",
+	"asides":                  "keep the asides a person makes: a parenthesis, a doubt, a question the reader would ask",
+	"fillers":                 "write as you would say it to the reader, with the small words of speech where they fit",
+	"habits":                  "cut the set-ups that correct what nobody said, the announcements and the stock words",
+	"participles":             "end sentences on their point, not on a participle clause that comments on it",
+	"nominals":                "turn abstract nouns back into verbs with someone doing them",
+	"even-paragraphs":         "let paragraphs differ: a long one for the case, a one-liner where it lands",
+	"one-sentence-paragraphs": "merge the one-line paragraphs into the paragraphs they conclude",
+	"paragraph-burstiness":    "let paragraph length follow the material",
+	"opener-diversity":        "start sentences from what they are about",
+}
+
+// MachineHint is the advice for a text detectors would flag: what to change
+// for each habit measured, and never to game the detector.
+func MachineHint(r aitext.Result) string {
+	var do []string
+	for _, s := range r.Signals {
+		if a, ok := machineAdvice[s.Feature]; ok {
+			do = append(do, a)
+		}
+	}
+	if len(do) == 0 {
+		do = append(do, "rewrite in one person's voice, with real names and numbers")
+	}
+	return "Revise the passages that read most generic: " + strings.Join(do, "; ") + ". Never add errors or random words to fool a detector; readers notice the same habits."
 }

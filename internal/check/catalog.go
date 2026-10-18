@@ -249,6 +249,10 @@ func DefaultRules() []Rule {
 			"Warns for stock phrases of generated copy (\"in today's fast-paced world\", \"unlock the power\", \"look no further\", \"seamless experience\", \"tauchen Sie ein\", \"im digitalen Zeitalter\" and similar), for repeated \"not just X, but Y\" and \"it's not X, it's Y\" constructions, and for four or more em dashes at more than one per hundred words. Each pattern is narrow: ordinary uses of single words are not matched. Visitors recognize these phrases as unedited machine text. Replace each with the concrete fact or situation it stands for. Text in blockquote, q, code and subtrees with data-design-reason is not checked, so real buyer quotes stay verbatim.",
 			copyTellsRule),
 
+		rule("copy.machine", "The page's prose would not be flagged by AI-text detectors",
+			"Estimates, from at least 150 words of prose on the page, whether AI-text detectors would flag the copy as generated: the even rhythm and repeated phrasing of older models, or the polished prose of current ones that never repeats a phrase, varies its words more than people do and leaves out the asides people make. The weights come from labelled human and generated text in English, German, French, Spanish, Italian, Portuguese, Dutch and Polish and are set for about 1% false alarms on human writing; the finding names the measured habits. Visitors and platforms increasingly distrust copy that reads generated. Rewrite the passages in one person's voice; never add errors to fool a detector.",
+			copyMachineRule),
+
 		rule("copy.placeholder", "No template filler, starter text or starter image is left in the page",
 			"Warns for lorem ipsum, TODO, TBD and FIXME markers, \"your headline here\" and [insert …] filler in visible text, alternative text, the title and description metadata; and, once the starter page of lfm init has been replaced, for its starter description, social image alt text and social image. Filler shipped reads as an unfinished or generated page, and search and share previews show it first. Replace each with the real content.",
 			placeholderRule),
