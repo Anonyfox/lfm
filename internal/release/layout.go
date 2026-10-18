@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
@@ -119,182 +120,245 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			dir = ""
 		}
 	}
+	// The screens are walked in parallel, each in its own tab of the browser,
+	// and merged in screen order, so the result is the same as one walk after
+	// the other. Reduced motion and scripts off get tabs of their own.
+	results := make([]screenWalk, len(Screens))
+	var moving []string
+	var noScript []LayoutFinding
+	var motionErr, scriptErr error
+	var wg sync.WaitGroup
+	for i, v := range Screens {
+		wg.Go(func() {
+			t, done := tab, func() {}
+			if i > 0 {
+				t, done = chromedp.NewContext(tab)
+			}
+			defer done()
+			results[i], results[i].err = walkScreen(t, url, dir, v, before[v.String()], r.Previous)
+			if i == len(Screens)-1 && results[i].err == nil {
+				// fonts are read on the widest screen, where the most text shows
+				results[i].fonts, results[i].fontsErr = fallbackFonts(t)
+			}
+		})
+	}
+	wg.Go(func() { moving, motionErr = reducedMotion(tab, url, Screens[0]) })
+	wg.Go(func() {
+		t, done := chromedp.NewContext(tab)
+		defer done()
+		noScript, scriptErr = withoutScripts(t, url, Screens[0])
+	})
+	wg.Wait()
 	var sizes, contrasts perElement
-	for _, v := range Screens {
-		opts := []chromedp.EmulateViewportOption{}
-		if v.Mobile {
-			opts = append(opts, chromedp.EmulateMobile, chromedp.EmulateTouch)
+	for i, v := range Screens {
+		w := results[i]
+		r.Findings = append(r.Findings, w.findings...)
+		r.Count += w.count
+		r.Changed = append(r.Changed, w.changed...)
+		if len(w.after) > 0 {
+			after[v.String()] = w.after
 		}
-		if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), opts...), chromedp.Navigate(url)); err != nil {
-			return r, err
+		for _, o := range w.sizes {
+			sizes.add(v, o.element, o.text)
 		}
-		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
-			return r, err
+		for _, o := range w.contrasts {
+			contrasts.add(v, o.element, o.text)
 		}
-		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](layoutProbe)); err != nil {
-			return r, err
-		}
-		size, err := chromedp.Run(tab, chromedp.Evaluate[pageSize](`(()=>{const s=__lfmLayout.prepare();return {Height:s.height,Width:s.width,VW:s.vw,VH:s.vh}})()`))
-		if err != nil {
-			return r, err
-		}
-		step := v.Height / 2
-		if last := int(size.Height) - v.Height; last > 0 && last/step+1 > maxFrames {
-			step = last/(maxFrames-1) + 1
-		}
-		known := map[string]bool{}
-		for _, h := range before[v.String()] {
-			known[h] = true
-		}
-		var empty []frameState
-		readable := map[int]bool{}
-		type cover struct {
-			text, by string
-			from, to int
-		}
-		covered := map[int]*cover{}
-		var order []int
-		for i, y := 0, 0; ; i, y = i+1, y+step {
-			f, err := chromedp.Run(tab, chromedp.Evaluate[frameState](fmt.Sprintf(`__lfmLayout.frame(%d)`, y), chromedp.EvalAwaitPromise))
-			if err != nil {
-				return r, err
-			}
-			if i == 0 {
-				first, err := chromedp.Run(tab, chromedp.Evaluate[struct{ Heading, Control bool }](`(()=>{const f=__lfmLayout.firstScreen();return {Heading:f.heading,Control:f.control}})()`))
-				if err != nil {
-					return r, err
-				}
-				if !first.Heading {
-					r.Findings = append(r.Findings, LayoutFinding{v.String(), "first-screen", fmt.Sprintf("At %s the first screen shows no legible main heading.", v), "Let the h1 that says what the page offers appear, readable, before any scrolling at every size."})
-				}
-				if !first.Control {
-					r.Findings = append(r.Findings, LayoutFinding{v.String(), "first-screen", fmt.Sprintf("At %s the first screen offers no link, button or field.", v), "Give the first screen a way to act: the tool's first input, the answer link or the way to the offer."})
-				}
-			}
-			if !f.Legible {
-				empty = append(empty, f)
-			}
-			for _, id := range f.Seen {
-				readable[id] = true
-			}
-			for _, c := range f.Covered {
-				if covered[c.ID] == nil {
-					covered[c.ID] = &cover{c.Text, c.By, int(f.Y), int(f.Y) + v.Height}
-					order = append(order, c.ID)
-				}
-				covered[c.ID].to = int(f.Y) + v.Height
-			}
-			if dir != "" {
-				quality, fast := int64(80), true
-				shot, err := chromedp.Call(tab, page.CaptureScreenshot, page.CaptureScreenshotParams{Format: page.CaptureScreenshotFormatJpeg, Quality: &quality, OptimizeForSpeed: &fast})
-				if err == nil {
-					name := fmt.Sprintf("%dx%d-%02d", v.Width, v.Height, i+1)
-					if os.WriteFile(filepath.Join(dir, name+".jpg"), shot.Data, 0o644) == nil {
-						r.Count++
-						after[v.String()] = append(after[v.String()], f.Signature...)
-						if r.Previous && !subset(f.Signature, known) {
-							r.Changed = append(r.Changed, name)
-						}
-					}
-				}
-			}
-			// the last frame shows the bottom of the page; scrolling stops there
-			if f.Y+float64(v.Height) >= size.Height-1 || y >= int(size.Height) {
-				break
-			}
-		}
-		r.Findings = append(r.Findings, emptyFindings(v, empty)...)
-		// text passing under a pinned layer is ordinary scrolling; text that is
-		// under it in every frame that shows it can never be read
-		var suspects []int
-		for _, id := range order {
-			if !readable[id] && len(suspects) < maxRecheck {
-				suspects = append(suspects, id)
-			}
-		}
-		if len(suspects) > 0 {
-			list, _ := json.Marshal(suspects)
-			found, err := chromedp.Run(tab, chromedp.Evaluate[[]int](fmt.Sprintf(`__lfmLayout.recheck(%s)`, list), chromedp.EvalAwaitPromise))
-			if err != nil {
-				return r, err
-			}
-			for _, id := range found {
-				readable[id] = true
-			}
-		}
-		var hidden []*cover
-		for _, id := range suspects {
-			if !readable[id] {
-				hidden = append(hidden, covered[id])
-			}
-		}
-		if len(hidden) > 0 {
-			h := hidden[0]
-			msg := fmt.Sprintf("At %s %s covers the text of %s in every frame that shows it (page %d to %d px).", v, h.by, h.text, h.from, h.to)
-			if len(hidden) > 1 {
-				msg = fmt.Sprintf("At %s %s covers the text of %s and %d more elements in every frame that shows them (from page %d px).", v, h.by, h.text, len(hidden)-1, h.from)
-			}
-			r.Findings = append(r.Findings, LayoutFinding{v.String(), "covered", msg,
-				"Give the text a zone the pinned element never overlaps at this size, shrink or unpin the element, or let the text scroll above it."})
-		}
-		over, err := chromedp.Run(tab, chromedp.Evaluate[overflowState](fmt.Sprintf(`__lfmLayout.overflow(%d)`, v.Width)))
-		if err != nil {
-			return r, err
-		}
-		splits, err := chromedp.Run(tab, chromedp.Evaluate[[]splitValue](`__lfmLayout.splits().map(s=>({Text:s.text,Selector:s.selector}))`))
-		if err != nil {
-			return r, err
-		}
-		if len(over.Culprits) > 0 || over.Width > float64(v.Width)+1 {
-			var parts []string
-			for _, c := range over.Culprits {
-				parts = append(parts, fmt.Sprintf("%s (%d to %d px)", c.Selector, c.Left, c.Right))
-			}
-			msg := fmt.Sprintf("At %s the page scrolls sideways: %d px wide.", v, int(over.Width))
-			if len(parts) > 0 {
-				msg += " Widest: " + strings.Join(parts, ", ") + "."
-			}
-			r.Findings = append(r.Findings, LayoutFinding{v.String(), "overflow", msg, "Let the named element wrap, shrink or scroll inside itself; content must reflow at phone width without horizontal scrolling."})
-		}
-		for _, s := range splits {
-			r.Findings = append(r.Findings, LayoutFinding{v.String(), "split", fmt.Sprintf("At %s %q breaks across two lines in %s.", v, s.Text, s.Selector), "Keep a number with its unit, or a short compound like E-Mail, on one line: a no-break space (&nbsp;) or non-breaking hyphen (U+2011) inside it, or white-space: nowrap on it."})
-		}
-		small, err := chromedp.Run(tab, chromedp.Evaluate[[]smallText](`__lfmLayout.small().map(s=>({Selector:s.selector,Size:s.size,Text:s.text}))`))
-		if err != nil {
-			return r, err
-		}
-		for _, t := range small {
-			sizes.add(v, t.Selector+" "+t.Text, fmt.Sprintf("%s (%q) renders at %.1f px", t.Selector, t.Text, t.Size))
-		}
-		low, err := chromedp.Run(tab, chromedp.Evaluate[[]contrastIssue](`__lfmLayout.contrast().map(c=>({Selector:c.selector,Ratio:c.ratio,Need:c.need,FG:c.fg,BG:c.bg}))`))
-		if err != nil {
-			return r, err
-		}
-		for _, c := range low {
-			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
+		if w.err != nil {
+			return r, w.err
 		}
 	}
 	// a failed font report is reported and skipped, never a silent pass
-	if found, err := fallbackFonts(tab); err == nil {
-		r.Findings = append(r.Findings, found...)
+	if last := results[len(results)-1]; last.fontsErr == nil {
+		r.Findings = append(r.Findings, last.fonts...)
 	} else {
-		r.Findings = append(r.Findings, LayoutFinding{"", "incomplete", "The font check could not run: " + compact(err.Error(), 300), "Rerun --release; if it persists, report it with the page."})
+		r.Findings = append(r.Findings, LayoutFinding{"", "incomplete", "The font check could not run: " + compact(last.fontsErr.Error(), 300), "Rerun --release; if it persists, report it with the page."})
 	}
-	if moving, err := reducedMotion(tab, url, Screens[0]); err != nil {
-		return r, err
+	if motionErr != nil {
+		return r, motionErr
 	} else if len(moving) > 0 {
 		r.Findings = append(r.Findings, LayoutFinding{Screens[0].String(), "motion", fmt.Sprintf("With reduced motion requested, the page still moves at %s: %s.", Screens[0], strings.Join(moving, "; ")),
 			"Inside @media (prefers-reduced-motion: reduce) stop loops and long moves (animation: none, or a short fade), and let scripts check matchMedia(\"(prefers-reduced-motion: reduce)\") before animating."})
 	}
-	// scripts off last: toggling script execution leaves later loads unlike a visitor's
-	if found, err := withoutScripts(tab, url, Screens[0]); err != nil {
-		return r, err
-	} else {
-		r.Findings = append(r.Findings, found...)
+	if scriptErr != nil {
+		return r, scriptErr
 	}
+	r.Findings = append(r.Findings, noScript...)
 	r.Findings = append(r.Findings, sizes.findings("small", "Text too small to read: %s.", "Set text at 9 px or more where it renders, including SVG labels scaled down with their drawing; small print reads well from 12 px.")...)
 	r.Findings = append(r.Findings, contrasts.findings("contrast", "Text below the WCAG contrast minimum: %s.", "Darken the text or lighten its ground until it reaches the ratio; large text (24 px, or 18.7 px bold) needs 3:1, other text 4.5:1.")...)
 	return r, nil
+}
+
+// screenWalk is what one screen's walk found.
+type screenWalk struct {
+	findings         []LayoutFinding
+	count            int
+	changed, after   []string
+	sizes, contrasts []elementNote
+	fonts            []LayoutFinding
+	err, fontsErr    error
+}
+
+type elementNote struct{ element, text string }
+
+// walkScreen scrolls the page at screen v frame by frame. before holds the
+// element hashes this screen showed in the former run.
+func walkScreen(tab context.Context, url, dir string, v Screen, before []string, previous bool) (screenWalk, error) {
+	var out screenWalk
+	opts := []chromedp.EmulateViewportOption{}
+	if v.Mobile {
+		opts = append(opts, chromedp.EmulateMobile, chromedp.EmulateTouch)
+	}
+	if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), opts...), chromedp.Navigate(url)); err != nil {
+		return out, err
+	}
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
+		return out, err
+	}
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](layoutProbe)); err != nil {
+		return out, err
+	}
+	size, err := chromedp.Run(tab, chromedp.Evaluate[pageSize](`(()=>{const s=__lfmLayout.prepare();return {Height:s.height,Width:s.width,VW:s.vw,VH:s.vh}})()`))
+	if err != nil {
+		return out, err
+	}
+	step := v.Height / 2
+	if last := int(size.Height) - v.Height; last > 0 && last/step+1 > maxFrames {
+		step = last/(maxFrames-1) + 1
+	}
+	known := map[string]bool{}
+	for _, h := range before {
+		known[h] = true
+	}
+	var empty []frameState
+	readable := map[int]bool{}
+	type cover struct {
+		text, by string
+		from, to int
+	}
+	covered := map[int]*cover{}
+	var order []int
+	for i, y := 0, 0; ; i, y = i+1, y+step {
+		f, err := chromedp.Run(tab, chromedp.Evaluate[frameState](fmt.Sprintf(`__lfmLayout.frame(%d)`, y), chromedp.EvalAwaitPromise))
+		if err != nil {
+			return out, err
+		}
+		if i == 0 {
+			first, err := chromedp.Run(tab, chromedp.Evaluate[struct{ Heading, Control bool }](`(()=>{const f=__lfmLayout.firstScreen();return {Heading:f.heading,Control:f.control}})()`))
+			if err != nil {
+				return out, err
+			}
+			if !first.Heading {
+				out.findings = append(out.findings, LayoutFinding{v.String(), "first-screen", fmt.Sprintf("At %s the first screen shows no legible main heading.", v), "Let the h1 that says what the page offers appear, readable, before any scrolling at every size."})
+			}
+			if !first.Control {
+				out.findings = append(out.findings, LayoutFinding{v.String(), "first-screen", fmt.Sprintf("At %s the first screen offers no link, button or field.", v), "Give the first screen a way to act: the tool's first input, the answer link or the way to the offer."})
+			}
+		}
+		if !f.Legible {
+			empty = append(empty, f)
+		}
+		for _, id := range f.Seen {
+			readable[id] = true
+		}
+		for _, c := range f.Covered {
+			if covered[c.ID] == nil {
+				covered[c.ID] = &cover{c.Text, c.By, int(f.Y), int(f.Y) + v.Height}
+				order = append(order, c.ID)
+			}
+			covered[c.ID].to = int(f.Y) + v.Height
+		}
+		if dir != "" {
+			quality, fast := int64(80), true
+			shot, err := chromedp.Call(tab, page.CaptureScreenshot, page.CaptureScreenshotParams{Format: page.CaptureScreenshotFormatJpeg, Quality: &quality, OptimizeForSpeed: &fast})
+			if err == nil {
+				name := fmt.Sprintf("%dx%d-%02d", v.Width, v.Height, i+1)
+				if os.WriteFile(filepath.Join(dir, name+".jpg"), shot.Data, 0o644) == nil {
+					out.count++
+					out.after = append(out.after, f.Signature...)
+					if previous && !subset(f.Signature, known) {
+						out.changed = append(out.changed, name)
+					}
+				}
+			}
+		}
+		// the last frame shows the bottom of the page; scrolling stops there
+		if f.Y+float64(v.Height) >= size.Height-1 || y >= int(size.Height) {
+			break
+		}
+	}
+	out.findings = append(out.findings, emptyFindings(v, empty)...)
+	// text passing under a pinned layer is ordinary scrolling; text that is
+	// under it in every frame that shows it can never be read
+	var suspects []int
+	for _, id := range order {
+		if !readable[id] && len(suspects) < maxRecheck {
+			suspects = append(suspects, id)
+		}
+	}
+	if len(suspects) > 0 {
+		list, _ := json.Marshal(suspects)
+		found, err := chromedp.Run(tab, chromedp.Evaluate[[]int](fmt.Sprintf(`__lfmLayout.recheck(%s)`, list), chromedp.EvalAwaitPromise))
+		if err != nil {
+			return out, err
+		}
+		for _, id := range found {
+			readable[id] = true
+		}
+	}
+	var hidden []*cover
+	for _, id := range suspects {
+		if !readable[id] {
+			hidden = append(hidden, covered[id])
+		}
+	}
+	if len(hidden) > 0 {
+		h := hidden[0]
+		msg := fmt.Sprintf("At %s %s covers the text of %s in every frame that shows it (page %d to %d px).", v, h.by, h.text, h.from, h.to)
+		if len(hidden) > 1 {
+			msg = fmt.Sprintf("At %s %s covers the text of %s and %d more elements in every frame that shows them (from page %d px).", v, h.by, h.text, len(hidden)-1, h.from)
+		}
+		out.findings = append(out.findings, LayoutFinding{v.String(), "covered", msg,
+			"Give the text a zone the pinned element never overlaps at this size, shrink or unpin the element, or let the text scroll above it."})
+	}
+	over, err := chromedp.Run(tab, chromedp.Evaluate[overflowState](fmt.Sprintf(`__lfmLayout.overflow(%d)`, v.Width)))
+	if err != nil {
+		return out, err
+	}
+	splits, err := chromedp.Run(tab, chromedp.Evaluate[[]splitValue](`__lfmLayout.splits().map(s=>({Text:s.text,Selector:s.selector}))`))
+	if err != nil {
+		return out, err
+	}
+	if len(over.Culprits) > 0 || over.Width > float64(v.Width)+1 {
+		var parts []string
+		for _, c := range over.Culprits {
+			parts = append(parts, fmt.Sprintf("%s (%d to %d px)", c.Selector, c.Left, c.Right))
+		}
+		msg := fmt.Sprintf("At %s the page scrolls sideways: %d px wide.", v, int(over.Width))
+		if len(parts) > 0 {
+			msg += " Widest: " + strings.Join(parts, ", ") + "."
+		}
+		out.findings = append(out.findings, LayoutFinding{v.String(), "overflow", msg, "Let the named element wrap, shrink or scroll inside itself; content must reflow at phone width without horizontal scrolling."})
+	}
+	for _, s := range splits {
+		out.findings = append(out.findings, LayoutFinding{v.String(), "split", fmt.Sprintf("At %s %q breaks across two lines in %s.", v, s.Text, s.Selector), "Keep a number with its unit, or a short compound like E-Mail, on one line: a no-break space (&nbsp;) or non-breaking hyphen (U+2011) inside it, or white-space: nowrap on it."})
+	}
+	small, err := chromedp.Run(tab, chromedp.Evaluate[[]smallText](`__lfmLayout.small().map(s=>({Selector:s.selector,Size:s.size,Text:s.text}))`))
+	if err != nil {
+		return out, err
+	}
+	for _, t := range small {
+		out.sizes = append(out.sizes, elementNote{t.Selector + " " + t.Text, fmt.Sprintf("%s (%q) renders at %.1f px", t.Selector, t.Text, t.Size)})
+	}
+	low, err := chromedp.Run(tab, chromedp.Evaluate[[]contrastIssue](`__lfmLayout.contrast().map(c=>({Selector:c.selector,Ratio:c.ratio,Need:c.need,FG:c.fg,BG:c.bg}))`))
+	if err != nil {
+		return out, err
+	}
+	for _, c := range low {
+		out.contrasts = append(out.contrasts, elementNote{c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need)})
+	}
+
+	return out, nil
 }
 
 type smallText struct {
@@ -458,26 +522,46 @@ func withoutScripts(tab context.Context, url string, v Screen) ([]LayoutFinding,
 
 // reducedMotion loads the page at screen v with prefers-reduced-motion:
 // reduce and lists what still moves in the first three frames.
-func reducedMotion(tab context.Context, url string, v Screen) ([]string, error) {
-	reduce := []*emulation.MediaFeature{{Name: "prefers-reduced-motion", Value: "reduce"}}
-	if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Features: reduce}); err != nil {
-		return nil, err
+func reducedMotion(parent context.Context, url string, v Screen) ([]string, error) {
+	// Each of the three positions is sampled in its own tab, which first
+	// passes the positions above it, as one tab scrolling down would.
+	type moved struct{ Selector, How string }
+	found := make([][]moved, 3)
+	errs := make([]error, 3)
+	var wg sync.WaitGroup
+	for i := range 3 {
+		wg.Go(func() {
+			tab, done := chromedp.NewContext(parent)
+			defer done()
+			reduce := []*emulation.MediaFeature{{Name: "prefers-reduced-motion", Value: "reduce"}}
+			if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Features: reduce}); err != nil {
+				errs[i] = err
+				return
+			}
+			if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), chromedp.EmulateMobile, chromedp.EmulateTouch), chromedp.Navigate(url)); err != nil {
+				errs[i] = err
+				return
+			}
+			if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](layoutProbe)); err != nil {
+				errs[i] = err
+				return
+			}
+			script := "(async()=>{"
+			for j := range i {
+				script += fmt.Sprintf("await __lfmLayout.visit(%d);", j*v.Height/2)
+			}
+			script += fmt.Sprintf("return (await __lfmLayout.moving(%d)).map(m=>({Selector:m.selector,How:m.how}))})()", i*v.Height/2)
+			found[i], errs[i] = chromedp.Run(tab, chromedp.Evaluate[[]moved](script, chromedp.EvalAwaitPromise))
+		})
 	}
-	defer chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Features: []*emulation.MediaFeature{{Name: "prefers-reduced-motion", Value: ""}}})
-	if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), chromedp.EmulateMobile, chromedp.EmulateTouch), chromedp.Navigate(url)); err != nil {
-		return nil, err
-	}
-	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](layoutProbe)); err != nil {
-		return nil, err
-	}
+	wg.Wait()
 	seen := map[string]bool{}
 	var out []string
-	for i := 0; i < 3; i++ {
-		found, err := chromedp.Run(tab, chromedp.Evaluate[[]struct{ Selector, How string }](fmt.Sprintf(`__lfmLayout.moving(%d).then(l=>l.map(m=>({Selector:m.selector,How:m.how})))`, i*v.Height/2), chromedp.EvalAwaitPromise))
-		if err != nil {
-			return nil, err
+	for i := range 3 {
+		if errs[i] != nil {
+			return nil, errs[i]
 		}
-		for _, m := range found {
+		for _, m := range found[i] {
 			if item := m.Selector + " (" + m.How + ")"; !seen[item] && len(out) < 4 {
 				seen[item] = true
 				out = append(out, item)

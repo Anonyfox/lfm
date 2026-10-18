@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/concept"
@@ -273,7 +274,7 @@ func TestCompileNamesTheNextPhase(t *testing.T) {
 		Next   next
 		Skills []skills.Copy
 	}
-	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 3 {
+	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 4 {
 		t.Fatalf("json: %d %v %+v", code, err, got)
 	}
 	if code, _, errs := run(t, "compile", t.TempDir()); code != 1 || !strings.Contains(errs, "not an lfm project") || !strings.Contains(errs, "lfm init") {
@@ -300,6 +301,19 @@ func TestNextStepOrder(t *testing.T) {
 		if n := nextStep(c, nil, nil); n.Phase != tc.want {
 			t.Errorf("want %s, got %+v", tc.want, n)
 		}
+	}
+	clean := compile.Result{Research: research.Summary{Voices: 3}, Concept: concept.Summary{Present: true}, Release: &release.Result{}, PageURL: "https://x.test/"}
+	clean.Book = &book.Summary{Present: true}
+	if n := nextStep(clean, nil, nil); n.Phase != "book" || !strings.Contains(n.Do, "deliverables/book/concept.md") {
+		t.Errorf("book concept: %+v", n)
+	}
+	clean.Book = &book.Summary{Present: true, Concept: true, URL: "https://x.test/k/", Chapters: []book.Chapter{{N: 1, Title: "One", File: "chapters/01.md", Words: 900, Job: "decide what to bake first", Exists: true}, {N: 2, Title: "Two", File: "chapters/02.md", Words: 1200, Job: "plan the week"}}}
+	if n := nextStep(clean, nil, nil); n.Phase != "book" || !strings.Contains(n.Do, `chapters/02.md, chapter 2 of 2, "Two" (about 1200 words): plan the week`) || len(n.Notes) != 1 {
+		t.Errorf("next chapter: %+v", n)
+	}
+	clean.Book.Chapters[1].Exists = true
+	if n := nextStep(clean, nil, nil); n.Phase != "deploy" || len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "https://x.test/k/") {
+		t.Errorf("deploy with book: %+v", n)
 	}
 	old := []skills.Copy{{Name: "lfm-design", Path: "/p/.agents/skills/lfm-design/SKILL.md", Version: "0.1", State: skills.Outdated}}
 	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm-design in .agents/skills is from lfm 0.1") {

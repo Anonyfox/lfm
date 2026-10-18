@@ -11,10 +11,12 @@ my-page/
   assets/             styles, scripts, images, fonts (a convention, not a rule)
   research/           human-voices.md, competitor-analysis.md (never compiled)
   concept.md          the design decisions the page is built from (never compiled)
+  deliverables/book/  optional: a book the page sells (concept.md, chapters/, images/, fonts/, book.css)
   output/             the compiled page; replaced on every successful compile
+  distribution/       the book's store packages, when it has a listing.md; never deployed
 ```
 
-Sources may live anywhere inside the folder, except `output/`. Symlinks may not leave it.
+Sources may live anywhere inside the folder, except `output/` and `distribution/`. Symlinks may not leave it.
 
 ## lfm.json
 
@@ -116,3 +118,50 @@ the process and the format. Every compile checks the file (`concept.*` rules) ag
 starter page is replaced, the page is held to its palette, typefaces and planned imagery
 (`concept.fidelity`), including the Copy section's exact `Use: "…"` and `Avoid: "…"` phrases. `Open:
 <question>` lines list what only the owner can answer (`concept.open`).
+
+## Deliverables: a book
+
+A project can ship a book alongside the page. Its folder is `deliverables/book/`, and `lfm skills book`
+prints the whole process: a book research batch, the concept, one chapter at a time, the finished files,
+delivery after payment and the store packages.
+
+```text
+deliverables/book/
+  concept.md          reader, promise (with before and after), big idea, objections, hooks, voice,
+                      devices, cases, chapters, imagery, look
+  chapters/01-name.md one Markdown file per planned chapter, starting with "# <planned title>"
+  images/             cover (1600×2560 or larger) and the images the concept plans
+  fonts/              WOFF2 files for the typefaces the concept names
+  book.css            optional: @font-face rules and refinements of lfm's book styles
+  listing.md          store texts: descriptions, back cover, author, keywords, tags, categories, prices, AI use
+```
+
+`lfm.json` holds the facts that are not creative decisions:
+
+```json
+"deliverables": {"book": {"author": "Ada Baker", "path": "k3x9m2q7w8e4r5t6y1u0", "offer": "book",
+  "publisher": "Baker Books", "imprint": "Baker Books, Example Street 1, 12345 City",
+  "paper": "cream", "isbn": {"ebook": "978-…", "paperback": "978-…"}}}
+```
+
+`path` is the unlisted folder the files are served from: at least 16 lowercase letters, digits or single
+hyphens, and the only lock on them. A compile without it prints a fresh one. `offer` names the entry in
+`data.commerce.offers` that sells the book; `formats` defaults to `["epub", "pdf"]`, `language` to the
+page's. The concept is checked like the page's (`book.concept`, `book.evidence`, `book.open`), every written
+chapter against its row (`book.chapter`) and for how it reads
+(`book.copy`): the stock phrases and habits of generated prose, from corrective framing ("It isn't X.
+It's Y.") and announcing the chapter to recap endings, bold labels and pet words, and the estimate of
+lfm's AI-text detector. `book.value` holds each chapter to what readers of practical books ask for: an
+opening inside a moment rather than a generalization, something to use within the first few hundred
+words and none of the long stretches without it, a source a reader can check, names and numbers rather
+than generic advice, and no point repeated from another chapter. The language-specific checks (phrase lists,
+readability formulas, the detector's habits) cover English, German, French, Spanish, Italian, Portuguese,
+Dutch and Polish; other languages get the structural and statistical checks. The book is built once every chapter exists; until then its download page tells buyers that
+their copy is being written, so the page can sell it first.
+
+`publisher`, `imprint` (the lines of the copyright page, such as a German Impressum), `paper` (`white` or
+`cream`, which sets the paperback's spine) and the ISBNs are optional; an ISBN is checked against its check
+digit and printed on the copyright page, and the paperback's draws its barcode on the back cover.
+`listing.md` is checked against the strictest store's limits (`book.listing`) and rendered into every
+channel's format; see [compiling](compiling.md#store-packages).
+

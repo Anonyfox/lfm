@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
@@ -56,26 +57,30 @@ type File struct {
 
 // Result describes a compile, filled as far as the lifecycle got.
 type Result struct {
-	Root       string              `json:"root"`
-	Output     string              `json:"output"`
-	PageURL    string              `json:"url,omitempty"`
-	Files      []File              `json:"files"`
-	Artifact   map[string][]byte   `json:"-"` // emitted bytes by file name
-	External   []string            `json:"externalAssets,omitempty"`
-	Validation *check.Report       `json:"validation,omitempty"`
-	Published  bool                `json:"published"`
-	Release    *release.Result     `json:"release,omitempty"`
-	Packing    []AssetDecision     `json:"assets,omitempty"`
-	Cost       *Cost               `json:"cost,omitempty"`
-	Compaction *htmlcompact.Result `json:"htmlCompaction,omitempty"`
-	Images     []imaging.Decision  `json:"images,omitempty"`
-	Fonts      []fontcheck.Info    `json:"fonts,omitempty"`
-	Research   research.Summary    `json:"research"`
-	Concept    concept.Summary     `json:"concept"`
-	FontHints  int                 `json:"fontHintRepairs,omitempty"`
-	Starter    bool                `json:"starter"` // the template is still the starter page of lfm init
-	Inputs     []string            `json:"-"`       // resolved source files, for watchers
-	Duration   time.Duration       `json:"-"`
+	Root     string            `json:"root"`
+	Output   string            `json:"output"`
+	PageURL  string            `json:"url,omitempty"`
+	Files    []File            `json:"files"`
+	Artifact map[string][]byte `json:"-"` // emitted bytes by file name
+	// Distribution holds the store packages of deliverables by file name,
+	// published to distribution/ and never deployed; empty removes the folder.
+	Distribution map[string][]byte   `json:"-"`
+	External     []string            `json:"externalAssets,omitempty"`
+	Validation   *check.Report       `json:"validation,omitempty"`
+	Published    bool                `json:"published"`
+	Release      *release.Result     `json:"release,omitempty"`
+	Packing      []AssetDecision     `json:"assets,omitempty"`
+	Cost         *Cost               `json:"cost,omitempty"`
+	Compaction   *htmlcompact.Result `json:"htmlCompaction,omitempty"`
+	Images       []imaging.Decision  `json:"images,omitempty"`
+	Fonts        []fontcheck.Info    `json:"fonts,omitempty"`
+	Research     research.Summary    `json:"research"`
+	Concept      concept.Summary     `json:"concept"`
+	FontHints    int                 `json:"fontHintRepairs,omitempty"`
+	Starter      bool                `json:"starter"` // the template is still the starter page of lfm init
+	Book         *book.Summary       `json:"book,omitempty"`
+	Inputs       []string            `json:"-"` // resolved source files, for watchers
+	Duration     time.Duration       `json:"-"`
 }
 
 // Errors and Warnings count the reported diagnostics.
@@ -168,7 +173,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	loaded := project.Load(p, ruleCheck)
 	c := loaded.Config
 	result.PageURL = c.URL
-	findings, facts := checkResearch(p, &result, c.Build.Validation.Rules)
+	findings, facts, researched := checkResearch(p, &result, c.Build.Validation.Rules)
 	var starterTexts []string
 	var starterImages [][32]byte
 	if page, err := p.Read(project.TemplateFile); err == nil && !scaffold.IsStarterPage(page) {
@@ -179,6 +184,13 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
+	var shelf *book.Report
+	if book.Present(p) && len(loaded.Problems) == 0 {
+		var bookFindings []diagnostic.Diagnostic
+		shelf, bookFindings = checkBook(p, loaded, prepared.Commerce, researched)
+		result.Book = &shelf.Summary
+		findings = append(findings, diagnostic.Apply(bookFindings, c.Build.Validation.Rules)...)
+	}
 	preliminary = *summarize(preliminary.Stage, append(preliminary.Diagnostics, findings...))
 	result.Validation = &preliminary
 	if err != nil {
@@ -245,13 +257,35 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if result.Errors() > 0 {
 		return result, &Failure{Errors: result.Errors()}
 	}
+	// The audit loads only the page; it runs while the book is delivered.
+	var audit *release.AuditResult
+	auditDone := make(chan struct{})
+	if options.Release && ctx.Err() == nil {
+		go func() {
+			defer close(auditDone)
+			audit = release.Audit(page, b.sidecars(), p.Root)
+		}()
+	} else {
+		close(auditDone)
+	}
+	defer func() { <-auditDone }() // never leave the browser running behind a return
+	if shelf != nil {
+		delivered := deliverBook(p, shelf, page, options.Release, &result)
+		stats := result.Validation.Stats
+		result.Validation = summarize(result.Validation.Stage, append(result.Validation.Diagnostics, diagnostic.Apply(delivered, c.Build.Validation.Rules)...))
+		result.Validation.Stats = stats
+		if result.Errors() > 0 {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
 
 	// 7. audit
 	if options.Release && ctx.Err() == nil {
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
-		result.Release.Audit = release.Audit(page, b.sidecars(), p.Root)
+		<-auditDone
+		result.Release.Audit = audit
 		audited := append(result.Validation.Diagnostics, diagnostic.Apply(result.Release.Audit.Diagnostics, c.Build.Validation.Rules)...)
 		stats := result.Validation.Stats
 		result.Validation = summarize("audit", audited)
@@ -268,6 +302,17 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if options.Publish {
 		if err := publish(p, result.Artifact); err != nil {
 			return result, err
+		}
+		switch {
+		case result.Distribution == nil:
+		case len(result.Distribution) == 0:
+			if err := unpublish(p, project.DistributionDir); err != nil {
+				return result, err
+			}
+		default:
+			if err := publishTo(p, project.DistributionDir, result.Distribution); err != nil {
+				return result, err
+			}
 		}
 		result.Published = true
 	}
@@ -425,7 +470,7 @@ func diagnostics(r Result) []diagnostic.Diagnostic {
 // checkResearch checks the research files and concept.md that exist. They are
 // never build inputs; their findings join the report so both stay exact as
 // they grow, and the concept's decisions become facts the page is held to.
-func checkResearch(p project.Project, result *Result, rules map[string]diagnostic.Severity) ([]diagnostic.Diagnostic, *check.ConceptFacts) {
+func checkResearch(p project.Project, result *Result, rules map[string]diagnostic.Severity) ([]diagnostic.Diagnostic, *check.ConceptFacts, research.Report) {
 	files := map[string][]byte{}
 	for _, name := range []string{research.VoicesFile, research.CompetitorsFile} {
 		if raw, err := p.Read(project.ResearchDir + "/" + name); err == nil {
@@ -437,7 +482,7 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	findings := r.Diagnostics
 	raw, err := p.Read(concept.File)
 	if err != nil {
-		return diagnostic.Apply(findings, rules), nil
+		return diagnostic.Apply(findings, rules), nil, r
 	}
 	c := concept.Check(string(raw), r.Voices, r.Competitors)
 	result.Concept = c.Summary
@@ -445,8 +490,8 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	// The page is held to the concept once it is built; the untouched starter
 	// page of lfm init has nothing to hold yet.
 	if page, err := p.Read(project.TemplateFile); err == nil && scaffold.IsStarterPage(page) {
-		return diagnostic.Apply(findings, rules), nil
+		return diagnostic.Apply(findings, rules), nil, r
 	}
 	facts := &check.ConceptFacts{Colors: c.Summary.DeclaredColors, Families: c.Summary.Families, Imagery: c.Summary.Imagery, Use: c.Summary.Use, Avoid: c.Summary.Avoid}
-	return diagnostic.Apply(findings, rules), facts
+	return diagnostic.Apply(findings, rules), facts, r
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
@@ -104,6 +105,7 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	}
 	fmt.Fprintln(w, line)
 	renderFiles(w, s, r)
+	renderBook(w, s, r.Book, r.Files)
 	renderResearch(w, s, r.Research)
 	renderConcept(w, s, r.Concept)
 	renderRelease(w, s, r.Release)
@@ -128,6 +130,9 @@ func renderFiles(w io.Writer, s term.Style, r compile.Result) {
 		if f.Name == "index.html" {
 			page = f
 			continue
+		}
+		if strings.Contains(f.Name, "/") {
+			continue // deliverables, listed by their own line
 		}
 		assets = append(assets, f)
 		total += f.Bytes
@@ -288,4 +293,56 @@ func renderConcept(w io.Writer, s term.Style, c concept.Summary) {
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(fmt.Sprintf("cites %s from %s and %s · %s · %s · %s",
 		term.Plural(c.Voices, "voice"), term.Plural(c.Platforms, "platform"), term.Plural(c.Peers, "peer"),
 		term.Plural(c.Colors, "color"), term.Plural(c.Faces, "typeface"), term.Plural(c.Imagery, "planned image"))))
+}
+
+// renderBook summarizes the book deliverable: progress while it is written,
+// its files once built, and where buyers download it.
+func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File) {
+	if b == nil {
+		return
+	}
+	if !b.Concept {
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("book", 12), s.Dim("no deliverables/book/concept.md yet"))
+		return
+	}
+	title := b.Title
+	if title == "" {
+		title = "untitled"
+	}
+	line := fmt.Sprintf("%s · %d of %d chapters · %s of %s words", title, b.Written, len(b.Chapters), groupDigits(b.Words), groupDigits(b.Target))
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("book", 12), line)
+	var built []string
+	for _, f := range files {
+		for _, name := range b.Files {
+			if strings.HasSuffix(f.Name, "/"+name) {
+				built = append(built, strings.ToUpper(strings.TrimPrefix(path.Ext(name), "."))+" "+term.Bytes(f.Bytes))
+			}
+		}
+	}
+	detail := "presale: the download page says the copy is being written"
+	if len(built) > 0 {
+		detail = strings.Join(built, ", ")
+	}
+	if b.Pending {
+		detail += " · the PDF and paperback print with --release"
+	}
+	if b.Layout != "" {
+		detail += " · " + b.Layout
+	}
+	if b.URL != "" {
+		detail += " · " + b.URL
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
+	if len(b.Channels) > 0 {
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), fmt.Sprintf("distribution/ · %d channels", len(b.Channels)))
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(b.Channels, ", ")))
+	}
+}
+
+func groupDigits(n int) string {
+	s := fmt.Sprint(n)
+	for i := len(s) - 3; i > 0; i -= 3 {
+		s = s[:i] + "," + s[i:]
+	}
+	return s
 }

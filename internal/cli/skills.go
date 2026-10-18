@@ -18,8 +18,8 @@ var skillsCommand = command{
 	summary: "Print or install the process guides for agents",
 	details: `
 A page is made in three phases, each with a skill: research, design and
-implementation. Without arguments, lists them; with a topic, prints that
-SKILL.md for this version of lfm.
+implementation. A book the page sells has the book skill. Without arguments,
+lists them; with a topic, prints that SKILL.md for this version of lfm.
 
 install writes all of them into the project (default: the current directory)
 where agents load skills, as <folder>/lfm-<topic>/SKILL.md:

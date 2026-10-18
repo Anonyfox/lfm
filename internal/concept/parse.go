@@ -15,11 +15,14 @@ import (
 // File is concept.md in the project root.
 const File = "concept.md"
 
-// Section names in their required order. Optional ones may be omitted.
-var Sections = []struct {
+// SectionSpec names one section of a format and whether it may be omitted.
+type SectionSpec struct {
 	Name     string
 	Optional bool
-}{
+}
+
+// Sections are the sections of concept.md in their required order.
+var Sections = []SectionSpec{
 	{"Diagnosis", true},
 	{"Voices", false},
 	{"Buyer", false},
@@ -81,18 +84,24 @@ func StripCitations(text string) string {
 
 // Parse splits concept.md into its sections.
 func Parse(text string) (Document, []Problem) {
+	return ParseFormat(text, "# Concept: ", "<project>", Sections)
+}
+
+// ParseFormat splits a concept-style file into the given sections. The first
+// line must be title followed by a name; placeholder names it in messages.
+func ParseFormat(text, title, placeholder string, sections []SectionSpec) (Document, []Problem) {
 	d := Document{Sections: map[string]*Section{}}
 	var problems []Problem
 	add := func(n int, message, hint string) { problems = append(problems, Problem{n, message, hint}) }
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
-	if title, ok := strings.CutPrefix(lines[0], "# Concept: "); ok && strings.TrimSpace(title) != "" {
-		d.Title = strings.TrimSpace(title)
+	if name, ok := strings.CutPrefix(lines[0], title); ok && strings.TrimSpace(name) != "" {
+		d.Title = strings.TrimSpace(name)
 	} else {
-		add(1, "The file must start with \"# Concept: <project>\".", "Restore the title line.")
+		add(1, "The file must start with \""+title+placeholder+"\".", "Restore the title line.")
 	}
 	known := map[string]int{}
-	for i, s := range Sections {
+	for i, s := range sections {
 		known[s.Name] = i
 	}
 	var current *Section
@@ -129,7 +138,7 @@ func Parse(text string) (Document, []Problem) {
 		}
 		current.Lines = append(current.Lines, Line{n, line})
 	}
-	for _, s := range Sections {
+	for _, s := range sections {
 		if !s.Optional && d.Sections[s.Name] == nil {
 			add(len(lines), "Missing section "+s.Name+".", "Every decision needs its section; write it even if the answer is short.")
 		}

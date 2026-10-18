@@ -71,7 +71,8 @@ func (m *monitor) snapshot() map[string]stamp {
 		}
 		relative, _ := filepath.Rel(m.root, path)
 		if entry.IsDir() {
-			if path != m.root && (strings.HasPrefix(entry.Name(), ".") || entry.Name() == "node_modules" || relative == project.OutputDir || strings.HasPrefix(relative, project.OutputDir+".next-")) {
+			if path != m.root && (strings.HasPrefix(entry.Name(), ".") || entry.Name() == "node_modules" || relative == project.OutputDir || strings.HasPrefix(relative, project.OutputDir+".next-") ||
+				relative == project.DistributionDir || strings.HasPrefix(relative, project.DistributionDir+".next-")) {
 				return filepath.SkipDir
 			}
 			return nil

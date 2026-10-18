@@ -12,6 +12,8 @@ one package per responsibility, each testable on its own.
 | `project` | The fixed layout, the source boundary every read goes through, and `lfm.json` loading. |
 | `scaffold` | The embedded starter project written by `lfm init`. |
 | `skills` | Agent Skills embedded in the binary, rendered with its facts, stamped, installed and found on disk. |
+| `aitext` | The AI-text estimate: language-agnostic features (burstiness, punctuation, lexical diversity, compression against model-written text, repetition) plus the habits and fillers of eight western languages, scored by models fitted on labelled human and generated text in those languages. Used by `copy.machine` and the book's prose checks. |
+| `book` | The book deliverable: its concept, chapter, prose and listing checks, the EPUB, the print documents, the cover wrap and the download page, and the store packages per channel. |
 | `compile` | The compile lifecycle and the assemble stage: bundling with esbuild, packing, images, fonts, hints. |
 | `research` | Parses, checks and summarizes the two research files. |
 | `concept` | Parses `concept.md`, the design handover, and checks it against the research. |

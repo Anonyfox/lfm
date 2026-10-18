@@ -248,16 +248,19 @@
   };
   const signature = async () => {
     // let script-driven intros finish: wait until two reads agree, at most ~2 s
-    let first = describeAll();
+    // Reads are compared as sets: identical elements (icons, list items)
+    // repeat a line, and that is no change.
+    let first = new Set(describeAll());
     await settleFrames();
     let second = new Set(describeAll());
-    for (let tries = 0; tries < 12 && (first.length !== second.size || first.some((l) => !second.has(l))); tries++) {
+    const differ = () => first.size !== second.size || [...first].some((l) => !second.has(l));
+    for (let tries = 0; tries < 12 && differ(); tries++) {
       await new Promise((r) => setTimeout(r, 150));
-      first = [...second];
+      first = second;
       await settleFrames();
       second = new Set(describeAll());
     }
-    return [...new Set(first.filter((line) => second.has(line)).map(hash))];
+    return [...new Set([...first].filter((line) => second.has(line)).map(hash))];
   };
 
   const motionProps = /transform|translate|rotate|scale|offset|^left|^top|^right|^bottom|margin/i;
@@ -319,6 +322,13 @@
     // Animations that loop or run a second or longer and change a motion
     // property, and elements a script moves (their box changes between two
     // samples while the page stands still).
+    // visit scrolls to y and lets one frame render there, so scroll-triggered
+    // effects start as they would on the way down.
+    async visit(y) {
+      window.scrollTo({ top: y, left: 0, behavior: "instant" });
+      await settleFrames();
+    },
+
     async moving(y) {
       window.scrollTo({ top: y, left: 0, behavior: "instant" });
       await settleFrames();

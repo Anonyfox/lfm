@@ -120,7 +120,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintf(w, "%s compiles agent-built sales pages into fast, checked, static output.\n\n", s.Bold("lfm"))
 	fmt.Fprintln(w, "Start a page:")
 	fmt.Fprintln(w, "  lfm init my-page && cd my-page")
-	fmt.Fprintln(w, "  lfm skills install    the research, design and implementation skills, where your agent loads them")
+	fmt.Fprintln(w, "  lfm skills install    the process skills (research, design, implementation, book) for your agent")
 	fmt.Fprintln(w, "  lfm compile           after every change; it reports findings and the next step")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")

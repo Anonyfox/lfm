@@ -14,6 +14,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
@@ -37,6 +38,22 @@ type Data struct {
 	ConceptFile  string // the design handover
 	Design       Design // minimums concept.md must meet
 	Screens      string // the screen sizes of the release layout audit
+	Book         Book   // the book deliverable
+}
+
+// Book holds the layout and minimums of the book deliverable.
+type Book struct {
+	Dir, Concept                     string
+	MinChapters, MinVoices, MinPeers int
+	MinWords, MaxWords, Tolerance    int // word target bounds; Tolerance in percent
+	CoverWidth, CoverHeight          int
+	MinPath                          int
+	MinObjections                    int
+	Listing, Distribution            string
+	MaxDescription, MinDescription   int
+	MaxShort, MaxBackCover           int
+	MaxKeywords, MaxTags, MaxTag     int
+	Channels                         string
 }
 
 // Design holds the minimums the compiler checks in concept.md.
@@ -59,6 +76,16 @@ func NewData(version string) Data {
 		Methods:      strings.Join(research.Methods, " | "),
 		ConceptFile:  concept.File,
 		Screens:      screens(),
+		Book: Book{
+			Dir: book.Dir, Concept: book.ConceptFile, MinChapters: book.MinChapters, MinVoices: book.MinVoices, MinPeers: book.MinPeers,
+			MinWords: book.MinWords, MaxWords: book.MaxWords, Tolerance: int(book.WordTolerance * 100),
+			CoverWidth: book.CoverWidth, CoverHeight: book.CoverHeight, MinPath: book.MinPathLength,
+			MinObjections: book.MinObjections,
+			Listing:       book.ListingFile, Distribution: project.DistributionDir,
+			MaxDescription: book.MaxDescription, MinDescription: book.MinDescription, MaxShort: book.MaxShort, MaxBackCover: book.MaxBackCover,
+			MaxKeywords: book.MaxKeywords, MaxTags: book.MaxTags, MaxTag: book.MaxTagLength,
+			Channels: strings.Join(book.Channels(), ", "),
+		},
 		Design: Design{
 			MinVoiceNotes: concept.MinVoiceNotes, MinPathSteps: concept.MinPathSteps, MinRejected: concept.MinRejected,
 			MinFacts: concept.MinFacts, MinAxes: concept.MinAxes, MinSparks: concept.MinSparks, MaxSparks: concept.MaxSparks,
@@ -88,7 +115,7 @@ type Skill struct {
 }
 
 // lifecycle orders the skills as a project uses them; others follow by name.
-var lifecycle = []string{"research", "design", "implementation"}
+var lifecycle = []string{"research", "design", "implementation", "book"}
 
 func rank(topic string) int {
 	for i, t := range lifecycle {

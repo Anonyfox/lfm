@@ -4,7 +4,7 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
 ## Start here
 
-Run `lfm skills install` once. It puts the research, design and implementation skills where your
+Run `lfm skills install` once. It puts the research, design, implementation and book skills where your
 agent loads them (`.agents/skills`, or `.claude/skills` under Claude Code); run it again after
 updating lfm. Without installed skills, `lfm skills <topic>` prints the one you need.
 
@@ -30,6 +30,8 @@ review or deploy) and the skill that covers it. Follow that line until it says d
 | `data/` | Optional JSON files, available as `.data.<file name>` |
 | `research/` | `human-voices.md` and `competitor-analysis.md`: real sources, verbatim |
 | `concept.md` | The design decisions, written by the design skill and cited to research |
+| `deliverables/book/` | Optional: a book the page sells, planned in its `concept.md`, chapters in `chapters/`, store texts in `listing.md` |
+| `distribution/` | The book's store packages, written by `lfm compile`. Never edit or deploy it |
 | `output/` | The compiled page. Never edit it; deploy it as is |
 
 ## Working rules
@@ -42,6 +44,8 @@ Every page goes through three phases, each with its own skill:
    `lfm compile --release` holds up on phone and desktop.
 
 - Never skip a phase: a page built without research and a concept is the typical generated page.
+- A book the page sells is written with the book skill (`lfm skills book`): its own concept, then one
+  chapter at a time; `lfm compile` builds it and publishes it behind an unlisted download page.
 - New customer signals go into research first, then into `concept.md` with a changelog entry, then the page.
 - Reference local files from the template; `{{style "…"}}` and `{{script "…"}}` bundle CSS and JS.
 - Keep product facts in `lfm.json` under `data`, not hardcoded in markup.

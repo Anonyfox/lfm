@@ -11,6 +11,8 @@ require (
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/piprate/json-gold v0.9.1
 	github.com/tdewolff/parse/v2 v2.8.17
+	github.com/yuin/goldmark v1.8.6
+	golang.org/x/image v0.46.0
 	golang.org/x/net v0.61.0
 	golang.org/x/text v0.43.0
 )

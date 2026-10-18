@@ -72,7 +72,7 @@ func Check(t *htmltemplate.Template, options Options) diagnostic.Summary {
 	for _, issue := range options.Sources.Issues {
 		c.add(issue)
 	}
-	for _, key := range []string{"schemaVersion", "url", "build"} {
+	for _, key := range []string{"schemaVersion", "url", "build", "deliverables"} {
 		c.whole[key] = true
 	}
 	c.browserData()

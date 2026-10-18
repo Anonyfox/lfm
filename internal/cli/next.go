@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/compile"
+	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/term"
@@ -17,7 +18,7 @@ import (
 // next is the step a compile points to: the phase a project is in, or what
 // is left before it ships. Agents read it to stay on the intended path.
 type next struct {
-	Phase string   `json:"phase"` // research, design, implementation, fix, review, deploy
+	Phase string   `json:"phase"` // research, design, implementation, book, fix, review, deploy
 	Do    string   `json:"do"`
 	Skill string   `json:"skill,omitempty"` // the skill that covers the step
 	Notes []string `json:"notes,omitempty"`
@@ -41,7 +42,7 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		if have[n.Skill] {
 			return "Follow the " + n.Skill + " skill; if it is not loaded, 'lfm skills " + topic + "' prints it."
 		}
-		return "Follow 'lfm skills " + topic + "', or install all three with 'lfm skills install'."
+		return "Follow 'lfm skills " + topic + "', or install them all with 'lfm skills install'."
 	}
 	switch {
 	case err != nil || r.Errors() > 0:
@@ -52,16 +53,48 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "design", "write concept.md from the research. "+skill("design")
 	case r.Starter:
 		n.Phase, n.Do = "implementation", "replace the starter page with the page concept.md describes. "+skill("implementation")
+	case r.Book != nil && r.Book.Complete && !r.Book.Listing:
+		n.Phase, n.Do = "book", "write deliverables/book/listing.md, the store texts lfm renders into every channel's package under distribution/. "+skill("book")
+	case r.Book != nil && bookFindings(r) > 0:
+		then := " before the next piece of the book"
+		if r.Book.Complete {
+			then = ""
+		}
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above%s. %s", term.Plural(bookFindings(r), "book finding"), then, skill("book"))
+	case r.Book != nil && !r.Book.Concept:
+		n.Phase, n.Do = "book", "write deliverables/book/concept.md from the research. "+skill("book")
+	case r.Book != nil && r.Book.Next() != nil:
+		ch := r.Book.Next()
+		n.Phase = "book"
+		n.Do = fmt.Sprintf("write deliverables/book/%s, chapter %d of %d, \"%s\" (about %d words): %s. %s", ch.File, ch.N, len(r.Book.Chapters), ch.Title, ch.Words, strings.TrimSuffix(ch.Job, "."), skill("book"))
+		if r.Book.URL != "" {
+			n.Notes = append(n.Notes, "The page can sell the book now: buyers who pay land on "+r.Book.URL+", which tells them their copy is being written.")
+		}
+		if machine := ruleCount(r, "book.machine"); machine > 0 {
+			n.Notes = append(n.Notes, fmt.Sprintf("%s read as generated to AI-text detectors (book.machine); revise them in the whole-book pass.", term.Plural(machine, "chapter")))
+		}
+		if page := pageWarnings(r); page > 0 {
+			n.Notes = append(n.Notes, fmt.Sprintf("The page itself has %s to resolve before it ships.", term.Plural(page, "warning")))
+		}
 	case r.Warnings() > 0:
 		n.Phase, n.Do = "fix", "resolve the warnings above; a page is done at 0 errors and 0 warnings."
 	case r.Release == nil:
 		n.Phase, n.Do = "review", "run 'lfm compile --release' and look at every frame it saves, at phone and desktop size."
+		if r.Book != nil && r.Book.Pending {
+			n.Notes = append(n.Notes, "The release also prints the book's PDF and paperback; open them and look at every page.")
+		}
 	default:
 		where := "the static host"
 		if r.PageURL != "" {
 			where = r.PageURL
 		}
 		n.Phase, n.Do = "deploy", "upload output/ as is to "+where+"."
+		if r.Book != nil && r.Book.URL != "" {
+			n.Notes = append(n.Notes, "In Stripe, set the book's Payment Link to redirect after payment to "+r.Book.URL+" and add that address to the invoice footer, so buyers also get it by email.")
+		}
+		if r.Book != nil && len(r.Book.Channels) > 0 {
+			n.Notes = append(n.Notes, "To sell the book in stores too, distribution/README.md lists every channel; each guide in distribution/stores/ names the files to upload and the fields to paste.")
+		}
 	}
 	return n
 }
@@ -117,4 +150,47 @@ func printJSON(w io.Writer, r compile.Result, n next, installed []skills.Copy) e
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(out)
+}
+
+// ruleCount counts the findings of one rule.
+func ruleCount(r compile.Result, rule string) int {
+	if r.Validation == nil {
+		return 0
+	}
+	n := 0
+	for _, d := range r.Validation.Diagnostics {
+		if d.Rule == rule {
+			n++
+		}
+	}
+	return n
+}
+
+// bookFindings counts the warnings about the book, which come before writing
+// the next piece of it.
+func bookFindings(r compile.Result) int {
+	if r.Validation == nil {
+		return 0
+	}
+	n := 0
+	for _, d := range r.Validation.Diagnostics {
+		if strings.HasPrefix(d.Rule, "book.") && d.Rule != "book.open" && d.Rule != "book.machine" {
+			n++
+		}
+	}
+	return n
+}
+
+// pageWarnings counts the warnings that are not about the book.
+func pageWarnings(r compile.Result) int {
+	if r.Validation == nil {
+		return 0
+	}
+	n := 0
+	for _, d := range r.Validation.Diagnostics {
+		if d.Severity == diagnostic.Warning && !strings.HasPrefix(d.Rule, "book.") {
+			n++
+		}
+	}
+	return n
 }

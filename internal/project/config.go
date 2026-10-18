@@ -29,7 +29,34 @@ type Config struct {
 	URLs          map[string]string `json:"urls"`
 	JSONLD        any               `json:"jsonld,omitempty"`
 	Build         Build             `json:"build"`
+	Deliverables  Deliverables      `json:"deliverables"`
 	Data          map[string]any    `json:"data"`
+}
+
+// Deliverables configures what buyers receive besides the page. A book in
+// deliverables/book needs its book entry.
+type Deliverables struct {
+	Book *BookConfig `json:"book"`
+}
+
+// BookConfig is deliverables.book: the facts of the book that are not creative
+// decisions, and the unlisted folder its files are served from.
+type BookConfig struct {
+	Author    string   `json:"author"`
+	Language  string   `json:"language"`
+	Path      string   `json:"path"`
+	Offer     string   `json:"offer"`
+	Formats   []string `json:"formats"`
+	Publisher string   `json:"publisher"` // imprint name on the title and copyright pages
+	Imprint   string   `json:"imprint"`   // free text for the copyright page, e.g. a publisher address
+	Paper     string   `json:"paper"`     // white or cream, for print editions
+	ISBN      BookISBN `json:"isbn"`
+}
+
+// BookISBN holds an ISBN per edition; each is optional.
+type BookISBN struct {
+	Ebook     string `json:"ebook"`
+	Paperback string `json:"paperback"`
 }
 
 type SocialImage struct {
@@ -91,11 +118,14 @@ type Loaded struct {
 type RuleCheck func(id string, level diagnostic.Severity) error
 
 var schema = map[string][]string{
-	"":                 {"schemaVersion", "url", "language", "title", "description", "socialImage", "links", "urls", "jsonld", "build", "data"},
-	"socialImage":      {"src", "alt"},
-	"build":            {"assets", "browserData", "validation"},
-	"build.assets":     {"default", "overrides"},
-	"build.validation": {"rules"},
+	"":                       {"schemaVersion", "url", "language", "title", "description", "socialImage", "links", "urls", "jsonld", "build", "deliverables", "data"},
+	"deliverables":           {"book"},
+	"deliverables.book":      {"author", "language", "path", "offer", "formats", "publisher", "imprint", "paper", "isbn"},
+	"deliverables.book.isbn": {"ebook", "paperback"},
+	"socialImage":            {"src", "alt"},
+	"build":                  {"assets", "browserData", "validation"},
+	"build.assets":           {"default", "overrides"},
+	"build.validation":       {"rules"},
 }
 
 // Load reads and validates the configuration. It never stops at the first

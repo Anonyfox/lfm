@@ -15,7 +15,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -259,7 +259,14 @@ func (p *preview) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if name != filepath.Base(name) || strings.ContainsAny(name, `/\`) || name == "." || name == ".." {
+	// Deliverables live one folder deep, such as a book's unlisted download path.
+	if strings.HasSuffix(name, "/") {
+		name += "index.html"
+	} else if _, ok := current.Files[name+"/index.html"]; ok {
+		http.Redirect(w, r, r.URL.Path+"/", http.StatusTemporaryRedirect)
+		return
+	}
+	if path.Clean(name) != name || strings.Contains(name, `\`) || strings.HasPrefix(name, "..") || strings.Count(name, "/") > 1 {
 		http.NotFound(w, r)
 		return
 	}

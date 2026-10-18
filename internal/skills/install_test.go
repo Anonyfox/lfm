@@ -38,10 +38,10 @@ func TestStampIsVerifiable(t *testing.T) {
 func TestInstallUpdatesOnlyUntouchedCopies(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), AgentsDir)
 	changes, err := Install(dir, NewData("1.0.0"), false)
-	if err != nil || actions(changes) != "lfm-research=created lfm-design=created lfm-implementation=created" {
+	if err != nil || actions(changes) != "lfm-research=created lfm-design=created lfm-implementation=created lfm-book=created" {
 		t.Fatalf("%s %v", actions(changes), err)
 	}
-	if changes, _ := Install(dir, NewData("1.0.0"), false); actions(changes) != "lfm-research=unchanged lfm-design=unchanged lfm-implementation=unchanged" {
+	if changes, _ := Install(dir, NewData("1.0.0"), false); actions(changes) != "lfm-research=unchanged lfm-design=unchanged lfm-implementation=unchanged lfm-book=unchanged" {
 		t.Fatalf("second run: %s", actions(changes))
 	}
 	design := filepath.Join(dir, "lfm-design", "SKILL.md")
@@ -55,7 +55,7 @@ func TestInstallUpdatesOnlyUntouchedCopies(t *testing.T) {
 	write(gone, stamp("---\nname: lfm-retired\ndescription: old\n---\nbody\n", "0.9.0"))
 
 	changes, err = Install(dir, NewData("1.0.1"), false)
-	if err != nil || actions(changes) != "lfm-research=kept lfm-design=kept lfm-implementation=updated lfm-retired=removed" {
+	if err != nil || actions(changes) != "lfm-research=kept lfm-design=kept lfm-implementation=updated lfm-book=updated lfm-retired=removed" {
 		t.Fatalf("update: %s %v", actions(changes), err)
 	}
 	if changes[0].Reason != "not written by lfm; --force replaces it" || changes[1].Reason != "changed in this project; --force replaces it" || changes[2].Reason != "was lfm 1.0.0" {
@@ -68,7 +68,7 @@ func TestInstallUpdatesOnlyUntouchedCopies(t *testing.T) {
 		t.Fatal("the dropped skill is still installed")
 	}
 	changes, _ = Install(dir, NewData("1.0.1"), true)
-	if actions(changes) != "lfm-research=replaced lfm-design=replaced lfm-implementation=unchanged" {
+	if actions(changes) != "lfm-research=replaced lfm-design=replaced lfm-implementation=unchanged lfm-book=unchanged" {
 		t.Fatalf("force: %s", actions(changes))
 	}
 	if raw, _ := os.ReadFile(filepath.Join(dir, "lfm-design", "notes.md")); string(raw) != "ours" {
@@ -90,7 +90,7 @@ func TestFindWalksUpAndCountsLinkedFoldersOnce(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, ".claude"), 0o755)
 	os.Symlink(filepath.Join(root, AgentsDir), filepath.Join(root, ClaudeDir))
 	found := Find(project, NewData("1.0.1"))
-	if len(found) != 3 || found[0].State != Outdated || found[0].Version != "1.0.0" {
+	if len(found) != 4 || found[0].State != Outdated || found[0].Version != "1.0.0" {
 		t.Fatalf("%+v", found)
 	}
 }

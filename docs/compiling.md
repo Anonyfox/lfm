@@ -11,6 +11,7 @@ of them report through the same findings, so a single run lists everything that 
 | optimize | `--release` only: split critical CSS after measuring it in headless Chrome. |
 | finalize | Serialize and compact the HTML. |
 | verify | Run every check on the exact bytes that will be written. |
+| deliver | When `deliverables/book/` exists: build the EPUB and the download page; with `listing.md`, assemble the store packages in `distribution/`. The PDF, the paperback and its covers are printed in Chrome by `--release` and reused by every later compile while the book is unchanged. |
 | audit | `--release` only: a runtime probe, the layout audit and, when installed, Lighthouse. |
 | publish | Replace `output/` with one rename. |
 
@@ -46,9 +47,57 @@ stay exactly as written. Each compacted result is parsed and compared with the o
 `output/` contains `index.html` plus the emitted files, flat, ready to upload to any static host at the
 configured `url`. It is replaced as a whole; there are no stale files, sources or reports in it.
 
+A book adds one folder named after `deliverables.book.path`: an `index.html` download page (marked
+noindex, sending no referrer) and, once every chapter is written, `<slug>.epub` and `<slug>.pdf`, named after the title. The
+EPUB is EPUB 3 with a navigation document and an NCX for older readers, built reproducibly and checked by
+lfm itself: mimetype first and stored, every manifest item present and every file declared, every link
+resolving. The PDF is printed at the concept's trim size with page numbers, a cover page and a linked
+contents page. Printing takes Chrome and seconds, so only `--release` prints: every PDF it writes carries
+the key of the inputs it was printed from in its document information, and any later compile, `lfm serve`
+included, reuses a PDF from `output/` or `distribution/` whose key still matches. An ordinary compile of a
+changed book keeps the EPUB current and leaves the PDF out until the next release; the report says so. The page
+itself must never contain the path (`book.delivery`). Stripe's after-payment redirect and the invoice
+email are how buyers get there; `lfm compile` prints the address.
+
+### Store packages
+
+With `deliverables/book/listing.md`, the same compile writes `distribution/` next to `output/`:
+
+```text
+distribution/
+  README.md                 every channel, what is ready, the decisions left to the owner
+  <slug>.epub               the ebook, named after the title
+  <slug>.pdf                the PDF, for stores that sell one
+  cover.jpg                 the store cover
+  paperback-interior.pdf    the print interior
+  paperback-cover-kdp.pdf   a full cover wrap per spine formula a channel uses (kdp, lulu)
+  stores/kdp.md             one guide per channel
+```
+
+Each file is there once. A guide in `stores/` (Amazon KDP, Apple Books, Google Play Books, Kobo, tolino,
+Barnes & Noble, Draft2Digital, IngramSpark, Lulu, Etsy, Gumroad, Payhip) links the files its channel takes
+and holds every field in its format, ready to paste: KDP's HTML description, plain text for Apple and
+Kobo, the Etsy title and tags, royalty bands for the listed prices and the AI disclosure each store asks
+for. Channels that refuse AI-generated books are left out when the listing declares generated text.
+
+- The EPUB carries EPUB Accessibility 1.1 metadata, the BISAC subjects and the ebook ISBN.
+- `cover.jpg` is the cover as an RGB JPEG under 5 MB.
+- `paperback-interior.pdf` is printed at the trim with mirrored margins, an inside margin that grows with
+  the page count as KDP requires, chapters on right-hand pages, page numbers in the contents, no links or
+  bookmarks, and an even page count ending on a blank page. A measuring print finds the pages first.
+- `paperback-cover-<formula>.pdf` is the full wrap with bleed: back cover text and barcode, spine (titled
+  from 79 pages), front. It is laid out for KDP's and Lulu's spine formulas when one of them takes the
+  paperback; the other printers use their own templates.
+
+`book.channels` warns where a channel would refuse a file: too few pages, a front cover below 300 dpi
+(add `images/cover-print.jpg`), a trim KDP does not print, transparency in a print file. `distribution/` is
+never deployed, never read as a source and ignored by `lfm serve`; the scaffold's `.gitignore` excludes it.
+It is removed when `listing.md` is.
+
 Compiles of the same project are serialized across processes by locking the project directory; no lock
 file is created, and a second compile waits and says so. Nothing is written into the project except
-`output/` and, only while publishing, a sibling `output.next-*` folder that the swap removes again.
+`output/`, `distribution/` for a book with a listing, and, only while publishing, sibling `*.next-*`
+folders that the swap removes again.
 Ctrl-C stops a compile between stages; a stopped compile never publishes.
 
 ## Release
@@ -60,7 +109,8 @@ Ctrl-C stops a compile between stages; a stopped compile never publishes.
    applied only when it removes at least 2 KiB and 20% of render-blocking CSS.
 2. **Runtime probe and layout audit** (90 s): the page runs with its scripts in a fresh Chrome profile;
    exceptions and missing files are reported. Then the page is scrolled by half a screen at a time at 390×844,
-   1280×680 and 1440×900; finite animations settle, looping ones pause at their start, and every frame is
+   1280×680 and 1440×900, each size in its own tab at the same time (the book's prints and layout check run
+   alongside); finite animations settle, looping ones pause at their start, and every frame is
    saved as a screenshot in the system temp directory. The report prints the folder and, from the second run
    on, the frames whose content changed. `release.layout` reports a first screen without a legible heading or
    any control, stretches without legible content, sideways scrolling, text a pinned layer always covers,

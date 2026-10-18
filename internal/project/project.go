@@ -19,7 +19,10 @@ const (
 	PartialsDir  = "partials"
 	DataDir      = "data"
 	OutputDir    = "output"
-	ResearchDir  = "research" // durable research files; never a build input
+	// DistributionDir holds the store packages of deliverables: never deployed,
+	// because its files are what buyers pay for.
+	DistributionDir = "distribution"
+	ResearchDir     = "research" // durable research files; never a build input
 )
 
 // Project is a resolved project root. The zero value is not usable.
@@ -129,7 +132,8 @@ func (p Project) permitted(path string) bool {
 		return false
 	}
 	first, _, _ := strings.Cut(filepath.ToSlash(rel), "/")
-	return first != OutputDir && !strings.HasPrefix(first, OutputDir+".next-")
+	return first != OutputDir && !strings.HasPrefix(first, OutputDir+".next-") &&
+		first != DistributionDir && !strings.HasPrefix(first, DistributionDir+".next-")
 }
 
 // Read reads a contained source file.
