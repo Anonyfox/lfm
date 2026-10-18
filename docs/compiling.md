@@ -59,7 +59,7 @@ Ctrl-C stops a compile between stages; a stopped compile never publishes.
    on, the frames whose content changed. `release.layout` reports a first screen without a legible heading or
    any control, stretches without legible content, sideways scrolling, text a pinned layer always covers,
    text under 9 px, text under the WCAG contrast minimum on a certain flat ground, numbers split from their
-   units, what still moves when the page is loaded again with reduced motion requested, and a heading or most of the text missing when it is loaded without JavaScript. Outside
+   units, web fonts that fail to load or lack glyphs the page uses, what still moves when the page is loaded again with reduced motion requested, and a heading or most of the text missing when it is loaded without JavaScript. Outside
    requests are blocked; nothing is clicked, typed or submitted.
    Images get the hints the author left out: those below the first screen at every size load lazily, and
    the largest file image of the phone's first screen is fetched first; authored hints are kept.

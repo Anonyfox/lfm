@@ -271,6 +271,10 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			contrasts.add(v, c.Selector, fmt.Sprintf("%s has %.2f:1 (%s on %s), needs %.1f:1", c.Selector, c.Ratio, c.FG, c.BG, c.Need))
 		}
 	}
+	// a failed font report only skips this check, not the passes after it
+	if found, err := fallbackFonts(tab); err == nil {
+		r.Findings = append(r.Findings, found...)
+	}
 	if moving, err := reducedMotion(tab, url, Screens[0]); err != nil {
 		return r, err
 	} else if len(moving) > 0 {
@@ -332,6 +336,32 @@ func (p *perElement) findings(kind, message, hint string) []LayoutFinding {
 		parts = append(parts, p.text[e]+" at "+strings.Join(p.screens[e], ", "))
 	}
 	return []LayoutFinding{{p.screens[p.order[0]][0], kind, fmt.Sprintf(message, strings.Join(parts, "; ")), hint}}
+}
+
+// fallbackFonts reports web fonts that failed to load and characters a web
+// font has no glyph for, which the browser then draws in another face.
+func fallbackFonts(tab context.Context) ([]LayoutFinding, error) {
+	type font struct {
+		Family, Chars, Sample string
+		Failed                bool
+	}
+	found, err := chromedp.Run(tab, chromedp.Evaluate[[]font](`__lfmLayout.fonts().map(f=>({Family:f.family,Chars:f.chars,Sample:f.sample,Failed:f.failed}))`))
+	if err != nil {
+		return nil, err
+	}
+	var out []LayoutFinding
+	for _, f := range found {
+		if f.Failed {
+			out = append(out, LayoutFinding{"", "font", fmt.Sprintf("The web font %q failed to load; its text shows in a fallback face, e.g. %s.", f.Family, f.Sample), "Check the @font-face src path and format; the file must exist in the project and be WOFF2, WOFF or TrueType."})
+			continue
+		}
+		them := "them"
+		if !strings.Contains(f.Chars, " ") {
+			them = "it"
+		}
+		out = append(out, LayoutFinding{"", "font", fmt.Sprintf("%q has no glyph for %s, so another face draws %s, e.g. in %s.", f.Family, f.Chars, them, f.Sample), "Use a font file or subset that covers these characters (Latin Extended, quotes, currency, arrows), or set them in another declared face."})
+	}
+	return out, nil
 }
 
 // withoutScripts compares the page at screen v with JavaScript off against

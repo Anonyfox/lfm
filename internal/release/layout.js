@@ -263,6 +263,65 @@
   const motionProps = /transform|translate|rotate|scale|offset|^left|^top|^right|^bottom|margin/i;
 
   window.__lfmLayout = {
+    // fonts reports web fonts that failed to load and, per web font, the
+    // characters of its text the font has no glyph for: drawn on a canvas in
+    // the web font alone, such a character has exactly the metrics it has in a
+    // family that does not exist, because the same fallback face draws both.
+    // Whitespace and emoji are skipped; emoji always come from an emoji face.
+    fonts() {
+      const clean = (f) => f.trim().replace(/^["']|["']$/g, "");
+      const web = new Map();
+      for (const f of document.fonts) {
+        const family = clean(f.family);
+        if (web.get(family.toLowerCase())?.status !== "loaded") web.set(family.toLowerCase(), { name: family, status: f.status });
+      }
+      const used = new Map(); // family → {chars:Set, sample}
+      for (const el of document.body.getElementsByTagName("*")) {
+        let own = "";
+        for (const c of el.childNodes) if (c.nodeType === 3) own += c.data;
+        if (!own.trim()) continue;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        if (!r.width || !r.height || cs.visibility === "hidden" || cs.display === "none") continue;
+        const family = clean(cs.fontFamily.split(",")[0]).toLowerCase();
+        if (!web.has(family)) continue;
+        let u = used.get(family);
+        if (!u) used.set(family, (u = { chars: new Map(), elements: 0 }));
+        u.elements++;
+        for (const ch of own) if (ch.trim() && !u.chars.has(ch)) u.chars.set(ch, describe(el) + ' ("' + own.trim().replace(/\s+/g, " ").slice(0, 24) + '")');
+      }
+      // Each character is measured on a canvas in the list "web font,
+      // sans-serif" and in sans-serif alone. A glyph the web font lacks comes
+      // from the same sans-serif fallback in both, so all five metrics agree;
+      // a glyph it has differs in at least one. (A canvas ignores a font list
+      // naming only unknown families, so both lists end in a generic family.)
+      const ctx = document.createElement("canvas").getContext("2d");
+      const metrics = (font, ch) => {
+        ctx.font = "40px " + font;
+        const m = ctx.measureText(ch);
+        return [m.width, m.actualBoundingBoxLeft, m.actualBoundingBoxRight, m.actualBoundingBoxAscent, m.actualBoundingBoxDescent].join(",");
+      };
+      const out = [];
+      for (const [family, u] of used) {
+        const w = web.get(family);
+        if (w.status === "error") {
+          out.push({ family: w.name, failed: true, chars: "", sample: [...u.chars.values()][0] || "", elements: u.elements });
+          continue;
+        }
+        const missing = [];
+        let sample = "";
+        for (const [ch, where] of u.chars) {
+          if (/\p{Extended_Pictographic}/u.test(ch)) continue;
+          if (metrics('"' + w.name + '", sans-serif', ch) === metrics("sans-serif", ch)) {
+            missing.push(ch);
+            sample = sample || where;
+          }
+        }
+        if (missing.length) out.push({ family: w.name, failed: false, chars: missing.slice(0, 12).join(" "), sample, elements: u.elements });
+      }
+      return out;
+    },
+
     // moving lists what still moves at scroll position y: CSS and Web
     // Animations that loop or run a second or longer and change a motion
     // property, and elements a script moves (their box changes between two
