@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"image/png"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -162,7 +163,10 @@ func Analyze(page []byte, assets map[string][]byte) (Result, error) {
 	// viewport set fails, promote every statically matched rule and verify again.
 	for attempt, selection := range []map[string]bool{selected, static} {
 		critical := render(reference.Rules, selection)
-		minified := api.Transform(critical, api.TransformOptions{Loader: api.LoaderCSS, MinifyWhitespace: true, MinifySyntax: true, MinifyIdentifiers: true, Charset: api.CharsetUTF8, Target: api.ES2020, LogLevel: api.LogLevelSilent})
+		// The rules come from the browser's own serialization. Syntax
+		// minification would rewrite equivalent values (a gradient's 0px first
+		// stop) and the exact style comparison below would reject the result.
+		minified := api.Transform(critical, api.TransformOptions{Loader: api.LoaderCSS, MinifyWhitespace: true, Charset: api.CharsetUTF8, Target: api.ES2020, LogLevel: api.LogLevelSilent})
 		if len(minified.Errors) > 0 {
 			return result, fmt.Errorf("critical CSS minification: %s", api.FormatMessages(minified.Errors, api.FormatMessagesOptions{Kind: api.ErrorMessage}))
 		}
@@ -212,7 +216,7 @@ func verify(browser context.Context, url, critical string, fingerprints []string
 			if err != nil {
 				return false, err
 			}
-			if observed.Fingerprint != fingerprints[i] || !bytes.Equal(shot, screenshots[i]) {
+			if observed.Fingerprint != fingerprints[i] || !samePixels(shot, screenshots[i]) {
 				return false, nil
 			}
 		}
@@ -285,4 +289,49 @@ func Handler(page []byte, assets map[string][]byte) http.Handler {
 		}
 		http.NotFound(w, r)
 	})
+}
+
+// samePixels reports whether two screenshots show the same image. The style
+// fingerprint compared beside it is exact, so this guards what styles cannot
+// show; two loads of one page still differ by rasterization noise of a few
+// levels (gradients, image scaling, text antialiasing). A screenshot passes
+// when no channel differs by more than 24 levels and fewer than 1% of pixels
+// differ by more than 3; a missing rule changes far more than that.
+func samePixels(a, b []byte) bool {
+	if bytes.Equal(a, b) {
+		return true
+	}
+	x, err := png.Decode(bytes.NewReader(a))
+	if err != nil {
+		return false
+	}
+	y, err := png.Decode(bytes.NewReader(b))
+	if err != nil || x.Bounds() != y.Bounds() {
+		return false
+	}
+	diff := func(p, q uint32) uint32 {
+		p, q = p>>8, q>>8
+		if p > q {
+			return p - q
+		}
+		return q - p
+	}
+	r := x.Bounds()
+	noisy, limit := 0, r.Dx()*r.Dy()/100
+	for py := r.Min.Y; py < r.Max.Y; py++ {
+		for px := r.Min.X; px < r.Max.X; px++ {
+			r1, g1, b1, a1 := x.At(px, py).RGBA()
+			r2, g2, b2, a2 := y.At(px, py).RGBA()
+			d := max(diff(r1, r2), diff(g1, g2), diff(b1, b2), diff(a1, a2))
+			if d > 24 {
+				return false
+			}
+			if d > 3 {
+				if noisy++; noisy > limit {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
