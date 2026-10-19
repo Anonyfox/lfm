@@ -15,7 +15,6 @@
 package aitext
 
 import (
-	"bytes"
 	"compress/flate"
 	"embed"
 	"fmt"
@@ -23,6 +22,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -136,13 +136,37 @@ func mattr(tokens []string, n int) float64 {
 	return sum / float64(windows)
 }
 
-func deflated(b []byte) int {
-	var out bytes.Buffer
-	w, _ := flate.NewWriter(&out, flate.BestCompression)
+func deflated(b []byte) int { return compressed(&plainWriters, nil, b) }
+
+// A compressor costs about a megabyte to set up, more than compressing a
+// paragraph, so they are pooled: one pool for plain text, one per prelude
+// used as a dictionary (Reset keeps a writer's dictionary).
+var (
+	plainWriters sync.Pool
+	dictWriters  sync.Map // prelude name -> *sync.Pool
+)
+
+// compressed is the DEFLATE size of b at the best compression, after dict
+// when it is given.
+func compressed(pool *sync.Pool, dict []byte, b []byte) int {
+	var n byteCount
+	w, ok := pool.Get().(*flate.Writer)
+	if ok {
+		w.Reset(&n)
+	} else if dict != nil {
+		w, _ = flate.NewWriterDict(&n, flate.BestCompression, dict)
+	} else {
+		w, _ = flate.NewWriter(&n, flate.BestCompression)
+	}
 	_, _ = w.Write(b)
 	_ = w.Close()
-	return out.Len()
+	pool.Put(w)
+	return int(n)
 }
+
+type byteCount int
+
+func (n *byteCount) Write(p []byte) (int, error) { *n += byteCount(len(p)); return len(p), nil }
 
 // Model-written reference text per language, written for this package: a
 // text that compresses well after it shares its phrasing (ZipPy's method).
@@ -167,11 +191,8 @@ func modelLikeness(text []byte, kind, lang string) float64 {
 	// The prelude is a preset dictionary: the text costs what it costs after
 	// the prelude, without compressing the prelude again for every text.
 	alone := deflated(text)
-	var out bytes.Buffer
-	w, _ := flate.NewWriterDict(&out, flate.BestCompression, p)
-	_, _ = w.Write(text)
-	_ = w.Close()
-	return float64(alone-out.Len()) / float64(len(text))
+	pool, _ := dictWriters.LoadOrStore(kind+"-"+lang, &sync.Pool{})
+	return float64(alone-compressed(pool.(*sync.Pool), p, text)) / float64(len(text))
 }
 
 // Measure computes the features of a text given as paragraphs.

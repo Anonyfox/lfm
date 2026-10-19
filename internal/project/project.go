@@ -27,8 +27,9 @@ const (
 
 // Project is a resolved project root. The zero value is not usable.
 type Project struct {
-	Root     string // absolute, symlinks resolved
-	resolved *sync.Map
+	Root     string    // absolute, symlinks resolved
+	resolved *sync.Map // Path results
+	reals    *sync.Map // real paths of files and directories below Root
 }
 
 // resolution is a memoized Path result. Open a Project per compile: it lives for one compile, so
@@ -58,7 +59,7 @@ func Open(dir string) (Project, error) {
 	if !info.IsDir() {
 		return Project{}, fmt.Errorf("%s is not a directory", dir)
 	}
-	return Project{Root: root, resolved: &sync.Map{}}, nil
+	return Project{Root: root, resolved: &sync.Map{}, reals: &sync.Map{}}, nil
 }
 
 // ErrNoProject means a directory holds neither lfm.json nor the template.
@@ -116,7 +117,7 @@ func (p Project) resolve(name, path string) (string, error) {
 	if !p.permitted(path) {
 		return "", fmt.Errorf("%s: sources must stay inside the project and outside %s/", name, OutputDir)
 	}
-	real, err := filepath.EvalSymlinks(path)
+	real, err := p.real(path)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", name, err)
 	}
@@ -124,6 +125,36 @@ func (p Project) resolve(name, path string) (string, error) {
 		return "", fmt.Errorf("%s: symlink leaves the project", name)
 	}
 	return real, nil
+}
+
+// real is path with every symlink resolved, path inside the root. Each
+// directory is resolved once per project and shared by everything in it,
+// so a file costs one Lstat rather than one per path component.
+func (p Project) real(path string) (string, error) {
+	if path == p.Root {
+		return p.Root, nil
+	}
+	if p.reals != nil {
+		if r, ok := p.reals.Load(path); ok {
+			return r.(resolution).path, r.(resolution).err
+		}
+	}
+	parent, err := p.real(filepath.Dir(path))
+	var real string
+	if err == nil {
+		candidate := filepath.Join(parent, filepath.Base(path))
+		var info os.FileInfo
+		if info, err = os.Lstat(candidate); err == nil {
+			real = candidate
+			if info.Mode()&os.ModeSymlink != 0 {
+				real, err = filepath.EvalSymlinks(candidate)
+			}
+		}
+	}
+	if p.reals != nil {
+		p.reals.Store(path, resolution{real, err})
+	}
+	return real, err
 }
 
 func (p Project) permitted(path string) bool {

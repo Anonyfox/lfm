@@ -5,10 +5,12 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
@@ -96,12 +98,7 @@ type Cost struct {
 
 func measureCost(page []byte, doc *html.Node, files map[string]emitted) *Cost {
 	c := &Cost{HTMLBytes: len(page)}
-	var zipped bytes.Buffer
-	zipped.Grow(len(page) / 3)
-	w, _ := gzip.NewWriterLevel(&zipped, gzip.BestSpeed)
-	_, _ = w.Write(page)
-	_ = w.Close()
-	c.GzipBytes = zipped.Len()
+	c.GzipBytes = gzipSize(page)
 	// This traversal counts code exactly once, without another HTML serialization.
 	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Data == "style" {
@@ -506,3 +503,25 @@ func executableScript(n *html.Node) bool {
 	}
 	return false
 }
+
+// gzipWriters are pooled: setting one up costs more than compressing a
+// page at the fastest level.
+var gzipWriters = sync.Pool{New: func() any {
+	w, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
+	return w
+}}
+
+// gzipSize is what the page costs over the wire at gzip's fastest level.
+func gzipSize(b []byte) int {
+	var n countWriter
+	w := gzipWriters.Get().(*gzip.Writer)
+	w.Reset(&n)
+	_, _ = w.Write(b)
+	_ = w.Close()
+	gzipWriters.Put(w)
+	return int(n)
+}
+
+type countWriter int
+
+func (n *countWriter) Write(p []byte) (int, error) { *n += countWriter(len(p)); return len(p), nil }
