@@ -6,13 +6,14 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/css"
-	"github.com/chromedp/cdproto/dom"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/css"
+	"github.com/chromedp/cdproto/dom"
 
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"

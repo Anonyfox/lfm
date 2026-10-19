@@ -8,10 +8,12 @@ import (
 	"io"
 	"path"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // verifyEPUB checks the package the way reading systems depend on it: the
-// mimetype entry first and stored, a container pointing at the package
+// mimetype entry first, stored and without an extra field, a container pointing at the package
 // document, every manifest item present and every file declared, spine entries
 // that exist, a navigation document, unique IDs per document and every href and
 // src inside the content resolving to a packaged file.
@@ -22,6 +24,11 @@ func verifyEPUB(data []byte) error {
 	}
 	if len(z.File) == 0 || z.File[0].Name != "mimetype" || z.File[0].Method != zip.Store {
 		return fmt.Errorf("the mimetype entry must come first and uncompressed")
+	}
+	// Store validators read the local headers too: no extra field on
+	// mimetype, no data descriptors.
+	if problems := zipx.Problems(data); len(problems) > 0 {
+		return fmt.Errorf("the archive: %s", strings.Join(problems, "; "))
 	}
 	files := map[string][]byte{}
 	for _, f := range z.File {

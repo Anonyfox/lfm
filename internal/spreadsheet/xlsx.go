@@ -11,9 +11,11 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Anonyfox/lfm/internal/formula"
 	"github.com/Anonyfox/lfm/internal/ooxml"
+	"github.com/Anonyfox/lfm/internal/zipx"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -469,7 +471,7 @@ func cacheValues(xlsx []byte, cached map[int]map[string]formula.Value, key strin
 	}
 	var out bytes.Buffer
 	out.Grow(len(xlsx) + len(xlsx)/4)
-	w := zip.NewWriter(&out)
+	w := zipx.New(&out, stampTime)
 	for _, file := range r.File {
 		var index int
 		_, notSheet := fmt.Sscanf(file.Name, "xl/worksheets/sheet%d.xml", &index)
@@ -500,17 +502,12 @@ func cacheValues(xlsx []byte, cached map[int]map[string]formula.Value, key strin
 		default:
 			data = withValues(data, cached[index])
 		}
-		h := file.FileHeader
-		fw, err := w.CreateHeader(&h)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := fw.Write(data); err != nil {
+		if err := w.Deflate(file.Name, data); err != nil {
 			return nil, err
 		}
 	}
 	if key != "" {
-		if err := w.SetComment(ooxml.StampPrefix + key); err != nil {
+		if err := w.Comment(zipx.StampPrefix + key); err != nil {
 			return nil, err
 		}
 	}
@@ -521,7 +518,11 @@ func cacheValues(xlsx []byte, cached map[int]map[string]formula.Value, key strin
 }
 
 // Stamp is the input key a built .xlsx carries in its zip comment.
-func Stamp(tail []byte) string { return ooxml.Stamp(tail) }
+func Stamp(tail []byte) string { return zipx.Stamp(tail) }
+
+// stampTime is the date every part of a built .xlsx carries, so the same
+// workbook gives the same bytes.
+var stampTime = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // withValues rewrites every formula cell excelize wrote,
 // <c r="B4" s="3" t="str"><f>…</f></c>, with its value and type.

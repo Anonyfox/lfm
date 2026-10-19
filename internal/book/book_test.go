@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/deliver"
+	"github.com/Anonyfox/lfm/internal/zipx"
 
 	"golang.org/x/net/html"
 
@@ -435,21 +436,44 @@ func TestVerifyCatchesBrokenPackages(t *testing.T) {
 	}
 	// Rewrite one chapter so it links a file that is not packaged.
 	z, _ := zip.NewReader(bytes.NewReader(built.EPUB), int64(len(built.EPUB)))
-	var out bytes.Buffer
-	w := zip.NewWriter(&out)
-	for _, f := range z.File {
-		rc, _ := f.Open()
-		data, _ := io.ReadAll(rc)
-		rc.Close()
-		if f.Name == "OEBPS/text/ch01.xhtml" {
-			data = bytes.Replace(data, []byte("</section>"), []byte(`<a href="ch09.xhtml">x</a></section>`), 1)
+	rewrite := func(strict bool) []byte {
+		var out bytes.Buffer
+		w := zipx.New(&out, time.Unix(0, 0))
+		loose := zip.NewWriter(&out)
+		for _, f := range z.File {
+			rc, _ := f.Open()
+			data, _ := io.ReadAll(rc)
+			rc.Close()
+			if f.Name == "OEBPS/text/ch01.xhtml" && strict {
+				data = bytes.Replace(data, []byte("</section>"), []byte(`<a href="ch09.xhtml">x</a></section>`), 1)
+			}
+			switch {
+			case !strict:
+				fw, _ := loose.CreateHeader(&zip.FileHeader{Name: f.Name, Method: f.Method, Modified: time.Unix(0, 0)})
+				fw.Write(data)
+			case f.Method == zip.Store:
+				w.Store(f.Name, data)
+			default:
+				w.Deflate(f.Name, data)
+			}
 		}
-		fw, _ := w.CreateHeader(&zip.FileHeader{Name: f.Name, Method: f.Method})
-		fw.Write(data)
+		if strict {
+			w.Close()
+		} else {
+			loose.Close()
+		}
+		return out.Bytes()
 	}
-	w.Close()
-	if err := verifyEPUB(out.Bytes()); err == nil || !strings.Contains(err.Error(), "ch09.xhtml") {
+	if err := verifyEPUB(rewrite(true)); err == nil || !strings.Contains(err.Error(), "ch09.xhtml") {
 		t.Fatalf("broken reference not caught: %v", err)
+	}
+	// archive/zip's defaults put an extra field on mimetype, which store
+	// validators refuse (epubcheck PKG-005).
+	if err := verifyEPUB(rewrite(false)); err == nil || !strings.Contains(err.Error(), "mimetype: an extra field") {
+		t.Fatalf("an extra field on mimetype not caught: %v", err)
+	}
+	if p := zipx.Problems(built.EPUB); len(p) > 0 {
+		t.Fatalf("the built EPUB: %v", p)
 	}
 }
 

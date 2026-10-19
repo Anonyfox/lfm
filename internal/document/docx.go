@@ -1,7 +1,6 @@
 package document
 
 import (
-	"archive/zip"
 	"bytes"
 	"crypto/sha256"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/markup"
 	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/typeface"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // picture is an image a document shows.
@@ -515,21 +515,16 @@ func (w *docxWriter) section() {
 func (w *docxWriter) pack() ([]byte, error) {
 	m := w.r.m
 	var buf bytes.Buffer
-	z := zip.NewWriter(&buf)
 	modified := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	if t, err := time.Parse("2006-01-02", w.r.created); err == nil {
 		modified = t
 	}
+	z := zipx.New(&buf, modified)
 	put := func(name string, data []byte) error {
 		if strings.HasSuffix(name, ".xml") || strings.HasSuffix(name, ".rels") {
 			data = ooxml.Order(data) // Word refuses elements out of schema order
 		}
-		fw, err := z.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: modified})
-		if err != nil {
-			return err
-		}
-		_, err = fw.Write(data)
-		return err
+		return z.Deflate(name, data)
 	}
 	xml := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n"
 	overrides := `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>`
@@ -580,17 +575,7 @@ func (w *docxWriter) pack() ([]byte, error) {
 		}
 	}
 	for _, name := range sortedKeys(w.fonts) {
-		f := w.fonts[name]
-		// CreateRaw leaves the versions and DOS time unset; Word refuses
-		// entries that need "version 0.0" to extract.
-		h := &zip.FileHeader{Name: name, Method: zip.Deflate, Modified: modified, CRC32: f.CRC, CompressedSize64: f.Compressed, UncompressedSize64: f.Size, CreatorVersion: 20, ReaderVersion: 20}
-		//lint:ignore SA1019 CreateRaw writes these DOS fields and ignores Modified.
-		h.ModifiedDate, h.ModifiedTime = dosTime(modified)
-		fw, err := z.CreateRaw(h)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := fw.Write(f.Data); err != nil {
+		if err := z.Raw(name, *w.fonts[name]); err != nil {
 			return nil, err
 		}
 	}
@@ -762,11 +747,6 @@ func styles(m metrics, lang string) string {
 	b.WriteString(`<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`)
 	b.WriteString(`</w:styles>`)
 	return b.String()
-}
-
-// dosTime is t as a zip entry's MS-DOS date and time.
-func dosTime(t time.Time) (date, clock uint16) {
-	return uint16(t.Day() + int(t.Month())<<5 + (t.Year()-1980)<<9), uint16(t.Second()/2 + t.Minute()<<5 + t.Hour()<<11)
 }
 
 func sortedKeys[V any](m map[string]V) []string {

@@ -18,11 +18,11 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deliver"
-	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/spreadsheet"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // printFormat names how lfm prints deliverables; changing the passes below changes it,
@@ -66,7 +66,7 @@ func newPress(p project.Project, isRelease bool) *press {
 			case strings.HasSuffix(path, ".xlsx"):
 				key = tailStampOfFile(path, spreadsheet.Stamp)
 			case strings.HasSuffix(path, ".docx"), strings.HasSuffix(path, ".pptx"):
-				key = tailStampOfFile(path, ooxml.Stamp)
+				key = tailStampOfFile(path, zipx.Stamp)
 			case strings.HasSuffix(path, ".zip"):
 				pr.scanZip(path)
 				return nil
@@ -85,7 +85,7 @@ func newPress(p project.Project, isRelease bool) *press {
 
 // stampOf is the key any stamped print or build carries.
 func stampOf(data []byte) string {
-	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, spreadsheet.Stamp, ooxml.Stamp} {
+	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, spreadsheet.Stamp, zipx.Stamp} {
 		if key := of(data); key != "" {
 			return key
 		}

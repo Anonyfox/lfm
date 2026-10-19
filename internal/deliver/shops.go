@@ -1,7 +1,6 @@
 package deliver
 
 import (
-	"archive/zip"
 	"bytes"
 	"fmt"
 	"sort"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/term"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // Shop limits that shape a package.
@@ -128,23 +128,22 @@ func Package(pkg ShopPackage, files map[string][]byte, day string) ([]string, []
 	return built, issues
 }
 
-// zipFiles packs files reproducibly: fixed times, sorted names, stored PDFs.
+// zipFiles packs files reproducibly: one fixed time, sorted names, stored
+// PDFs and images, the strict entry headers every reader takes.
 func zipFiles(names []string, files map[string][]byte) ([]byte, error) {
 	var buf bytes.Buffer
-	z := zip.NewWriter(&buf)
+	z := zipx.New(&buf, time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))
 	sorted := append([]string(nil), names...)
 	sort.Strings(sorted)
 	for _, name := range sorted {
-		w, err := z.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store, Modified: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)})
-		if err != nil {
-			return nil, err
-		}
-		if _, err := w.Write(files[name]); err != nil {
+		if err := z.Store(name, files[name]); err != nil {
 			return nil, err
 		}
 	}
-	err := z.Close()
-	return buf.Bytes(), err
+	if err := z.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func shopGuide(ch shop, pkg ShopPackage, upload, images []string, files map[string][]byte, day string) string {

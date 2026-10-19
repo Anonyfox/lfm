@@ -92,6 +92,7 @@ func bookProject(t *testing.T) string {
 
 func TestBookIsPublishedBehindItsPath(t *testing.T) {
 	dir := bookProject(t)
+	t.Cleanup(func() { strictArchives(t, dir) })
 	listing := "# Listing: The Weekend Starter\n\n## Description\n" + strings.Repeat("Keep a starter alive on a working week. ", 8) +
 		"\n\n## Short description\nKeep a starter alive.\n\n## Back cover\nThe jar smelled like nail polish.\n\n## Author\nAda bakes.\n\n## Keywords\n- sourdough schedule\n\n## Tags\n- sourdough\n\n## Categories\n- BISAC: CKB009000 Cooking\n- Thema: WBVD Bread\n- KDP: Baking\n\n## Prices\n- Ebook: 4.99 EUR\n\n## AI\nText: none\nImages: none\n"
 	if err := os.WriteFile(filepath.Join(dir, filepath.FromSlash(book.ListingFile)), []byte(listing), 0o644); err != nil {

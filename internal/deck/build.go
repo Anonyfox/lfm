@@ -1,7 +1,6 @@
 package deck
 
 import (
-	"archive/zip"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anonyfox/lfm/internal/ooxml"
+	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/typeface"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // created is the date every file carries, so a rebuild is byte-identical.
@@ -43,7 +43,7 @@ type Built struct {
 }
 
 // Stamp is the input key a built .pptx or .zip carries in its zip comment.
-func Stamp(tail []byte) string { return ooxml.Stamp(tail) }
+func Stamp(tail []byte) string { return zipx.Stamp(tail) }
 
 // inputs hashes what every file of the set shares: the theme and the
 // faces and images it embeds.
@@ -90,7 +90,7 @@ func (r Report) Jobs() []Built {
 			h.Write(shared)
 			fmt.Fprintf(h, "\x00%s\x00%s\x00%d\x00%s\x00", d.Title, e.Papers[0], d.Minutes, d.Lang)
 			h.Write(src)
-			jobs = append(jobs, Built{Edition: e, Deck: d, Name: ooxml.FileName(d.Title, "pptx"), Key: hex.EncodeToString(h.Sum(nil))[:32]})
+			jobs = append(jobs, Built{Edition: e, Deck: d, Name: deliver.FileName(d.Title, "pptx"), Key: hex.EncodeToString(h.Sum(nil))[:32]})
 		}
 	}
 	return jobs
@@ -111,7 +111,7 @@ func (r Report) Build(previous func(key string) []byte) ([]Built, error) {
 			}
 			// The notes pages take the edition's first paper.
 			data, err := pptx(r.render(jobs[i].Deck, jobs[i].Edition.Papers[0]))
-			jobs[i].Data, errs[i] = ooxml.WithStamp(data, jobs[i].Key), err
+			jobs[i].Data, errs[i] = zipx.WithStamp(data, jobs[i].Key), err
 		})
 	}
 	wg.Wait()
@@ -168,11 +168,11 @@ func (b Built) pdfName(p Print) string {
 	}
 	switch p.Kind {
 	case "notes":
-		return ooxml.FileName(b.Deck.Title+" ("+w.Notes+paper+")", "pdf")
+		return deliver.FileName(b.Deck.Title+" ("+w.Notes+paper+")", "pdf")
 	case "quiz":
-		return ooxml.FileName(b.Deck.Title+" ("+w.Quiz+paper+")", "pdf")
+		return deliver.FileName(b.Deck.Title+" ("+w.Quiz+paper+")", "pdf")
 	}
-	return ooxml.FileName(b.Deck.Title, "pdf")
+	return deliver.FileName(b.Deck.Title, "pdf")
 }
 
 func quizzes(d *Deck) int {
@@ -206,7 +206,7 @@ func (r Report) Zip(e Edition, built []Built, pdfs map[string][]byte, guide []by
 		}
 	}
 	if guide != nil {
-		files[ooxml.FileName(w.GuideTitle, "pdf")] = guide
+		files[deliver.FileName(w.GuideTitle, "pdf")] = guide
 	}
 	for _, f := range []*typeface.Family{r.text, r.head} {
 		if f == nil {
@@ -220,21 +220,15 @@ func (r Report) Zip(e Edition, built []Built, pdfs map[string][]byte, guide []by
 		files[w.FontsFolder+"/"+name] = data
 	}
 	var buf bytes.Buffer
-	z := zip.NewWriter(&buf)
 	modified, _ := time.Parse("2006-01-02", created)
+	z := zipx.New(&buf, modified)
 	for _, name := range sortedKeys(files) {
 		// .pptx and .pdf are compressed already; fonts are not worth the time.
+		write := z.Store
 		if strings.HasSuffix(name, ".txt") {
-			fw, err := z.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: modified})
-			if err != nil {
-				return nil, err
-			}
-			if _, err := fw.Write(files[name]); err != nil {
-				return nil, err
-			}
-			continue
+			write = z.Deflate
 		}
-		if err := ooxml.Store(z, name, files[name], modified); err != nil {
+		if err := write(name, files[name]); err != nil {
 			return nil, err
 		}
 	}
@@ -242,7 +236,7 @@ func (r Report) Zip(e Edition, built []Built, pdfs map[string][]byte, guide []by
 		return nil, err
 	}
 	if key != "" {
-		return ooxml.WithStamp(buf.Bytes(), key), nil
+		return zipx.WithStamp(buf.Bytes(), key), nil
 	}
 	return buf.Bytes(), nil
 }

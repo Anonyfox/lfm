@@ -189,3 +189,18 @@ func CopyLink(url, kind string) string {
 	}
 	return "https://docs.google.com/" + kind + "/d/" + m[2] + "/copy"
 }
+
+// FileName is a file name buyers see: a title, safe on every system.
+func FileName(title, ext string) string {
+	clean := strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`/\:*?"<>|`, r) || r < ' ' {
+			return -1
+		}
+		return r
+	}, title)
+	clean = strings.TrimSpace(clean)
+	if clean == "" {
+		clean = "Document"
+	}
+	return clean + "." + ext
+}

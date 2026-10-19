@@ -44,6 +44,7 @@ func deckProject(t *testing.T) string {
 
 func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 	dir := deckProject(t)
+	t.Cleanup(func() { strictArchives(t, dir) })
 	result, err := Compile(context.Background(), dir, Options{Publish: true})
 	if err != nil || result.Deck == nil || result.Deck.Decks != 1 || result.Deck.Slides != 11 || len(result.Deck.Files) != 2 {
 		t.Fatalf("%v %+v %v", err, result.Deck, findings(result, "deck."))
@@ -88,6 +89,7 @@ func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 
 func TestBundleSellsDeckAndDocumentsTogether(t *testing.T) {
 	dir := deckProject(t)
+	t.Cleanup(func() { strictArchives(t, dir) })
 	// The kit's handouts: the club's documents stand in for them.
 	src := filepath.Join("..", "document", "testdata", "club")
 	dst := filepath.Join(dir, "deliverables", "document")

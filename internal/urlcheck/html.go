@@ -7,12 +7,13 @@ import (
 	"sort"
 	"strings"
 
+	htmltext "html"
+
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/tdewolff/parse/v2"
 	htmllex "github.com/tdewolff/parse/v2/html"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
-	htmltext "html"
 )
 
 type Reference struct {

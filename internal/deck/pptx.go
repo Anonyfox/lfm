@@ -13,6 +13,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/theme"
 	"github.com/Anonyfox/lfm/internal/typeface"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // pptxFormat names how lfm writes decks; changing the writer changes it.
@@ -761,20 +762,15 @@ func (w *pptxWriter) pack() ([]byte, error) {
 		}
 	}
 	var buf bytes.Buffer
-	z := zip.NewWriter(&buf)
+	z := zipx.New(&buf, modified)
 	put := func(name string, data []byte, method uint16) error {
 		if strings.HasSuffix(name, ".xml") || strings.HasSuffix(name, ".rels") {
 			data = ooxml.Order(data)
 		}
 		if method == zip.Store {
-			return ooxml.Store(z, name, data, modified)
+			return z.Store(name, data)
 		}
-		fw, err := z.CreateHeader(&zip.FileHeader{Name: name, Method: method, Modified: modified})
-		if err != nil {
-			return err
-		}
-		_, err = fw.Write(data)
-		return err
+		return z.Deflate(name, data)
 	}
 	// [Content_Types].xml first, as Office writes it.
 	if err := put("[Content_Types].xml", []byte(parts["[Content_Types].xml"]), zip.Deflate); err != nil {
@@ -796,8 +792,8 @@ func (w *pptxWriter) pack() ([]byte, error) {
 		}
 	}
 	for _, f := range w.fonts {
-		// Deflated once per compile; see the .docx writer for the fields.
-		if err := ooxml.Raw(z, "ppt/"+f.part, zip.Deflate, f.data.CRC, f.data.Size, f.data.Data, modified); err != nil {
+		// Deflated once per compile, shared by every deck.
+		if err := z.Raw("ppt/"+f.part, *f.data); err != nil {
 			return nil, err
 		}
 	}

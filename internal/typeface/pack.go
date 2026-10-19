@@ -1,19 +1,14 @@
 package typeface
 
 import (
-	"bytes"
 	"compress/flate"
-	"hash/crc32"
 	"sync"
+
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // Packed is a font part deflated once for every file that embeds it.
-type Packed struct {
-	Data       []byte // deflated
-	CRC        uint32
-	Size       uint64
-	Compressed uint64
-}
+type Packed = zipx.Packed
 
 // Pack compresses each embedded face once per compile: every file of a
 // set embeds the same fonts, and deflating them is most of a build.
@@ -63,12 +58,9 @@ func (p *Pack) pack(k packKey, form func() ([]byte, error)) (*Packed, error) {
 			p.mu.Unlock()
 			return
 		}
-		var buf bytes.Buffer
-		w, _ := flate.NewWriter(&buf, flate.BestSpeed) // fonts gain little from slower levels
-		w.Write(raw)
-		w.Close()
+		packed := zipx.Pack(raw, flate.BestSpeed) // fonts gain little from slower levels
 		p.mu.Lock()
-		p.faces[k] = &Packed{Data: buf.Bytes(), CRC: crc32.ChecksumIEEE(raw), Size: uint64(len(raw)), Compressed: uint64(buf.Len())}
+		p.faces[k] = &packed
 		p.mu.Unlock()
 	})
 	p.mu.Lock()

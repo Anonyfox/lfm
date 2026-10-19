@@ -42,6 +42,7 @@ func spreadsheetProject(t *testing.T) string {
 
 func TestSpreadsheetIsBuiltCheckedAndDelivered(t *testing.T) {
 	dir := spreadsheetProject(t)
+	t.Cleanup(func() { strictArchives(t, dir) })
 	result, err := Compile(context.Background(), dir, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v\n%v", err, findings(result, ""))

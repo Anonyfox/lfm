@@ -168,6 +168,7 @@ func findings(r Result, prefix string) []string {
 
 func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
 	dir := bookProject(t)
+	t.Cleanup(func() { strictArchives(t, dir) })
 	writePrintable(t, dir)
 	configure(t, dir, func(c map[string]any) {
 		d := c["deliverables"].(map[string]any)

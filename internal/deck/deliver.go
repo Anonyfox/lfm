@@ -8,7 +8,6 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
-	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/theme"
 	"github.com/Anonyfox/lfm/internal/typeface"
 )
@@ -96,7 +95,7 @@ footer{margin-top:10mm;font-size:8.5pt;color:%s}
 	fmt.Fprintf(&s, `<p class="kicker">%s</p><h1>%s</h1><h2>%s</h2><ul>`, html.EscapeString(w.GuideTitle), html.EscapeString(r.Plan.Name), html.EscapeString(w.Decks))
 	var links strings.Builder
 	for _, d := range r.Decks[e.Lang] {
-		fmt.Fprintf(&s, `<li>%s · %s</li>`, html.EscapeString(ooxml.FileName(d.Title, "pptx")), html.EscapeString(deckFacts(w, d)))
+		fmt.Fprintf(&s, `<li>%s · %s</li>`, html.EscapeString(deliver.FileName(d.Title, "pptx")), html.EscapeString(deckFacts(w, d)))
 		if link := CopyLink(r.Config.Slides[e.Lang+"/"+d.Key]); link != "" {
 			fmt.Fprintf(&links, `<a class="button" href="%s">%s: %s</a><p class="url">%s</p>`, html.EscapeString(link), html.EscapeString(w.SlidesLink), html.EscapeString(d.Title), html.EscapeString(link))
 		}

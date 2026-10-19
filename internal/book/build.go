@@ -1,7 +1,6 @@
 package book
 
 import (
-	"archive/zip"
 	"bytes"
 	"crypto/sha1"
 	"encoding/xml"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/pdfx"
+	"github.com/Anonyfox/lfm/internal/zipx"
 
 	"github.com/Anonyfox/lfm/internal/imaging"
 	"github.com/yuin/goldmark"
@@ -556,31 +556,24 @@ func writeEPUB(plan Plan, cfg Config, listing Listing, language string, docs []c
 `
 
 	var out bytes.Buffer
-	z := zip.NewWriter(&out)
-	write := func(name string, data []byte, method uint16) error {
-		w, err := z.CreateHeader(&zip.FileHeader{Name: name, Method: method, Modified: modified.UTC()})
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(data)
-		return err
-	}
-	// The mimetype entry comes first and uncompressed, so readers can identify the file.
-	if err := write("mimetype", []byte("application/epub+zip"), zip.Store); err != nil {
+	z := zipx.New(&out, modified.UTC())
+	// The mimetype entry comes first, stored and without an extra field, so
+	// readers can identify the file (EPUB OCF; epubcheck PKG-005, PKG-006).
+	if err := z.Store("mimetype", []byte("application/epub+zip")); err != nil {
 		return nil, err
 	}
-	if err := write("META-INF/container.xml", []byte(container), zip.Deflate); err != nil {
+	if err := z.Deflate("META-INF/container.xml", []byte(container)); err != nil {
 		return nil, err
 	}
-	if err := write("OEBPS/content.opf", []byte(opf), zip.Deflate); err != nil {
+	if err := z.Deflate("OEBPS/content.opf", []byte(opf)); err != nil {
 		return nil, err
 	}
 	for _, it := range items {
-		method := uint16(zip.Deflate)
+		write := z.Deflate
 		if strings.HasPrefix(it.media, "image/") && it.media != "image/svg+xml" {
-			method = zip.Store // already compressed
+			write = z.Store // already compressed
 		}
-		if err := write("OEBPS/"+it.href, it.data, method); err != nil {
+		if err := write("OEBPS/"+it.href, it.data); err != nil {
 			return nil, err
 		}
 	}

@@ -1,7 +1,6 @@
 package document
 
 import (
-	"archive/zip"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anonyfox/lfm/internal/ooxml"
+	"github.com/Anonyfox/lfm/internal/deliver"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // docxFormat names how lfm writes documents; changing the writer changes it,
@@ -31,12 +31,12 @@ type Built struct {
 }
 
 // Stamp is the input key a built .docx or .zip carries in its zip comment.
-func Stamp(tail []byte) string { return ooxml.Stamp(tail) }
+func Stamp(tail []byte) string { return zipx.Stamp(tail) }
 
-var withStamp = ooxml.WithStamp
+var withStamp = zipx.WithStamp
 
 // FileName is a document's file name: its title, safe on every system.
-func FileName(title, ext string) string { return ooxml.FileName(title, ext) }
+func FileName(title, ext string) string { return deliver.FileName(title, ext) }
 
 // inputs hashes what every file of the set shares: the theme and the
 // faces and images it embeds.
@@ -181,21 +181,15 @@ func (r Report) Zip(e Edition, built []Built, pdfs map[string][]byte, guide []by
 		files[w.FontsFolder+"/"+name] = data
 	}
 	var buf bytes.Buffer
-	z := zip.NewWriter(&buf)
 	modified, _ := time.Parse("2006-01-02", created)
+	z := zipx.New(&buf, modified)
 	for _, name := range sortedKeys(files) {
 		// .docx and .pdf are compressed already; fonts are not worth the time.
+		write := z.Store
 		if strings.HasSuffix(name, ".txt") {
-			fw, err := z.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: modified})
-			if err != nil {
-				return nil, err
-			}
-			if _, err := fw.Write(files[name]); err != nil {
-				return nil, err
-			}
-			continue
+			write = z.Deflate
 		}
-		if err := ooxml.Store(z, name, files[name], modified); err != nil {
+		if err := write(name, files[name]); err != nil {
 			return nil, err
 		}
 	}
