@@ -72,8 +72,8 @@ en-a4/invoice.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-a4/invoice.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-a4/invoice.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-a4/invoice.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/invoice.print.html 5329 93565e36ad30c8bb
-en-a4/invoice.shot.html 5502 10b4d35fa25f22f8
+en-a4/invoice.print.html 5347 53c49e973a8e7a31
+en-a4/invoice.shot.html 5520 fb6b34d76aee7c75
 en-a4/minutes.docx/[Content_Types].xml 1767 64b05c70239e5b46
 en-a4/minutes.docx/_rels/.rels 589 d6f21829c0081670
 en-a4/minutes.docx/docProps/core.xml 697 6f503af5c2851891
@@ -92,9 +92,9 @@ en-a4/minutes.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-a4/minutes.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-a4/minutes.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-a4/minutes.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/minutes.print.html 7397 960f735eb21d3c2a
-en-a4/minutes.shot.html 7376 fd85dc713731f351
-en-a4/preview.html 12695 4729999f8f46b1ad
+en-a4/minutes.print.html 7415 2c06e5a5e683f186
+en-a4/minutes.shot.html 7394 340863d64c8381ff
+en-a4/preview.html 12713 fd328665ad0eabaf
 en-a4/program.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
 en-a4/program.docx/_rels/.rels 589 d6f21829c0081670
 en-a4/program.docx/docProps/core.xml 692 a17e51a39813aba2
@@ -111,8 +111,8 @@ en-a4/program.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-a4/program.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-a4/program.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-a4/program.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/program.print.html 5196 83cf12bd012a2c4b
-en-a4/program.shot.html 5365 223f579139b179ff
+en-a4/program.print.html 5214 88a2060202f790c5
+en-a4/program.shot.html 5383 1b5ff0f6f6cdb141
 en-letter.zip/Committee Meeting Minutes.docx/[Content_Types].xml 1767 64b05c70239e5b46
 en-letter.zip/Committee Meeting Minutes.docx/_rels/.rels 589 d6f21829c0081670
 en-letter.zip/Committee Meeting Minutes.docx/docProps/core.xml 697 6f503af5c2851891
@@ -186,8 +186,8 @@ en-letter/invoice.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-letter/invoice.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-letter/invoice.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-letter/invoice.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/invoice.print.html 5329 b57ff5aaba8f26b5
-en-letter/invoice.shot.html 5502 d4bcf60fa1db83fb
+en-letter/invoice.print.html 5347 db04798b031ebfd8
+en-letter/invoice.shot.html 5520 f02b351b528761bc
 en-letter/minutes.docx/[Content_Types].xml 1767 64b05c70239e5b46
 en-letter/minutes.docx/_rels/.rels 589 d6f21829c0081670
 en-letter/minutes.docx/docProps/core.xml 697 6f503af5c2851891
@@ -206,9 +206,9 @@ en-letter/minutes.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-letter/minutes.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-letter/minutes.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-letter/minutes.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/minutes.print.html 7397 a6270674065343f1
-en-letter/minutes.shot.html 7376 27e4ff04325d78c6
-en-letter/preview.html 12707 f59afa1d927a80a2
+en-letter/minutes.print.html 7415 1f5fd88efaf06c72
+en-letter/minutes.shot.html 7394 6dd15f3f5f67e34a
+en-letter/preview.html 12725 d847e2736bc83bed
 en-letter/program.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
 en-letter/program.docx/_rels/.rels 589 d6f21829c0081670
 en-letter/program.docx/docProps/core.xml 692 a17e51a39813aba2
@@ -225,8 +225,8 @@ en-letter/program.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-letter/program.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-letter/program.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-letter/program.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/program.print.html 5196 b42d086f11183311
-en-letter/program.shot.html 5365 8a46ea9f7340f721
+en-letter/program.print.html 5214 47bc35c560cbf23e
+en-letter/program.shot.html 5383 0b5309cc8fddb136
 images/01-committee-meeting-minutes.jpg.html 1277 6bff60c380de19e9
 images/02-documents.jpg.html 1696 15adce4b9f90a3df
 images/03-plot-fee-invoice.jpg.html 1338 3c5a5051d42acce5

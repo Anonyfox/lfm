@@ -1,9 +1,9 @@
 package document
 
 import (
-	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/office"
@@ -12,8 +12,10 @@ import (
 )
 
 // TestPrintMatchesWord prints every document of the fixtures with Chrome,
-// as a release does, and opens it in Word: the pages must agree, so the
-// PDFs buyers get and the page checks speak for Word. LFM_WORD=1 runs it.
+// as a release does, and opens it in Word: Word may never need more pages
+// than the print, so the PDFs buyers get and the page checks speak for
+// Word. The print sets lines as tall as Word for Windows does, which Word
+// for Mac sets a little tighter, so it may need fewer. LFM_WORD=1 runs it.
 func TestPrintMatchesWord(t *testing.T) {
 	if os.Getenv("LFM_WORD") == "" || !office.HasWord() {
 		t.Skip("set LFM_WORD=1 with Word for Mac installed")
@@ -70,11 +72,15 @@ func TestPrintMatchesWord(t *testing.T) {
 	same := 0
 	for _, n := range names {
 		mark := ""
-		if fmt.Sprint(chrome[n]) == word[n] {
-			same++
-		} else {
-			mark = "  <-- differs"
+		pages, err := strconv.Atoi(word[n])
+		switch {
+		case err != nil || pages > chrome[n]:
+			mark = "  <-- Word needs more"
 			t.Errorf("%s: Chrome prints %d pages, Word %s", n, chrome[n], word[n])
+		case pages < chrome[n]:
+			mark = "  <-- Word for Mac sets it tighter"
+		default:
+			same++
 		}
 		t.Logf("%-40s chrome %d  word %s%s", n, chrome[n], word[n], mark)
 	}

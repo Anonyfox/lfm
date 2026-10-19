@@ -58,8 +58,8 @@ en-a4/ceremony.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-a4/ceremony.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-a4/ceremony.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-a4/ceremony.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/ceremony.print.html 3810 d973fb9fe33ee0d4
-en-a4/ceremony.shot.html 3985 c8f8a27d0d25b50c
+en-a4/ceremony.print.html 3828 19dc0bc6ead7de93
+en-a4/ceremony.shot.html 4003 750c91c14019fc8b
 en-a4/everything.docx/[Content_Types].xml 2023 64f30b1703718c0d
 en-a4/everything.docx/_rels/.rels 589 d6f21829c0081670
 en-a4/everything.docx/docProps/core.xml 680 23b02fedd19a538c
@@ -81,10 +81,10 @@ en-a4/everything.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-a4/everything.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-a4/everything.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-a4/everything.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/everything.print.html 12174 ec1b0de3bd8902dc
-en-a4/everything.shot.html 12005 72e09cb9133745b5
+en-a4/everything.print.html 12192 0c7de5b970ae50d8
+en-a4/everything.shot.html 12023 41a13c9e9d9f50bc
 en-a4/guide.html 2500 5e1526943d35407a
-en-a4/preview.html 9586 744998c21e8b2ea5
+en-a4/preview.html 9604 fef8779a296a1e4f
 en-letter.zip/Ceremony Proof.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
 en-letter.zip/Ceremony Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-letter.zip/Ceremony Proof.docx/docProps/core.xml 678 1162429dcd842592
@@ -144,8 +144,8 @@ en-letter/ceremony.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-letter/ceremony.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-letter/ceremony.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-letter/ceremony.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/ceremony.print.html 3810 fb1342d3e1b89c1a
-en-letter/ceremony.shot.html 3985 487c71615f1e9ee5
+en-letter/ceremony.print.html 3828 638200f5e7fe1ed7
+en-letter/ceremony.shot.html 4003 899e9b7b7418d13b
 en-letter/everything.docx/[Content_Types].xml 2023 64f30b1703718c0d
 en-letter/everything.docx/_rels/.rels 589 d6f21829c0081670
 en-letter/everything.docx/docProps/core.xml 680 23b02fedd19a538c
@@ -167,10 +167,10 @@ en-letter/everything.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-letter/everything.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-letter/everything.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-letter/everything.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/everything.print.html 12174 105bdf086b3fc8d9
-en-letter/everything.shot.html 12005 23bce7f78e56929f
+en-letter/everything.print.html 12192 d746d8d39b7c494c
+en-letter/everything.shot.html 12023 89d96d09fbdc7514
 en-letter/guide.html 2507 ee0f9cf9d88e56b3
-en-letter/preview.html 9594 a67510a20f1e25b0
+en-letter/preview.html 9612 ee268c3eda1f7a1d
 images/01-everything-proof.jpg.html 1277 9d985e57fe61594a
 images/02-documents.jpg.html 1544 9da913c225207e4e
 images/03-ceremony-proof.jpg.html 1336 582cae034cb0f951

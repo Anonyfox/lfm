@@ -64,11 +64,16 @@ func styleFor(m metrics, style, prefix string) string {
 	if m.Indent {
 		after = 0
 	}
+	// A third-level heading without bold stands apart in italic, as in the .docx.
+	slant := "normal"
+	if !m.HeadingBold {
+		slant = "italic"
+	}
 	pt := func(v float64) string { return fmt.Sprintf("%.2fpt", v) }
 	mm := func(v float64) string { return fmt.Sprintf("%.2fmm", v) }
 	r := strings.NewReplacer(
 		"$base", pt(m.Base), "$line", pt(m.PrintLine), "$headlh", fmt.Sprintf("%.3f", m.PrintHeadFactor), "$smalllh", pt(math.Max(m.Small*1.3, m.Small*m.PrintLine/m.Base)), "$text", fmt.Sprintf("%q", m.Text), "$heading", fmt.Sprintf("%q", m.Heading),
-		"$ink", m.Ink, "$muted", m.Muted, "$accent", m.Accent, "$tint", m.Tint, "$rule", m.Stroke, "$headcolor", headColor, "$titlecolor", title, "$weight", weight,
+		"$ink", m.Ink, "$muted", m.Muted, "$accent", m.Accent, "$tint", m.Tint, "$rule", m.Stroke, "$headcolor", headColor, "$titlecolor", title, "$weight", weight, "$slant", slant,
 		"$pagew", mm(m.Paper.Width), "$pageh", mm(m.Paper.Height), "$top", mm(m.Top), "$margin", mm(m.Margin), "$bottom", mm(m.Bottom), "$gutter", mm(gutter),
 		"$small", pt(m.Small), "$label", pt(m.Small+0.5), "$after", pt(after), "$indent", pt(m.Base*1.2),
 		"$title", pt(m.Title), "$h1", pt(m.H1), "$h2", pt(m.H2), "$h3", pt(m.H3),
@@ -106,7 +111,7 @@ p.indent{text-indent:$indent}
 h1,h2,h3{font-family:$heading;color:$headcolor;font-weight:$weight;line-height:$headlh;margin:0}
 h1{font-size:$h1;padding:$u6 0 $u2}
 h2{font-size:$h2;padding:$u5 0 $u15}
-h3{font-size:$h3;padding:$u4 0 $u1}
+h3{font-size:$h3;font-style:$slant;padding:$u4 0 $u1}
 .center{text-align:center}
 .fill{background:#FFFF00}
 a{color:$accent}
