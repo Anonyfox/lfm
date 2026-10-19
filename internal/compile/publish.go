@@ -125,7 +125,7 @@ func removeStale(root, dir string) {
 }
 
 // units are the sellable units that own a folder in distribution/.
-var units = map[string]bool{"book": true, "printable": true, "bundle": true, "spreadsheet": true, "document": true}
+var units = map[string]bool{"book": true, "printable": true, "bundle": true, "spreadsheet": true, "document": true, "deck": true}
 
 // publishDistribution replaces each unit's folder in distribution/ the way
 // publish replaces output/, removes the units that have none any more, and

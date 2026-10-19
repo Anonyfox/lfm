@@ -64,6 +64,9 @@ func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 	if _, ok := result.Previews[deckPath+"/preview/en.html"]; !ok {
 		t.Fatal("no preview")
 	}
+	if _, err := os.Stat(filepath.Join(dir, "distribution", "deck", "README.md")); err != nil {
+		t.Fatalf("the shop package is gone: %v", err)
+	}
 	if testing.Short() {
 		return
 	}

@@ -559,6 +559,10 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 
 // distribute sets the store package of a unit; empty removes it.
 func (r *Result) distribute(unit string, files map[string][]byte) {
+	if !units[unit] {
+		// publishDistribution would clear the folder as one lfm no longer writes.
+		panic("compile: distribution/" + unit + " is not a unit")
+	}
 	if r.Distribution == nil {
 		r.Distribution = map[string]map[string][]byte{}
 	}
