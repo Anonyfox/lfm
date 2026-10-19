@@ -3,13 +3,13 @@ package compile
 import (
 	"bytes"
 	"maps"
-	"math/big"
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/Anonyfox/lfm/internal/deliver"
 
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
@@ -28,21 +28,12 @@ func checkBook(p project.Project, loaded project.Loaded, commerce commercecheck.
 	if configured {
 		b := c.Deliverables.Book
 		cfg = book.Config{Author: b.Author, Language: b.Language, Path: b.Path, Offer: b.Offer, Formats: b.Formats,
-			Publisher: b.Publisher, Imprint: b.Imprint, Paper: b.Paper, ISBNEbook: b.ISBN.Ebook, ISBNPaperback: b.ISBN.Paperback}
+			Publisher: c.Seller.Name, Imprint: c.Seller.Imprint, Paper: b.Paper, ISBNEbook: b.ISBN.Ebook, ISBNPaperback: b.ISBN.Paperback, Sell: b.Sell}
 	}
 	if cfg.Language == "" {
 		cfg.Language = c.Language
 	}
-	offers := map[string]*book.Price{}
-	for _, offer := range commerce.Offers {
-		var price *book.Price
-		if m := offer.Price; m != nil && m.Scale > 0 {
-			amount := new(big.Rat).SetFrac64(m.AmountMinor, m.Scale)
-			currency := strings.ToUpper(m.Currency)
-			price = &book.Price{Text: amount.FloatString(2) + " " + currency, Amount: amount, Currency: currency}
-		}
-		offers[strings.TrimPrefix(offer.Path, "data.commerce.offers.")] = price
-	}
+	offers := offerPrices(commerce)
 	r := book.Check(p, cfg, configured, offers, c.URL, researched.Voices, researched.Competitors)
 	sources := jsonsrc.Index(loaded.Sources)
 	for i, d := range r.Diagnostics {
@@ -56,45 +47,81 @@ func checkBook(p project.Project, loaded project.Loaded, commerce commercecheck.
 	return &r, r.Diagnostics
 }
 
-// deliverBook adds the download page and, once every chapter is written, the
-// book's files to the output, under the unlisted path.
-func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool, result *Result) []diagnostic.Diagnostic {
-	if r.Config.Path == "" || !book.ValidPath(r.Config.Path) || r.Summary.URL == "" {
+// shipped is what a deliverable built for buyers: its downloads with their
+// bytes, which its own download page and a bundle's offer.
+type shipped struct {
+	Files []deliver.File
+	Data  map[string][]byte
+}
+
+func (s *shipped) add(f deliver.File, data []byte) {
+	f.Size = len(data)
+	s.Files = append(s.Files, f)
+	s.Data[f.Name] = data
+}
+
+// leaks reports an error when the page contains a download path.
+func leaks(page []byte, path, rule, what string) []diagnostic.Diagnostic {
+	if path == "" || !bytes.Contains(page, []byte(path)) {
 		return nil
 	}
+	return []diagnostic.Diagnostic{{Rule: rule, Severity: diagnostic.Error, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1},
+		Message: "The page contains the " + what + "'s download path; anyone could download it without paying.",
+		Hint:    "Remove every link to the download page from the page. Buyers reach it through the checkout's after-payment redirect and the invoice email only."}}
+}
+
+// downloadPage publishes a download page and its files under path.
+func downloadPage(result *Result, path string, page []byte, s shipped) {
+	result.Artifact[path+"/index.html"] = page
+	result.Files = append(result.Files, File{path + "/index.html", len(page)})
+	for _, f := range s.Files {
+		result.Artifact[path+"/"+f.Name] = s.Data[f.Name]
+		result.Files = append(result.Files, File{path + "/" + f.Name, f.Size})
+	}
+}
+
+// deliverBook builds the book once every chapter is written, publishes its
+// download page when it sells through the page, and assembles its store
+// packages when it has a listing and sells on its own. It returns the files
+// for a bundle.
+func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool, result *Result) (shipped, []diagnostic.Diagnostic) {
+	out := shipped{Data: map[string][]byte{}}
+	sell := r.Summary.Sell
+	pageSale := sell == deliver.SellPage && deliver.ValidPath(r.Config.Path) && r.Summary.URL != ""
+	if sell == deliver.SellPage && !pageSale {
+		return out, nil // the config finding says what is missing
+	}
+	if pageSale {
+		if leak := leaks(page, r.Config.Path, book.RuleDelivery, "book"); leak != nil {
+			return out, leak
+		}
+	}
+	ownStores := sell != deliver.SellBundle && r.Listing.Present
 	var issues []diagnostic.Diagnostic
 	at := func(sev diagnostic.Severity, rule, message, hint string) {
 		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: sev, Location: diagnostic.Location{File: book.ConceptFile, Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
-	if bytes.Contains(page, []byte(r.Config.Path)) {
-		issues = append(issues, diagnostic.Diagnostic{Rule: book.RuleDelivery, Severity: diagnostic.Error, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1},
-			Message: "The page contains the book's download path; anyone could download it without paying.",
-			Hint:    "Remove every link to the download page from the page. Buyers reach it through Stripe's after-payment redirect and the invoice email only."})
-		return issues
-	}
-	var files []book.File
 	if r.Buildable {
 		built, err := book.Build(*r, func(rel string) ([]byte, error) { return p.Read(book.Dir + "/" + rel) }, newest(p, r))
 		if err != nil {
 			at(diagnostic.Error, book.RuleBuild, "The book could not be built: "+err.Error(), "Fix the named file and compile again.")
-			return issues
+			return out, issues
 		}
-		slug := book.Slug(r.Plan.Title)
+		slug := deliver.Slug(r.Plan.Title, "book")
 		if r.Config.Wants("epub") {
-			files = append(files, book.File{Name: slug + ".epub", Label: "EPUB", Note: book.Words(r.Config.Language).EPUBNote, Size: len(built.EPUB)})
-			result.Artifact[r.Config.Path+"/"+slug+".epub"] = built.EPUB
+			out.add(deliver.File{Name: slug + ".epub", Label: "EPUB", Note: book.Words(r.Config.Language).EPUBNote}, built.EPUB)
 		}
-		pr := newPress(p, r.Config.Path, isRelease)
+		pr := newPress(p, isRelease)
 		defer pr.close()
 		var pdf []byte
 		var pdfErr, layoutErr error
 		var layout []string
 		var wg sync.WaitGroup
-		if r.Config.Wants("pdf") || r.Listing.Present {
+		if r.Config.Wants("pdf") || ownStores {
 			wg.Go(func() { pdf, pdfErr = pr.screen(built) })
 		}
 		var printed book.Printed
-		if r.Listing.Present {
+		if ownStores {
 			wg.Go(func() { printed = pr.paperback(r, built) })
 		}
 		if isRelease {
@@ -109,8 +136,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool,
 		wg.Wait()
 		r.Summary.Pending = pr.pending
 		if r.Config.Wants("pdf") && pdf != nil {
-			files = append(files, book.File{Name: slug + ".pdf", Label: "PDF", Note: book.Words(r.Config.Language).PDFNote, Size: len(pdf)})
-			result.Artifact[r.Config.Path+"/"+slug+".pdf"] = pdf
+			out.add(deliver.File{Name: slug + ".pdf", Label: "PDF", Note: book.Words(r.Config.Language).PDFNote}, pdf)
 		}
 		// The PDF is a deliverable when the formats name it, and a store file
 		// otherwise; a browser that cannot start is reported once for both.
@@ -129,17 +155,16 @@ func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool,
 				at(diagnostic.Warning, book.RuleChannels, problem, "Check the book's fonts, images and book.css, then run 'lfm compile --release' again.")
 			}
 		}
-		if !r.Listing.Present {
-			result.Distribution = map[string][]byte{} // packages of a removed listing go too
-		}
-		if r.Listing.Present {
+		if ownStores {
 			printed.PDF = pdf
 			printed.Pending = pr.pending
-			printed.LastCover, _ = os.ReadFile(filepath.Join(p.Root, project.DistributionDir, "cover.jpg"))
+			printed.LastCover, _ = os.ReadFile(filepath.Join(p.Root, project.DistributionDir, "book", "cover.jpg"))
 			files, channels, found := book.Distribution(*r, built, printed, time.Now().Format("2006-01-02"))
-			result.Distribution = files
+			result.distribute("book", files)
 			r.Summary.Channels = channels
 			issues = append(issues, found...)
+		} else {
+			result.distribute("book", map[string][]byte{}) // no package of its own
 		}
 		if isRelease {
 			switch {
@@ -156,14 +181,13 @@ func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool,
 			}
 		}
 	}
-	download := book.DownloadPage(r.Plan, r.Config, files)
-	result.Artifact[r.Config.Path+"/index.html"] = download
-	result.Files = append(result.Files, File{r.Config.Path + "/index.html", len(download)})
-	for _, f := range files {
+	for _, f := range out.Files {
 		r.Summary.Files = append(r.Summary.Files, f.Name)
-		result.Files = append(result.Files, File{r.Config.Path + "/" + f.Name, f.Size})
 	}
-	return issues
+	if pageSale {
+		downloadPage(result, r.Config.Path, book.DownloadPage(r.Plan, r.Config, out.Files), out)
+	}
+	return out, issues
 }
 
 // newest is the latest change among the book's sources, the EPUB's modified

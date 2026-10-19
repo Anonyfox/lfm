@@ -35,10 +35,11 @@ works, tell the user what failed and stop: a page made without lfm is not this s
 ## 3. Install the process skills
 
 Run `lfm skills install` in the project. It installs `lfm-research`, `lfm-design`,
-`lfm-implementation` and `lfm-book` where your agent loads skills and says where. If they do not appear
-in this session, read each one when its phase starts with `lfm skills research`, `lfm skills design`,
-`lfm skills implementation` and `lfm skills book`: they match the installed binary exactly. The book
-skill is for a book the page sells; it lives in `deliverables/book/`.
+`lfm-implementation`, `lfm-book` and `lfm-printable` where your agent loads skills and says where. If
+they do not appear in this session, read each one when its phase starts with `lfm skills research`,
+`lfm skills design`, `lfm skills implementation`, `lfm skills book` and `lfm skills printable`: they
+match the installed binary exactly. The book and printable skills are for what the page sells; they live
+in `deliverables/book/` and `deliverables/printable/`.
 
 ## 4. Follow the compiler
 

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/pdfx"
+
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/scaffold"
@@ -119,7 +121,7 @@ func TestBookIsPublishedBehindItsPath(t *testing.T) {
 	if bytes.Contains(main, []byte(bookPath)) {
 		t.Fatal("the page links the download path")
 	}
-	if _, err := os.Stat(filepath.Join(dir, "distribution", "the-weekend-starter.epub")); err != nil {
+	if _, err := os.Stat(filepath.Join(dir, "distribution", "book", "the-weekend-starter.epub")); err != nil {
 		t.Fatalf("store packages: %v", err)
 	}
 	if _, browserErr := release.BrowserPath(); browserErr == nil && !testing.Short() {
@@ -127,18 +129,18 @@ func TestBookIsPublishedBehindItsPath(t *testing.T) {
 			t.Fatalf("release: %v, pending %v", err, result.Book.Pending)
 		}
 		pdf, err := os.ReadFile(filepath.Join(out, "the-weekend-starter.pdf"))
-		if err != nil || !bytes.HasPrefix(pdf, []byte("%PDF")) || book.StampOf(pdf) == "" {
+		if err != nil || !bytes.HasPrefix(pdf, []byte("%PDF")) || pdfx.StampOf(pdf) == "" {
 			t.Fatalf("pdf: %v", err)
 		}
 		// Three short chapters stay below every printer's minimum: the README
 		// still describes the paperback lfm printed.
-		readme, _ := os.ReadFile(filepath.Join(dir, "distribution", "README.md"))
+		readme, _ := os.ReadFile(filepath.Join(dir, "distribution", "book", "README.md"))
 		if !regexp.MustCompile(`5x8in trim, \d*[02468] pages`).Match(readme) || !bytes.Contains(readme, []byte("chapters start on right-hand pages")) {
 			t.Fatalf("paperback in README:\n%s", readme)
 		}
-		interior, err := os.ReadFile(filepath.Join(dir, "distribution", "paperback-interior.pdf"))
-		if err != nil || book.PageCount(interior)%2 != 0 || bytes.Contains(interior, []byte("/Annot")) || bytes.Contains(interior, []byte("/Outlines")) {
-			t.Fatalf("paperback interior: %v, %d pages", err, book.PageCount(interior))
+		interior, err := os.ReadFile(filepath.Join(dir, "distribution", "book", "paperback-interior.pdf"))
+		if err != nil || pdfx.PageCount(interior)%2 != 0 || bytes.Contains(interior, []byte("/Annot")) || bytes.Contains(interior, []byte("/Outlines")) {
+			t.Fatalf("paperback interior: %v, %d pages", err, pdfx.PageCount(interior))
 		}
 		// The next ordinary compile reuses the prints of the unchanged book.
 		again, err := Compile(context.Background(), dir, Options{Publish: true})

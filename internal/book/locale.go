@@ -2,8 +2,8 @@ package book
 
 import "strings"
 
-// words are the few texts lfm writes into a book and its download page, per
-// language; English is the fallback.
+// Wording holds the few texts lfm writes into a book and its download page,
+// per language; English is the fallback.
 type Wording struct {
 	Contents, Rights, CoverOf, Start, Copyright, Chapter string
 	DownloadTitle, Thanks, Writing, Download, Keep       string
@@ -50,6 +50,7 @@ var locales = map[string]Wording{
 	},
 }
 
+// Words returns the texts lfm writes for a language.
 func Words(language string) Wording {
 	lang := strings.ToLower(language)
 	if w, ok := locales[lang]; ok {
@@ -61,5 +62,3 @@ func Words(language string) Wording {
 	}
 	return locales["en"]
 }
-
-// Words returns the texts lfm writes for a language.

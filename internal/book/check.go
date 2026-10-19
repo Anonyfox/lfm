@@ -1,12 +1,13 @@
 package book
 
 import (
-	"crypto/rand"
 	"fmt"
 	"os"
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/deliver"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/imaging"
@@ -30,6 +31,7 @@ type Summary struct {
 	Pending  bool      `json:"printPending,omitempty"` // the PDF and paperback wait for a release to print
 	Layout   string    `json:"layout,omitempty"`       // release: "fits", or the number of layout findings
 	Channels []string  `json:"channels,omitempty"`     // store packages written to distribution/
+	Sell     string    `json:"sell"`                   // page, shops or bundle
 }
 
 // Next returns the first unwritten chapter, or nil.
@@ -63,17 +65,6 @@ func Present(p project.Project) bool {
 	return err == nil && info.IsDir()
 }
 
-// NewPath returns a fresh random download path.
-func NewPath() string {
-	const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"
-	b := make([]byte, 24)
-	_, _ = rand.Read(b)
-	for i := range b {
-		b[i] = alphabet[int(b[i])%len(alphabet)]
-	}
-	return string(b)
-}
-
 // Check reads the book of the project. configured tells whether lfm.json has
 // deliverables.book; site is the page URL the download path hangs off.
 func Check(p project.Project, cfg Config, configured bool, offers map[string]*Price, site string, voices *research.Voices, competitors *research.Competitors) Report {
@@ -91,16 +82,12 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 	case !configured:
 		configOK = false
 		errorAt("deliverables", RuleConfig, "deliverables/book exists but lfm.json has no deliverables.book.",
-			fmt.Sprintf(`Add "deliverables": {"book": {"author": "<name on the cover>", "path": %q}} to lfm.json; the path is the unlisted folder buyers download from.`, NewPath()))
+			fmt.Sprintf(`Add "deliverables": {"book": {"author": "<name on the cover>", "path": %q}} to lfm.json; the path is the unlisted folder buyers download from. 'lfm help config deliverables.book' lists the options.`, deliver.NewPath()))
 	default:
-		if strings.TrimSpace(cfg.Author) == "" {
-			configOK = false
-			errorAt("deliverables.book", RuleConfig, "deliverables.book has no author.", "Set deliverables.book.author to the name on the cover.")
-		}
-		if !ValidPath(cfg.Path) {
+		if deliver.Sell(cfg.Sell) == deliver.SellPage && !deliver.ValidPath(cfg.Path) {
 			configOK = false
 			errorAt("deliverables.book.path", RuleConfig, fmt.Sprintf("deliverables.book.path %q is not an unguessable folder name.", cfg.Path),
-				fmt.Sprintf("Use at least %d lowercase letters, digits or single hyphens, for example %q. Anyone who knows the path can download the book.", MinPathLength, NewPath()))
+				fmt.Sprintf("Use at least %d lowercase letters, digits or single hyphens, for example %q. Anyone who knows the path can download the book.", deliver.MinPathLength, deliver.NewPath()))
 		}
 		if _, ok := offers[cfg.Offer]; cfg.Offer != "" && !ok {
 			configOK = false
@@ -116,18 +103,9 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 			configOK = false
 			errorAt("deliverables.book.isbn", RuleConfig, "The ebook and the paperback share one ISBN.", "Every edition needs its own ISBN.")
 		}
-		if cfg.Paper != "" && cfg.Paper != "white" && cfg.Paper != "cream" {
-			configOK = false
-			errorAt("deliverables.book.paper", RuleConfig, fmt.Sprintf("deliverables.book.paper %q is not white or cream.", cfg.Paper), "Pick the paper of the print edition.")
-		}
-		for _, f := range cfg.Formats {
-			if f != "epub" && f != "pdf" {
-				configOK = false
-				errorAt("deliverables.book.formats", RuleConfig, fmt.Sprintf("Unknown book format %q.", f), "List epub, pdf or both.")
-			}
-		}
 	}
-	if configOK {
+	r.Summary.Sell = deliver.Sell(cfg.Sell)
+	if configOK && r.Summary.Sell == deliver.SellPage {
 		r.Summary.URL = strings.TrimSuffix(site, "/") + "/" + cfg.Path + "/"
 	}
 

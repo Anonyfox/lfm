@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Anonyfox/lfm/internal/project"
 )
@@ -24,7 +25,11 @@ func publishTo(p project.Project, dir string, files map[string][]byte) error {
 		return err
 	}
 	removeStale(p.Root, dir)
-	next, err := os.MkdirTemp(p.Root, dir+".next-")
+	parent := filepath.Dir(output)
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		return err
+	}
+	next, err := os.MkdirTemp(parent, filepath.Base(output)+".next-")
 	if err != nil {
 		return err
 	}
@@ -74,8 +79,38 @@ func removeStale(root, dir string) {
 	}
 }
 
-// unpublish removes a folder lfm published, such as the store packages of a
-// book whose listing was removed.
-func unpublish(p project.Project, dir string) error {
-	return os.RemoveAll(filepath.Join(p.Root, dir))
+// units are the sellable units that own a folder in distribution/.
+var units = map[string]bool{"book": true, "printable": true, "bundle": true}
+
+// publishDistribution replaces each unit's folder in distribution/ the way
+// publish replaces output/, removes the units that have none any more, and
+// clears anything else lfm no longer writes there, such as the flat layout of
+// earlier versions. A distribution/ left empty is removed.
+func publishDistribution(p project.Project, packages map[string]map[string][]byte) error {
+	if packages == nil {
+		return nil
+	}
+	root := filepath.Join(p.Root, project.DistributionDir)
+	for unit, files := range packages {
+		dir := filepath.Join(project.DistributionDir, unit)
+		if len(files) == 0 {
+			if err := os.RemoveAll(filepath.Join(p.Root, dir)); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := publishTo(p, dir, files); err != nil {
+			return err
+		}
+	}
+	entries, _ := os.ReadDir(root)
+	for _, e := range entries {
+		if !units[e.Name()] && !strings.Contains(e.Name(), ".next-") {
+			os.RemoveAll(filepath.Join(root, e.Name()))
+		}
+	}
+	if entries, _ := os.ReadDir(root); len(entries) == 0 {
+		os.Remove(root)
+	}
+	return nil
 }

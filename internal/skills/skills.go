@@ -14,8 +14,12 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Anonyfox/lfm/internal/deliver"
+
 	"github.com/Anonyfox/lfm/internal/book"
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
@@ -33,12 +37,13 @@ type Data struct {
 	MinVoices    int    // research minimums for a project started from zero
 	MinPlatforms int
 	MinPeers     int
-	Authors      string // allowed author types, "a | b"
-	Methods      string // allowed fetch methods, "a | b"
-	ConceptFile  string // the design handover
-	Design       Design // minimums concept.md must meet
-	Screens      string // the screen sizes of the release layout audit
-	Book         Book   // the book deliverable
+	Authors      string    // allowed author types, "a | b"
+	Methods      string    // allowed fetch methods, "a | b"
+	ConceptFile  string    // the design handover
+	Design       Design    // minimums concept.md must meet
+	Screens      string    // the screen sizes of the release layout audit
+	Book         Book      // the book deliverable
+	Printable    Printable // the printable deliverable
 }
 
 // Book holds the layout and minimums of the book deliverable.
@@ -54,6 +59,16 @@ type Book struct {
 	MaxShort, MaxBackCover           int
 	MaxKeywords, MaxTags, MaxTag     int
 	Channels                         string
+}
+
+// Printable holds the layout and limits of the printable deliverable.
+type Printable struct {
+	Dir, Concept, Listing, Distribution string
+	Bundle                              string // the bundle's listing
+	Sizes, Roles, Channels              string
+	Safe                                float64
+	MinPath, EtsyFiles                  int
+	MaxTitle, MaxTags, MaxTag           int
 }
 
 // Design holds the minimums the compiler checks in concept.md.
@@ -79,12 +94,18 @@ func NewData(version string) Data {
 		Book: Book{
 			Dir: book.Dir, Concept: book.ConceptFile, MinChapters: book.MinChapters, MinVoices: book.MinVoices, MinPeers: book.MinPeers,
 			MinWords: book.MinWords, MaxWords: book.MaxWords, Tolerance: int(book.WordTolerance * 100),
-			CoverWidth: book.CoverWidth, CoverHeight: book.CoverHeight, MinPath: book.MinPathLength,
+			CoverWidth: book.CoverWidth, CoverHeight: book.CoverHeight, MinPath: deliver.MinPathLength,
 			MinObjections: book.MinObjections,
-			Listing:       book.ListingFile, Distribution: project.DistributionDir,
+			Listing:       book.ListingFile, Distribution: project.DistributionDir + "/book",
 			MaxDescription: book.MaxDescription, MinDescription: book.MinDescription, MaxShort: book.MaxShort, MaxBackCover: book.MaxBackCover,
 			MaxKeywords: book.MaxKeywords, MaxTags: book.MaxTags, MaxTag: book.MaxTagLength,
 			Channels: strings.Join(book.Channels(), ", "),
+		},
+		Printable: Printable{
+			Dir: printable.Dir, Concept: printable.ConceptFile, Listing: printable.ListingFile, Distribution: project.DistributionDir + "/printable", Bundle: bundle.ListingFile,
+			Sizes: printable.SizeNames(), Roles: strings.Join(printable.Roles, ", "), Channels: strings.Join(deliver.Shops(), ", "),
+			Safe: printable.Safe, MinPath: deliver.MinPathLength, EtsyFiles: deliver.EtsyFiles,
+			MaxTitle: deliver.MaxTitle, MaxTags: deliver.MaxTags, MaxTag: deliver.MaxTag,
 		},
 		Design: Design{
 			MinVoiceNotes: concept.MinVoiceNotes, MinPathSteps: concept.MinPathSteps, MinRejected: concept.MinRejected,
@@ -115,7 +136,7 @@ type Skill struct {
 }
 
 // lifecycle orders the skills as a project uses them; others follow by name.
-var lifecycle = []string{"research", "design", "implementation", "book"}
+var lifecycle = []string{"research", "design", "implementation", "book", "printable"}
 
 func rank(topic string) int {
 	for i, t := range lifecycle {

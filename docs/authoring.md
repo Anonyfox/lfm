@@ -12,6 +12,8 @@ my-page/
   research/           human-voices.md, competitor-analysis.md (never compiled)
   concept.md          the design decisions the page is built from (never compiled)
   deliverables/book/  optional: a book the page sells (concept.md, chapters/, images/, fonts/, book.css)
+  deliverables/printable/ optional: a printable (concept.md, printable.html.tmpl, data/)
+  deliverables/bundle/    optional: listing.md of the book and the printable sold together
   output/             the compiled page; replaced on every successful compile
   distribution/       the book's store packages, when it has a listing.md; never deployed
 ```
@@ -28,6 +30,7 @@ Sources may live anywhere inside the folder, except `output/` and `distribution/
   "title": "My page",
   "description": "One sentence: who this page is for and what they get from it.",
   "socialImage": { "src": "assets/images/share.png", "alt": "What the image shows" },
+  "seller": { "name": "Baker Books", "imprint": "Baker Books, Example Street 1, 12345 City" },
   "urls": { "checkout": "https://buy.stripe.com/…" },
   "data": { "offer": { "price": 29 } },
   "build": {
@@ -38,21 +41,12 @@ Sources may live anywhere inside the folder, except `output/` and `distribution/
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `schemaVersion` | Always `1`. |
-| `url` | Absolute HTTPS URL of the folder the page is deployed to, ending in `/`, without query or fragment. It is the page's canonical URL, and social media URLs are resolved against it. |
-| `language`, `title`, `description` | Required page facts. Render them in the template. |
-| `socialImage` | Optional preview image source and alt text. |
-| `urls` | Named, complete URLs: checkout links, contacts, navigation, remote resources. Render with `{{.urls.checkout}}`; rendered links are checked against this list. |
-| `links` | Optional free-form labels or key references for links. |
-| `jsonld` | Optional structured data object or array; see below. |
-| `data` | Every product value the page uses: offers, prices, copy blocks, FAQ entries. |
-| `build.browserData` | Dot paths copied into `<script type="application/json" id="product-data">` for scripts, keeping their nesting: `"data.offer"` arrives as `{"data":{"offer":…}}`. |
-| `build.assets` | Packing policy: `default` is `auto` (the compiler decides), `inline` or `file`; `overrides` pins single source paths. |
-| `build.validation.rules` | Per-rule levels: `off`, `warn` or `error`. Required rules stay errors. See `lfm rules`. |
+Every field, with its type, allowed values, default and meaning, is in the [lfm.json reference](config.md),
+generated from the same table the compiler checks against; `lfm help config [field]` prints it in the
+terminal, and every config finding quotes the field it is about.
 
-Reserved fields use exact casing; unknown keys are errors with a hint. Custom values belong under `data`.
+Reserved fields use exact casing; unknown keys, wrong types and values outside a field's list are errors
+that name the field's meaning and allowed values. Custom values belong under `data`.
 Each `data/<name>.json` becomes `.data.<name>`; a name already in `lfm.json` is an error.
 
 ## The template
@@ -140,7 +134,6 @@ deliverables/book/
 
 ```json
 "deliverables": {"book": {"author": "Ada Baker", "path": "k3x9m2q7w8e4r5t6y1u0", "offer": "book",
-  "publisher": "Baker Books", "imprint": "Baker Books, Example Street 1, 12345 City",
   "paper": "cream", "isbn": {"ebook": "978-…", "paperback": "978-…"}}}
 ```
 
@@ -159,9 +152,70 @@ readability formulas, the detector's habits) cover English, German, French, Span
 Dutch and Polish; other languages get the structural and statistical checks. The book is built once every chapter exists; until then its download page tells buyers that
 their copy is being written, so the page can sell it first.
 
-`publisher`, `imprint` (the lines of the copyright page, such as a German Impressum), `paper` (`white` or
-`cream`, which sets the paperback's spine) and the ISBNs are optional; an ISBN is checked against its check
+The copyright page prints `seller.name` as the publisher and `seller.imprint` (the lines of a German
+Impressum, for example). `paper` (`white` or `cream`, which sets the paperback's spine) and the ISBNs are
+optional; an ISBN is checked against its check
 digit and printed on the copyright page, and the paperback's draws its barcode on the back cover.
 `listing.md` is checked against the strictest store's limits (`book.listing`) and rendered into every
 channel's format; see [compiling](compiling.md#store-packages).
+
+## Deliverables: a printable
+
+A printable is a planner, tracker, game, puzzle pack or worksheet bundle: fixed-size pages a buyer prints
+at home or opens in a note app. `lfm skills printable` prints the process.
+
+```text
+deliverables/printable/
+  concept.md            buyer, promise, Contents (part, exact pages, job), Editions (sizes, variants), look
+  printable.html.tmpl   Go template rendering every page of one edition
+  printable.css         the look; lfm sets the page size, the 6.35 mm safe margin, fonts and accent
+  data/*.json           word lists, items, questions, available as .Data.<name>
+  images/  fonts/       own art and embeddable fonts
+  listing.md            store texts: title, description, tags, price, AI use
+```
+
+`lfm.json` holds `"deliverables": {"printable": {"path": "…", "offer": "…", "version": "…"}}`; the guide and
+licence name `seller.name`.
+Editions multiply the sizes (`a4`, `letter`, `a5`, `half-letter`, and `tablet` at 3:4 for note apps) by
+every variant line, such as `Ink: color, ink-saver`; the template sees `.Edition`, and `<html>` carries the
+size and values as classes. Each page is a `<section class="page" data-part="…">` with an optional
+`data-role` (cover, guide, contents, puzzle, key, cut, certificate, extra). lfm fills `.page-number`,
+`.page-count` and `.page-ref[data-ref]` after rendering, and offers seeded generators that verify
+themselves: `calendar` (localized, ISO weeks), `bingo` (unique, balanced cards and the median first win),
+`wordsearch` (each word exactly once), `sudoku` (exactly one solution) and `maze` (perfect, with its
+solution as SVG).
+
+Every compile renders every edition and holds the pages to the plan (`printable.pages`): page counts per
+part, the cover first, a guide page, a key for puzzles, unique ids, every internal link and image. A
+release prints each edition, checks every page for overflow and content in the safe margin and the PDF
+against the rendered page count (`printable.layout`), and renders the listing images. `lfm serve` shows
+every edition as HTML at `/<path>/preview/<edition>.html`; previews are never published.
+
+## Selling: page, shops or a bundle
+
+Each deliverable says how it sells with `sell` in its `lfm.json` entry:
+
+- `page` (the default): the page's checkout (a Stripe Payment Link) redirects buyers to an unlisted
+  download page lfm publishes at the deliverable's `path`.
+- `shops`: shops such as Etsy, Gumroad, Payhip or Amazon deliver the files. No download page is published
+  and no `path` is needed; the store packages in `distribution/` hold everything to upload. Once a
+  listing is live, its address goes into `urls` and the page's offer points at it, so the buy button
+  opens the shop. lfm warns when a shop-sold deliverable's offer links to a checkout, or a page-sold one's
+  to a shop.
+- `bundle`: sold only inside the bundle.
+
+A project with a book and a printable can sell them together:
+
+```json
+"deliverables": {
+  "book": {"author": "Ada Baker", "path": "…", "sell": "page"},
+  "printable": {"sell": "bundle"},
+  "bundle": {"name": "Starter Kit", "path": "…", "offer": "kit", "sell": "page"}
+}
+```
+
+The bundle has its own name, `path` (for `sell: page`), offer and `deliverables/bundle/listing.md` in the
+printable's listing format. Its download page and store packages hold every file of both; its first
+listing image shows both covers together. Each part still sells on its own when its `sell` is `page` or
+`shops`.
 

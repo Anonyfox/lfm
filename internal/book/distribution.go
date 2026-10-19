@@ -7,6 +7,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/deliver"
+
+	"github.com/Anonyfox/lfm/internal/pdfx"
+
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/term"
 )
@@ -114,7 +118,7 @@ func Distribution(r Report, b Built, p Printed, day string) (map[string][]byte, 
 		}
 		issues = append(issues, at(file, line, RuleChannels, diagnostic.Warning, message, hint))
 	}
-	slug := Slug(r.Plan.Title)
+	slug := deliver.Slug(r.Plan.Title, "book")
 	c := &channelContext{r: r, b: b, p: p, slug: slug, epubSize: len(b.EPUB)}
 
 	// what describes each file once; a guide lists the ones its channel takes.
@@ -155,11 +159,11 @@ func Distribution(r Report, b Built, p Printed, day string) (map[string][]byte, 
 			warn(ConceptFile, fmt.Sprintf("The printed front cover reaches %d dpi; print needs 300.", dpi),
 				fmt.Sprintf("Add deliverables/book/images/cover-print.jpg of at least %d×%d pixels, the same design composed for the trim; lfm prints it instead of the ebook cover.", need[0], need[1]))
 		}
-		if Transparent(p.Interior) {
+		if pdfx.Transparent(p.Interior) {
 			warn(Dir+"/"+StyleFile, "The paperback interior contains transparency; KDP and Lulu want it flattened.", "Avoid opacity in book.css and use images without an alpha channel (JPEG, or PNG without transparency).")
 		}
 		for key, wrap := range p.Wraps {
-			if Transparent(wrap) {
+			if pdfx.Transparent(wrap) {
 				warn(Dir+"/"+StyleFile, "The "+key+" cover wrap contains transparency; printers want it flattened.", "Avoid opacity in book.css and save the cover without an alpha channel.")
 				break
 			}
@@ -523,10 +527,10 @@ func distributionReadme(c *channelContext, table string, refused []string, day s
 		decisions = append(decisions,
 			"**Buchpreisbindung.** A German-language ebook sold to German buyers has one end price on every channel, your own page included; a sale needs a published price change.",
 			"**Pflichtablieferung.** Deliver the EPUB (and the paperback) to the Deutsche Nationalbibliothek after publication.",
-			"**Impressum.** The copyright page prints `deliverables.book.publisher` and `imprint`: give the publisher's name and address there.")
+			"**Impressum.** The copyright page prints `seller.name` and `seller.imprint` from lfm.json: give the publisher's name and address there.")
 	}
 	if r.Config.Publisher == "" {
-		decisions = append(decisions, "**Publisher.** `deliverables.book.publisher` is empty; stores then show the author or \"Independently published\".")
+		decisions = append(decisions, "**Publisher.** `seller.name` is empty; stores then show the author or \"Independently published\".")
 	}
 	for _, d := range decisions {
 		fmt.Fprintf(&b, "- %s\n", d)

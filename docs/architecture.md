@@ -13,6 +13,10 @@ one package per responsibility, each testable on its own.
 | `scaffold` | The embedded starter project written by `lfm init`. |
 | `skills` | Agent Skills embedded in the binary, rendered with its facts, stamped, installed and found on disk. |
 | `aitext` | The AI-text estimate: language-agnostic features (burstiness, punctuation, lexical diversity, compression against model-written text, repetition) plus the habits and fillers of eight western languages, scored by models fitted on labelled human and generated text in those languages. Used by `copy.machine` and the book's prose checks. |
+| `deliver` | What every deliverable shares: the unlisted download path, file names, prices, the download page. |
+| `pdfx` | Reads and stamps the PDFs Chrome prints: page counts, outline targets, transparency, the input key that lets a compile reuse a print. |
+| `printable` | The printable deliverable: its concept, the page template and generators (calendar, bingo, word search, sudoku, maze), page checks per edition, listing images and the store guides. |
+| `bundle` | The book and the printable sold together: its config, listing, download page, hero image and shop packages. |
 | `book` | The book deliverable: its concept, chapter, prose and listing checks, the EPUB, the print documents, the cover wrap and the download page, and the store packages per channel. |
 | `compile` | The compile lifecycle and the assemble stage: bundling with esbuild, packing, images, fonts, hints. |
 | `research` | Parses, checks and summarizes the two research files. |

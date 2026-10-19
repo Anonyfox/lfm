@@ -2,6 +2,7 @@ package serve
 
 import (
 	"errors"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,5 +58,21 @@ func TestNewDependenciesJoinTheBaseline(t *testing.T) {
 	}
 	if changed(previous, m.snapshot()) {
 		t.Fatal("watching a new dependency looked like an edit")
+	}
+}
+
+func TestPreviewsAreServedButNeverPublished(t *testing.T) {
+	p := &preview{subscribers: map[chan state]bool{}, current: state{Path: "/"}, host: "127.0.0.1:8080"}
+	p.publish(compile.Result{PageURL: "https://example.com/", Artifact: map[string][]byte{"index.html": []byte("page")},
+		Previews: map[string][]byte{"k3x9m2q7w8e4r5t6y1u0/preview/a4-color.html": []byte("<p>edition</p>")}}, nil)
+	rec := httptest.NewRecorder()
+	p.ServeHTTP(rec, httptest.NewRequest("GET", "http://127.0.0.1:8080/k3x9m2q7w8e4r5t6y1u0/preview/a4-color.html", nil))
+	if rec.Code != 200 || rec.Body.String() != "<p>edition</p>" {
+		t.Fatalf("preview: %d %q", rec.Code, rec.Body.String())
+	}
+	rec = httptest.NewRecorder()
+	p.ServeHTTP(rec, httptest.NewRequest("GET", "http://127.0.0.1:8080/a/b/c/d.html", nil))
+	if rec.Code != 404 {
+		t.Fatalf("deep path: %d", rec.Code)
 	}
 }

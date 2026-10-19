@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
@@ -162,6 +163,10 @@ func (p *preview) publish(report compile.Result, err error) {
 	next.Problem = ""
 	if err == nil {
 		next.Files = report.Artifact
+		if len(report.Previews) > 0 {
+			next.Files = maps.Clone(report.Artifact)
+			maps.Copy(next.Files, report.Previews)
+		}
 		if target, e := url.Parse(report.PageURL); e == nil && target.Path != "" {
 			next.Path = target.EscapedPath()
 		}
@@ -259,14 +264,15 @@ func (p *preview) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Deliverables live one folder deep, such as a book's unlisted download path.
+	// Deliverables live one folder deep, such as a book's unlisted download
+	// path, and their previews two.
 	if strings.HasSuffix(name, "/") {
 		name += "index.html"
 	} else if _, ok := current.Files[name+"/index.html"]; ok {
 		http.Redirect(w, r, r.URL.Path+"/", http.StatusTemporaryRedirect)
 		return
 	}
-	if path.Clean(name) != name || strings.Contains(name, `\`) || strings.HasPrefix(name, "..") || strings.Count(name, "/") > 1 {
+	if path.Clean(name) != name || strings.Contains(name, `\`) || strings.HasPrefix(name, "..") || strings.Count(name, "/") > 2 {
 		http.NotFound(w, r)
 		return
 	}

@@ -26,8 +26,8 @@ var initCommand = command{
 Writes the starter files into the directory (default: the current one),
 creating it when needed. Unrelated files may exist; if any starter file is
 already there, nothing is written at all. Then run 'lfm skills install' in
-it so your agent has the process skills. A book the page sells is added
-later in deliverables/book; 'lfm skills book' shows how.`,
+it so your agent has the process skills. A book or printable the page sells
+is added later; 'lfm skills book' and 'lfm skills printable' show how.`,
 	run: func(_ context.Context, env Env, p parsed) error {
 		dir, err := p.directory("init")
 		if err != nil {
@@ -64,16 +64,17 @@ explain improvements without blocking. --release adds the expensive stages:
 critical CSS measured in headless Chrome, a runtime probe and Lighthouse when
 installed. Missing tools are reported and skipped, never installed.
 
-A book in deliverables/book is built too: its EPUB and download page go to
-output/<path>/, and with a listing.md its store packages to distribution/.
-Only --release prints the PDF and the paperback; later compiles reuse those
-prints while the book is unchanged.
+A book in deliverables/book or a printable in deliverables/printable is
+built too: its download page (and a book's EPUB) go to output/<path>/, and
+with a listing.md its store packages to distribution/. Only --release prints
+PDFs and listing images; later compiles reuse them while nothing changed.
 
 Chrome is found on PATH and in standard locations, or via LFM_CHROME.
 Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.
 
 The report ends with the next step: the missing phase (research, design,
-implementation, book), the findings to resolve, the release review, or deploy.
+implementation, book, printable), the findings to resolve, the release review,
+or deploy.
 --json prints the same result, findings and next step as one JSON object.
 Exit status: 0 when output/ was written; 1 when errors kept it unchanged or
 there is no project to compile; 2 for a mistake in the command line.`,
@@ -128,7 +129,7 @@ var serveCommand = command{
 Serves the compiled page on 127.0.0.1 and reloads the browser after each
 change. A failed compile shows its findings in the browser and keeps the last
 good page. A busy default port falls back to a free one; --port 0 picks one.
-A book's download page is served at its unlisted path, as deployed.`,
+A deliverable's download page is served at its unlisted path, as deployed.`,
 	flags: []flagSpec{
 		{name: "port", value: true, usage: "port to listen on (default 8080)"},
 		{name: "open", usage: "open the preview in the default browser"},

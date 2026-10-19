@@ -28,12 +28,14 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/book"
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
 	"github.com/Anonyfox/lfm/internal/htmlcompact"
 	"github.com/Anonyfox/lfm/internal/imaging"
+	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
@@ -62,25 +64,32 @@ type Result struct {
 	PageURL  string            `json:"url,omitempty"`
 	Files    []File            `json:"files"`
 	Artifact map[string][]byte `json:"-"` // emitted bytes by file name
-	// Distribution holds the store packages of deliverables by file name,
-	// published to distribution/ and never deployed; empty removes the folder.
-	Distribution map[string][]byte   `json:"-"`
-	External     []string            `json:"externalAssets,omitempty"`
-	Validation   *check.Report       `json:"validation,omitempty"`
-	Published    bool                `json:"published"`
-	Release      *release.Result     `json:"release,omitempty"`
-	Packing      []AssetDecision     `json:"assets,omitempty"`
-	Cost         *Cost               `json:"cost,omitempty"`
-	Compaction   *htmlcompact.Result `json:"htmlCompaction,omitempty"`
-	Images       []imaging.Decision  `json:"images,omitempty"`
-	Fonts        []fontcheck.Info    `json:"fonts,omitempty"`
-	Research     research.Summary    `json:"research"`
-	Concept      concept.Summary     `json:"concept"`
-	FontHints    int                 `json:"fontHintRepairs,omitempty"`
-	Starter      bool                `json:"starter"` // the template is still the starter page of lfm init
-	Book         *book.Summary       `json:"book,omitempty"`
-	Inputs       []string            `json:"-"` // resolved source files, for watchers
-	Duration     time.Duration       `json:"-"`
+	// Distribution holds the store packages per unit (book, printable,
+	// bundle) by file name, published to distribution/<unit>/ and never
+	// deployed. A unit without an entry is left as it is; an empty one is
+	// removed.
+	Distribution map[string]map[string][]byte `json:"-"`
+	// Previews are rendered deliverable pages lfm serve shows and publish
+	// never writes, such as each printable edition as HTML.
+	Previews   map[string][]byte   `json:"-"`
+	External   []string            `json:"externalAssets,omitempty"`
+	Validation *check.Report       `json:"validation,omitempty"`
+	Published  bool                `json:"published"`
+	Release    *release.Result     `json:"release,omitempty"`
+	Packing    []AssetDecision     `json:"assets,omitempty"`
+	Cost       *Cost               `json:"cost,omitempty"`
+	Compaction *htmlcompact.Result `json:"htmlCompaction,omitempty"`
+	Images     []imaging.Decision  `json:"images,omitempty"`
+	Fonts      []fontcheck.Info    `json:"fonts,omitempty"`
+	Research   research.Summary    `json:"research"`
+	Concept    concept.Summary     `json:"concept"`
+	FontHints  int                 `json:"fontHintRepairs,omitempty"`
+	Starter    bool                `json:"starter"` // the template is still the starter page of lfm init
+	Book       *book.Summary       `json:"book,omitempty"`
+	Printable  *printable.Summary  `json:"printable,omitempty"`
+	Bundle     *bundle.Summary     `json:"bundle,omitempty"`
+	Inputs     []string            `json:"-"` // resolved source files, for watchers
+	Duration   time.Duration       `json:"-"`
 }
 
 // Errors and Warnings count the reported diagnostics.
@@ -184,12 +193,48 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
+	// The deliverables are checked side by side; each reads only its own folder.
 	var shelf *book.Report
-	if book.Present(p) && len(loaded.Problems) == 0 {
-		var bookFindings []diagnostic.Diagnostic
-		shelf, bookFindings = checkBook(p, loaded, prepared.Commerce, researched)
+	var sheet *printable.Report
+	var bookFindings, printableFindings []diagnostic.Diagnostic
+	if len(loaded.Problems) == 0 {
+		var wg sync.WaitGroup
+		if book.Present(p) {
+			wg.Go(func() { shelf, bookFindings = checkBook(p, loaded, prepared.Commerce, researched) })
+		}
+		if printable.Present(p) {
+			wg.Go(func() { sheet, printableFindings = checkPrintable(p, loaded, prepared.Commerce) })
+		}
+		wg.Wait()
+	}
+	if shelf != nil {
 		result.Book = &shelf.Summary
 		findings = append(findings, diagnostic.Apply(bookFindings, c.Build.Validation.Rules)...)
+	}
+	if sheet != nil {
+		result.Printable = &sheet.Summary
+		findings = append(findings, diagnostic.Apply(printableFindings, c.Build.Validation.Rules)...)
+	}
+	var pack *bundle.Report
+	if len(loaded.Problems) == 0 {
+		var bundleFindings []diagnostic.Diagnostic
+		pack, bundleFindings = checkBundle(p, loaded, prepared.Commerce)
+		if pack != nil {
+			result.Bundle = &pack.Summary
+		}
+		findings = append(findings, diagnostic.Apply(bundleFindings, c.Build.Validation.Rules)...)
+		d := c.Deliverables
+		var sale []diagnostic.Diagnostic
+		if shelf != nil && d.Book != nil {
+			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.book", d.Book.Sell, d.Book.Offer, book.RuleConfig)...)
+		}
+		if sheet != nil && d.Printable != nil {
+			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.printable", d.Printable.Sell, d.Printable.Offer, printable.RuleConfig)...)
+		}
+		if pack != nil {
+			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.bundle", d.Bundle.Sell, d.Bundle.Offer, bundle.RuleConfig)...)
+		}
+		findings = append(findings, diagnostic.Apply(sale, c.Build.Validation.Rules)...)
 	}
 	preliminary = *summarize(preliminary.Stage, append(preliminary.Diagnostics, findings...))
 	result.Validation = &preliminary
@@ -257,7 +302,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if result.Errors() > 0 {
 		return result, &Failure{Errors: result.Errors()}
 	}
-	// The audit loads only the page; it runs while the book is delivered.
+	// The audit loads only the page; it runs while deliverables are delivered.
 	var audit *release.AuditResult
 	auditDone := make(chan struct{})
 	if options.Release && ctx.Err() == nil {
@@ -269,12 +314,31 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		close(auditDone)
 	}
 	defer func() { <-auditDone }() // never leave the browser running behind a return
-	if shelf != nil {
-		delivered := deliverBook(p, shelf, page, options.Release, &result)
+	// Deliverables: the printable and the book, then the bundle of both.
+	add := func(found []diagnostic.Diagnostic) bool {
 		stats := result.Validation.Stats
-		result.Validation = summarize(result.Validation.Stage, append(result.Validation.Diagnostics, diagnostic.Apply(delivered, c.Build.Validation.Rules)...))
+		result.Validation = summarize(result.Validation.Stage, append(result.Validation.Diagnostics, diagnostic.Apply(found, c.Build.Validation.Rules)...))
 		result.Validation.Stats = stats
-		if result.Errors() > 0 {
+		return result.Errors() == 0
+	}
+	var prints, books shipped
+	var images []printable.Image
+	if sheet != nil {
+		var found []diagnostic.Diagnostic
+		prints, images, found = deliverPrintable(p, sheet, page, options.Release, &result)
+		if !add(found) {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+	if shelf != nil {
+		var found []diagnostic.Diagnostic
+		books, found = deliverBook(p, shelf, page, options.Release, &result)
+		if !add(found) {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+	if pack != nil && shelf != nil && sheet != nil {
+		if !add(deliverBundle(p, pack, shelf, sheet, books, prints, images, page, options.Release, &result)) {
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
@@ -303,16 +367,8 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		if err := publish(p, result.Artifact); err != nil {
 			return result, err
 		}
-		switch {
-		case result.Distribution == nil:
-		case len(result.Distribution) == 0:
-			if err := unpublish(p, project.DistributionDir); err != nil {
-				return result, err
-			}
-		default:
-			if err := publishTo(p, project.DistributionDir, result.Distribution); err != nil {
-				return result, err
-			}
+		if err := publishDistribution(p, result.Distribution); err != nil {
+			return result, err
 		}
 		result.Published = true
 	}
@@ -494,4 +550,12 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	}
 	facts := &check.ConceptFacts{Colors: c.Summary.DeclaredColors, Families: c.Summary.Families, Imagery: c.Summary.Imagery, Use: c.Summary.Use, Avoid: c.Summary.Avoid}
 	return diagnostic.Apply(findings, rules), facts, r
+}
+
+// distribute sets the store package of a unit; empty removes it.
+func (r *Result) distribute(unit string, files map[string][]byte) {
+	if r.Distribution == nil {
+		r.Distribution = map[string]map[string][]byte{}
+	}
+	r.Distribution[unit] = files
 }

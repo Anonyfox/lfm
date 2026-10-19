@@ -150,7 +150,7 @@ func TestReservedConfigCaseAndUnknowns(t *testing.T) {
 	}
 	found := false
 	for _, d := range report.Validation.Diagnostics {
-		if strings.Contains(d.Message, "use exact key title") {
+		if strings.Contains(d.Hint, "Use the exact key title") {
 			found = true
 		}
 		if d.Location.Offset == 0 {

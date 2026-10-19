@@ -50,8 +50,8 @@ func TestLoadCollectsEveryProblem(t *testing.T) {
 		}
 	}
 	for _, problem := range l.Problems {
-		if problem.Path == "Title" && !strings.Contains(problem.Err.Error(), "use exact key title") {
-			t.Errorf("case hint missing: %v", problem.Err)
+		if problem.Path == "Title" && !strings.Contains(problem.Hint, "Use the exact key title") {
+			t.Errorf("case hint missing: %v", problem.Hint)
 		}
 	}
 	if l.Values != nil {

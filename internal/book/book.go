@@ -10,7 +10,6 @@
 package book
 
 import (
-	"regexp"
 	"slices"
 	"strings"
 
@@ -36,7 +35,6 @@ const (
 	MinWords      = 300
 	MaxWords      = 20000
 	WordTolerance = 0.35 // a chapter may run this far over or under its target
-	MinPathLength = 16
 	CoverWidth    = 1600
 	CoverHeight   = 2560
 )
@@ -65,7 +63,7 @@ const (
 func Rules() []diagnostic.RuleInfo {
 	return []diagnostic.RuleInfo{
 		{ID: RuleConfig, Required: true, Summary: "A book in deliverables/book has its author and download path in lfm.json",
-			Help: "Errors when deliverables/book exists but lfm.json has no deliverables.book with an author and a download path of at least 16 lowercase letters, digits and hyphens, when the offer it names is not in data.commerce.offers, when formats lists anything but epub and pdf, when an ISBN is not a valid ISBN-13 or both editions share one, or when paper is neither white nor cream. The path is the only lock on the files: anyone who knows it can download them. The finding prints a fresh random path to copy."},
+			Help: "Errors when deliverables/book exists but lfm.json has no deliverables.book with an author and a download path of at least 16 lowercase letters, digits and hyphens, when the offer it names is not in data.commerce.offers, when formats lists anything but epub and pdf, when an ISBN is not a valid ISBN-13 or both editions share one, or when paper is neither white nor cream. The path is the only lock on the files: anyone who knows it can download them. The finding prints a fresh random path to copy. The path is needed only when the book sells through the page (sell: page, the default); sell: shops or bundle publishes no download page."},
 		{ID: RuleConcept, Summary: "deliverables/book/concept.md has every section and a complete, consistent plan",
 			Help: "Warns for missing or misordered sections, a reader without \"Not for:\", a promise without \"Won't cover:\" or without \"Before:\" and \"After:\", fewer than three objections that each cite a voice and name the chapter answering them, missing Title, Subtitle or Opening hooks, a voice without Use and Avoid phrases, fewer than three chapters, chapter rows with an empty or duplicate title or job, a word target outside 300 to 20000, a file outside chapters/ or used twice, no cover in Imagery, and a Look without a valid Trim, Body, Headings and Accent. The concept is the whole brief for every chapter; a gap here becomes a gap in the book."},
 		{ID: RuleEvidence, Summary: "The book concept cites real voices and competing books from research/",
@@ -106,11 +104,12 @@ type Config struct {
 	Path          string   `json:"path"`
 	Offer         string   `json:"offer"`
 	Formats       []string `json:"formats"`
-	Publisher     string   `json:"publisher"`
-	Imprint       string   `json:"imprint"`
+	Publisher     string   `json:"publisher"` // seller.name
+	Imprint       string   `json:"imprint"`   // seller.imprint
 	Paper         string   `json:"paper"`
 	ISBNEbook     string   `json:"isbnEbook"`
 	ISBNPaperback string   `json:"isbnPaperback"`
+	Sell          string   `json:"sell"` // page (default), shops or bundle
 }
 
 // ValidISBN reports whether s is an ISBN-13 with a correct check digit;
@@ -132,13 +131,6 @@ func ValidISBN(s string) bool {
 		sum += d
 	}
 	return sum%10 == 0
-}
-
-var pathPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
-
-// ValidPath reports whether p can serve as the unlisted download folder.
-func ValidPath(p string) bool {
-	return len(p) >= MinPathLength && pathPattern.MatchString(p) && !strings.Contains(p, "--")
 }
 
 // Wants reports whether format is configured.

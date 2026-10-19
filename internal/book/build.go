@@ -14,16 +14,16 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode"
+
+	"github.com/Anonyfox/lfm/internal/deliver"
+	"github.com/Anonyfox/lfm/internal/pdfx"
 
 	"github.com/Anonyfox/lfm/internal/imaging"
-	"github.com/Anonyfox/lfm/internal/term"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	gmhtml "github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
-	"golang.org/x/text/unicode/norm"
 )
 
 // Built is the output of a book build.
@@ -304,17 +304,7 @@ hr { border: 0; border-top: 1px solid #999; margin: 2em 20%%; }
 .title-page .author { font-size: 1em; }
 .cover { margin: 0; padding: 0; text-align: center; }
 .cover img { max-height: 100%%; }
-`, cssValue(body), cssValue(headings), cssValue(accent))
-}
-
-// cssValue keeps a concept value from breaking out of its declaration.
-func cssValue(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == ';' || r == '{' || r == '}' || r == '<' || r == '>' {
-			return -1
-		}
-		return r
-	}, s)
+`, deliver.CSSValue(body), deliver.CSSValue(headings), deliver.CSSValue(accent))
 }
 
 func xhtmlPage(language, title, css string, body string) []byte {
@@ -722,7 +712,7 @@ a { text-decoration: none; }
 // the outline of a PDF printed from Document: the chapters are its last
 // top-level bookmarks. It returns nil when the outline does not fit.
 func (b Built) ChapterStarts(pdf []byte) map[int]int {
-	pages := OutlinePages(pdf)
+	pages := pdfx.OutlinePages(pdf)
 	n := len(b.plan.Chapters)
 	if len(pages) < n {
 		return nil
@@ -799,7 +789,7 @@ body { width: %.4fin; height: %.4fin; position: relative; overflow: hidden; back
 .spine span { writing-mode: vertical-rl; white-space: nowrap; font-family: var(--headings); font-size: %.1fpt; }
 .front { position: absolute; left: %.4fin; top: 0; width: %.4fin; height: %.4fin; overflow: hidden; }
 .front img { width: 100%%; height: 100%%; object-fit: cover; display: block; }
-`, width, height, width, height, cssValue(accent), ink,
+`, width, height, width, height, deliver.CSSValue(accent), ink,
 		tw+Bleed, height, Bleed+0.5, Bleed+0.5,
 		Bleed+tw-0.25-1.8, Bleed+th-0.25-1.1,
 		Bleed+tw, spine, height, min(14, spine*72*0.5),
@@ -841,90 +831,18 @@ func luminance(hex string) float64 {
 	return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
 }
 
-// File is one downloadable format.
-type File struct {
-	Name, Label, Note string
-	Size              int
-}
-
 // DownloadPage renders the unlisted page buyers land on after paying. With no
 // files the book is still being written, and the page says so.
-func DownloadPage(plan Plan, cfg Config, files []File) []byte {
-	language := cfg.Language
-	if language == "" {
-		language = "en"
-	}
+func DownloadPage(plan Plan, cfg Config, files []deliver.File) []byte {
+	w := Words(cfg.Language)
 	title := plan.Title
 	if title == "" {
 		title = "Your book"
 	}
-	accent := plan.Accent
-	if accent == "" {
-		accent = "#222222"
-	}
-	var b strings.Builder
-	fmt.Fprintf(&b, `<!doctype html>
-<html lang="%s"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
-<title>%s</title>
-<style>
-body { margin: 0; font: 17px/1.55 system-ui, sans-serif; color: #1a1a1a; background: #fafaf8; }
-main { max-width: 34rem; margin: 0 auto; padding: 3rem 1.25rem; }
-h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 0.3rem; }
-.sub { margin: 0 0 2rem; color: #4a4a4a; }
-ul { list-style: none; padding: 0; margin: 0 0 2rem; }
-li { margin: 0 0 1rem; }
-a.file { display: inline-block; padding: 0.7rem 1rem; color: #fff; background: %s; text-decoration: none; font-weight: 600; }
-a.file:focus-visible { outline: 3px solid #1a1a1a; outline-offset: 2px; }
-.note { display: block; margin-top: 0.3rem; font-size: 0.9rem; color: #4a4a4a; }
-</style></head><body><main>
-<h1>%s</h1>
-`, esc(language), esc(fmt.Sprintf(Words(language).DownloadTitle, title)), cssValue(accent), esc(title))
 	sub := cfg.Author
 	if plan.Subtitle != "" {
 		sub = plan.Subtitle + " · " + cfg.Author
 	}
-	fmt.Fprintf(&b, "<p class=\"sub\">%s</p>\n", esc(sub))
-	w := Words(language)
-	if len(files) == 0 {
-		fmt.Fprintf(&b, "<p>%s</p>\n", esc(w.Writing))
-	} else {
-		fmt.Fprintf(&b, "<p>%s</p>\n<ul>\n", esc(w.Thanks))
-		for _, f := range files {
-			fmt.Fprintf(&b, "<li><a class=\"file\" href=\"%s\" download>%s (%s)</a><span class=\"note\">%s</span></li>\n", esc(f.Name), esc(f.Label), term.Bytes(f.Size), esc(f.Note))
-		}
-		fmt.Fprintf(&b, "</ul>\n<p>%s</p>\n", esc(w.Keep))
-	}
-	b.WriteString("</main></body></html>\n")
-	return []byte(b.String())
-}
-
-// Slug is a file name for the book: lowercase ASCII, accents folded and the
-// letters that do not decompose spelled out, so "Größer leben" is
-// groesser-leben.
-func Slug(title string) string {
-	var b strings.Builder
-	dash := false
-	folded := strings.NewReplacer("ß", "ss", "ä", "ae", "ö", "oe", "ü", "ue", "æ", "ae", "œ", "oe", "ø", "o", "ł", "l", "đ", "d", "þ", "th").Replace(strings.ToLower(title))
-	for _, r := range norm.NFD.String(folded) {
-		if unicode.Is(unicode.Mn, r) {
-			continue
-		}
-		switch {
-		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
-			b.WriteRune(r)
-			dash = false
-		case !dash && b.Len() > 0:
-			b.WriteByte('-')
-			dash = true
-		}
-	}
-	s := strings.Trim(b.String(), "-")
-	if s == "" {
-		return "book"
-	}
-	if len(s) > 60 {
-		s = strings.Trim(s[:60], "-")
-	}
-	return s
+	return deliver.Page(deliver.Download{Language: cfg.Language, Title: title, Subtitle: sub, Accent: plan.Accent,
+		Heading: fmt.Sprintf(w.DownloadTitle, title), Files: files, Thanks: w.Thanks, Pending: w.Writing, Keep: w.Keep})
 }

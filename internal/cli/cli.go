@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -55,6 +56,23 @@ func commands() []command {
 // 2 a mistake in the command line, 130 interrupted.
 func Run(ctx context.Context, env Env, args []string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+		if len(args) > 1 && args[1] == "config" {
+			if len(args) > 3 {
+				fmt.Fprintln(env.Stderr, "lfm: help config takes at most one field")
+				return 2
+			}
+			field := ""
+			if len(args) == 3 {
+				field = args[2]
+			}
+			text, err := project.Explain(field)
+			if err != nil {
+				fmt.Fprintf(env.Stderr, "lfm: %v\n", err)
+				return 2
+			}
+			fmt.Fprint(env.Stdout, text)
+			return 0
+		}
 		if len(args) > 2 {
 			fmt.Fprintln(env.Stderr, "lfm: help takes at most one command")
 			return 2
@@ -120,7 +138,7 @@ func printHelp(w io.Writer) {
 	fmt.Fprintf(w, "%s compiles agent-built sales pages into fast, checked, static output.\n\n", s.Bold("lfm"))
 	fmt.Fprintln(w, "Start a page:")
 	fmt.Fprintln(w, "  lfm init my-page && cd my-page")
-	fmt.Fprintln(w, "  lfm skills install    the process skills (research, design, implementation, book) for your agent")
+	fmt.Fprintln(w, "  lfm skills install    the process skills (research, design, implementation, book, printable) for your agent")
 	fmt.Fprintln(w, "  lfm compile           after every change; it reports findings and the next step")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
@@ -131,7 +149,8 @@ func printHelp(w io.Writer) {
 		fmt.Fprintf(w, "  %s  %s\n", term.Pad(c.name, 8), c.summary)
 	}
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Run 'lfm help <command>' or 'lfm <command> -h' for details.")
+	fmt.Fprintln(w, "Run 'lfm help <command>' or 'lfm <command> -h' for details,")
+	fmt.Fprintln(w, "and 'lfm help config [field]' for what lfm.json takes.")
 }
 
 func printCommandHelp(w io.Writer, c command) {

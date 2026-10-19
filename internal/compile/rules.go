@@ -5,10 +5,12 @@ import (
 	"sort"
 
 	"github.com/Anonyfox/lfm/internal/book"
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/research"
 	"github.com/Anonyfox/lfm/internal/templatecheck"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
@@ -23,6 +25,8 @@ func Rules() []diagnostic.RuleInfo {
 	rules = append(rules, research.Rules()...)
 	rules = append(rules, concept.Rules()...)
 	rules = append(rules, book.Rules()...)
+	rules = append(rules, printable.Rules()...)
+	rules = append(rules, bundle.Rules()...)
 	for _, rule := range check.DefaultRules() {
 		rules = append(rules, rule.RuleInfo)
 	}

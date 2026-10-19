@@ -274,7 +274,7 @@ func TestCompileNamesTheNextPhase(t *testing.T) {
 		Next   next
 		Skills []skills.Copy
 	}
-	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 4 {
+	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 5 {
 		t.Fatalf("json: %d %v %+v", code, err, got)
 	}
 	if code, _, errs := run(t, "compile", t.TempDir()); code != 1 || !strings.Contains(errs, "not an lfm project") || !strings.Contains(errs, "lfm init") {
@@ -337,5 +337,17 @@ func TestCompileJSONOutsideAProject(t *testing.T) {
 	}
 	if err := json.Unmarshal([]byte(out), &got); code != 1 || err != nil || got.Next.Phase != "init" || !strings.Contains(errs, "not an lfm project") {
 		t.Fatalf("%d %q %q", code, out, errs)
+	}
+}
+
+func TestHelpConfigExplainsLfmJSON(t *testing.T) {
+	if code, out, _ := run(t, "help", "config"); code != 0 || !strings.Contains(out, "deliverables") || !strings.Contains(out, "lfm help config <field>") {
+		t.Fatalf("%d %s", code, out)
+	}
+	if code, out, _ := run(t, "help", "config", "deliverables.book"); code != 0 || !strings.Contains(out, "author") || !strings.Contains(out, "page | shops | bundle") {
+		t.Fatalf("%d %s", code, out)
+	}
+	if code, _, errs := run(t, "help", "config", "nope"); code != 2 || !strings.Contains(errs, "no field") {
+		t.Fatalf("%d %s", code, errs)
 	}
 }

@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/book"
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
 	"github.com/Anonyfox/lfm/internal/term"
@@ -106,6 +108,8 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	fmt.Fprintln(w, line)
 	renderFiles(w, s, r)
 	renderBook(w, s, r.Book, r.Files)
+	renderPrintable(w, s, r.Printable)
+	renderBundle(w, s, r.Bundle)
 	renderResearch(w, s, r.Research)
 	renderConcept(w, s, r.Concept)
 	renderRelease(w, s, r.Release)
@@ -309,17 +313,22 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 	if title == "" {
 		title = "untitled"
 	}
-	line := fmt.Sprintf("%s · %d of %d chapters · %s of %s words", title, b.Written, len(b.Chapters), groupDigits(b.Words), groupDigits(b.Target))
+	line := fmt.Sprintf("%s · %d of %d chapters · %s of %s words", title, b.Written, len(b.Chapters), groupDigits(b.Words), groupDigits(b.Target)) + sellNote(b.Sell)
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("book", 12), line)
 	var built []string
+	seen := map[string]bool{} // a bundle's download folder holds the same files
 	for _, f := range files {
 		for _, name := range b.Files {
-			if strings.HasSuffix(f.Name, "/"+name) {
+			if strings.HasSuffix(f.Name, "/"+name) && !seen[name] {
+				seen[name] = true
 				built = append(built, strings.ToUpper(strings.TrimPrefix(path.Ext(name), "."))+" "+term.Bytes(f.Bytes))
 			}
 		}
 	}
 	detail := "presale: the download page says the copy is being written"
+	if b.URL == "" {
+		detail = "not built until every chapter is written"
+	}
 	if len(built) > 0 {
 		detail = strings.Join(built, ", ")
 	}
@@ -334,8 +343,87 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(b.Channels) > 0 {
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), fmt.Sprintf("distribution/ · %d channels", len(b.Channels)))
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), fmt.Sprintf("distribution/book/ · %d channels", len(b.Channels)))
 		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(b.Channels, ", ")))
+	}
+}
+
+// renderPrintable summarizes the printable deliverable: what is planned and
+// rendered, what printed, and the store packages.
+func renderPrintable(w io.Writer, s term.Style, pr *printable.Summary) {
+	if pr == nil {
+		return
+	}
+	switch {
+	case !pr.Concept:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("printable", 12), s.Dim("no deliverables/printable/concept.md yet"))
+		return
+	case !pr.Template:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("printable", 12), s.Dim(pr.Name+" · no printable.html.tmpl yet"))
+		return
+	}
+	line := fmt.Sprintf("%s · %s · %s", pr.Name, term.Plural(len(pr.Editions), "edition"), term.Plural(pr.Pages, "page"))
+	if pr.Links > 0 {
+		line += " · " + term.Plural(pr.Links, "link")
+	}
+	line += sellNote(pr.Sell)
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("printable", 12), line)
+	detail := strings.Join(pr.Editions, ", ")
+	switch {
+	case len(pr.Files) > 0:
+		detail = term.Plural(len(pr.Files), "PDF")
+	case pr.Pending:
+		detail += " · the PDFs print with --release"
+	}
+	if pr.Layout != "" {
+		detail += " · " + pr.Layout
+	}
+	if pr.URL != "" {
+		detail += " · " + pr.URL
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
+	if len(pr.Channels) > 0 {
+		stores := fmt.Sprintf("distribution/printable/ · %d channels", len(pr.Channels))
+		if pr.Images > 0 {
+			stores += " · " + term.Plural(pr.Images, "listing image")
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(pr.Channels, ", ")))
+	}
+}
+
+// sellNote marks a unit that does not sell through the page's checkout.
+func sellNote(sell string) string {
+	switch sell {
+	case "shops":
+		return " · sold in shops"
+	case "bundle":
+		return " · sold in the bundle"
+	}
+	return ""
+}
+
+// renderBundle summarizes the bundle of the book and the printable.
+func renderBundle(w io.Writer, s term.Style, b *bundle.Summary) {
+	if b == nil {
+		return
+	}
+	line := b.Name + " · book and printable" + sellNote(b.Sell)
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("bundle", 12), line)
+	detail := term.Plural(len(b.Files), "file")
+	if !b.Ready {
+		detail = "waits until both are built"
+	}
+	if b.URL != "" {
+		detail += " · " + b.URL
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
+	if len(b.Channels) > 0 {
+		stores := fmt.Sprintf("distribution/bundle/ · %d channels", len(b.Channels))
+		if b.Images > 0 {
+			stores += " · " + term.Plural(b.Images, "listing image")
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
 	}
 }
 

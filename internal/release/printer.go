@@ -15,7 +15,7 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// Printer prints book documents in one Chrome, a tab per job, so a release
+// Printer prints documents (books, printables) in one Chrome, a tab per job, so a release
 // pays for one browser start however many PDFs it prints. It is safe for
 // concurrent use.
 type Printer struct {
@@ -67,14 +67,14 @@ func (p *Printer) tab(doc []byte, assets map[string][]byte) (context.Context, st
 	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job) }
 }
 
-// Print prints a book document to PDF at the page size its @page rule
+// Print prints a document to PDF at the page size its @page rule
 // declares, with bookmarks from its headings when outline is set. Fonts and
 // images are awaited first so no fallback face is baked in.
 func (p *Printer) Print(doc []byte, assets map[string][]byte, outline bool) ([]byte, error) {
 	tab, url, done := p.tab(doc, assets)
 	defer done()
 	if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
-		return nil, fmt.Errorf("load the book for printing: %w", err)
+		return nil, fmt.Errorf("load the document for printing: %w", err)
 	}
 	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
 		return nil, fmt.Errorf("wait for fonts and images: %w", err)
@@ -143,4 +143,80 @@ func capitalize(s string) string {
 		return s
 	}
 	return string(s[0]-32) + s[1:]
+}
+
+// load opens doc in a new tab at a viewport of width×height CSS pixels and
+// scale device pixels per CSS pixel, with print or screen media, and waits
+// for fonts and images.
+func (p *Printer) load(doc []byte, assets map[string][]byte, width, height int64, scale float64, media string) (context.Context, func(), error) {
+	tab, url, done := p.tab(doc, assets)
+	fail := func(err error) (context.Context, func(), error) { done(); return nil, nil, err }
+	if _, err := chromedp.Call(tab, emulation.SetDeviceMetricsOverride, emulation.SetDeviceMetricsOverrideParams{Width: width, Height: height, DeviceScaleFactor: scale}); err != nil {
+		return fail(err)
+	}
+	if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Media: media}); err != nil {
+		return fail(err)
+	}
+	if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
+		return fail(fmt.Errorf("load the document: %w", err))
+	}
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
+		return fail(fmt.Errorf("wait for fonts and images: %w", err))
+	}
+	return tab, done, nil
+}
+
+// PageLayout loads a document of fixed-size .page sections in print media
+// and reports, per page, content that overflows the page or reaches into the
+// safe margin of safe CSS pixels: text, images, SVG and canvas outside the
+// inset, unless inside an element marked data-bleed.
+func (p *Printer) PageLayout(doc []byte, assets map[string][]byte, width, height int64, safe float64) ([]string, error) {
+	tab, done, err := p.load(doc, assets, width, height, 1, "print")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	script := fmt.Sprintf(`(()=>{const S=%g,out=[];let n=0;
+for(const pg of document.querySelectorAll('body > section.page')){n++;const P=pg.getBoundingClientRect();
+if(pg.scrollHeight>pg.clientHeight+1||pg.scrollWidth>pg.clientWidth+1){out.push('Page '+n+' overflows: content runs past the page and is cut off.');continue}
+const inside=r=>r.left>=P.left+S-0.5&&r.top>=P.top+S-0.5&&r.right<=P.right-S+0.5&&r.bottom<=P.bottom-S+0.5;
+const name=el=>{const t=el.tagName.toLowerCase();return t==='img'?'image '+(el.getAttribute('src')||''):t};
+let hit='';const w=document.createTreeWalker(pg,NodeFilter.SHOW_TEXT);
+while(!hit&&w.nextNode()){const t=w.currentNode;if(!t.textContent.trim()||t.parentElement.closest('[data-bleed]'))continue;
+const fs=parseFloat(getComputedStyle(t.parentElement).fontSize)||0;const g=document.createRange();g.selectNodeContents(t);for(const q of g.getClientRects()){const pad=Math.max(0,(q.height-fs)/2);const r={left:q.left,right:q.right,top:q.top+pad,bottom:q.bottom-pad,width:q.width};if(r.width>0&&!inside(r)){const el=t.parentElement;hit='text "'+t.textContent.trim().slice(0,30)+'" in '+el.tagName.toLowerCase()+(el.className?'.'+String(el.className).trim().split(/\s+/)[0]:'');break}}}
+if(!hit)for(const el of pg.querySelectorAll('img,svg,canvas')){if(el.closest('[data-bleed]')||el.closest('svg')!==el&&el.tagName!=='IMG'&&el.tagName!=='CANVAS')continue;const r=el.getBoundingClientRect();if(r.width>0&&!inside(r)){hit=name(el);break}}
+if(!hit)for(const el of [pg,...pg.querySelectorAll('*')]){if(el.closest('[data-bleed]'))continue;const c=getComputedStyle(el);const lines=['Top','Right','Bottom','Left'].some(k=>parseFloat(c['border'+k+'Width'])>0&&c['border'+k+'Style']!=='none'&&!/rgba\(.*,\s*0\)$/.test(c['border'+k+'Color']));if(!lines)continue;const r=el===pg?P:el.getBoundingClientRect();if(r.width>0&&!inside(r)){hit=(el===pg?'the page border':'a border on '+el.tagName.toLowerCase()+(el.className?' .'+String(el.className).split(' ')[0]:''));break}}
+if(hit)out.push('Page '+n+': '+hit+' reaches into the 6.35 mm margin printers cut or skip.')}
+return out})()`, safe)
+	return chromedp.Run(tab, chromedp.Evaluate[[]string](script))
+}
+
+// PageImages renders pages (1-based) of a document of .page sections as PNGs
+// at scale device pixels per CSS pixel.
+func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height int64, scale float64, pages []int) ([][]byte, error) {
+	tab, done, err := p.load(doc, assets, width, height, scale, "print")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	var out [][]byte
+	for _, n := range pages {
+		png, err := chromedp.Run(tab, chromedp.Screenshot(chromedp.CSS(fmt.Sprintf("body > section.page:nth-of-type(%d)", n))))
+		if err != nil {
+			return nil, fmt.Errorf("render page %d: %w", n, err)
+		}
+		out = append(out, png)
+	}
+	return out, nil
+}
+
+// Picture renders a document at width×height CSS pixels and scale as a PNG of
+// the viewport.
+func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height int64, scale float64) ([]byte, error) {
+	tab, done, err := p.load(doc, assets, width, height, scale, "screen")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	return chromedp.Run(tab, chromedp.CaptureScreenshot())
 }

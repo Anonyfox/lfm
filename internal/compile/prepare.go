@@ -72,11 +72,14 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 		if source, ok := sources.Nearest(problem.Path); ok {
 			if source.File == problem.File && problem.Offset == 0 {
 				at = source
+				if problem.AtValue {
+					at = diagnostic.At(problem.File, rawSources[problem.File], project.ValueOffset(rawSources[problem.File], source.Offset))
+				}
 			} else {
 				related = append(related, source)
 			}
 		}
-		issues = append(issues, diagnostic.Diagnostic{Rule: "config.invalid", Severity: diagnostic.Error, Location: at, Path: problem.Path, Related: related, Message: problem.Err.Error(), Hint: "Fix this config/data setting; custom page fields belong under data and paths mirror the JSON structure."})
+		issues = append(issues, diagnostic.Diagnostic{Rule: "config.invalid", Severity: diagnostic.Error, Location: at, Path: problem.Path, Related: related, Message: problem.Err.Error(), Hint: configHint(problem)})
 	}
 	helpers := newHelpers(p)
 	options := templatecheck.Options{Entry: entryTemplate, Values: values, Files: files, Sources: sources, BrowserData: c.Build.BrowserData, Rules: c.Build.Validation.Rules, Funcs: helpers.functions(false)}
@@ -216,4 +219,15 @@ func trustedURLValues(values map[string]any, urls map[string]string) map[string]
 		copied["urls"] = named
 	}
 	return copied
+}
+
+// configHint explains a config problem from Spec when the field is known.
+func configHint(problem project.Problem) string {
+	if problem.Hint != "" {
+		return problem.Hint
+	}
+	if f, ok := project.Lookup(problem.Path); ok {
+		return f.Hint()
+	}
+	return "Fix this config/data setting; custom page fields belong under data and paths mirror the JSON structure. 'lfm help config' lists the options."
 }

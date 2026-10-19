@@ -1,4 +1,7 @@
-package book
+// Package pdfx reads and stamps the PDFs Chrome prints for lfm: page counts,
+// outline targets, transparency and the provenance stamp that lets a later
+// compile reuse a print.
+package pdfx
 
 import (
 	"bytes"

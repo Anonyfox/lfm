@@ -9,6 +9,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/yuin/goldmark"
 	gmhtml "github.com/yuin/goldmark/renderer/html"
 )
@@ -51,11 +52,7 @@ var ListingSections = []concept.SectionSpec{
 var aiLevels = map[string]bool{"none": true, "assisted": true, "generated": true}
 
 // Price is one list price of an edition.
-type Price struct {
-	Text     string // as written, e.g. "7.99 EUR"
-	Amount   *big.Rat
-	Currency string
-}
+type Price = deliver.Price
 
 // Listing is the parsed listing.md.
 type Listing struct {
@@ -99,28 +96,10 @@ var (
 	bisacCode   = regexp.MustCompile(`^[A-Z]{3}[0-9]{6}$`)
 	themaCode   = regexp.MustCompile(`^[A-Z0-9][A-Z0-9.+-]{0,9}$`)
 	priceText   = regexp.MustCompile(`^([0-9]+(?:[.,][0-9]{1,2})?)\s*([A-Z]{3})$`)
-	urlText     = regexp.MustCompile(`(?i)\bhttps?://|\bwww\.[a-z0-9-]+\.|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}`)
 	moneyText   = regexp.MustCompile(`(?i)[€$£]\s?[0-9]|[0-9](?:[.,][0-9]{2})?\s?(?:€|eur\b|usd\b|euro\b|dollars?\b|£|gbp\b)`)
 	reviewText  = regexp.MustCompile(`(?i)\b(?:five[- ]star|5[- ]star|bestsell(?:er|ing)|#1 (?:new )?(?:best|amazon)|leave a review|rezension hinterlassen|bestseller)\b`)
 	listingDesc = goldmark.New(goldmark.WithRendererOptions(gmhtml.WithXHTML()))
 )
-
-// rawSection returns the source lines of a section as written, blank lines
-// included, so Markdown paragraphs survive.
-func rawSection(text string, d concept.Document, name string) string {
-	s := d.Sections[name]
-	if s == nil {
-		return ""
-	}
-	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
-	end := len(lines)
-	for _, other := range d.Order {
-		if other.Line > s.Line && other.Line-1 < end {
-			end = other.Line - 1
-		}
-	}
-	return strings.TrimSpace(strings.Join(lines[s.Line:end], "\n"))
-}
 
 // checkListing parses listing.md and warns where a store would refuse or
 // truncate it.
@@ -144,10 +123,10 @@ func checkListing(text string, plan Plan, offer *Price, language string, report 
 		add(1, fmt.Sprintf("Title and subtitle are %d characters; KDP takes fewer than %d.", n, MaxTitleLength), "Shorten the subtitle in the concept's Hooks.")
 	}
 
-	l.Description = rawSection(text, d, "Description")
-	l.Short = concept.StripCitations(rawSection(text, d, "Short description"))
-	l.BackCover = rawSection(text, d, "Back cover")
-	l.Author = rawSection(text, d, "Author")
+	l.Description = deliver.RawSection(text, d, "Description")
+	l.Short = concept.StripCitations(deliver.RawSection(text, d, "Short description"))
+	l.BackCover = deliver.RawSection(text, d, "Back cover")
+	l.Author = deliver.RawSection(text, d, "Author")
 	plain := PlainText(l.Description)
 	switch n := len([]rune(KDPDescription(l.Description))); {
 	case strings.TrimSpace(plain) == "":
@@ -158,7 +137,7 @@ func checkListing(text string, plan Plan, offer *Price, language string, report 
 		add(line("Description"), fmt.Sprintf("The Description is %d characters; write at least %d.", len([]rune(plain)), MinDescription), "Say who the book is for, what they can do after it and what is inside.")
 	}
 	for _, f := range []struct{ name, text string }{{"Description", l.Description}, {"Short description", l.Short}, {"Back cover", l.BackCover}} {
-		if m := urlText.FindString(f.text); m != "" {
+		if m := deliver.LinkText.FindString(f.text); m != "" {
 			add(line(f.name), fmt.Sprintf("%s contains %q; stores reject links and contact details in descriptions.", f.name, m), "Remove it; the page and the book carry the links.")
 		}
 		if m := moneyText.FindString(f.text); m != "" {

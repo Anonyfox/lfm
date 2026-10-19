@@ -11,7 +11,7 @@ of them report through the same findings, so a single run lists everything that 
 | optimize | `--release` only: split critical CSS after measuring it in headless Chrome. |
 | finalize | Serialize and compact the HTML. |
 | verify | Run every check on the exact bytes that will be written. |
-| deliver | When `deliverables/book/` exists: build the EPUB and the download page; with `listing.md`, assemble the store packages in `distribution/`. The PDF, the paperback and its covers are printed in Chrome by `--release` and reused by every later compile while the book is unchanged. |
+| deliver | When `deliverables/book/` or `deliverables/printable/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of both when one is configured. PDFs, a book's paperback and covers, and a printable's listing images are made in Chrome by `--release` and reused by every later compile while their inputs are unchanged. |
 | audit | `--release` only: a runtime probe, the layout audit and, when installed, Lighthouse. |
 | publish | Replace `output/` with one rename. |
 
@@ -61,10 +61,11 @@ email are how buyers get there; `lfm compile` prints the address.
 
 ### Store packages
 
-With `deliverables/book/listing.md`, the same compile writes `distribution/` next to `output/`:
+With `deliverables/book/listing.md`, the same compile writes `distribution/book/` next to `output/`
+(each sellable unit has its folder: `book/`, `printable/`, `bundle/`):
 
 ```text
-distribution/
+distribution/book/
   README.md                 every channel, what is ready, the decisions left to the owner
   <slug>.epub               the ebook, named after the title
   <slug>.pdf                the PDF, for stores that sell one
@@ -93,6 +94,17 @@ for. Channels that refuse AI-generated books are left out when the listing decla
 (add `images/cover-print.jpg`), a trim KDP does not print, transparency in a print file. `distribution/` is
 never deployed, never read as a source and ignored by `lfm serve`; the scaffold's `.gitignore` excludes it.
 It is removed when `listing.md` is.
+
+### Printable packages
+
+A printable publishes one PDF per edition (`<slug>-<size>-<variant>.pdf`) behind its unlisted path, with
+a download page that tells buyers to print at actual size. With `deliverables/printable/listing.md`,
+`distribution/printable/` holds every PDF once, `images/` with the listing images (3000×2250 JPEGs under 1 MB: the
+cover alone, everything included, each part, the sizes to scale), and a guide per shop in `stores/` (Etsy,
+Gumroad, Payhip, Ko-fi) naming the files and images to upload and every field ready to paste, with the
+page count, sizes and link count taken from the build. Etsy takes five files: when the PDFs are more, lfm
+adds a ZIP per paper size. `printable.channels` warns about files over 20 MB and links that send Etsy
+buyers elsewhere.
 
 Compiles of the same project are serialized across processes by locking the project directory; no lock
 file is created, and a second compile waits and says so. Nothing is written into the project except

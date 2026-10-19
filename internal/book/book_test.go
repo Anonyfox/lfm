@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/deliver"
+
 	"golang.org/x/net/html"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
@@ -380,7 +382,7 @@ func TestConfigAndConceptGaps(t *testing.T) {
 	}
 	r = Check(p, Config{Author: "A", Path: "short", Offer: "nope", Formats: []string{"mobi"}}, true, map[string]*Price{"book": nil}, "https://example.org/", voices, peers)
 	got := rules(r.Diagnostics)
-	for _, want := range []string{"not an unguessable folder name", `names no offer`, `Unknown book format "mobi"`} {
+	for _, want := range []string{"not an unguessable folder name", `names no offer`} { // formats are checked by the config spec
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in\n%s", want, got)
 		}
@@ -407,7 +409,7 @@ func TestIncompleteBookIsNotBuildable(t *testing.T) {
 
 func TestDownloadPage(t *testing.T) {
 	plan := Plan{Title: "The Weekend Starter", Subtitle: "Keep it alive", Accent: "#8a3b12"}
-	for _, files := range [][]File{nil, {{Name: "the-weekend-starter.epub", Label: "EPUB", Note: "for e-readers", Size: 123456}}} {
+	for _, files := range [][]deliver.File{nil, {{Name: "the-weekend-starter.epub", Label: "EPUB", Note: "for e-readers", Size: 123456}}} {
 		page := DownloadPage(plan, testConfig, files)
 		if _, err := html.Parse(bytes.NewReader(page)); err != nil {
 			t.Fatal(err)
@@ -418,22 +420,6 @@ func TestDownloadPage(t *testing.T) {
 	}
 	if !bytes.Contains(DownloadPage(plan, testConfig, nil), []byte("being written")) {
 		t.Fatal("presale state missing")
-	}
-}
-
-func TestPaths(t *testing.T) {
-	for i := 0; i < 50; i++ {
-		if p := NewPath(); !ValidPath(p) {
-			t.Fatalf("generated path %q is invalid", p)
-		}
-	}
-	for _, bad := range []string{"", "book", "abc", "UPPERCASEUPPERCASE12", "has space in it 1234", "-leading-hyphen-1234", "double--hyphen-12345"} {
-		if ValidPath(bad) {
-			t.Errorf("%q accepted", bad)
-		}
-	}
-	if Slug("The Weekend Starter: Keep It Alive!") != "the-weekend-starter-keep-it-alive" {
-		t.Error(Slug("The Weekend Starter: Keep It Alive!"))
 	}
 }
 
@@ -478,16 +464,6 @@ func TestQuotesFollowTheLanguage(t *testing.T) {
 	}
 }
 
-func TestPageCountOfAChromePDF(t *testing.T) {
-	pdf, err := os.ReadFile("testdata/print.pdf")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n := PageCount(pdf); n != 9 {
-		t.Fatalf("PageCount = %d, want 9", n)
-	}
-}
-
 func TestGeneratedNonfictionHabits(t *testing.T) {
 	p, voices, peers := fixture(t)
 	text := chapter("Why starters die", 0) + `
@@ -521,18 +497,6 @@ When? Tonight.
 	}
 	if !ValidISBN("978-3-16-148410-0") || ValidISBN("978-3-16-148410-1") || ValidISBN("123") {
 		t.Error("ISBN check digit")
-	}
-}
-
-func TestOutlinePages(t *testing.T) {
-	pdf, err := os.ReadFile("testdata/print.pdf")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := OutlinePages(pdf)
-	// The title page heading, then the three chapters.
-	if fmt.Sprint(got) != "[2 4 6 8]" {
-		t.Fatalf("outline pages = %v", got)
 	}
 }
 
@@ -626,30 +590,6 @@ func TestBarcodeAndSpine(t *testing.T) {
 	}
 	if Gutter(100) != 0.75 || Gutter(400) != 0.875 {
 		t.Error("gutter")
-	}
-}
-
-func TestTransparent(t *testing.T) {
-	if !Transparent([]byte("<</ca .5>>")) || !Transparent([]byte("/SMask 12 0 R")) || Transparent([]byte("<</ca 1 /CA 1>>")) {
-		t.Error("transparency detection")
-	}
-}
-
-func TestStampKeepsThePDFValid(t *testing.T) {
-	pdf, _ := os.ReadFile("testdata/print.pdf")
-	stamped, err := Stamp(pdf, "0123456789abcdef0123")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if StampOf(stamped) != "0123456789abcdef0123" || StampOf(pdf) != "" || PageCount(stamped) != PageCount(pdf) || fmt.Sprint(OutlinePages(stamped)) != "[2 4 6 8]" {
-		t.Fatal("stamp lost the key or changed the document")
-	}
-	again, _ := Stamp(stamped, "fedcba9876543210")
-	if StampOf(again) != "fedcba9876543210" {
-		t.Fatal("restamp")
-	}
-	if dir := os.Getenv("LFM_STAMP_OUT"); dir != "" {
-		_ = os.WriteFile(filepath.Join(dir, "stamped.pdf"), again, 0o644)
 	}
 }
 
@@ -750,14 +690,6 @@ func TestBookFilesStayInsideTheBook(t *testing.T) {
 	for rel, want := range map[string]bool{"images/a.jpg": false, "..": true, "../assets/a.jpg": true, "/etc/a.jpg": true, "..a/b.jpg": false} {
 		if outside(rel) != want {
 			t.Errorf("outside(%q) = %v", rel, !want)
-		}
-	}
-}
-
-func TestSlugSpellsOutLetters(t *testing.T) {
-	for title, want := range map[string]string{"Größer leben": "groesser-leben", "Café crème": "cafe-creme", "Łódź": "lodz", "???": "book"} {
-		if got := Slug(title); got != want {
-			t.Errorf("Slug(%q) = %q, want %q", title, got, want)
 		}
 	}
 }

@@ -18,7 +18,7 @@ import (
 // next is the step a compile points to: the phase a project is in, or what
 // is left before it ships. Agents read it to stay on the intended path.
 type next struct {
-	Phase string   `json:"phase"` // research, design, implementation, book, fix, review, deploy
+	Phase string   `json:"phase"` // research, design, implementation, book, printable, bundle, fix, review, deploy
 	Do    string   `json:"do"`
 	Skill string   `json:"skill,omitempty"` // the skill that covers the step
 	Notes []string `json:"notes,omitempty"`
@@ -53,7 +53,17 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "design", "write concept.md from the research. "+skill("design")
 	case r.Starter:
 		n.Phase, n.Do = "implementation", "replace the starter page with the page concept.md describes. "+skill("implementation")
-	case r.Book != nil && r.Book.Complete && !r.Book.Listing:
+	case r.Printable != nil && !r.Printable.Concept:
+		n.Phase, n.Do = "printable", "write deliverables/printable/concept.md: buyer, promise, contents, editions, look. "+skill("printable")
+	case r.Printable != nil && !r.Printable.Template:
+		n.Phase, n.Do = "printable", "write deliverables/printable/printable.html.tmpl: one <section class=\"page\"> per page, as the concept's Contents plans. "+skill("printable")
+	case r.Printable != nil && ruleFamily(r, "printable.") > 0:
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "printable."), "printable finding"), skill("printable"))
+	case r.Bundle != nil && ruleFamily(r, "bundle.") > 0:
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "bundle."), "bundle finding"), skill("printable"))
+	case r.Printable != nil && !r.Printable.Listing && r.Printable.Sell != "bundle":
+		n.Phase, n.Do = "printable", "write deliverables/printable/listing.md, the store texts lfm renders into every channel's guide under distribution/. "+skill("printable")
+	case r.Book != nil && r.Book.Complete && !r.Book.Listing && r.Book.Sell != "bundle":
 		n.Phase, n.Do = "book", "write deliverables/book/listing.md, the store texts lfm renders into every channel's package under distribution/. "+skill("book")
 	case r.Book != nil && bookFindings(r) > 0:
 		then := " before the next piece of the book"
@@ -76,6 +86,8 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		if page := pageWarnings(r); page > 0 {
 			n.Notes = append(n.Notes, fmt.Sprintf("The page itself has %s to resolve before it ships.", term.Plural(page, "warning")))
 		}
+	case r.Bundle != nil && !r.Bundle.Listing && r.Book != nil && r.Book.Complete:
+		n.Phase, n.Do = "bundle", "write deliverables/bundle/listing.md, the shop texts for the book and the printable sold together. "+skill("printable")
 	case r.Warnings() > 0:
 		n.Phase, n.Do = "fix", "resolve the warnings above; a page is done at 0 errors and 0 warnings."
 	case r.Release == nil:
@@ -83,17 +95,26 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		if r.Book != nil && r.Book.Pending {
 			n.Notes = append(n.Notes, "The release also prints the book's PDF and paperback; open them and look at every page.")
 		}
+		if r.Printable != nil && r.Printable.Pending {
+			n.Notes = append(n.Notes, "The release also prints the printable's PDFs and listing images; open them and look at every page.")
+		}
 	default:
 		where := "the static host"
 		if r.PageURL != "" {
 			where = r.PageURL
 		}
 		n.Phase, n.Do = "deploy", "upload output/ as is to "+where+"."
-		if r.Book != nil && r.Book.URL != "" {
-			n.Notes = append(n.Notes, "In Stripe, set the book's Payment Link to redirect after payment to "+r.Book.URL+" and add that address to the invoice footer, so buyers also get it by email.")
-		}
-		if r.Book != nil && len(r.Book.Channels) > 0 {
-			n.Notes = append(n.Notes, "To sell the book in stores too, distribution/README.md lists every channel; each guide in distribution/stores/ names the files to upload and the fields to paste.")
+		for _, u := range sold(r) {
+			if u.url != "" {
+				n.Notes = append(n.Notes, "In Stripe, set the "+u.name+"'s Payment Link to redirect after payment to "+u.url+" and add that address to the invoice footer, so buyers also get it by email.")
+			}
+			if len(u.channels) > 0 {
+				note := "To sell the " + u.name + " in shops, distribution/" + u.dir + "/README.md lists every channel; each guide in its stores/ names the files to upload and the fields to paste."
+				if u.sell == "shops" {
+					note += " Once a listing is live, put its address into urls and point the page's offer at it: the shop delivers the files."
+				}
+				n.Notes = append(n.Notes, note)
+			}
 		}
 	}
 	return n
@@ -188,9 +209,43 @@ func pageWarnings(r compile.Result) int {
 	}
 	n := 0
 	for _, d := range r.Validation.Diagnostics {
-		if d.Severity == diagnostic.Warning && !strings.HasPrefix(d.Rule, "book.") {
+		if d.Severity == diagnostic.Warning && !strings.HasPrefix(d.Rule, "book.") && !strings.HasPrefix(d.Rule, "printable.") && !strings.HasPrefix(d.Rule, "bundle.") {
 			n++
 		}
 	}
 	return n
+}
+
+// ruleFamily counts the warnings and errors whose rule starts with prefix.
+func ruleFamily(r compile.Result, prefix string) int {
+	if r.Validation == nil {
+		return 0
+	}
+	n := 0
+	for _, d := range r.Validation.Diagnostics {
+		if strings.HasPrefix(d.Rule, prefix) {
+			n++
+		}
+	}
+	return n
+}
+
+// unit is one thing the project sells, for the deploy notes.
+type unit struct {
+	name, dir, url, sell string
+	channels             []string
+}
+
+func sold(r compile.Result) []unit {
+	var out []unit
+	if b := r.Book; b != nil {
+		out = append(out, unit{"book", "book", b.URL, b.Sell, b.Channels})
+	}
+	if p := r.Printable; p != nil {
+		out = append(out, unit{"printable", "printable", p.URL, p.Sell, p.Channels})
+	}
+	if b := r.Bundle; b != nil {
+		out = append(out, unit{"bundle", "bundle", b.URL, b.Sell, b.Channels})
+	}
+	return out
 }

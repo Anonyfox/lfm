@@ -40,10 +40,10 @@ them at an unlisted address that only paying buyers receive. The same compile pr
   Mechanism its contents and length, Proof its reviews, Price its editions, Tone its voice, Takeaway what
   reviews praise and complain about.
 - Create `[[.Book.Dir]]/` and add to `lfm.json`:
-  `"deliverables": {"book": {"author": "…", "path": "…", "offer": "…"}}`. The compile error for a
-  missing entry prints a fresh random path of at least [[.Book.MinPath]] characters: use it, it is the only
-  lock on the files. `offer` is the key of the offer in `data.commerce.offers` that sells the book.
-  `formats` defaults to `["epub", "pdf"]`, `language` to the page's.
+  `"deliverables": {"book": {"author": "…", "path": "…", "offer": "…"}}`, and the publisher as
+  `"seller": {"name": "…", "imprint": "…"}`. The compile error for a missing entry prints a fresh path of at
+  least [[.Book.MinPath]] characters: the only lock on the files. `lfm help config deliverables.book` lists
+  every option with its default.
 - The Next line reaches the book once the page's phases are clean; start earlier when the owner asks.
 
 ## Phase 1: the concept
@@ -202,9 +202,9 @@ Once every chapter exists, read the book in one pass with fresh eyes, as its har
 
 ## Phase 5: delivery
 
-- The report prints the download address. Never link it from the page; `book.delivery` blocks that.
-- In Stripe, the Payment Link redirects after payment to that address and the invoice footer carries it,
-  so buyers also get it by email; set both, or hand the two settings to the owner.
+- `sell` in `lfm.json`: `page` (default) publishes a download page at `path`, never linked from the page
+  (`book.delivery`): Stripe redirects there, the invoice footer carries it. `shops`: the stores deliver and
+  the page's offer links to the live listing. `bundle`: sold only with the printable (`lfm skills printable`).
 - EU buyers of digital content consent to immediate delivery and the end of their withdrawal right: the
   page concept's Offer carries that wording as an `Open:` line until the owner gives it.
 - Presale: until every chapter exists the download page says the copy is being written; then the owner
