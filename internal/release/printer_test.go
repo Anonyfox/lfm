@@ -270,7 +270,6 @@ func TestClosedPrinterFailsFast(t *testing.T) {
 }
 
 func TestPageImagesFailsFastOnAMissingPage(t *testing.T) {
-	t.Skip("BUG: PageImages waits out the 60 s tab timeout for a page number the document lacks instead of failing at once")
 	p := printer(t)
 	doc := pageDoc(200, 100, "", "<p>One</p>")
 	start := time.Now()

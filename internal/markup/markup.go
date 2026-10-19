@@ -97,7 +97,8 @@ type Field struct {
 
 var (
 	directive  = regexp.MustCompile(`^:::\s*([a-z]+)\s*(.*)$`)
-	FieldMark  = regexp.MustCompile(`==([^=\n]+)==`) // a field in plain text
+	rule       = regexp.MustCompile(`^ {0,3}(?:-(?:[ \t]*-){2,}|\*(?:[ \t]*\*){2,}|_(?:[ \t]*_){2,})[ \t]*$`) // a thematic break line
+	FieldMark  = regexp.MustCompile(`==([^=\n]+)==`)                                                          // a field in plain text
 	widthTitle = regexp.MustCompile(`^(\d+(?:\.\d+)?)\s*(mm|%)$`)
 )
 
@@ -144,7 +145,10 @@ func Keys(settings map[string]Setting) []string {
 }
 
 // Lines splits a source file into lines.
+// A UTF-8 byte order mark, which some editors write, is dropped, so front
+// matter and a first heading still start the file.
 func Lines(src []byte) []string {
+	src = bytes.TrimPrefix(src, []byte("\ufeff"))
 	return strings.Split(strings.ReplaceAll(string(src), "\r\n", "\n"), "\n")
 }
 
@@ -368,9 +372,33 @@ func markdownBlocks(md goldmark.Markdown, lines []string, offset int, add func(i
 		}
 		return offset + 1
 	}
+	// A thematic break records no position. It is the last rule-shaped line
+	// before the block after it, so its siblings, read backwards, place it.
+	breaks := func(parent ast.Node) map[ast.Node]int {
+		var nodes []ast.Node
+		for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
+			nodes = append(nodes, n)
+		}
+		at := map[ast.Node]int{}
+		upper := len(lines)
+		for j := len(nodes) - 1; j >= 0; j-- {
+			if _, ok := nodes[j].(*ast.ThematicBreak); !ok {
+				upper = min(upper, lineOf(nodes[j])-offset-1)
+				continue
+			}
+			for i := upper - 1; i >= 0; i-- {
+				if rule.MatchString(lines[i]) {
+					at[nodes[j]], upper = i, i
+					break
+				}
+			}
+		}
+		return at
+	}
 	var convert func(parent ast.Node) []Block
 	convert = func(parent ast.Node) []Block {
 		var out []Block
+		breakAt := breaks(parent)
 		for n := parent.FirstChild(); n != nil; n = n.NextSibling() {
 			line := lineOf(n)
 			switch x := n.(type) {
@@ -386,9 +414,13 @@ func markdownBlocks(md goldmark.Markdown, lines []string, offset int, add func(i
 				}
 				out = append(out, Block{Kind: Para, Line: line, Inlines: inlines(n, src, line, add)})
 			case *ast.ThematicBreak:
-				kind := PageBreak
-				if i := line - offset - 1; i >= 0 && i < len(lines) && !strings.HasPrefix(strings.TrimSpace(lines[i]), "-") {
-					kind = Ornament
+				// --- is a page break, * * * and ___ an ornament.
+				kind := Ornament
+				if i, ok := breakAt[n]; ok {
+					line = offset + i + 1
+					if strings.HasPrefix(strings.TrimSpace(lines[i]), "-") {
+						kind = PageBreak
+					}
 				}
 				out = append(out, Block{Kind: kind, Line: line})
 			case *ast.List:

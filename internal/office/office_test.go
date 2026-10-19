@@ -216,7 +216,7 @@ func TestRefusedIgnoresLastYearsLines(t *testing.T) {
 	writeLog(t, filepath.Join(dir, "word.log"), start,
 		stamp(time.Date(2026, 12, 31, 23, 59, 0, 0, time.UTC))+` WORD[1] Failed to open docx package`)
 	if why := word.refused(start); why != "" {
-		t.Skip("BUG: refused compares MM/DD/YYYY stamps as strings, so last December's lines count as after a January start")
+		t.Fatalf("refused %q", why)
 	}
 }
 

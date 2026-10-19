@@ -199,7 +199,7 @@ func TestResolveTextFontReplacesHeadingOfOneFamilyPreset(t *testing.T) {
 func TestResolveTextFontKeepsHeadingOfDefaultTheme(t *testing.T) {
 	got := Look{TextFont: "Merriweather"}.Resolve()
 	if got.Heading != Presets["editorial"].Heading {
-		t.Skip("BUG: without a theme the default editorial's heading font is replaced by the text font, as if it used one family")
+		t.Fatalf("heading %s, want %s", got.Heading, Presets["editorial"].Heading)
 	}
 }
 

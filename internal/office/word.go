@@ -189,9 +189,14 @@ func (a app) refused(start time.Time) string {
 	if err != nil {
 		return ""
 	}
-	stamp := start.Format("01/02/2006 15:04:05")
+	since := start.Truncate(time.Second)
 	for _, line := range strings.Split(string(data), "\n") {
-		if len(line) < 19 || line[:19] < stamp {
+		// Lines start with an MM/DD/YYYY stamp, which only sorts as a time.
+		if len(line) < 19 {
+			continue
+		}
+		at, err := time.ParseInLocation("01/02/2006 15:04:05", line[:19], start.Location())
+		if err != nil || at.Before(since) {
 			continue
 		}
 		if m := refusal.FindStringSubmatch(line); m != nil {

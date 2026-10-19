@@ -96,14 +96,14 @@ func TestFrontMatterKeepsKeysInLineOrder(t *testing.T) {
 func TestFrontMatterAfterByteOrderMark(t *testing.T) {
 	settings, start, _ := FrontMatter(Lines([]byte("\ufeff---\ntitle: Invoice\n---\nBody")))
 	if settings["title"].Value != "Invoice" || start != 3 {
-		t.Skip("BUG: a UTF-8 BOM before the opening --- hides the front matter")
+		t.Fatalf("settings %v, start %d", settings, start)
 	}
 }
 
 func TestParseBodyAfterByteOrderMark(t *testing.T) {
 	blocks, _ := parse(t, "\ufeff# Heading", docOptions)
 	if len(blocks) != 1 || blocks[0].Kind != Heading {
-		t.Skip("BUG: a UTF-8 BOM before the first heading turns it into a paragraph")
+		t.Fatalf("blocks %+v", blocks)
 	}
 }
 
@@ -331,14 +331,14 @@ func TestParseStarsAfterTextAreOrnament(t *testing.T) {
 func TestParseRuleAfterTextIsPageBreakAtItsLine(t *testing.T) {
 	blocks := clean(t, "A\n\n---\n\nB", docOptions)
 	if got := kinds(blocks); !slices.Equal(got, []string{Para, PageBreak, Para}) || blocks[1].Line != 3 {
-		t.Skip("BUG: a thematic break has no source lines, so it takes the chunk's first line: --- after text becomes an ornament at the wrong line")
+		t.Fatalf("kinds %v, line %d", kinds(blocks), blocks[1].Line)
 	}
 }
 
 func TestParseStarsAfterListAreOrnament(t *testing.T) {
 	blocks := clean(t, "- item\n\n***", docOptions)
 	if got := kinds(blocks); !slices.Equal(got, []string{List, Ornament}) {
-		t.Skip("BUG: *** after a list starting with - becomes a page break, read from the chunk's first line")
+		t.Fatalf("kinds %v", got)
 	}
 }
 

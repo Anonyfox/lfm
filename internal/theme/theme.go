@@ -193,12 +193,14 @@ func (l Look) Resolve() Theme {
 		t.Accent = l.Accent
 		t.Tint = Tint(l.Accent, 0.9)
 	}
+	// A theme set in one family keeps one family when the text font changes.
+	oneFamily := t.Heading == t.Text
 	if l.TextFont != "" {
 		t.Text = l.TextFont
 	}
 	if l.HeadFont != "" {
 		t.Heading = l.HeadFont
-	} else if l.TextFont != "" && Presets[l.Theme].Heading == Presets[l.Theme].Text {
+	} else if l.TextFont != "" && oneFamily {
 		t.Heading = l.TextFont
 	}
 	return t

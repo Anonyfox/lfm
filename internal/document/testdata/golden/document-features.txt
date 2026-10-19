@@ -18,7 +18,7 @@ en-a4.zip/Ceremony Proof.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
 en-a4.zip/Everything Proof.docx/[Content_Types].xml 2023 64f30b1703718c0d
 en-a4.zip/Everything Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-a4.zip/Everything Proof.docx/docProps/core.xml 680 23b02fedd19a538c
-en-a4.zip/Everything Proof.docx/word/document.xml 19663 83e8cf4736692a5a
+en-a4.zip/Everything Proof.docx/word/document.xml 19433 527d669cae5374de
 en-a4.zip/Everything Proof.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-a4.zip/Everything Proof.docx/docProps/app.xml 287 88cca64693522744
 en-a4.zip/Everything Proof.docx/word/styles.xml 7667 12675e2235a4a7a2
@@ -63,7 +63,7 @@ en-a4/ceremony.shot.html 3985 c8f8a27d0d25b50c
 en-a4/everything.docx/[Content_Types].xml 2023 64f30b1703718c0d
 en-a4/everything.docx/_rels/.rels 589 d6f21829c0081670
 en-a4/everything.docx/docProps/core.xml 680 23b02fedd19a538c
-en-a4/everything.docx/word/document.xml 19663 83e8cf4736692a5a
+en-a4/everything.docx/word/document.xml 19433 527d669cae5374de
 en-a4/everything.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-a4/everything.docx/docProps/app.xml 287 88cca64693522744
 en-a4/everything.docx/word/styles.xml 7667 12675e2235a4a7a2
@@ -81,10 +81,10 @@ en-a4/everything.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-a4/everything.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-a4/everything.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-a4/everything.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/everything.print.html 12182 6cfd75f0eec5f065
-en-a4/everything.shot.html 12013 7b57de33a4d7af64
+en-a4/everything.print.html 12174 ec1b0de3bd8902dc
+en-a4/everything.shot.html 12005 72e09cb9133745b5
 en-a4/guide.html 2500 5e1526943d35407a
-en-a4/preview.html 9594 8aa9a9e2e2f22565
+en-a4/preview.html 9586 744998c21e8b2ea5
 en-letter.zip/Ceremony Proof.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
 en-letter.zip/Ceremony Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-letter.zip/Ceremony Proof.docx/docProps/core.xml 678 1162429dcd842592
@@ -104,7 +104,7 @@ en-letter.zip/Ceremony Proof.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
 en-letter.zip/Everything Proof.docx/[Content_Types].xml 2023 64f30b1703718c0d
 en-letter.zip/Everything Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-letter.zip/Everything Proof.docx/docProps/core.xml 680 23b02fedd19a538c
-en-letter.zip/Everything Proof.docx/word/document.xml 19663 837082f1da0ac8d2
+en-letter.zip/Everything Proof.docx/word/document.xml 19433 a54df028340063aa
 en-letter.zip/Everything Proof.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-letter.zip/Everything Proof.docx/docProps/app.xml 287 88cca64693522744
 en-letter.zip/Everything Proof.docx/word/styles.xml 7667 12675e2235a4a7a2
@@ -149,7 +149,7 @@ en-letter/ceremony.shot.html 3985 487c71615f1e9ee5
 en-letter/everything.docx/[Content_Types].xml 2023 64f30b1703718c0d
 en-letter/everything.docx/_rels/.rels 589 d6f21829c0081670
 en-letter/everything.docx/docProps/core.xml 680 23b02fedd19a538c
-en-letter/everything.docx/word/document.xml 19663 837082f1da0ac8d2
+en-letter/everything.docx/word/document.xml 19433 a54df028340063aa
 en-letter/everything.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-letter/everything.docx/docProps/app.xml 287 88cca64693522744
 en-letter/everything.docx/word/styles.xml 7667 12675e2235a4a7a2
@@ -167,10 +167,10 @@ en-letter/everything.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
 en-letter/everything.docx/word/fonts/font2.odttf 132124 bb22831c27757649
 en-letter/everything.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
 en-letter/everything.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/everything.print.html 12182 8b395b2cb9281d1e
-en-letter/everything.shot.html 12013 0ef8ddcda2854524
+en-letter/everything.print.html 12174 105bdf086b3fc8d9
+en-letter/everything.shot.html 12005 23bce7f78e56929f
 en-letter/guide.html 2507 ee0f9cf9d88e56b3
-en-letter/preview.html 9602 18c4947c4c0c56e0
+en-letter/preview.html 9594 a67510a20f1e25b0
 images/01-everything-proof.jpg.html 1277 9d985e57fe61594a
 images/02-documents.jpg.html 1544 9da913c225207e4e
 images/03-ceremony-proof.jpg.html 1336 582cae034cb0f951

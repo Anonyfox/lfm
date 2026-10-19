@@ -221,8 +221,16 @@ func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height
 		return nil, err
 	}
 	defer done()
+	// A screenshot of a missing page waits for it until the tab times out.
+	count, err := chromedp.Run(tab, chromedp.Evaluate[int](`document.querySelectorAll('body > section.page').length`))
+	if err != nil {
+		return nil, fmt.Errorf("count pages: %w", err)
+	}
 	var out [][]byte
 	for _, n := range pages {
+		if n < 1 || n > count {
+			return nil, fmt.Errorf("render page %d: the document has %d pages", n, count)
+		}
 		png, err := chromedp.Run(tab, chromedp.Screenshot(chromedp.CSS(fmt.Sprintf("body > section.page:nth-of-type(%d)", n))))
 		if err != nil {
 			return nil, fmt.Errorf("render page %d: %w", n, err)
