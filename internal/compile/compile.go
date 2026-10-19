@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -204,51 +205,25 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
 	// The deliverables are checked side by side; each reads only its own folder.
-	var shelf *book.Report
-	var sheet *printable.Report
-	var grid *spreadsheet.Report
-	var docs *document.Report
-	var decks *deck.Report
-	var bookFindings, printableFindings, gridFindings, docFindings, deckFindings []diagnostic.Diagnostic
+	units := make([]unit, len(kinds))
+	unitFindings := make([][]diagnostic.Diagnostic, len(kinds))
 	if len(loaded.Problems) == 0 {
 		var wg sync.WaitGroup
-		if book.Present(p) {
-			wg.Go(func() { shelf, bookFindings = checkBook(p, loaded, prepared.Commerce, researched) })
-		}
-		if printable.Present(p) {
-			wg.Go(func() { sheet, printableFindings = checkPrintable(p, loaded, prepared.Commerce) })
-		}
-		if spreadsheet.Present(p) {
-			wg.Go(func() { grid, gridFindings = checkSpreadsheet(p, loaded, prepared.Commerce) })
-		}
-		if document.Present(p) {
-			wg.Go(func() { docs, docFindings = checkDocument(p, loaded, prepared.Commerce) })
-		}
-		if deck.Present(p) {
-			wg.Go(func() { decks, deckFindings = checkDeck(p, loaded, prepared.Commerce) })
+		in := checking{p: p, loaded: loaded, commerce: prepared.Commerce, researched: researched}
+		for i, k := range kinds {
+			if k.present(p) {
+				wg.Go(func() { units[i], unitFindings[i] = k.check(in) })
+			}
 		}
 		wg.Wait()
 	}
-	if shelf != nil {
-		result.Book = &shelf.Summary
-		findings = append(findings, diagnostic.Apply(bookFindings, c.Build.Validation.Rules)...)
+	for i, u := range units {
+		if u != nil {
+			u.summarize(&result)
+		}
+		findings = append(findings, diagnostic.Apply(unitFindings[i], c.Build.Validation.Rules)...)
 	}
-	if sheet != nil {
-		result.Printable = &sheet.Summary
-		findings = append(findings, diagnostic.Apply(printableFindings, c.Build.Validation.Rules)...)
-	}
-	if grid != nil {
-		result.Spreadsheet = &grid.Summary
-		findings = append(findings, diagnostic.Apply(gridFindings, c.Build.Validation.Rules)...)
-	}
-	if docs != nil {
-		result.Document = &docs.Summary
-		findings = append(findings, diagnostic.Apply(docFindings, c.Build.Validation.Rules)...)
-	}
-	if decks != nil {
-		result.Deck = &decks.Summary
-		findings = append(findings, diagnostic.Apply(deckFindings, c.Build.Validation.Rules)...)
-	}
+	units = slices.DeleteFunc(units, func(u unit) bool { return u == nil })
 	var pack *bundle.Report
 	if len(loaded.Problems) == 0 {
 		var bundleFindings []diagnostic.Diagnostic
@@ -259,23 +234,13 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		findings = append(findings, diagnostic.Apply(bundleFindings, c.Build.Validation.Rules)...)
 		d := c.Deliverables
 		var sale []diagnostic.Diagnostic
-		if shelf != nil && d.Book != nil {
-			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.book", d.Book.Sell, d.Book.Offer, book.RuleConfig)...)
-		}
-		if sheet != nil && d.Printable != nil {
-			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.printable", d.Printable.Sell, d.Printable.Offer, printable.RuleConfig)...)
+		for _, u := range units {
+			if field, sell, offer, rule, ok := u.sale(d); ok {
+				sale = append(sale, saleFindings(prepared.Commerce, field, sell, offer, rule)...)
+			}
 		}
 		if pack != nil {
 			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.bundle", d.Bundle.Sell, d.Bundle.Offer, bundle.RuleConfig)...)
-		}
-		if grid != nil && d.Spreadsheet != nil {
-			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.spreadsheet", d.Spreadsheet.Sell, d.Spreadsheet.Offer, spreadsheet.RuleConfig)...)
-		}
-		if docs != nil && d.Document != nil {
-			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.document", d.Document.Sell, d.Document.Offer, document.RuleConfig)...)
-		}
-		if decks != nil && d.Deck != nil {
-			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.deck", d.Deck.Sell, d.Deck.Offer, deck.RuleConfig)...)
 		}
 		findings = append(findings, diagnostic.Apply(sale, c.Build.Validation.Rules)...)
 	}
@@ -364,48 +329,13 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		result.Validation.Stats = stats
 		return result.Errors() == 0
 	}
-	var prints, books shipped
-	var images []printable.Image
-	if sheet != nil {
-		var found []diagnostic.Diagnostic
-		prints, images, found = deliverPrintable(p, sheet, page, options.Release, &result)
-		if !add(found) {
-			return result, &Failure{Errors: result.Errors()}
-		}
-	}
-	if shelf != nil {
-		var found []diagnostic.Diagnostic
-		books, found = deliverBook(p, shelf, page, options.Release, &result)
-		if !add(found) {
-			return result, &Failure{Errors: result.Errors()}
-		}
-	}
-	var grids, docFiles, deckFiles shipped
-	if grid != nil {
-		var found []diagnostic.Diagnostic
-		grids, found = deliverSpreadsheet(p, grid, page, options.Release, &result)
-		if !add(found) {
-			return result, &Failure{Errors: result.Errors()}
-		}
-	}
-	if docs != nil {
-		var found []diagnostic.Diagnostic
-		docFiles, found = deliverDocument(p, docs, page, options.Release, &result)
-		if !add(found) {
-			return result, &Failure{Errors: result.Errors()}
-		}
-	}
-	if decks != nil {
-		var found []diagnostic.Diagnostic
-		deckFiles, found = deliverDeck(p, decks, page, options.Release, &result)
-		if !add(found) {
+	for _, u := range units {
+		if !add(u.deliver(p, page, options.Release, &result)) {
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
 	if pack != nil && len(pack.Summary.Units) >= 2 && result.Errors() == 0 {
-		units := delivered{book: shelf, printable: sheet, spreadsheet: grid, document: docs, deck: decks,
-			books: books, prints: prints, grids: grids, docs: docFiles, decks: deckFiles, printImages: images}
-		parts, accent, render := units.parts(pack)
+		parts, accent, render := gather(units).parts(pack)
 		if !add(deliverBundle(p, pack, parts, accent, page, options.Release, &result, render)) {
 			return result, &Failure{Errors: result.Errors()}
 		}
@@ -418,17 +348,13 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		}
 		<-auditDone
 		result.Release.Audit = audit
-		var kinds []string
-		if docs != nil {
-			kinds = append(kinds, ".docx")
+		var opened []string
+		for _, u := range units {
+			if ext := u.opens(); ext != "" {
+				opened = append(opened, ext)
+			}
 		}
-		if decks != nil {
-			kinds = append(kinds, ".pptx")
-		}
-		if grid != nil {
-			kinds = append(kinds, ".xlsx")
-		}
-		result.Optional = optionalHelpers(kinds, audit)
+		result.Optional = optionalHelpers(opened, audit)
 		audited := append(result.Validation.Diagnostics, diagnostic.Apply(result.Release.Audit.Diagnostics, c.Build.Validation.Rules)...)
 		stats := result.Validation.Stats
 		result.Validation = summarize("audit", audited)
