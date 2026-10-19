@@ -30,7 +30,8 @@
       "script": "curl -fsSL https://lfm.cash/install.sh | sh",
       "go": "go install github.com/Anonyfox/lfm/cmd/lfm@latest"
     },
-    "rules": 104,
+    "rules": 109,
+    "fileRules": 58,
     "minimums": {
       "voices": 60,
       "platforms": 5,
@@ -44,11 +45,13 @@
       "lowContrastMore": 9
     },
     "receipt": {
-      "voices": 120,
+      "voices": 151,
       "platforms": 7,
-      "peers": 20,
+      "peers": 26,
+      "firstVoices": 120,
+      "firstPeers": 20,
       "directions": 10,
-      "frames": 48,
+      "frames": 51,
       "lighthouse": "4 × 100",
       "researchTime": "under an hour",
       "html": "9 KB",

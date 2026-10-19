@@ -13,6 +13,11 @@
 - Distribution is named as the real hard part, and the hype around autonomous agent businesses is met with "you got sponsors because of your audience". V004 V029 V032 V033 V054 V088 V089
 - A visible minority disagrees: the landing page does not matter at $0, warm traffic converts on a plain page, the X account is the landing page, AI pages are fine. V024 V025 V026 V068 V096 V101
 - Pages are increasingly read by agents, not only by people. V027 V094
+- Some sell a file, not an app: an ebook, a template, a pattern, a planner, often as the first product, and the ones who sold report counts. V128 V129 V136 V137 V143
+- The silence reaches files too: a catalog of AI-made templates and printables with zero checkout sessions, and the same "I don't really have an audience". V142 V143
+- The shops are flooded and buyers notice: "AI slop" on Etsy and Kindle, AI patterns that do not work, errors nobody fixed, buyers hunting for files that are not AI. V121 V122 V127 V132 V148 V149
+- Making the file is its own chore: Word to print PDF to EPUB is painful and edits drift apart, though an agent already turns an archive into an EPUB on request. V140 V124 V130
+- A minority says files are a saturated race to the bottom that ends in freebies. V131 V144 V146 V150
 
 ## Buyer
 A builder who ships with a coding agent (Claude Code, Codex, Cursor and the agents that drive them) and has
@@ -24,7 +29,8 @@ they must believe three things: the page will not look like every other AI page,
 to a sale or a clear no sooner than building more, and it costs nothing and needs no account. V023 V028
 V035 V046 The hesitation most likely to stop them is that lfm is one more anti-slop skill that ends up with
 its own look. V058 V078 V087 A second visitor is an agent sent by its user, which needs plain instructions
-it can follow without a human. V027
+it can follow without a human. V027 Some of them sell a file rather than an app, an ebook, a template or a
+deck, and wonder whether lfm helps with that too; it is a side question, asked after the main one. V136 V142
 
 ## Decision path
 1. What is this, and is it about my problem? → the first screen names the silence in the buyers' words and says in one sentence what lfm does about it.
@@ -33,6 +39,7 @@ it can follow without a human. V027
 4. Will it look and read like every other AI page? → the default agent page rung up by the compiler, its real findings, then the answer to "every fix converges".
 5. Does it work with my agent, and what does it cost? → the agent block and the install lines: free, MIT, one binary, the agents it runs with.
 6. What happens after I paste the prompt? → the agent installs lfm, researches buyers, writes the concept, builds and checks the page; you add your payment link and upload one folder.
+7. And if what I sell is a file? → one slip late on the tape: lfm builds and checks the ebook, printable, spreadsheet, documents or deck behind the same page, and the sell-first rule still holds.
 
 ## Mechanism
 Chosen: a prompt printer. The visitor types what they sell; the receipt on the first screen reprints the sentence for their agent with it ("Make a landing page for my sourdough course with lfm: https://lfm.cash/SKILL.md") and copies it. Speed to first value is seconds, it answers the "Comment PROMPT" ritual by giving the prompt away, the effort is one field, nothing is claimed that the tool does not do, and a personalised receipt is worth screenshotting. V040 V044 V047 V055
@@ -57,8 +64,12 @@ Delivery: one install command or the agent installs it itself from https://lfm.c
 - A Stripe Payment Link sells without a website at 2.9% + 30¢ per successful charge. P017
 - 22% of 1,590 scored Show HN pages showed four or more of the common AI design patterns (2026-04-20). https://adriankrebs.ch/blog/design-slop/
 - Claude Code's default page is described as purple-to-blue gradients, Inter, glassmorphism cards, badges and hover:scale-105. V067
-- lfm checks every page against 104 rules and writes output/ only at zero errors; the release audit scrolls it at 390×844, 1280×680 and 1440×900. https://github.com/Anonyfox/lfm
+- lfm checks every page against 109 rules and writes output/ only at zero errors; the release audit scrolls it at 390×844, 1280×680 and 1440×900. https://github.com/Anonyfox/lfm
 - lfm's research minimums from zero are 60 verbatim voices from 5 platforms and 12 competitor pages. https://github.com/Anonyfox/lfm
+- lfm builds the files a page sells and checks them with 58 more rules: EPUB and PDF ebooks, printable PDFs per paper size, .xlsx with every formula computed, .docx with real Word styles, .pptx decks with speaker notes, and bundles of them. https://github.com/Anonyfox/lfm
+- A catalog of AI-made Notion planners, prompt packs and printables had zero checkout sessions started by a real visitor. V142
+- A 60-page ebook sold 400+ copies at $19; a first Notion template made $1,016 from 310 sales. V136 V128
+- No digital-goods maker shows a file passing a check, and none builds the file and its sales page from the same research. P021 P022 P023 P024 P025 P026
 - Codex, Cursor, OpenCode and GitHub Copilot load skills from .agents/skills, Claude Code from .claude/skills. https://github.com/Anonyfox/lfm
 
 ## Axes
@@ -122,9 +133,10 @@ printers use it: for the total and what changed.
 5. Sell first: the lfm receipt from research to a payment link, selling for days, building only after a sale, with the counts that make it concrete. V028 V052 V051 V014 V103
 6. Voided: the page an agent writes from one sentence, compiled by lfm, its real findings as voided line items. V018 V019 V020 V021 V086
 7. No house look: why the fixes converge, why lfm's look comes from each project's research, and the honest limits: lfm does not bring traffic, it finds where buyers talk and converts what you send. V058 V078 V087 V108 V033 V054 V026
-8. For agents: plain steps an agent can follow, readable by people too. V027
-9. Install: the commands, the agents it works with, what lands on disk. V018 V062
-10. This page's receipt: its own research counts, concept and compile result, links to the files, footer. V086
+8. If you sell a file: one short slip, the files lfm builds and checks behind the page, rung up as line items, with the same rule: sell it first. Secondary; it adds no claim to the first screen. V142 V136 V140 V148 P023
+9. For agents: plain steps an agent can follow, readable by people too. V027
+10. Install: the commands, the agents it works with, what lands on disk. V018 V062
+11. This page's receipt: its own research counts, concept and compile result, links to the files, footer. V086
 
 ## Palette
 | Role | Color | Source |
@@ -173,9 +185,11 @@ Reduced motion: the coupon updates at once and the stamp appears without movemen
 - Avoid: "Trusted by", "10,000+" V086 P002 P010
 - Avoid: "Build anything", "in minutes", "superpowers" P010 P007 P002
 - Avoid: "stunning", "premium" V047 V039
+- Avoid: "passive income", "get rich", "digital products empire" V126 V133
 - Blunt, short sentences in English; joke about the zero, never about the visitor. V002 V005 V030
 - Every number on the page is real and checked: from the research, the compiler or this page's own build. V086
 - Say what lfm does not do: it brings no traffic and hosts nothing. V033 V054
+- The file slip says the same about files: a checked file still needs a buyer, so the sale comes first. V142 V144
 - Never quote a research voice with a name or as praise; their words shape the copy, they are not testimonials. V020
 
 ## Qualities
@@ -186,3 +200,4 @@ Reduced motion: the coupon updates at once and the stamp appears without movemen
 ## Changelog
 - 2026-10-18: first concept from the batch of 2026-10-18.
 - 2026-10-18: after an independent review of the first build: desktop widens only the first slip; added the after-you-paste receipt (decision path step 6), the trust line at the copy button, findings in plain words, and the house-look answer rung up as a receipt. No research changed.
+- 2026-10-19: grow from the batch of 2026-10-19 (31 voices, 6 peers on the digital goods lfm now builds). Depth, not shift: one new slip (spine 8, decision path 7) for visitors who sell a file, late on the tape and without a claim on the first screen; new voice observations, buyer sentence, facts and copy rules; check count updated to 109. Axes, direction, palette, type, form, motion and qualities unchanged: the new peers lead with platform-scale promises and purple, which the chosen positions already answer, and their gap (no file shown passing a check) is the existing proof-by-checks axis.

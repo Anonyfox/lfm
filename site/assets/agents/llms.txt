@@ -4,6 +4,8 @@
 
 To make a landing page with lfm, read and follow https://lfm.cash/SKILL.md. It installs lfm, creates a project, installs the research, design and implementation skills, and has you follow the last line of `lfm compile` until it says deploy.
 
+When the page sells a file, lfm builds and checks that too: an ebook, a printable, a spreadsheet, editable documents or a slide deck, each with its skill (`lfm skills book`, `printable`, `spreadsheet`, `document`, `deck`). The page and the sale still come first.
+
 - [SKILL.md](https://lfm.cash/SKILL.md): setup and process for agents
 - [install.sh](https://lfm.cash/install.sh): installs the lfm binary on macOS or Linux without sudo
 - [lfm.cash Grok Bot](https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf): the same process as a Grok Bot template

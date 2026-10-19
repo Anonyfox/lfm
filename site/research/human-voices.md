@@ -996,3 +996,230 @@ Observer note: post by Lorenz Wieseke, a solo founder in Leipzig and a former 3D
 > …
 <https://www.indiehackers.com/post/i-let-claude-code-run-my-entire-seo-pipeline-heres-how-c6d1eae74d>
 Observer note: comment by dhawalshah; the opening line answering another commenter and a closing link to his own write-up are cut. The post itself is a product pitch and is not quoted.
+
+## Batch 2026-10-19 · ongoing: a section on the digital goods lfm now builds · queries: "etsy AI printables", "AI slop etsy digital", "KDP AI books flooded", "gumroad template first product", "notion template sales", "selling templates gumroad", "digital products saturated", "ebook claude code", "google docs template broken", "canva template fonts", "comment TEMPLATE", "AI ebook scam", "AI generated ebooks gumroad", "PDF guide sell first product", "spreadsheet template etsy sell", "powerpoint template sell", "digital products dead", "just use canva", "gamma slides AI", "my first digital product", "ebook sales gumroad", "vibe coded ebook", "listing mockups etsy digital", "digital downloads saturated etsy", "#gumroad", "#digitalproducts", "#printables", "#etsyseller", "#etsy", "#kdp", "#aislop", "#selfpublishing", "#ebook", "#digitaldownload", "#canva", "#templates", "site:x.com notion template gumroad sales claude", "site:x.com \"AI slop\" etsy printables digital downloads", "site:x.com \"digital products\" saturated gumroad 2026", "site:x.com ebook \"claude code\" epub OR pdf formatting", "site:x.com \"comment\" \"TEMPLATE\" \"and I'll send\"", "site:x.com AI ebooks KDP flooded garbage self publishing", "site:x.com \"digital products\" scam AI \"passive income\" gurus", "site:x.com template \"google docs\" OR word formatting broken fonts customers etsy", "site:x.com claude made printable planner PDF etsy sold", "site:x.com gamma slides \"looks AI\" OR generic OR ugly deck", "selling ebooks", "AI generated ebooks", "Gumroad templates", "Notion templates", "selling digital products", "Etsy AI slop", "KDP AI books", "printables Etsy", "sell templates Gumroad", "digital products passive income", "pandoc epub", "sold copies ebook", "Leanpub", "my Notion template", "sold templates", "AI slop Gumroad", "AI books Amazon flooded", "spreadsheet template sell", "selling PDF guide", "Etsy digital download", "Canva templates", "Google Docs template formatting", "selling notion templates", "digital planners", "AI generated planners", "KDP low content", "Gumroad ebook sold", "digital products saturated", "formatting my book epub", "Kindle formatting", "self-publishing formatting", "epub is a pain", "indiehackers selling ebook notion templates printables digital products AI 2026", "indiehackers digital products Gumroad templates sales first product AI slop saturated", "indiehackers ebook Claude ChatGPT wrote sold copies PDF guide formatting", "indiehackers Etsy printables AI flooded saturated digital downloads planners", "youtube selling digital products with AI Claude Code ebook printables Etsy 2026", "youtube digital products saturated doesn't work scam truth AI printables Etsy", "youtube I tried selling AI ebooks AI digital products results honest Gumroad KDP", "youtube AI slop ebooks Amazon flooded faceless digital products scam exposed", "instagram reel selling digital products AI ebook Etsy saturated", "#digitalproducts (Instagram)" · unreachable: X search (login wall; post pages are public and were found through DuckDuckGo site:x.com), Instagram (hashtag, explore and profile posts redirect to login), Reddit (the browser tools refuse reddit.com by policy), Etsy (bot protection)
+
+### V121 · X · adjacent · posted 2026-10-08 · fetched 2026-10-19 · via browser
+> etsy is just filled w ai slop and dropshippers now like
+<https://x.com/Iizaards/status/2108120615098142778>
+Observer note: 2 replies, 12 likes, 385 views when fetched.
+
+### V122 · X · creator · posted 2026-05-05 · fetched 2026-10-19 · via browser
+> As we predicted AI would lead to the death of self-publishing. 
+>
+> Since ChatGPT was released the monthly number of ebooks released on Amazon Kindle has grown from 100,000 to 300,000.
+>
+> Self publishing has been flooded and is now drowning in slop.
+<https://x.com/MrEwanMorrison/status/2051557858462888375>
+Observer note: novelist's account; 34 replies, 87 reposts, 334 likes, 30 bookmarks, 8,117 views when fetched.
+
+### V123 · X · adjacent · posted 2026-03-20 · fetched 2026-10-19 · via browser
+> My take from this is that LLMs are going to destroy the self-publishing industry. "Hybrid" platforms will get flooded with even more dross to sort through. Publishers matter more than ever
+<https://x.com/NonwayneWayne/status/2035116439313813980>
+Observer note: quote post of a post citing NYT data that 20% of self-published novels on Amazon are AI-generated; 6 replies, 26 likes, 1,184 views when fetched.
+
+### V124 · X · buyer · posted 2026-08-31 · fetched 2026-10-19 · via browser
+> just prompted claude code to download the entire phrack[.]org magazine archive and create a kobo epub book for me that i can read on my 9 hour flight to abu dhabi
+>
+> i love ai
+<https://x.com/paoloanzn/status/2094352521573888484>
+Observer note: 39 replies, 24 reposts, 1.1K likes, 610 bookmarks, 80.1K views when fetched.
+
+### V125 · X · creator · posted 2026-07-26 · fetched 2026-10-19 · via browser
+> Everyone asks where to sell digital products.
+>
+> I gave a full year to @gumroad 
+>
+> A full year to @lemonsqueezy 
+>
+> Almost a year to @Fourthwall 
+>
+> Same products. Same audience. Very different results.
+>
+> Here's my honest rating of all 3 ↓
+<https://x.com/osama_latrache/status/2081138332176687506>
+Observer note: thread opener; the ratings below were not visible logged out; 3 replies, 2 reposts, 4 likes, 2 bookmarks, 631 views when fetched.
+
+### V126 · Bluesky · buyer · posted 2026-10-11 · fetched 2026-10-19 · via fetch
+> i need the YouTube influencers to stop posting get rich quick schemes with ai, one of which includes selling digital prints, books, and POD on Etsy, ty.
+>
+> there's so much slop that it's hard to get found as a seller but also find real, human-made designs as a consumer.
+<https://bsky.app/profile/earlyspark.bsky.social/post/3mxmqizbz5s26>
+Observer note: 2 likes, 1 reply when fetched.
+
+### V127 · Bluesky · adjacent · posted 2026-08-02 · fetched 2026-10-19 · via fetch
+> Can anyone recommended an actual artist shop on etsy or anywhere epse that sells digital printables/ stickers/ephemera that are NOT AI??? I’m looking for vaguely Greek / Mediterranean theme printable sticker sheets…scrolled like 5 pages of all AI listings and I gave up 😭😵‍💫
+<https://bsky.app/profile/realaguss.bsky.social/post/3ms4jamdv7223>
+Observer note: 9 likes, 9 replies, 1 repost when fetched.
+
+### V128 · Bluesky · creator · posted 2026-10-04 · fetched 2026-10-19 · via fetch
+> 18 months ago I made my first Notion template sale.
+>
+> Today: $1,016 total. 310 sales. 4,593 free downloads.
+>
+> Most people would call that a failure.
+>
+> I call it the best education I've ever had.
+>
+> Here's the full breakdown, and what it can save you 👇
+<https://bsky.app/profile/lakwad.bsky.social/post/3mx2d4h42mk2a>
+Observer note: thread opener from a "Notion + Building in Public" account; 2 likes, 1 reply when fetched.
+
+### V129 · Bluesky · buyer · posted 2024-11-26 · fetched 2026-10-19 · via fetch
+> Launching my FIRST gumroad product ever
+>
+> 🪴Design Career Garden System - notion template!
+>
+> Everything you need to track your achievements, upskilling, networking, and job materials - includes over 100 job boards friendly to designers.
+>
+> Aesthetic and calming vibes only ✨
+>
+> reply if you want the link!
+<https://bsky.app/profile/howdyimkai.bsky.social/post/3lbub6chpo22v>
+Observer note: carries attached images, not opened; 1 like, 1 reply when fetched.
+
+### V130 · Bluesky · adjacent · posted 2026-02-17 · fetched 2026-10-19 · via fetch
+> He is not a professional coder by his own omission he dabbles with it, he’s mainly a guy who has a hard on for markdown and tables, but he is currently selling a vibe coded ebook and I do not trust the outputs of what that produced were properly vetted at all.
+<https://bsky.app/profile/papapishu.bsky.social/post/3mf2qhntojk23>
+Observer note: quote post of another post, not opened; 80 likes, 3 replies, 1 repost when fetched.
+
+### V131 · Bluesky · creator · posted 2025-03-10 · fetched 2026-10-19 · via fetch
+> Of course! I hope it was helpful! There are TONS of digital downloads on Etsy of all different kinds. It’s a bit of an over saturated market if you don’t have a specific niche, and unfortunately like Amazon, there are tons of AI generated products.
+<https://bsky.app/profile/freshprintsdesign.bsky.social/post/3lk2m5msvbk2n>
+Observer note: reply in a thread with someone who makes physical copies of their work; author's display name says she creates coloring books; 1 like when fetched.
+
+### V132 · Mastodon (social.lol) · buyer · posted 2026-02-18 · fetched 2026-10-19 · via fetch
+> I made over 30 fantasy novels with AI, the side effect is I can tell when a new ebook I got was written by AI. I am now making a game a week using Claude Code. It's fun and makes me happy. Now im thinking should I try to make some web tools that ive always wanted.
+<https://social.lol/@triptych/116092314533769538>
+Observer note: 1 favourite when fetched; a Bluesky bridge copy carries an earlier wording.
+
+### V133 · Mastodon (convo.casa) · adjacent · posted 2026-10-17 · fetched 2026-10-19 · via fetch
+> I need help again. I was watching a YouTube podcaster only to find out she’s really AI. And there’s a bunch of others just like her where they sell books… but they’re only pdf files and you can’t get a real book. All of them are $40. 
+> How can I tell when something is AI?
+> What can I do to help stop these scammers?
+> #ai
+> #aislop 
+> #ai scammers
+<https://convo.casa/@Caiotekit/117458011402670266>
+Observer note: 5 favourites, 2 replies, 8 boosts when fetched.
+
+### V134 · Mastodon (beige.party) · creator · posted 2026-10-16 · fetched 2026-10-19 · via fetch
+> In one hour, one of my social media accounts for my art business received *15* Etsy-seller follows, All of them selling drop-shipped merchandise, their mockups all AI-generated photos. 
+>
+> They commented very similar on my posts: “You have a high-quality product! Give me a Follow!”
+>
+> …
+>
+> All this while legitimate Etsy artists are having their designs stolen and when they file to instigate a take down notice, the design thief counter-files and Etsy punishes the actual artists by locking them out of their own accounts and seizing their funds. This is happening so often now, people are leaving Etsy in droves. 
+>
+> I don’t think I’ll be signing up with Etsy anytime soon. 
+>
+> …
+<https://beige.party/@transience/117451162291571079>
+Observer note: edited by the author after posting; 3 favourites when fetched.
+
+### V135 · Mastodon (mastodon.world) · adjacent · posted 2026-09-26 · fetched 2026-10-19 · via fetch
+> People like to slam-dunk on #AI generated pictures for local businesses A-stands. Those places have exactly zero budget to commission someone to do a one-off job that will need to be repeated every couple of months, because that’s the reality of life. So instead owners nephew takes #Canva, pirates tons of stock photos and voila!
+> This is (subjectively) worse. Nobody was paid anyways. It used tons of dubious sources as well. Is not scalable.
+> I like the AI generated ones better. More honest.
+<https://mastodon.world/@MichalBryxi/117336756437267386>
+Observer note: carries one attached image, not opened; 1 favourite, 1 boost when fetched.
+
+### V136 · Hacker News (No one will read your book (2021)) · buyer · posted 2024-05-08 · fetched 2026-10-19 · via fetch
+> So I don't consider my self an author but I wrote a 60 pages ebook in 3 month on a topic I consider am pretty savvy in.
+>
+> I've marketed and sold 400+ copies of it at $19 so far and about to raise the price to $39, near 100% margin minus stripe fees.
+>
+> What stops authors doing what I did? Plenty of people want to read, to blame lack of readership is just completely wrong.
+<https://news.ycombinator.com/item?id=40294919>
+
+### V137 · Hacker News (Ask HN: Those making $500/month on side projects in 2025 – Show and tell) · buyer · posted 2025-12-18 · fetched 2026-10-19 · via fetch
+> My wife's Etsy shop (https://www.etsy.com/shop/LittleLanternShop) is starting to pick up. She is leaning into creating digital sewing patterns for decorative felt crafts. We have had Etsy success before with 3d printed products, but managing printers and fulfilling orders can be stressful and time consuming, and she was hoping to build up a more passive income stream. She made over $1000 in the past month, which beat both our expectations
+<https://news.ycombinator.com/item?id=46308835>
+
+### V138 · Hacker News (Gumroad's Interestingly Timed "Open-Source" Play) · buyer · posted 2025-04-07 · fetched 2026-10-19 · via fetch
+> I sell templates for a living and have used several of these providers.
+>
+> The main options are
+> Gumroad - high fees and ugly design, solid system never had issues does most what I need.
+>
+> Lemon Squeezy - it was very popular until being acquired by stripe. Full of serious bugs, bad support. Lovely design, slightly better fees than Gumroad, but many hidden. Would still use over Gumroad just cause the Gumroad checkout design is so bad it loses sales imo.
+> …
+> All of these platforms are MOR as far as I know, all provide the checkout UI etc. all handle digital asset file delivery. They are perfect for creators selling digital products that want a turn key solution and don’t want to do any development work.
+<https://news.ycombinator.com/item?id=43606206>
+
+### V139 · Hacker News (The End of an Era) · buyer · posted 2026-07-31 · fetched 2026-10-19 · via fetch
+> … I am an experienced non-fiction publisher (published my first title in KDP in 2012) but stopped publishing new works earlier this year, not only because of the difficulty getting noticed by potential readers, but also because many people who would have once purchased non-fiction now turn to AI for answers.
+>
+> It was always a hard sell, but now the math for publishing nonfiction doesn’t make sense. …
+> … AI opened the supply firehose further while sowing doubt amongst readers about the provenance of works published after 2022.
+<https://news.ycombinator.com/item?id=49123083>
+
+### V140 · Hacker News (I built a Git-tracked book production pipeline) · buyer · posted 2026-05-26 · fetched 2026-10-19 · via fetch
+> … I've been publishing print and ebooks since 2015, and I can attest to the fact the Word to PDF X-1/a to epub/kindle pipeline is painful. Making minor edits after publication is also painful, as the author notes, and can be error prone if you fail to make identical changes to all formats.
+>
+> The problem was bad enough that I built by own markdown to HTML to PDF/X-1a processor using Python, WeasyPrint, and ghostscript. … My tools are currently too crude for the average non-tech writer to use, but they save me hours every time I use them.
+>
+> For any of you hackers out there looking for an untapped market, try making a user-friendly tool that converts Word, PDF and/or similar formats to the print-ready PDF/X-1a, PDF/X-3 and PDF/X-4 formats. At the moment, all the existing tools are proprietary and expensive, and many are difficult to use. …
+<https://news.ycombinator.com/item?id=48284209>
+
+### V141 · Hacker News (Show HN: Claude Code Skills – Solving context bloat) · adjacent · posted 2026-08-28 · fetched 2026-10-19 · via fetch
+> > Get the Full 84-Skill Pack on Gumroad ($49)
+>
+> Uh, no thanks. I’m not wasting $49 on AI slop.
+<https://news.ycombinator.com/item?id=49484756>
+Observer note: the first line quotes the Show HN post being replied to.
+
+### V142 · Indie Hackers (Show IH: 18 small digital products, zero sales so far - what am I missing?) · buyer · posted 2026-07-08 · fetched 2026-10-19 · via browser
+> Built a small catalog over the last few weeks: ADHD-friendly Notion planners, a clinic patient-coordinator CRM template, a few AI prompt packs, some printables. $4 to $39, instant download via Stripe, 18 products live right now.
+>
+> Zero sales so far. Checked the Stripe data directly to see if it was a pricing or copy problem: zero checkout sessions have ever been started by a real visitor. Every post so far (Reddit, Pinterest) hasn't produced one measurable click through to checkout. So it looks like pure zero-reach, not a conversion problem.
+<https://www.indiehackers.com/post/show-ih-18-small-digital-products-zero-sales-so-far-what-am-i-missing-c1f7f1178a>
+Observer note: post by agathodamon, 6 upvotes; storefront is a github.io page. Several replies in the thread read as AI-written and were skipped.
+
+### V143 · Indie Hackers (Has anyone written ebook? How do you sell it? How much money do you make?) · buyer · posted 2017-11-10 · fetched 2026-10-19 · via browser
+> Made a couple of hundred dollars from it. I don't really have an audience personally except some Twitter following that I have, so I just put out a bunch of summaries from the book for free and hoped people would convert. I thought I will put together a landing page and get some design done for it once I got to say $500-$1000 in sales but I guess it's a catch-22. The conversion rate on the Gumroad page which is where I send people is 1% which I am guessing is low for ebooks?
+<https://www.indiehackers.com/post/has-anyone-written-ebook-how-do-you-sell-it-how-much-money-do-you-make-cCdaoqWYUEmYYEU8oYGi>
+Observer note: comment by Sanket Nadhani about his Gumroad ebook of book summaries.
+
+### V144 · Indie Hackers (Has anyone written ebook? How do you sell it? How much money do you make?) · buyer · posted 2017-11-07 · fetched 2026-10-19 · via browser
+> I don't like to add products to market places (Amazon/ eBay/ Udemy) because that forces you to compete on price and for attention. It quickly becomes a race to the bottom, in my opinion. This option may have been easier to implement though.
+> …
+> My goal was to create an example of a sales funnel and to have a totally automated business (4Hour Work Week). I didn't want to log into anything out of my normal flow of life. I didn't want any extra tasks... etc. I was happy to do the odd refund but that was about it.
+<https://www.indiehackers.com/post/has-anyone-written-ebook-how-do-you-sell-it-how-much-money-do-you-make-cCdaoqWYUEmYYEU8oYGi>
+Observer note: comment by Peter, who reports about £40,000 of ebook sales in the same comment.
+
+### V145 · Indie Hackers (Has anyone written ebook? How do you sell it? How much money do you make?) · buyer · posted 2018-10-16 · fetched 2026-10-19 · via browser
+> I'm also developing an ebook and I see that you offer your ebook in PDF format. I'm wondering if that's a route to go because PDF are so easy to just giveaway by email. Have you ever consider that someone might have purchased the ebook together with their friends and share the pdf? This is why I'm considering to sell on amazon kindle, but then they take a 30% chunk of the sales...
+<https://www.indiehackers.com/post/has-anyone-written-ebook-how-do-you-sell-it-how-much-money-do-you-make-cCdaoqWYUEmYYEU8oYGi>
+Observer note: reply by Cher Chang to Justin Jackson, who sells his book as PDF, ePub, Mobi and audio.
+
+### V146 · Indie Hackers (Notion Templates as a Product? Have you sold any?) · buyer · posted 2023-05-26 · fetched 2026-10-19 · via browser
+> What I’m finding out is that most templates will go for free and as mentioned below a very good way to build email list. The bottom line is that your name needs to be noticed a little more, that continued publishing of templates is the only way to go. …
+<https://www.indiehackers.com/post/notion-templates-as-a-product-have-you-sold-any-765155a84b>
+Observer note: comment by Darrellf59, 2 upvotes, on a 2020 thread.
+
+### V147 · YouTube (AI-generated products push Etsy sellers off platform) · buyer · posted 2026-09 · fetched 2026-10-19 · via browser
+> 2:13 Speaking as a seller and someone who is nerdy enough to read their shareholder reports. The reason why Etsy's profit is growing is because they have been increasing their fees for the sellers. We the sellers are the product. There is a hustle culture, get rich quick  using AI on Youtube and people flood the Etsy with hundreds of Ai slop and Etsy has been collecting more listing fees and ad rev from sellers. So I dispute that that growth is because of buyers. My listings views always go down to zero unless i pay into their ads. It's a pay to play system.
+<https://www.youtube.com/watch?v=K7MUm4h92XM&lc=UgzZNVVde6pu81fB-Zx4AaABAg>
+Observer note: comment, 279 likes, shown as "3 weeks ago". Video by NBC News, published 2026-09-24, 2:54 long, 110K views, 1.1K likes: news segment on a former Etsy seller, burned-in caption text, description says she quit after "AI slop took over".
+
+### V148 · YouTube (AI-generated products push Etsy sellers off platform) · adjacent · posted 2026-09 · fetched 2026-10-19 · via browser
+> The same issue is happening with knitting patterns. New knitters come into shops for help when the AI pattern doesn't work out. There's a reason pattern makers have people test every size of their pattern to make sure it works before selling it to knitters. AI slop knitting patterns aren't tested (that I am aware of).
+<https://www.youtube.com/watch?v=K7MUm4h92XM&lc=UgyDHQJQtGU8SSrqy9R4AaABAg>
+Observer note: comment, 69 likes, shown as "3 weeks ago"; same video as V147.
+
+### V149 · YouTube (AI Kids Books Are Taking Over Amazon) · adjacent · posted 2025 · fetched 2026-10-19 · via browser
+> Some of those "AI errors" would take just five minutes to fix in Photoshop. But nah, that requires effort. Can't have that.
+<https://www.youtube.com/watch?v=gDXZp9lXjQU&lc=UgwW_aGxmgWHKdTllt94AaABAg>
+Observer note: top comment, 5.4K likes, 56 replies, shown as "1 year ago". Video by Jason McBason, published 2025-04-01, about 17 minutes, 1,177,857 views; commentary over page-by-page close-ups of AI-illustrated children's books sold on Amazon.
+
+### V150 · YouTube (I made 3 digital products with Claude (that actually sell)) · buyer · posted 2026-06 · fetched 2026-10-19 · via browser
+> Once the cool things get to Josh, its already saturated
+<https://www.youtube.com/watch?v=uF6yyG1Sq8g&lc=UgzaP7-eS7qWdmTZulB4AaABAg>
+Observer note: comment, 30 likes, 3 replies, shown as "4 months ago". Video by Joshua Mayo, published 2026-05-29, about 24 minutes, 48,456 views; description promises using Claude to "mass-produce entire collections of high-demand digital downloads". Most other comments ask for a junk-journal follow-up video.
+
+### V151 · YouTube (I made 3 digital products with Claude (that actually sell)) · buyer · posted 2026-06 · fetched 2026-10-19 · via browser
+> … I don’t know about junk journal assets but I use seamless patterns for Throw pillows so I’am always looking at listings. There are tons & tons of them.  Same for SVG bundles. I think there are possibilities for designs that are distinct & not commonplace. Claude doesn’t do images. You have to have a good AI generator & a good eye for design & what’s trending. …
+<https://www.youtube.com/watch?v=uF6yyG1Sq8g&lc=UgwTIFwYIWtarOVvldB4AaABAg>
+Observer note: comment, 1 like, shown as "4 months ago"; same video as V150.

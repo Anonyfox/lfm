@@ -316,3 +316,162 @@ The page this market already has opens with a headline and one CTA over a produc
 - No peer promises to refuse or block a page that fails its checks.
 - No peer gives a plain-language request to paste into the visitor's own coding agent; the only takeaways for agents are shell commands (P010, P013) or a skill file (P012).
 - No peer uses serif body text; serif appears only as display type (P005, P009).
+
+## Batch 2026-10-19 · ongoing: a section on making the digital goods a page sells
+
+### P021 · Gamma · https://gamma.app/ · fetched 2026-10-19 · via browser
+- Opening: "Visual storytelling without limits.", sub "Gamma is the visual communication platform for presentations, documents, and more, with an expert AI agent that knows your goals."; white headline on a navy-to-blue gradient field with a row of generated slide cards below (a chameleon "…Present… power move." slide, an orange "73%" stat slide); white pill "Start for free"
+- Palette: navy-to-blue gradient hero (#002253 → #0740DF → #63ACF7), then white and pale blue #EBF3FE sections, blue #0858F7 links and #0540AD buttons, off-white #FAF9F5 text on dark
+- Type: ESBuild (600) for the headline, PP Mori for everything else
+- Imagery: generated slides, documents, social visuals and site samples; headshots of customer executives
+- Motion: four video elements and two canvas elements; sections fade in (900 ms animation)
+- Mechanism: AI agent that writes and designs presentations, documents, social visuals and websites, with PowerPoint/PDF import and export, 25+ connectors and an API
+- Proof: "Join our community of 100+ million users"; named leaders from IBM, Northeastern University, The New York Times, HSF Kramer, Novartis, The Cigna Group, Mastercard; 19 named user quotes (e.g. "Gamma has helped us raise our Pre-Seed round…", Aibek Yegemberdin, Founder)
+- Price: Free €0 (400 credits at signup, up to 10 slides per prompt, "No credit card required"), Plus €8, Pro €18, Ultra €77.33 per seat per month billed annually (pricing page)
+- Tone: aspirational, polished, platform-scale ("How good ideas get into the universe.")
+- Takeaway: a generated deck, doc or site from a prompt, after sign-up
+
+### P022 · Canva AI 2.0 · https://www.canva.com/canva-ai/ · fetched 2026-10-19 · via browser
+- Opening: white "Canva ai 2.0" wordmark (the h1) with a blue "Coming Soon" pill, over a looping autoplay video "Meet Canva AI 2.0", line "AI that creates with you, and connects to your world."; no action on the first screen besides "Log in" (the URL www.canva.com/magic/ redirects here)
+- Palette: near-black #0F1015 to indigo-blue gradient hero, white and #F6F7F8 body, lavender #9E9EFF and violet #8B3DFF text accents, teal-to-violet gradient (#00C4CC → #5A32FA → #7D2AE8)
+- Type: Canva Sans throughout; the h1 is the logo image
+- Imagery: product UI cards in carousels ("Start with an idea", "Connect to your world", "Edit your way", "Make it on brand", "Run web research"), tool tiles (Magic Layers, Canva Code, Magic Write, 3D Content Generator)
+- Motion: autoplay looping hero video (AI Agent Design), two carousels (1/8 and 1/15), a YouTube embed
+- Mechanism: conversational AI inside Canva's editor that generates and edits on-brand designs, images, documents, code and video
+- Proof: none beyond the brand; safety claims (Canva Shield, indemnification for enterprise customers with over 100 seats, privacy controls)
+- Price: Free €0, Pro €110/year, Business €170/year per person, Enterprise on request (embedded pricing)
+- Tone: aspirational, platform-scale ("helping you create anything you can imagine")
+- Takeaway: a generated design in the editor, after sign-up ("Get started for free")
+
+### P023 · Designrr · https://designrr.io/ · fetched 2026-10-19 · via browser
+- Opening: "Create, Design & Publish Stunning eBooks" in teal, sub "Use AI to create your content or transform your existing Blog posts, Podcasts, Videos and PDFs into eBooks, Show Notes, Dynamic Flipbooks, Transcripts, PDFs and Web pages…"; teal "Get Started" (leads to a $27 lifetime-deal page), "* Compatible with both Windows and Mac.", then a hand-drawn arrow diagram of format icons
+- Palette: white ground, #333333 text, teal #59B9B9 headline and button, a near-black #040312 band, blue #1863DC links
+- Type: Roboto for body, Montserrat for headings
+- Imagery: hand-drawn arrows linking format icons (Word, WordPress, ePub, Amazon Kindle, podcast, PDF, YouTube, open book); screenshots of the editor
+- Motion: two Vimeo demo embeds ("Import from blog posts, MS Word, Google Docs...", "Import from Podcasts, Videos, YouTubes and more..."); testimonial slider
+- Mechanism: AI writer (Wordgenie) plus repurposing of blogs, docs, audio and video into ebooks, PDFs, flipbooks, Kindle and ePub files through templates
+- Proof: quote under the hero "We use Designrr everyday… it’s the ‘Zapier’ of content" (Rob Stanley); "Join over 320,000 customers using Designrr"; named testimonials (Josh Clifford, Matt Wolfe); lifetime page adds Trustpilot 4.5 from 1,679 reviews and "1.9M+ eBooks published"
+- Price: one-time "Get lifetime access - $27" against a struck "$324/year", 30-day money-back guarantee (lifetime page)
+- Tone: marketing-speak about reach, authority, leads and sales; the lifetime page stacks bonus values ("Total bonus value: $1,088+")
+- Takeaway: none
+
+### P024 · Book Bolt · https://bookbolt.io/ · fetched 2026-10-19 · via browser
+- Opening: "Create & sell [kids stories / incredible books / coloring books] on Amazon" with the middle phrase cycling in a blue-to-pink gradient, "✦ Meet Book Bolt" pill, sub "Find profitable niches with real Amazon data, generate complete story books, puzzle books, coloring books and journals in a few clicks - ready to publish."; indigo "Create Your First Book For Free →", "Trusted by 100,000+ Amazon KDP sellers" and five stars, then a carousel of book covers with badges "$5,000,000+ paid to Book Bolt publishers by Amazon" and "No writing required"
+- Palette: pale lavender #F5F3FF hero, white body, indigo #493DE8 buttons, mint #75F7A3 accents, near-black #1F2A37 text, blue-to-pink gradient word
+- Type: Arial computed for headings and body; "mundial" only in a few labels
+- Imagery: covers, interiors and puzzle pages of books "made in Book Bolt and sells on Amazon right now"
+- Motion: cycling headline word, hero cover carousel (GIF), marquee, three autoplay looping videos
+- Mechanism: Amazon KDP toolkit: niche and keyword research on "5M+ Amazon titles", cover and interior studio, puzzle creator, AI book builder, Chrome extensions, training
+- Proof: "Trusted by 100,000+ Amazon KDP sellers", star row, "$5,000,000+ paid to Book Bolt publishers by Amazon" in the last 3 months, quotes from KDP sellers ("…it passed KDP review on the first upload.", Maria R.)
+- Price: 3-day free trial, then Pro $19.99/mo or Premium $29.99/mo billed annually, shown as "$0.66/day" and "$0.99/day"
+- Tone: seller money talk ("Real books. Real royalties.", "One book selling a handful of copies covers the subscription.")
+- Takeaway: a first book in the studio, after a trial sign-up
+
+### P025 · Kittl · https://www.kittl.com/ · fetched 2026-10-19 · via browser
+- Opening: "AI-Powered Design for Ambitious Brands", sub "Kittl empowers creators, designers and businesses to produce standout branding and product visuals. Faster than ever."; black "Start Creating For Free", neon-yellow bar "🚀 New: Creative Agent is here."; then a swipe carousel of product mockups (a "FRESH FRESH" poster on a green tiled wall) labelled "Sales-ready designs", "Listing-ready mockups", "High-converting visuals", "Scroll-stopping UGC", "Attention-grabbing ads"
+- Palette: white ground, near-black #080B11 text and buttons, neon yellow #DFFF00 bar and chat button, grey #676F7E secondary text
+- Type: Inter (625 headline) throughout
+- Imagery: photographed product mockups (posters, merchandise), template and model tiles
+- Motion: eight video elements; hero carousel
+- Mechanism: AI design canvas for print-on-demand and brand sellers: image, vector and video generation with many models (ChatGPT Image 2, Veo 3.1, Flux, Ideogram), mockups, templates, background remover
+- Proof: "Trusted by sellers on" logos Fourthwall, Printify, Gelato, Etsy, Shopify, Printful; quotes from Maria Erb (Small Business Owner) and Ricardo Rodriguez (Etsy Seller)
+- Price: Free €0 (100 AI tokens one-time, 5 projects), Pro €15, Expert €35, Max €65 per editor per month; commercial license from Pro
+- Tone: seller money talk ("Your next launch starts at $0.", "Turn your ideas into income")
+- Takeaway: a generated design or mockup, after sign-up
+
+### P026 · Inkfluence AI · https://www.inkfluenceai.com/ · fetched 2026-10-19 · via browser
+- Opening: "Turn one idea into a finished [book / course]." with the last word cycling in indigo and a blinking cursor, kicker "AI BOOK CREATION PLATFORM", sub "Chapters, cover, and audiobook done for you. Files ready to sell."; a prompt box "What do you want to create?" with a typing placeholder ("A 30-day confidence challenge for new manage…") and indigo "Start my book free", "Free to start. No credit card required."; dashboard screenshot with floating book covers below
+- Palette: white and lavender-tinted gradient ground (#F0E8F8 → white), near-black #101322 text, indigo #6159E1 buttons and accent word, green #059669 checkmarks
+- Type: Bricolage Grotesque (800) for headlines, Inter for body; Georgia only inside the audiobook sample passage
+- Imagery: covers of community books (Brain Rot Next Epidemic?, The Latest ADHD Planner, Reclaiming Self Reflection Journal), screenshots of the editor, cover designer and export dialog ("PDF, KDP, EPUB, DOCX, and audio"), mock phone notifications of sales
+- Motion: typing placeholder, cycling headline word, blinking cursor, floating covers, pulsing CTA, a self-writing outline demo
+- Mechanism: AI that writes a whole ebook, workbook or course from one prompt, with cover studio, audiobook voices, PDF/EPUB/DOCX/KDP export and one-click Etsy and Gumroad listings
+- Proof: counts "75,000+ writers", "100,000+ books created", "49 audiobook voices", "59 languages"; store names Amazon KDP, Etsy, Gumroad, Apple Books, Kobo, Google Play Books; quotes from creators with book counts (Ronell Naude, 80 books); "Notifications are illustrative. The books are real."
+- Price: Free $0 (5 chapters per book, preview exports), Creator $9.99/mo or $89/yr, Premium $19.99/mo or $179/yr
+- Tone: seller money talk, warm ("Make the book. Then make it pay.", "The book you describe today can be a file you sell by Friday.")
+- Takeaway: a chapter-by-chapter outline generated on the page, offered under "TRY IT RIGHT NOW, NO SIGNUP" (not run); the full book after sign-up
+
+### Grid after this batch
+
+| Column | Value | Peers |
+| --- | --- | --- |
+| Opening | headline and CTA over product UI, demo or video | 8 |
+| Opening | prompt or form input as the hero | 5 |
+| Opening | type-only hero with CTA buttons | 6 |
+| Opening | headline over lifestyle photo with site mockups | 2 |
+| Opening | repository or directory listing | 2 |
+| Opening | headline and CTA over samples of made products (slides, book covers, posters) | 3 |
+| Palette | dark or black ground | 6 |
+| Palette | white or neutral grey with black | 6 |
+| Palette | one saturated brand hue (purple, indigo, pink) as field or accent | 8 |
+| Palette | warm off-white with near-black | 4 |
+| Palette | deep blue or indigo gradient hero over a white body | 2 |
+| Type | proprietary or display brand sans | 14 |
+| Type | Inter or Geist neutral sans | 4 |
+| Type | serif display with sans body | 2 |
+| Type | system or default fonts | 3 |
+| Type | mono-led | 1 |
+| Type | Google web sans (Roboto, Montserrat, Bricolage Grotesque) | 2 |
+| Imagery | product UI screenshots and site mockups | 12 |
+| Imagery | lifestyle photography with mockups | 3 |
+| Imagery | hand-drawn or flat illustration | 3 |
+| Imagery | avatars, logos and proof screenshots | 2 |
+| Imagery | none or text only | 3 |
+| Imagery | samples of made products (slides, book covers, interiors) | 3 |
+| Motion | video or animated product demo | 10 |
+| Motion | typing or cycling text and carousels | 4 |
+| Motion | marquee or ticker | 3 |
+| Motion | gradient glow or animated gradient | 3 |
+| Motion | fade-in on load | 1 |
+| Motion | none observed | 5 |
+| Mechanism | prompt-to-site or app builder with hosting | 8 |
+| Mechanism | coding agent subscription | 3 |
+| Mechanism | agent skill file or skill directory | 2 |
+| Mechanism | no-code page or form builder | 2 |
+| Mechanism | code boilerplate | 1 |
+| Mechanism | payments or storefront | 2 |
+| Mechanism | waitlist with referrals | 1 |
+| Mechanism | book on customer interviews | 1 |
+| Mechanism | AI deck, document and design generator | 3 |
+| Mechanism | ebook or book maker for selling (KDP, Etsy, lead magnets) | 3 |
+| Proof | company logo strip | 8 |
+| Proof | user or site counts with ratings | 6 |
+| Proof | usage counts (stars, installs, views) | 3 |
+| Proof | earnings figures and maker stories | 2 |
+| Proof | named testimonials or case outcomes | 5 |
+| Proof | none | 2 |
+| Price | free tier plus paid plan | 14 |
+| Price | paid subscription without free tier | 5 |
+| Price | one-time purchase | 3 |
+| Price | per-transaction fee | 2 |
+| Price | free | 2 |
+| Tone | aspirational, platform-scale | 7 |
+| Tone | matter-of-fact, technical | 5 |
+| Tone | reassuring plain language for non-technical owners | 6 |
+| Tone | indie-maker money talk | 5 |
+| Tone | growth-marketing hype | 2 |
+| Tone | blunt, contrarian | 1 |
+| Takeaway | generated draft behind sign-up | 10 |
+| Takeaway | free plan output (site, form) | 3 |
+| Takeaway | copyable command or file | 3 |
+| Takeaway | none | 9 |
+| Takeaway | generated sample on the page without sign-up | 1 |
+
+### Baseline
+
+The page this market already has opens with a headline and one CTA over a product UI demo or video, coloured by one saturated brand hue (purple, indigo or pink) as field or accent, set in a single proprietary brand sans, illustrated with product UI screenshots and site mockups, moving through an autoplay video or animated demo, selling a prompt-to-site or app builder that also hosts the result, proving itself with a strip of company logos, priced as a free tier plus a paid monthly plan, written in an aspirational, platform-scale voice, and giving the visitor a generated draft only after sign-up.
+
+### Gaps
+
+- No peer opens with a buyer's own words (a quoted complaint or question) as the headline.
+- No peer shows its output next to a generic AI-made page or product (a before/after or side-by-side comparison); Gamma (P021) and Designrr's lifetime page (P023) only say in words that other AI output looks generic.
+- No peer shows a quality gate as imagery or proof: a build report, failing checks, EPUB validation, print preflight or speed and accessibility scores; the nearest is one seller quote that a book "passed KDP review on the first upload" (P024).
+- No peer's tool researches buyers' own words before it designs or writes; Book Bolt (P024) researches Amazon niche, keyword and sales data only, and customer research otherwise appears only as a book to read (P019).
+- No peer makes the sellable file and its sales page from the same research; the makers (P021–P026) stop at the file plus, at most, AI-drafted listing copy (P026), and the page builders (P001–P008) never make the goods.
+- No peer names spreadsheets (.xlsx) as a product it makes; the formats shown are slides, PowerPoint, PDF, EPUB, DOCX, KDP print files, flipbooks, images, mockups and video.
+- No peer packages several file types into one sellable bundle (for example an ebook with printables and a spreadsheet).
+- No making-the-goods peer is free without limits: every free tier caps credits, slides, chapters, tokens or projects (P021, P022, P025, P026), Book Bolt is a 3-day trial (P024) and Designrr a one-time $27 (P023).
+- No peer makes the files on the visitor's own machine with their own coding agent; all six makers are hosted accounts, and no peer gives a plain-language request to paste into a coding agent (the only agent takeaways are shell commands, P010 and P013, or a skill file, P012).
+- No peer delivers one static folder to upload anywhere with no account, platform or runtime.
+- No peer promises to refuse or block a page or file that fails its checks.
+- No peer uses serif body text for its own copy; serif appears only as display type (P005, P009) or inside a book sample (P026).
