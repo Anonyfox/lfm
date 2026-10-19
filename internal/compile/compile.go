@@ -204,45 +204,12 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 
 	// 2. prepare
 	prepared, preliminary, registry, err := prepareTemplate(p, loaded)
-	// The deliverables are checked side by side; each reads only its own folder.
-	units := make([]unit, len(kinds))
-	unitFindings := make([][]diagnostic.Diagnostic, len(kinds))
-	if len(loaded.Problems) == 0 {
-		var wg sync.WaitGroup
-		in := checking{p: p, loaded: loaded, commerce: prepared.Commerce, researched: researched}
-		for i, k := range kinds {
-			if k.present(p) {
-				wg.Go(func() { units[i], unitFindings[i] = k.check(in) })
-			}
-		}
-		wg.Wait()
-	}
-	for i, u := range units {
-		if u != nil {
-			u.summarize(&result)
-		}
-		findings = append(findings, diagnostic.Apply(unitFindings[i], c.Build.Validation.Rules)...)
-	}
-	units = slices.DeleteFunc(units, func(u unit) bool { return u == nil })
+	var units []unit
 	var pack *bundle.Report
 	if len(loaded.Problems) == 0 {
-		var bundleFindings []diagnostic.Diagnostic
-		pack, bundleFindings = checkBundle(p, loaded, prepared.Commerce)
-		if pack != nil {
-			result.Bundle = &pack.Summary
-		}
-		findings = append(findings, diagnostic.Apply(bundleFindings, c.Build.Validation.Rules)...)
-		d := c.Deliverables
-		var sale []diagnostic.Diagnostic
-		for _, u := range units {
-			if field, sell, offer, rule, ok := u.sale(d); ok {
-				sale = append(sale, saleFindings(prepared.Commerce, field, sell, offer, rule)...)
-			}
-		}
-		if pack != nil {
-			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.bundle", d.Bundle.Sell, d.Bundle.Offer, bundle.RuleConfig)...)
-		}
-		findings = append(findings, diagnostic.Apply(sale, c.Build.Validation.Rules)...)
+		var found []diagnostic.Diagnostic
+		units, pack, found = checkDeliverables(checking{p: p, loaded: loaded, commerce: prepared.Commerce, researched: researched}, &result)
+		findings = append(findings, found...)
 	}
 	preliminary = *summarize(preliminary.Stage, append(preliminary.Diagnostics, findings...))
 	result.Validation = &preliminary
@@ -322,26 +289,11 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		close(auditDone)
 	}
 	defer func() { <-auditDone }() // never leave the browser running behind a return
-	// Deliverables: each on its own, then the bundle of those it holds.
-	add := func(found []diagnostic.Diagnostic) bool {
-		stats := result.Validation.Stats
-		result.Validation = summarize(result.Validation.Stage, append(result.Validation.Diagnostics, diagnostic.Apply(found, c.Build.Validation.Rules)...))
-		result.Validation.Stats = stats
-		return result.Errors() == 0
-	}
 	// One stock for every deliverable: the last publish indexed once, one Chrome.
 	st := newStock(p, options.Release)
 	defer st.close()
-	for _, u := range units {
-		if !add(u.deliver(p, page, st, &result)) {
-			return result, &Failure{Errors: result.Errors()}
-		}
-	}
-	if pack != nil && len(pack.Summary.Units) >= 2 && result.Errors() == 0 {
-		parts, accent, render := gather(units).parts(pack)
-		if !add(deliverBundle(p, pack, parts, accent, page, st, &result, render)) {
-			return result, &Failure{Errors: result.Errors()}
-		}
+	if !deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result) {
+		return result, &Failure{Errors: result.Errors()}
 	}
 
 	// 7. audit
@@ -358,11 +310,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 			}
 		}
 		result.Optional = optionalHelpers(opened, audit)
-		audited := append(result.Validation.Diagnostics, diagnostic.Apply(result.Release.Audit.Diagnostics, c.Build.Validation.Rules)...)
-		stats := result.Validation.Stats
-		result.Validation = summarize("audit", audited)
-		result.Validation.Stats = stats
-		if result.Errors() > 0 {
+		if !result.revalidate("audit", audit.Diagnostics, c.Build.Validation.Rules) {
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
@@ -381,6 +329,69 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		result.Published = true
 	}
 	return result, nil
+}
+
+// checkDeliverables checks every deliverable side by side, each reading only
+// its own folder, then the bundle of them and how each sells on the page.
+func checkDeliverables(in checking, result *Result) ([]unit, *bundle.Report, []diagnostic.Diagnostic) {
+	rules := in.loaded.Config.Build.Validation.Rules
+	units := make([]unit, len(kinds))
+	found := make([][]diagnostic.Diagnostic, len(kinds))
+	var wg sync.WaitGroup
+	for i, k := range kinds {
+		if k.present(in.p) {
+			wg.Go(func() { units[i], found[i] = k.check(in) })
+		}
+	}
+	wg.Wait()
+	var findings []diagnostic.Diagnostic
+	for i, u := range units {
+		if u != nil {
+			u.summarize(result)
+		}
+		findings = append(findings, diagnostic.Apply(found[i], rules)...)
+	}
+	units = slices.DeleteFunc(units, func(u unit) bool { return u == nil })
+	pack, bundleFindings := checkBundle(in.p, in.loaded, in.commerce)
+	if pack != nil {
+		result.Bundle = &pack.Summary
+	}
+	findings = append(findings, diagnostic.Apply(bundleFindings, rules)...)
+	d := in.loaded.Config.Deliverables
+	var sale []diagnostic.Diagnostic
+	for _, u := range units {
+		if field, sell, offer, rule, ok := u.sale(d); ok {
+			sale = append(sale, saleFindings(in.commerce, field, sell, offer, rule)...)
+		}
+	}
+	if pack != nil {
+		sale = append(sale, saleFindings(in.commerce, "deliverables.bundle", d.Bundle.Sell, d.Bundle.Offer, bundle.RuleConfig)...)
+	}
+	return units, pack, append(findings, diagnostic.Apply(sale, rules)...)
+}
+
+// deliverAll delivers each deliverable on its own, then the bundle of those
+// it holds, and stops at the first that leaves errors.
+func deliverAll(p project.Project, page []byte, units []unit, pack *bundle.Report, st *stock, rules map[string]diagnostic.Severity, result *Result) bool {
+	for _, u := range units {
+		if !result.revalidate(result.Validation.Stage, u.deliver(p, page, st, result), rules) {
+			return false
+		}
+	}
+	if pack != nil && len(pack.Summary.Units) >= 2 {
+		parts, accent, render := gather(units).parts(pack)
+		return result.revalidate(result.Validation.Stage, deliverBundle(p, pack, parts, accent, page, st, result, render), rules)
+	}
+	return true
+}
+
+// revalidate adds findings to the report at stage, keeping the page's
+// stats, and reports whether it is still free of errors.
+func (r *Result) revalidate(stage string, found []diagnostic.Diagnostic, rules map[string]diagnostic.Severity) bool {
+	stats := r.Validation.Stats
+	r.Validation = summarize(stage, append(r.Validation.Diagnostics, diagnostic.Apply(found, rules)...))
+	r.Validation.Stats = stats
+	return r.Errors() == 0
 }
 
 // assemble rewrites the document so every local resource is bundled, packed
