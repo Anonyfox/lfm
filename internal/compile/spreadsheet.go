@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
@@ -185,9 +184,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, i
 			}
 		}
 	}
-	for _, img := range images {
-		out.Images = append(out.Images, bundle.Image{Name: img.Name, Data: img.Data})
-	}
+	out.Images = images
 	for _, f := range out.Files {
 		r.Summary.Files = append(r.Summary.Files, f.Name)
 	}
@@ -216,41 +213,10 @@ func label(f spreadsheet.Built) string {
 // spreadsheetImages are the listing images: reused while their documents
 // are unchanged, rendered by a release otherwise.
 func spreadsheetImages(pr *press, plans []spreadsheet.ImagePlan) []spreadsheet.Image {
-	keys := make([]string, len(plans))
-	var out []spreadsheet.Image
-	all := true
+	planned := make([]listingPlan, len(plans))
 	for i, plan := range plans {
-		keys[i] = printKey("spreadsheet image "+plan.Name, plan.Doc, nil)
-		if jpg := pr.lookup(keys[i]); jpg != nil {
-			out = append(out, spreadsheet.Image{Name: plan.Name, What: plan.What, Data: jpg})
-		} else {
-			all = false
-		}
+		planned[i] = listingPlan{Name: plan.Name, Doc: plan.Doc, Key: printKey("spreadsheet image "+plan.Name, plan.Doc, nil)}
 	}
-	if all {
-		return out
-	}
-	if !pr.release {
-		pr.mu.Lock()
-		pr.pending = true
-		pr.mu.Unlock()
-		return out
-	}
-	printer, err := pr.printerFor()
-	if err != nil {
-		return out
-	}
-	out = nil
-	for i, plan := range plans {
-		png, err := printer.Picture(plan.Doc, nil, 1500, 1125, 2)
-		if err != nil {
-			continue
-		}
-		jpg, err := jpegUnder(png, 1<<20, keys[i])
-		if err != nil {
-			continue
-		}
-		out = append(out, spreadsheet.Image{Name: plan.Name, What: plan.What, Data: jpg})
-	}
-	return out
+	// The plans render the workbook's own HTML; no printer step comes first.
+	return listingImages(pr, planned, func(*release.Printer) ([]listingPlan, map[string][]byte, error) { return planned, nil, nil })
 }

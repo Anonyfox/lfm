@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/deliver"
 
 	"github.com/Anonyfox/lfm/internal/book"
@@ -53,7 +52,7 @@ func checkBook(p project.Project, loaded project.Loaded, commerce commercecheck.
 type shipped struct {
 	Files  []deliver.File
 	Data   map[string][]byte
-	Images []bundle.Image // the listing images, for a bundle that holds the unit
+	Images []deliver.Image // the listing images, for a bundle that holds the unit
 }
 
 // pictured reports whether a unit renders listing images: for its own

@@ -153,10 +153,7 @@ type ImagePlan struct {
 }
 
 // Image is a rendered listing image.
-type Image struct {
-	Name, What string
-	Data       []byte
-}
+type Image = deliver.Image
 
 // Images plans the listing images from the first edition's first pages,
 // rendered from the real files: the first document alone, every document,

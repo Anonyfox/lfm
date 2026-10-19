@@ -121,7 +121,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, isRel
 		}
 		// Listing images serve the printable's own shops and the bundle's.
 		if r.Listing.Present || sell == deliver.SellBundle {
-			wg.Go(func() { images = listingImages(pr, r) })
+			wg.Go(func() { images = printableImages(pr, r) })
 		}
 		wg.Wait()
 		for _, f := range layout {
@@ -166,71 +166,42 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, isRel
 
 // listingImages returns the listing images: reused while the first edition
 // and the image layouts are unchanged, rendered by a release otherwise.
-func listingImages(pr *press, r *printable.Report) []printable.Image {
-	plans := r.Images()
-	first := r.Editions[0]
-	keys := make([]string, len(plans))
-	var out []printable.Image
-	all := true
+func printableImages(pr *press, r *printable.Report) []printable.Image {
 	covers := r.SizeCovers()
 	inputs := []byte{}
 	for _, ed := range covers {
 		inputs = append(inputs, ed.Doc...)
 	}
-	for i, plan := range plans {
-		keys[i] = printKey("listing image "+plan.Name, append(append([]byte{}, plan.Doc...), inputs...), r.Assets)
-		if jpg := pr.lookup(keys[i]); jpg != nil {
-			out = append(out, printable.Image{Name: plan.Name, What: plan.What, Data: jpg})
-		} else {
-			all = false
+	var planned []listingPlan
+	for _, plan := range r.Images() {
+		planned = append(planned, listingPlan{Name: plan.Name, Doc: plan.Doc,
+			Key: printKey("listing image "+plan.Name, append(append([]byte{}, plan.Doc...), inputs...), r.Assets)})
+	}
+	return listingImages(pr, planned, func(printer *release.Printer) ([]listingPlan, map[string][]byte, error) {
+		// The plans show real pages: the first edition's and each size's cover.
+		shots := r.Shots()
+		pages := make([]int, len(shots))
+		for i, s := range shots {
+			pages[i] = s.Page
 		}
-	}
-	if all {
-		return out
-	}
-	if !pr.release {
-		pr.mu.Lock()
-		pr.pending = true
-		pr.mu.Unlock()
-		return out
-	}
-	printer, err := pr.printerFor()
-	if err != nil {
-		return out
-	}
-	shots := r.Shots()
-	pages := make([]int, len(shots))
-	for i, s := range shots {
-		pages[i] = s.Page
-	}
-	size := first.Edition.Size
-	rasters, err := printer.PageImages(first.Doc, r.Assets, mmPixels(size.Width), mmPixels(size.Height), printable.PageScale, pages)
-	if err != nil {
-		return out
-	}
-	assets := map[string][]byte{}
-	for i, s := range shots {
-		assets[s.Name] = rasters[i]
-	}
-	for _, ed := range covers {
-		s := ed.Edition.Size
-		cover, err := printer.PageImages(ed.Doc, r.Assets, mmPixels(s.Width), mmPixels(s.Height), 1, []int{1})
+		first := r.Editions[0]
+		size := first.Edition.Size
+		rasters, err := printer.PageImages(first.Doc, r.Assets, mmPixels(size.Width), mmPixels(size.Height), printable.PageScale, pages)
 		if err != nil {
-			return out
+			return nil, nil, err
 		}
-		assets["cover-"+s.Key+".png"] = cover[0]
-	}
-	out = nil
-	for i, plan := range plans {
-		png, err := printer.Picture(plan.Doc, assets, printable.ImageWidth, printable.ImageHeight, printable.ImageScale)
-		if err != nil {
-			continue
+		assets := map[string][]byte{}
+		for i, s := range shots {
+			assets[s.Name] = rasters[i]
 		}
-		jpg, err := jpegUnder(png, 1<<20, keys[i])
-		if err != nil {
-			continue
+		for _, ed := range covers {
+			s := ed.Edition.Size
+			cover, err := printer.PageImages(ed.Doc, r.Assets, mmPixels(s.Width), mmPixels(s.Height), 1, []int{1})
+			if err != nil {
+				return nil, nil, err
+			}
+			assets["cover-"+s.Key+".png"] = cover[0]
 		}
-		out = append(out, printable.Image{Name: plan.Name, What: plan.What, Data: jpg})
-	}
-	return out
+		return planned, assets, nil
+	})
 }

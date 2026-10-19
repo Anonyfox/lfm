@@ -167,10 +167,7 @@ footer{margin-top:8mm;font-size:9pt;color:#6B7280}
 var numbered = regexp.MustCompile(`^\d+[.)]\s+`)
 
 // Image is one listing image.
-type Image struct {
-	Name, What string
-	Data       []byte
-}
+type Image = deliver.Image
 
 // ImagePlan is one listing image to render: 3000×2250 at twice the density.
 type ImagePlan struct {

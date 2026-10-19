@@ -210,10 +210,7 @@ img{display:block;box-shadow:0 2px 6px rgba(0,0,0,.18),0 18px 40px rgba(0,0,0,.1
 }
 
 // Image is one listing image of the bundle.
-type Image struct {
-	Name string
-	Data []byte
-}
+type Image = deliver.Image
 
 // Distribution assembles the bundle's shop packages from the files of every
 // unit: groups names the ZIPs Etsy gets when the files are more than

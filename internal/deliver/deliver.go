@@ -204,3 +204,9 @@ func FileName(title, ext string) string {
 	}
 	return clean + "." + ext
 }
+
+// Image is a listing image a deliverable ships: its file name and JPEG.
+type Image struct {
+	Name string // 01-cover.jpg
+	Data []byte
+}

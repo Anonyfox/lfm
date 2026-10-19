@@ -17,11 +17,7 @@ type Printed struct {
 }
 
 // Image is one listing image.
-type Image struct {
-	Name string // 01-cover.jpg
-	What string // what it shows, for the guides
-	Data []byte
-}
+type Image = deliver.Image
 
 // EtsyImages is how many listing images Etsy takes.
 const EtsyImages = deliver.EtsyImages

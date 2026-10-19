@@ -313,9 +313,7 @@ func (d delivered) parts(r *bundle.Report) ([]part, string, func(*release.Printe
 					pt.groups[ed.Edition.Size.Key] = append(pt.groups[ed.Edition.Size.Key], pr.FileName(ed.Edition))
 				}
 			}
-			for _, img := range d.printImages {
-				pt.files.Images = append(pt.files.Images, bundle.Image{Name: img.Name, Data: img.Data})
-			}
+			pt.files.Images = d.printImages
 			if len(pr.Editions) > 0 {
 				first := pr.Editions[0]
 				pt.cover = &bundle.Cover{Name: "printable-cover.png", Ratio: first.Edition.Size.Width / first.Edition.Size.Height}
