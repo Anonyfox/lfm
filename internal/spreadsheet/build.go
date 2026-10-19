@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+
+	"github.com/Anonyfox/lfm/internal/buildid"
 )
 
 // Built is one file lfm built for an edition.
@@ -25,15 +27,11 @@ func (r Report) created() string {
 	return "2026-01-01T00:00:00Z"
 }
 
-// xlsxFormat names how lfm writes workbooks; changing writeXLSX changes it,
-// so files an older lfm wrote are written again.
-const xlsxFormat = "lfm-xlsx-6"
-
 // key identifies a file by everything that goes into it: the workbook, the
 // look, the edition and the dataset.
 func (r Report) key(edition, dataset string) string {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%s\x00%s\x00%s\x00", xlsxFormat, r.Plan.Accent, edition, dataset, r.created())
+	fmt.Fprintf(h, "%s\x00%s\x00%s\x00%s\x00%s\x00", buildid.Writer(), r.Plan.Accent, edition, dataset, r.created())
 	if err := json.NewEncoder(h).Encode(r.Workbook); err != nil {
 		return "" // unstamped, so never reused
 	}

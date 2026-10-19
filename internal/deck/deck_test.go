@@ -332,3 +332,26 @@ func BenchmarkCheck(b *testing.B) {
 		Check(p, testConfig, true, nil, "")
 	}
 }
+
+// TestPrintsAreTheSameHTMLEveryTime builds every print of two separate
+// checks: prints are keyed by their HTML, so unordered output would print
+// every compile anew.
+func TestPrintsAreTheSameHTMLEveryTime(t *testing.T) {
+	p := fixture(t, "briefing", nil)
+	for range 5 {
+		a, b := Check(p, testConfig, true, nil, ""), Check(p, testConfig, true, nil, "")
+		ja, jb := a.Jobs(), b.Jobs()
+		for i := range ja {
+			for _, pp := range ja[i].Prints() {
+				if !bytes.Equal(a.PrintDoc(ja[i], pp), b.PrintDoc(jb[i], pp)) {
+					t.Fatalf("%s %s prints differently", ja[i].Name, pp.Kind)
+				}
+			}
+		}
+		for _, e := range a.Editions {
+			if !bytes.Equal(a.Guide(e), b.Guide(e)) || !bytes.Equal(a.Preview(e), b.Preview(e)) {
+				t.Fatalf("%s: the guide or preview differs", e.Key)
+			}
+		}
+	}
+}

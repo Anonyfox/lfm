@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/release"
@@ -107,5 +108,51 @@ func TestOptionalHelpersNameWhatIsMissing(t *testing.T) {
 	}
 	if got := optionalHelpers(nil, nil); len(got) != 0 {
 		t.Fatalf("a page without files needs no LibreOffice: %q", got)
+	}
+}
+
+// TestANewerLfmRebuildsFilesButKeepsItsPrints compiles a released set as a
+// newer lfm would: the documents are written again by the new writer, the
+// PDFs whose layout did not change are reused, so the published ZIPs keep
+// them without a release.
+func TestANewerLfmRebuildsFilesButKeepsItsPrints(t *testing.T) {
+	if _, err := release.BrowserPath(); err != nil || testing.Short() {
+		t.Skip("needs Chrome")
+	}
+	dir := documentProject(t)
+	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil {
+		t.Fatal(err)
+	}
+	zipPath := filepath.Join(dir, "output", docPath, "allotment-society-kit-en-a4.zip")
+	before, _ := os.ReadFile(zipPath)
+	was := buildid.Writer
+	buildid.Writer = func() string { return "a newer lfm" }
+	defer func() { buildid.Writer = was }()
+	result, err := Compile(context.Background(), dir, Options{Publish: true})
+	after, _ := os.ReadFile(zipPath)
+	if err != nil || result.Document.Pending {
+		zz, _ := zip.NewReader(bytes.NewReader(after), int64(len(after)))
+		var names []string
+		for _, f := range zz.File {
+			names = append(names, f.Name)
+		}
+		imgs, _ := os.ReadDir(filepath.Join(dir, "distribution", "document", "images"))
+		t.Fatalf("%v %+v\nzip: %v\nimages: %d", err, result.Document, names, len(imgs))
+	}
+	if bytes.Equal(before, after) {
+		t.Fatal("the newer lfm reused the old files")
+	}
+	z, err := zip.NewReader(bytes.NewReader(after), int64(len(after)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdfs := 0
+	for _, f := range z.File {
+		if strings.HasPrefix(f.Name, "PDF/") {
+			pdfs++
+		}
+	}
+	if pdfs != 3 {
+		t.Fatalf("the ZIP lost its prints: %d PDFs", pdfs)
 	}
 }

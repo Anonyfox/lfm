@@ -333,3 +333,24 @@ func TestEveryFeatureInEveryTheme(t *testing.T) {
 		}
 	}
 }
+
+// TestPrintsAreTheSameHTMLEveryTime builds the print layouts of two
+// separate checks of one set: prints are keyed by their HTML, so any
+// unordered output (a map range) would print every compile anew.
+func TestPrintsAreTheSameHTMLEveryTime(t *testing.T) {
+	p := fixture(t, "club", nil)
+	for range 5 {
+		a, b := Check(p, testConfig, true, nil, ""), Check(p, testConfig, true, nil, "")
+		ja, jb := a.Jobs(), b.Jobs()
+		for i := range ja {
+			if !bytes.Equal(a.PrintDoc(ja[i]), b.PrintDoc(jb[i])) || !bytes.Equal(a.ShotDoc(ja[i]), b.ShotDoc(jb[i])) {
+				t.Fatalf("%s prints differently", ja[i].Name)
+			}
+		}
+		for _, e := range a.Editions {
+			if !bytes.Equal(a.Guide(e), b.Guide(e)) || !bytes.Equal(a.Preview(e), b.Preview(e)) {
+				t.Fatalf("%s: the guide or preview differs", e.Key)
+			}
+		}
+	}
+}

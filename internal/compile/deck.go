@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deck"
@@ -109,22 +110,33 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 		guideDocs[i] = r.Guide(e)
 		guideKeys[i] = printKey("deck guide "+e.Key, append(guideDocs[i], fontKey...), nil)
 	}
+	// A print is keyed by what Chrome prints, so a newer lfm reuses the
+	// PDFs whose layout it did not change.
+	printKeys := map[string]string{}
+	for _, b := range jobs {
+		for _, pp := range b.Prints() {
+			printKeys[b.PrintKey(pp)] = printKey("deck print "+pp.Kind+" "+pp.Paper, append(r.PrintDoc(b, pp), fontKey...), nil)
+		}
+	}
 	zipKeys := make([]string, len(r.Editions))
 	reuse := !isRelease
 	for i, e := range r.Editions {
-		keys := []string{guideKeys[i]}
+		keys := []string{buildid.Writer(), guideKeys[i]}
 		for _, b := range jobs {
 			if b.Edition.Key == e.Key {
 				keys = append(keys, b.Key)
+				for _, pp := range b.Prints() {
+					keys = append(keys, printKeys[b.PrintKey(pp)])
+				}
 			}
 		}
-		zipKeys[i] = printKey("deck zip "+deck.PrintFormat+" "+e.Key, []byte(strings.Join(keys, ",")), nil)
+		zipKeys[i] = printKey("deck zip "+e.Key, []byte(strings.Join(keys, ",")), nil)
 		reuse = reuse && pr.has(zipKeys[i])
 	}
 	if reuse {
 		var images []deck.Image
 		if pictured(r.Listing.Present, r.Summary.Sell) {
-			images = deckImages(pr, r, jobs, nil)
+			images = deckImages(pr, r, jobs, printKeys, nil)
 		}
 		return finishDeck(r, result, out, issues, pageSale, func(i int) []byte { return pr.lookup(zipKeys[i]) }, images, pr.pending)
 	}
@@ -144,7 +156,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 	for _, b := range built {
 		for _, pp := range b.Prints() {
 			printing.Go(func() {
-				key := printKey("deck print "+deck.PrintFormat+" "+pp.Kind+" "+pp.Paper, []byte(b.Key), nil)
+				key := printKeys[b.PrintKey(pp)]
 				fresh := !pr.has(key)
 				pdf, err := pr.job(key, func(printer *release.Printer) ([]byte, error) {
 					return printer.Print(r.PrintDoc(b, pp), fonts, false)
@@ -265,7 +277,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 		})
 	}
 	if pictured(r.Listing.Present, r.Summary.Sell) {
-		wg.Go(func() { images = deckImages(pr, r, built, shots) })
+		wg.Go(func() { images = deckImages(pr, r, built, printKeys, shots) })
 	}
 	wg.Wait()
 
@@ -329,12 +341,16 @@ func finishDeck(r *deck.Report, result *Result, out shipped, issues []diagnostic
 
 // deckImages are the listing images, keyed by the decks they show: reused
 // while those are unchanged, rendered by a release from the real slides.
-func deckImages(pr *press, r *deck.Report, built []deck.Built, shots []deck.Shot) []deck.Image {
+// The images show the printed slides, notes and quiz, so they key on the
+// prints: a newer lfm that writes the decks anew keeps them.
+func deckImages(pr *press, r *deck.Report, built []deck.Built, printKeys map[string]string, shots []deck.Shot) []deck.Image {
 	var keys []string
 	var placeholder []deck.Shot // the plan with blank shots names and keys the images
 	for _, b := range built {
 		if b.Edition.Key == r.Showcase().Key {
-			keys = append(keys, b.Key)
+			for _, pp := range b.Prints() {
+				keys = append(keys, printKeys[b.PrintKey(pp)])
+			}
 			s := deck.Shot{Key: b.Key, Title: b.Deck.Title, Cover: []byte{}, Facts: deck.Facts(b), Slides: make([][]byte, min(6, max(0, len(b.Deck.Slides)-1))), Notes: []byte{}}
 			if r.QuizShot(b) != nil {
 				s.Quiz = []byte{}

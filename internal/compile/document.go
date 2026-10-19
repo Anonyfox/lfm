@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deliver"
@@ -109,13 +110,19 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 		guideDocs[i] = r.Guide(e)
 		guideKeys[i] = printKey("document guide "+e.Key, append(guideDocs[i], fontKey...), nil)
 	}
+	// A print is keyed by what Chrome prints, so a newer lfm reuses the
+	// PDFs whose layout it did not change.
+	printKeys := map[string]string{}
+	for _, b := range jobs {
+		printKeys[b.Key] = printKey("document print", append(r.PrintDoc(b), fontKey...), nil)
+	}
 	zipKeys := make([]string, len(r.Editions))
 	reuse := !isRelease
 	for i, e := range r.Editions {
-		keys := []string{guideKeys[i]}
+		keys := []string{buildid.Writer(), guideKeys[i]}
 		for _, b := range jobs {
 			if b.Edition == e {
-				keys = append(keys, b.Key)
+				keys = append(keys, b.Key, printKeys[b.Key])
 			}
 		}
 		zipKeys[i] = printKey("document zip "+e.Key, []byte(strings.Join(keys, ",")), nil)
@@ -124,7 +131,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 	if reuse {
 		var images []document.Image
 		if pictured(r.Listing.Present, r.Summary.Sell) {
-			images = documentImages(pr, r, jobs, nil)
+			images = documentImages(pr, r, jobs, printKeys, nil)
 		}
 		return finishDocument(r, result, out, issues, pageSale, func(i int) []byte { return pr.lookup(zipKeys[i]) }, images, pr.pending)
 	}
@@ -143,7 +150,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 	var printing sync.WaitGroup
 	for _, b := range built {
 		printing.Go(func() {
-			key := printKey("document print "+document.PrintFormat, []byte(b.Key), nil)
+			key := printKeys[b.Key]
 			fresh := !pr.has(key)
 			pdf, err := pr.job(key, func(printer *release.Printer) ([]byte, error) {
 				return printer.Print(r.PrintDoc(b), fonts, false)
@@ -236,7 +243,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 		})
 	}
 	if pictured(r.Listing.Present, r.Summary.Sell) {
-		wg.Go(func() { images = documentImages(pr, r, built, shots) })
+		wg.Go(func() { images = documentImages(pr, r, built, printKeys, shots) })
 	}
 	wg.Wait()
 
@@ -306,12 +313,14 @@ func paperLabel(paper string) string {
 // documentImages are the listing images, keyed by the files they show:
 // reused while those are unchanged, rendered by a release from the first
 // pages LibreOffice printed.
-func documentImages(pr *press, r *document.Report, built []document.Built, shots []document.Shot) []document.Image {
+// The images show the print layout, so they key on the prints: a newer
+// lfm that writes the files anew keeps them.
+func documentImages(pr *press, r *document.Report, built []document.Built, printKeys map[string]string, shots []document.Shot) []document.Image {
 	var keys []string
 	var placeholder []document.Shot // the plan with blank pages names and keys the images
 	for _, b := range built {
 		if b.Edition == r.Showcase() {
-			keys = append(keys, b.Key)
+			keys = append(keys, printKeys[b.Key])
 			placeholder = append(placeholder, document.Shot{Key: b.Key, Title: b.Doc.Title})
 		}
 	}

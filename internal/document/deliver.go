@@ -9,6 +9,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/typeface"
 )
 
 // words are what lfm writes around the documents, per language; English
@@ -135,23 +136,7 @@ func (r Report) GuideAssets() map[string][]byte {
 }
 
 func fontFaces(text, head *family, prefix string) string {
-	var b strings.Builder
-	seen := map[string]bool{}
-	for _, f := range []*family{text, head} {
-		if f == nil || seen[f.Name] {
-			continue
-		}
-		seen[f.Name] = true
-		for _, slot := range sortedKeys(f.Faces) {
-			face := f.Faces[slot]
-			style := "normal"
-			if face.Italic {
-				style = "italic"
-			}
-			fmt.Fprintf(&b, `@font-face{font-family:%q;src:url(%q);font-weight:%d;font-style:%s}`, f.Name, prefix+baseName(face.File), face.Weight, style)
-		}
-	}
-	return b.String()
+	return typeface.FontFaces(prefix, text, head)
 }
 
 // Shot is a document's first page as LibreOffice renders the real file.

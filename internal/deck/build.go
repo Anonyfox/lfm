@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/typeface"
 	"github.com/Anonyfox/lfm/internal/zipx"
@@ -49,7 +50,7 @@ func Stamp(tail []byte) string { return zipx.Stamp(tail) }
 // faces and images it embeds.
 func (r Report) inputs() []byte {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%+v\x00", pptxFormat, r.Theme)
+	fmt.Fprintf(h, "%+v\x00", r.Theme)
 	for _, f := range []*typeface.Family{r.text, r.head} {
 		if f == nil {
 			continue
@@ -87,6 +88,9 @@ func (r Report) Jobs() []Built {
 		for _, d := range r.Decks[e.Lang] {
 			src, _ := json.Marshal(d.Blocks)
 			h := sha256.New()
+			// The binary's identity: another lfm may write the same input
+			// otherwise. Prints key on what they print instead (Digest).
+			fmt.Fprintf(h, "%s\x00", buildid.Writer())
 			h.Write(shared)
 			fmt.Fprintf(h, "\x00%s\x00%s\x00%d\x00%s\x00", d.Title, e.Papers[0], d.Minutes, d.Lang)
 			h.Write(src)

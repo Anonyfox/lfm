@@ -21,10 +21,6 @@ var (
 	mediaBox = regexp.MustCompile(`/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]`)
 )
 
-// PrintFormat names the slide print layout; changing slidehtml changes it,
-// so PDFs an older lfm printed are printed again.
-const PrintFormat = "lfm-slides-1"
-
 // ShotPixels is a slide in CSS pixels: 960 pt at 96 dpi.
 func ShotPixels() (int64, int64) { return 1280, 720 }
 

@@ -10,13 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/zipx"
 )
-
-// docxFormat names how lfm writes documents; changing the writer changes it,
-// so files an older lfm wrote are written again.
-const docxFormat = "lfm-docx-6"
 
 // created is the date every file carries, so a rebuild is byte-identical.
 const created = "2026-01-01"
@@ -42,7 +39,7 @@ func FileName(title, ext string) string { return deliver.FileName(title, ext) }
 // faces and images it embeds.
 func (r Report) inputs() []byte {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%+v\x00", docxFormat, r.Theme)
+	fmt.Fprintf(h, "%+v\x00", r.Theme)
 	for _, f := range []*family{r.text, r.head} {
 		if f == nil {
 			continue
@@ -86,6 +83,9 @@ func (r Report) Jobs() []Built {
 		for _, d := range r.Docs[e.Lang] {
 			src, _ := json.Marshal(d)
 			h := sha256.New()
+			// The binary's identity: another lfm may write the same input
+			// otherwise. Prints key on what they print instead (Digest).
+			fmt.Fprintf(h, "%s\x00", buildid.Writer())
 			h.Write(shared)
 			fmt.Fprintf(h, "\x00%s\x00", e.Paper)
 			h.Write(src)

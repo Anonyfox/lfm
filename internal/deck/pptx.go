@@ -16,9 +16,6 @@ import (
 	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
-// pptxFormat names how lfm writes decks; changing the writer changes it.
-const pptxFormat = "lfm-pptx-2"
-
 const (
 	nsP  = `xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"`
 	relT = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"

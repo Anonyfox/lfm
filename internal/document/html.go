@@ -47,18 +47,8 @@ func previewCSS(m metrics) string { return styleFor(m, previewStyle, "fonts/") }
 // font faces, loaded from prefix.
 func styleFor(m metrics, style, prefix string) string {
 	var b strings.Builder
-	for _, f := range []*family{m.text, m.heading} {
-		if f == nil {
-			continue
-		}
-		for _, face := range f.Faces {
-			fstyle := "normal"
-			if face.Italic {
-				fstyle = "italic"
-			}
-			fmt.Fprintf(&b, `@font-face{font-family:%q;src:url(%q);font-weight:%d;font-style:%s}`, f.Name, prefix+baseName(face.File), face.Weight, fstyle)
-		}
-	}
+	// In a stable order: prints are keyed by their HTML.
+	b.WriteString(typeface.FontFaces(prefix, m.text, m.heading))
 	headColor, weight := m.Ink, "400"
 	if m.HeadingAccent {
 		headColor = m.Accent

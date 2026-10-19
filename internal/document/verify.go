@@ -20,10 +20,6 @@ var (
 	mediaBox = regexp.MustCompile(`/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]`)
 )
 
-// PrintFormat names the print layout; changing printHTML changes it, so
-// PDFs an older lfm printed are printed again.
-const PrintFormat = "lfm-print-1"
-
 // PrintDoc is a built document's print layout for Chrome.
 func (r Report) PrintDoc(b Built) []byte { return printHTML(r.render(b.Doc, b.Edition)) }
 

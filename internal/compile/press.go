@@ -129,7 +129,7 @@ func (pr *press) scanZip(path string) {
 	}
 	for _, e := range z.File {
 		switch strings.ToLower(filepath.Ext(e.Name)) {
-		case ".pdf", ".docx", ".xlsx":
+		case ".pdf", ".docx", ".pptx", ".xlsx":
 		default:
 			continue
 		}
