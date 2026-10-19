@@ -1,0 +1,12 @@
+editions/a4-monday.html 3538 5bc9717fbe9e45af
+editions/a4-sunday.html 3698 57fda8f17b68894f
+editions/letter-monday.html 3550 c28b5f9994748084
+editions/letter-sunday.html 3710 909e959de9e4cdb8
+facts.txt 164 d2e1178378ee30ad
+images/01-cover.jpg.html 1043 88eb949ca67c5ce3
+images/02-included.jpg.html 1887 3ffe8d910519dbdd
+images/03-guide.jpg.html 1233 559fa678574c1316
+images/04-months.jpg.html 1313 3bb7457234dfb8d0
+images/05-puzzles.jpg.html 1212 492adf2c9958b818
+images/06-key.jpg.html 1214 63188a5f5c050cad
+images/07-sizes.jpg.html 1459 d715e6d31583e016

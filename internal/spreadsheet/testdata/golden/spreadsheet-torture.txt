@@ -1,0 +1,17 @@
+images/01-calc.jpg.html 4424 56757daebb6516fe
+images/02-tabs.jpg.html 5234 a4bb33d933423f51
+images/03-data.jpg.html 4087 5da5ee055ad3da3e
+images/04-works-with.jpg.html 2800 f042e08d74984fcd
+preview/en.html 7370 9c6ef07f475bddc5
+spreadsheet-en.xlsx/xl/worksheets/sheet2.xml 9455 17440d302786a627
+spreadsheet-en.xlsx/xl/worksheets/sheet1.xml 1937 30b4d0a1f7456a5b
+spreadsheet-en.xlsx/xl/workbook.xml 1083 9c799010e3002086
+spreadsheet-en.xlsx/xl/theme/theme1.xml 7269 7132e0167227dc0a
+spreadsheet-en.xlsx/xl/styles.xml 7328 948703a22df9cff5
+spreadsheet-en.xlsx/xl/sharedStrings.xml 296 edc8804bf60889c1
+spreadsheet-en.xlsx/xl/_rels/workbook.xml.rels 895 ab980e2fd9c08b1e
+spreadsheet-en.xlsx/docProps/core.xml 595 b01cb3d52218d842
+spreadsheet-en.xlsx/docProps/app.xml 288 4ceddde98070d788
+spreadsheet-en.xlsx/_rels/.rels 612 2002c7e81ec49578
+spreadsheet-en.xlsx/[Content_Types].xml 1384 448a9870529bf01a
+start/spreadsheet-en-start.pdf.html 1503 1ad06749cc5bd029
