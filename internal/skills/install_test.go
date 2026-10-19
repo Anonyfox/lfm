@@ -80,6 +80,27 @@ func TestInstallUpdatesOnlyUntouchedCopies(t *testing.T) {
 	}
 }
 
+func TestInstallNeverReplacesACopyItCannotRead(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), AgentsDir)
+	mine := filepath.Join(dir, "lfm-research", "SKILL.md")
+	if err := write(mine, "---\nname: lfm-research\n---\nhand written\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(mine, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.ReadFile(mine); err == nil {
+		t.Skip("the file stays readable, as for root")
+	}
+	if _, err := Install(dir, NewData("1.0.0"), false); err == nil {
+		t.Fatal("an unreadable copy was taken for a missing one")
+	}
+	os.Chmod(mine, 0o644)
+	if raw, _ := os.ReadFile(mine); !strings.Contains(string(raw), "hand written") {
+		t.Fatal("the unreadable copy was replaced")
+	}
+}
+
 func TestFindWalksUpAndCountsLinkedFoldersOnce(t *testing.T) {
 	root := t.TempDir()
 	project := filepath.Join(root, "sites", "page")

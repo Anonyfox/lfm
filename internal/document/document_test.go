@@ -100,6 +100,25 @@ func TestClubChecksCleanAndBuildsTheSameBytes(t *testing.T) {
 	}
 }
 
+func TestAnUnreadableDocumentIsAnError(t *testing.T) {
+	p := fixture(t, "club", nil)
+	outside := filepath.Join(t.TempDir(), "minutes.md")
+	if err := os.WriteFile(outside, []byte("# Minutes\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(p.Root, filepath.FromSlash(Dir), "en", "minutes.md")
+	if err := os.Remove(file); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, file); err != nil {
+		t.Fatal(err)
+	}
+	r := Check(p, testConfig, true, nil, "")
+	if !strings.Contains(messages(r.Diagnostics), "en/minutes.md: "+Dir+"/en/minutes.md: symlink leaves the project") {
+		t.Fatalf("an unreadable document was left out silently:\n%s", messages(r.Diagnostics))
+	}
+}
+
 func TestDocumentsPrintAsPlannedInLibreOffice(t *testing.T) {
 	soffice, err := office.Find()
 	if err != nil || testing.Short() {

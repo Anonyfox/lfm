@@ -408,6 +408,23 @@ func TestIncompleteBookIsNotBuildable(t *testing.T) {
 	}
 }
 
+func TestUnreadableStyleIsNotBuildable(t *testing.T) {
+	p, voices, peers := fixture(t)
+	outside := filepath.Join(t.TempDir(), "book.css")
+	if err := os.WriteFile(outside, []byte("body { margin: 0 }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	style := filepath.Join(p.Root, Dir, StyleFile)
+	os.Remove(style)
+	if err := os.Symlink(outside, style); err != nil {
+		t.Fatal(err)
+	}
+	r := Check(p, testConfig, true, nil, "https://example.org/", voices, peers)
+	if r.Buildable || !strings.Contains(rules(r.Diagnostics), "symlink leaves the project") {
+		t.Fatalf("the book would build without its style:\n%s", rules(r.Diagnostics))
+	}
+}
+
 func TestDownloadPage(t *testing.T) {
 	plan := Plan{Title: "The Weekend Starter", Subtitle: "Keep it alive", Accent: "#8a3b12"}
 	for _, files := range [][]deliver.File{nil, {{Name: "the-weekend-starter.epub", Label: "EPUB", Note: "for e-readers", Size: 123456}}} {

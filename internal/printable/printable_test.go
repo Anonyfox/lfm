@@ -174,6 +174,25 @@ func TestTemplateAndGeneratorErrorsBlock(t *testing.T) {
 	}
 }
 
+func TestUnreadableStyleAndDataBlock(t *testing.T) {
+	for _, name := range []string{StyleName, DataDir + "/words.json"} {
+		p := fixture(t, nil)
+		outside := filepath.Join(t.TempDir(), "outside")
+		if err := os.WriteFile(outside, []byte(`["habit"]`), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		file := filepath.Join(p.Root, filepath.FromSlash(Dir), filepath.FromSlash(name))
+		os.Remove(file)
+		if err := os.Symlink(outside, file); err != nil {
+			t.Fatal(err)
+		}
+		r := Check(p, testConfig, true, nil, "")
+		if r.Buildable || !strings.Contains(messages(r.Diagnostics), "symlink leaves the project") {
+			t.Fatalf("%s was left out silently:\n%s", name, messages(r.Diagnostics))
+		}
+	}
+}
+
 func TestConfigListingAndConceptGaps(t *testing.T) {
 	r := Check(fixture(t, map[string]string{
 		ConceptFile: strings.Replace(strings.Replace(testConcept, "- Sizes: a4, letter", "- Sizes: a3", 1), "- Not for: anyone who wants an app with reminders.\n", "", 1),

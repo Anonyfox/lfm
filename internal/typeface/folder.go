@@ -27,7 +27,11 @@ func Load(p project.Project, dir string, report Report) Folder {
 	if err != nil {
 		return out
 	}
-	entries, _ := os.ReadDir(path)
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		report(dir, 1, true, err.Error()+".", "Make the folder readable.")
+		return out
+	}
 	for _, e := range entries {
 		name := e.Name()
 		file := dir + "/" + name
@@ -37,6 +41,7 @@ func Load(p project.Project, dir string, report Report) Folder {
 		case strings.HasSuffix(lower, ".ttf") || strings.HasSuffix(lower, ".otf"):
 			data, err := p.Read(file)
 			if err != nil {
+				report(file, 1, true, err.Error()+".", "Make the file readable inside the project.")
 				continue
 			}
 			face, err := Read(file, data)
@@ -63,9 +68,12 @@ func Load(p project.Project, dir string, report Report) Folder {
 			}
 			f.Faces[face.Slot()] = face
 		case strings.HasPrefix(lower, "ofl") || strings.HasPrefix(lower, "license") || strings.HasPrefix(lower, "licence"):
-			if data, err := p.Read(file); err == nil {
-				out.Licences[name] = data
+			data, err := p.Read(file)
+			if err != nil {
+				report(file, 1, true, err.Error()+".", "Make the file readable inside the project.")
+				continue
 			}
+			out.Licences[name] = data
 		}
 	}
 	if len(out.Families) > 0 && len(out.Licences) == 0 {

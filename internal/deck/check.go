@@ -193,7 +193,11 @@ func (r *Report) readDecks(p project.Project, errorAt, warn func(string, int, st
 	if err != nil {
 		return
 	}
-	entries, _ := os.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		errorAt(Dir, 1, RuleSource, "deliverables/deck cannot be read: "+err.Error()+".", "Make the folder readable.")
+		return
+	}
 	var langs []string
 	for _, e := range entries {
 		if e.IsDir() && langDir.MatchString(e.Name()) {
@@ -213,13 +217,18 @@ func (r *Report) readDecks(p project.Project, errorAt, warn func(string, int, st
 		deck     *Deck
 		problems []markup.Problem
 		missing  bool
+		err      error
 		key      string
 	}
 	results := map[string][]parsed{}
 	var wg sync.WaitGroup
 	for _, lang := range langs {
 		names := map[string]bool{}
-		files, _ := os.ReadDir(filepath.Join(dir, lang))
+		files, err := os.ReadDir(filepath.Join(dir, lang))
+		if err != nil {
+			errorAt(Dir+"/"+lang, 1, RuleSource, lang+" cannot be read: "+err.Error()+".", "Make the folder readable.")
+			continue
+		}
 		for _, f := range files {
 			if key, ok := strings.CutSuffix(f.Name(), ".md"); ok && !f.IsDir() {
 				names[key] = true
@@ -248,6 +257,7 @@ func (r *Report) readDecks(p project.Project, errorAt, warn func(string, int, st
 				file := Dir + "/" + lang + "/" + key + ".md"
 				src, err := p.Read(file)
 				if err != nil {
+					slots[i] = parsed{err: err, key: key}
 					return
 				}
 				d, problems := parse(key, lang, file, src)
@@ -260,6 +270,10 @@ func (r *Report) readDecks(p project.Project, errorAt, warn func(string, int, st
 		for _, res := range results[lang] {
 			if res.missing {
 				errorAt(Dir+"/"+lang, 1, RuleSource, fmt.Sprintf("%s has no %s.md.", lang, res.key), "Every language needs every deck of the concept; translate it slide for slide, or plan it out of the concept.")
+				continue
+			}
+			if res.err != nil {
+				errorAt(Dir+"/"+lang+"/"+res.key+".md", 1, RuleSource, res.err.Error()+".", "Make the file readable inside the project.")
 				continue
 			}
 			if res.deck == nil {

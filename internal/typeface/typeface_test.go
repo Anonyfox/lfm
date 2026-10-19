@@ -565,6 +565,22 @@ func TestLoadRejectsUnusableFonts(t *testing.T) {
 	}
 }
 
+func TestLoadReportsUnreadableFiles(t *testing.T) {
+	p := folder(t, map[string][]byte{"Lora-Regular.ttf": fontData(t, "Lora-Regular.ttf"), "OFL.txt": []byte("licence")})
+	outside := filepath.Join(t.TempDir(), "Lora-Bold.ttf")
+	if err := os.WriteFile(outside, fontData(t, "Lora-Bold.ttf"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(p.Root, filepath.FromSlash(fontsDir), "Lora-Bold.ttf")); err != nil {
+		t.Fatal(err)
+	}
+	var found []finding
+	Load(p, fontsDir, collect(&found))
+	if len(found) != 1 || !found[0].fatal || found[0].file != fontsDir+"/Lora-Bold.ttf" || !strings.Contains(found[0].message, "symlink leaves the project") {
+		t.Fatalf("an unreadable face was left out silently: %+v", found)
+	}
+}
+
 func TestLoadOfMissingOrOutsideFolder(t *testing.T) {
 	p := folder(t, nil)
 	var found []finding

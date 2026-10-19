@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"syscall"
 )
 
 // Project skill folders, relative to a project or home directory. Codex,
@@ -101,8 +102,11 @@ func Scan(dir string, data Data) ([]Copy, error) {
 		}
 		file := filepath.Join(dir, entry.Name(), "SKILL.md")
 		raw, err := os.ReadFile(file)
-		if err != nil {
+		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
 			continue
+		}
+		if err != nil {
+			return nil, err // an unreadable copy is not a missing one: Install would replace it
 		}
 		c := Copy{Name: entry.Name(), Path: file}
 		c.Version, c.State = inspect(string(raw), current[entry.Name()].Text)

@@ -102,6 +102,25 @@ func TestBriefingChecksCleanAndBuildsTheSameBytes(t *testing.T) {
 	}
 }
 
+func TestAnUnreadableDeckIsAnError(t *testing.T) {
+	p := fixture(t, "briefing", nil)
+	outside := filepath.Join(t.TempDir(), "briefing.md")
+	if err := os.WriteFile(outside, []byte("# Briefing\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(p.Root, filepath.FromSlash(Dir), "en", "briefing.md")
+	if err := os.Remove(file); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, file); err != nil {
+		t.Fatal(err)
+	}
+	r := Check(p, testConfig, true, nil, "")
+	if !strings.Contains(messages(r.Diagnostics), "en/briefing.md: "+Dir+"/en/briefing.md: symlink leaves the project") {
+		t.Fatalf("an unreadable deck was left out silently:\n%s", messages(r.Diagnostics))
+	}
+}
+
 func TestSlidesTakeTheirLayoutFromTheContent(t *testing.T) {
 	r := briefing(t)
 	d := r.Decks["en"][0]

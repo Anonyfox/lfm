@@ -1,7 +1,9 @@
 package book
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"regexp"
@@ -162,8 +164,12 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 		}
 	}
 	r.checkImages(exists)
+	styleOK := true
 	if raw, err := p.Read(Dir + "/" + StyleFile); err == nil {
 		r.Sources[StyleFile] = raw
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		styleOK = false
+		r.Diagnostics = append(r.Diagnostics, at(Dir+"/"+StyleFile, 1, RuleBuild, diagnostic.Error, err.Error()+".", "Make the file readable inside the project."))
 	}
 	r.checkFonts()
 	if raw, err := p.Read(ListingFile); err == nil {
@@ -175,7 +181,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 			"Write deliverables/book/listing.md as the lfm-book skill shows: descriptions, keywords, categories, prices and AI use, which lfm renders for every channel."))
 	}
 	r.Summary.Listing = r.Listing.Present
-	r.Buildable = configOK && r.Summary.Complete
+	r.Buildable = configOK && styleOK && r.Summary.Complete
 	return r
 }
 

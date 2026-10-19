@@ -1,7 +1,9 @@
 package printable
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"regexp"
@@ -96,17 +98,31 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*de
 		return r
 	}
 	r.Summary.Template = true
-	style, _ := p.Read(Dir + "/" + StyleName)
+	style, err := p.Read(Dir + "/" + StyleName)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		fail(Dir+"/"+StyleName, 1, RuleBuild, err.Error()+".", "Make the file readable inside the project.")
+		return r
+	}
 	data := map[string][]byte{}
 	if dir, err := p.Path(Dir + "/" + DataDir); err == nil {
-		entries, _ := os.ReadDir(dir)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			fail(Dir+"/"+DataDir, 1, RuleBuild, err.Error()+".", "Make the folder readable.")
+			return r
+		}
 		for _, e := range entries {
 			if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
-				if b, err := p.Read(Dir + "/" + DataDir + "/" + e.Name()); err == nil {
-					data[e.Name()] = b
+				b, err := p.Read(Dir + "/" + DataDir + "/" + e.Name())
+				if err != nil {
+					fail(Dir+"/"+DataDir+"/"+e.Name(), 1, RuleBuild, err.Error()+".", "Make the file readable inside the project.")
+					return r
 				}
+				data[e.Name()] = b
 			}
 		}
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		fail(Dir+"/"+DataDir, 1, RuleBuild, err.Error()+".", "Make the folder readable inside the project.")
+		return r
 	}
 	values, err := loadData(data)
 	if err != nil {
