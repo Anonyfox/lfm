@@ -46,7 +46,7 @@ var Spec = []Field{
 	{Path: "socialImage", Kind: Object, Doc: "The share preview image."},
 	{Path: "socialImage.src", Kind: String, Doc: "Project path of the image, 1200×630 pixels.", Example: `"assets/images/share.jpg"`},
 	{Path: "socialImage.alt", Kind: String, Doc: "What the image shows, for people who cannot see it.", Example: `"A jar of starter on a kitchen shelf"`},
-	{Path: "seller", Kind: Object, Doc: "Who sells: printed on the book's copyright page and the printable's guide and licence."},
+	{Path: "seller", Kind: Object, Doc: "Who sells: printed on the book's copyright page and in every other deliverable's guide, files and download page."},
 	{Path: "seller.name", Kind: String, Doc: "The seller or publisher as buyers see it.", Example: `"Brot & Glas Verlag"`},
 	{Path: "seller.imprint", Kind: String, Doc: "The lines of the legal notice (Impressum): address, register, VAT ID; printed on the book's copyright page.", Example: `"Brot & Glas Verlag, Musterstraße 1, 12345 Berlin"`},
 	{Path: "urls", Kind: Map, Doc: "Named complete URLs: checkout links, shop listings, contacts. Render them as {{.urls.<name>}}; every rendered link is checked against them.", Example: `{"checkout": "https://buy.stripe.com/…"}`},
@@ -73,7 +73,7 @@ var Spec = []Field{
 	{Path: "build.validation", Kind: Object, Doc: "Rule levels."},
 	{Path: "build.validation.rules", Kind: Map, Doc: "Per-rule levels; required rules stay errors. `lfm rules` lists them.", Example: `{"design.mono": "off"}`},
 	{Path: "build.validation.rules.*", Kind: String, Values: []string{"off", "warn", "error"}, Doc: "The level of this rule.", Example: `"warn"`},
-	{Path: "deliverables", Kind: Object, Doc: "What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, and the book and printable also as a bundle."},
+	{Path: "deliverables", Kind: Object, Doc: "What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, slide decks, and two or more of them together as a bundle."},
 
 	{Path: "deliverables.book", Kind: Object, Doc: "A book in deliverables/book, written with `lfm skills book`."},
 	{Path: "deliverables.book.author", Kind: String, Required: true, Doc: "The name on the cover.", Example: `"Lena Brot"`},

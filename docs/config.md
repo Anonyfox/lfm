@@ -12,7 +12,7 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `socialImage` | object |  | The share preview image. |
 | `socialImage.src` | string |  | Project path of the image, 1200×630 pixels. Example: `"assets/images/share.jpg"`. |
 | `socialImage.alt` | string |  | What the image shows, for people who cannot see it. Example: `"A jar of starter on a kitchen shelf"`. |
-| `seller` | object |  | Who sells: printed on the book's copyright page and the printable's guide and licence. |
+| `seller` | object |  | Who sells: printed on the book's copyright page and in every other deliverable's guide, files and download page. |
 | `seller.name` | string |  | The seller or publisher as buyers see it. Example: `"Brot & Glas Verlag"`. |
 | `seller.imprint` | string |  | The lines of the legal notice (Impressum): address, register, VAT ID; printed on the book's copyright page. Example: `"Brot & Glas Verlag, Musterstraße 1, 12345 Berlin"`. |
 | `urls` | map |  | Named complete URLs: checkout links, shop listings, contacts. Render them as {{.urls.<name>}}; every rendered link is checked against them. Example: `{"checkout": "https://buy.stripe.com/…"}`. |
@@ -39,7 +39,7 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.validation` | object |  | Rule levels. |
 | `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Example: `{"design.mono": "off"}`. |
 | `build.validation.rules.*` | off | warn | error |  | The level of this rule. Example: `"warn"`. |
-| `deliverables` | object |  | What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, and the book and printable also as a bundle. |
+| `deliverables` | object |  | What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, slide decks, and two or more of them together as a bundle. |
 | `deliverables.book` | object |  | A book in deliverables/book, written with `lfm skills book`. |
 | `deliverables.book.author` | string | required | The name on the cover. Example: `"Lena Brot"`. |
 | `deliverables.book.sell` | page | shops | bundle | page | How buyers get the files: page = your checkout redirects to an unlisted download page (needs path); shops = Etsy, Gumroad, Amazon and others deliver, the page's offer links to the listing; bundle = only inside deliverables.bundle. Example: `"page"`. |

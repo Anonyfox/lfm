@@ -7,6 +7,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/concept"
 
 	"github.com/Anonyfox/lfm/internal/research"
@@ -180,6 +181,23 @@ func TestRootSkillNamesRealCommands(t *testing.T) {
 		}
 		if m[1] == "skills" && m[2] != "" && !topics[strings.TrimSpace(m[2])] {
 			t.Errorf("names unknown skill %q", m[0])
+		}
+	}
+}
+
+// Every deliverable has a skill that configures it and says how it sells,
+// the bundle included.
+func TestEveryDeliverableHasItsSkill(t *testing.T) {
+	for _, kind := range bundle.Kinds {
+		s, err := Get(kind, NewData("dev"))
+		if err != nil {
+			t.Errorf("%s: %v", kind, err)
+			continue
+		}
+		for _, want := range []string{"deliverables." + kind, "deliverables.bundle"} {
+			if !strings.Contains(s.Text, want) {
+				t.Errorf("lfm skills %s does not mention %s", kind, want)
+			}
 		}
 	}
 }

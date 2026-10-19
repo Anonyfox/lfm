@@ -140,4 +140,6 @@ the filled example), what it works with, and that nothing is shipped. Run `lfm c
 - Sold through the page (`sell: page`), the report prints the download address: Stripe redirects there.
   Sold in shops (`sell: shops`), [[.Spreadsheet.Distribution]]/ holds each file once, the images, and a
   guide per shop with the files, images and fields; link the live listing back to the page's offer.
+- Sold with the project's other deliverables as one kit (`sell: bundle`), `deliverables.bundle` lists
+  them in its `units` and its own listing; `lfm help config deliverables.bundle` shows how.
 - Hand the owner the README: accounts, prices, tax and uploads are theirs.
