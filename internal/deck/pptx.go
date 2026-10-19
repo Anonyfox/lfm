@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"fmt"
 	"html"
+	"maps"
 	"math"
+	"slices"
 	"strings"
 	"time"
 
@@ -773,7 +775,7 @@ func (w *pptxWriter) pack() ([]byte, error) {
 	if err := put("[Content_Types].xml", []byte(parts["[Content_Types].xml"]), zip.Deflate); err != nil {
 		return nil, err
 	}
-	for _, name := range sortedKeys(parts) {
+	for _, name := range slices.Sorted(maps.Keys(parts)) {
 		if name == "[Content_Types].xml" {
 			continue
 		}
@@ -781,7 +783,7 @@ func (w *pptxWriter) pack() ([]byte, error) {
 			return nil, err
 		}
 	}
-	for _, name := range sortedKeys(w.files) {
+	for _, name := range slices.Sorted(maps.Keys(w.files)) {
 		if !strings.HasSuffix(name, ".xml") && !strings.HasSuffix(name, ".rels") {
 			if err := put(name, w.files[name], zip.Store); err != nil {
 				return nil, err

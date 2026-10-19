@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -258,7 +259,7 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 	if c.URL != "" && !directoryURL(c.URL) {
 		add(ConfigFile, "url", fmt.Errorf("url must be an absolute HTTPS directory URL ending in /, without query or fragment; it becomes the page canonical"))
 	}
-	for _, id := range sortedKeys(c.Build.Validation.Rules) {
+	for _, id := range slices.Sorted(maps.Keys(c.Build.Validation.Rules)) {
 		if rules == nil {
 			break
 		}
@@ -269,7 +270,7 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 	if c.Build.Assets.Default == "" {
 		c.Build.Assets.Default = Auto
 	}
-	for _, name := range sortedKeys(c.Build.Assets.Overrides) {
+	for _, name := range slices.Sorted(maps.Keys(c.Build.Assets.Overrides)) {
 		path := jsonsrc.Child("build.assets.overrides", name)
 		if !filepath.IsLocal(name) || filepath.ToSlash(filepath.Clean(name)) != name {
 			add(ConfigFile, path, fmt.Errorf("asset override %q must be a clean project-relative path", name))
@@ -346,7 +347,7 @@ func checkShape(raw []byte) []Problem {
 	}
 	var walk func(values map[string]any, path, pattern string, mapped bool)
 	walk = func(values map[string]any, path, pattern string, mapped bool) {
-		for _, key := range sortedKeys(values) {
+		for _, key := range slices.Sorted(maps.Keys(values)) {
 			child := jsonsrc.Child(path, key)
 			childPattern := key
 			if mapped {
@@ -497,13 +498,4 @@ func BrowserData(values map[string]any, paths []string) ([]byte, error) {
 		destination[parts[len(parts)-1]] = value
 	}
 	return json.Marshal(selected)
-}
-
-func sortedKeys[T any](m map[string]T) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	return keys
 }

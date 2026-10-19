@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -44,16 +46,16 @@ func (r Report) inputs() []byte {
 		if f == nil {
 			continue
 		}
-		for _, slot := range sortedKeys(f.Faces) {
+		for _, slot := range slices.Sorted(maps.Keys(f.Faces)) {
 			fmt.Fprintf(h, "%s/%s:", f.Name, slot)
 			h.Write(f.Faces[slot].Data)
 		}
 	}
-	for _, name := range sortedKeys(r.licences) {
+	for _, name := range slices.Sorted(maps.Keys(r.licences)) {
 		fmt.Fprintf(h, "%s:", name)
 		h.Write(r.licences[name])
 	}
-	for _, src := range sortedKeys(r.images) {
+	for _, src := range slices.Sorted(maps.Keys(r.images)) {
 		fmt.Fprintf(h, "%s:", src)
 		h.Write(r.images[src].Data)
 	}
@@ -183,7 +185,7 @@ func (r Report) Zip(e Edition, built []Built, pdfs map[string][]byte, guide []by
 	var buf bytes.Buffer
 	modified, _ := time.Parse("2006-01-02", created)
 	z := zipx.New(&buf, modified)
-	for _, name := range sortedKeys(files) {
+	for _, name := range slices.Sorted(maps.Keys(files)) {
 		// .docx and .pdf are compressed already; fonts are not worth the time.
 		write := z.Store
 		if strings.HasSuffix(name, ".txt") {

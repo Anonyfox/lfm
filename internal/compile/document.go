@@ -14,6 +14,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/jsonsrc"
 	"github.com/Anonyfox/lfm/internal/office"
+	"github.com/Anonyfox/lfm/internal/paper"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/term"
@@ -204,7 +205,7 @@ func documentFindings(in []document.Finding) []finding {
 func finishDocument(r *document.Report, result *Result, out shipped, issues []diagnostic.Diagnostic, pageSale bool, zip func(int) []byte, images []document.Image, pending bool) (shipped, []diagnostic.Diagnostic) {
 	for i, e := range r.Editions {
 		if data := zip(i); data != nil {
-			out.add(deliver.File{Name: r.ZipName(e), Label: strings.ToUpper(e.Lang) + " · " + paperLabel(e.Paper), Note: r.FileNote(e)}, data)
+			out.add(deliver.File{Name: r.ZipName(e), Label: strings.ToUpper(e.Lang) + " · " + paper.Label(e.Paper), Note: r.FileNote(e)}, data)
 		}
 	}
 	r.Summary.Pending = pending
@@ -225,13 +226,6 @@ func finishDocument(r *document.Report, result *Result, out shipped, issues []di
 		downloadPage(result, r.Config.Path, document.DownloadPage(*r, out.Files), out)
 	}
 	return out, issues
-}
-
-func paperLabel(paper string) string {
-	if paper == "letter" {
-		return "US Letter"
-	}
-	return strings.ToUpper(paper)
 }
 
 // documentImages are the listing images: the plan with blank pages names

@@ -6,6 +6,7 @@ import (
 	"image"
 	_ "image/jpeg" // image sizes
 	_ "image/png"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/markup"
+	"github.com/Anonyfox/lfm/internal/paper"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/typeface"
 )
@@ -69,19 +71,6 @@ func at(file string, line int, rule string, sev diagnostic.Severity, message, hi
 }
 
 var langDir = regexp.MustCompile(`^[a-z]{2,3}(-[a-z0-9]{2,8})?$`)
-
-// papersFor are the paper sizes a language is built in: the configured
-// ones, or Letter and A4 for American English and A4 elsewhere.
-func papersFor(lang string, configured []string) []string {
-	if len(configured) > 0 {
-		return configured
-	}
-	switch lang {
-	case "en", "en-us", "en-ca", "es-us":
-		return []string{"letter", "a4"}
-	}
-	return []string{"a4"}
-}
 
 // Check reads and checks the document set: concept, fonts, every document
 // of every language, the theme on every paper, and the listing.
@@ -225,7 +214,7 @@ func (r *Report) readDocs(p project.Project, errorAt, warn func(string, int, str
 		for _, d := range r.Plan.Documents {
 			keys = append(keys, d.Key)
 		}
-		for _, k := range sortedKeys(names) {
+		for _, k := range slices.Sorted(maps.Keys(names)) {
 			if !planned[k] {
 				warn(Dir+"/"+lang+"/"+k+".md", 1, RuleConcept, fmt.Sprintf("%s/%s.md is not in the concept's Documents table.", lang, k), "Plan every document in the concept, or remove the file.")
 				keys = append(keys, k)
@@ -267,7 +256,7 @@ func (r *Report) readDocs(p project.Project, errorAt, warn func(string, int, str
 			r.Docs[lang] = append(r.Docs[lang], res.doc)
 			r.lint(p, res.doc, errorAt, warn)
 		}
-		for _, paper := range papersFor(lang, r.Config.Papers) {
+		for _, paper := range paper.For(lang, r.Config.Papers) {
 			if _, ok := Papers[paper]; ok {
 				r.Editions = append(r.Editions, Edition{Key: lang + "-" + paper, Lang: lang, Paper: paper})
 				r.Summary.Editions = append(r.Summary.Editions, lang+"-"+paper)
@@ -390,7 +379,7 @@ func (r *Report) image(p project.Project, d *Doc, line int, img *Figure, errorAt
 // checkLinks counts the Google Docs masters and warns about links that
 // are not Google Docs documents.
 func (r *Report) checkLinks() {
-	for _, key := range sortedKeys(r.Config.Docs) {
+	for _, key := range slices.Sorted(maps.Keys(r.Config.Docs)) {
 		if CopyLink(r.Config.Docs[key]) == "" {
 			r.Diagnostics = append(r.Diagnostics, at("lfm.json", 1, RuleConfig, diagnostic.Warning, fmt.Sprintf("deliverables.document.docs %q is not a Google Docs document link.", key), "Paste the address of the shared Google Docs master, https://docs.google.com/document/d/…/edit."))
 			continue

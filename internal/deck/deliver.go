@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/deliver"
@@ -165,8 +167,8 @@ type Shot struct {
 
 // ImagePlan is one listing image to render: 3000×2250 at twice the density.
 type ImagePlan struct {
-	Name, What string
-	Doc        []byte
+	Name string
+	Doc  []byte
 }
 
 // Image is a rendered listing image.
@@ -200,7 +202,7 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 	}
 	var out []ImagePlan
 	first := shots[0]
-	out = append(out, ImagePlan{Name: "01-" + deliver.Slug(first.Title, "deck") + ".jpg", What: first.Title + ", the product alone", Doc: doc(img(first.Cover, 1360, 765))})
+	out = append(out, ImagePlan{Name: "01-" + deliver.Slug(first.Title, "deck") + ".jpg", Doc: doc(img(first.Cover, 1360, 765))})
 	if len(shots) > 1 {
 		var tiles strings.Builder
 		n := min(len(shots), 4)
@@ -208,11 +210,11 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 		for _, s := range shots[:n] {
 			fmt.Fprintf(&tiles, `<div class="tile">%s<span>%s</span></div>`, img(s.Cover, tw, tw*9/16), html.EscapeString(s.Title))
 		}
-		out = append(out, ImagePlan{Name: "02-decks.jpg", What: "every deck", Doc: doc(fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="row">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Included, len(r.Decks[r.Showcase().Lang]))), tiles.String()))})
+		out = append(out, ImagePlan{Name: "02-decks.jpg", Doc: doc(fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="row">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Included, len(r.Decks[r.Showcase().Lang]))), tiles.String()))})
 	}
-	add := func(name, what, body string) {
+	add := func(name, body string) {
 		if len(out) < deliver.EtsyImages-1 {
-			out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", len(out)+1, name), What: what, Doc: doc(body)})
+			out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", len(out)+1, name), Doc: doc(body)})
 		}
 	}
 	for _, s := range shots {
@@ -223,7 +225,7 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 		for _, png := range s.Slides {
 			grid.WriteString(img(png, 420, 236))
 		}
-		add(deliver.Slug(s.Title, "deck")+"-slides", s.Title+", its slides", fmt.Sprintf(`<div class="col"><div class="cap">%s · %s</div><div class="grid">%s</div></div>`, html.EscapeString(s.Title), html.EscapeString(s.Facts), grid.String()))
+		add(deliver.Slug(s.Title, "deck")+"-slides", fmt.Sprintf(`<div class="col"><div class="cap">%s · %s</div><div class="grid">%s</div></div>`, html.EscapeString(s.Title), html.EscapeString(s.Facts), grid.String()))
 	}
 	for _, s := range shots {
 		if s.Notes == nil {
@@ -235,7 +237,7 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 			pages += img(s.Quiz, 560, 792)
 			caption += " · " + w.Quiz + " · " + w.AnswerKey
 		}
-		add(deliver.Slug(s.Title, "deck")+"-notes", s.Title+", the speaker notes and quiz sheet", fmt.Sprintf(`<div class="col"><div class="row">%s</div><div class="cap">%s</div></div>`, pages, html.EscapeString(caption)))
+		add(deliver.Slug(s.Title, "deck")+"-notes", fmt.Sprintf(`<div class="col"><div class="row">%s</div><div class="cap">%s</div></div>`, pages, html.EscapeString(caption)))
 		break
 	}
 	var langs []string
@@ -247,7 +249,7 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 		works += `<div>` + a + ` ✓</div>`
 	}
 	works += fmt.Sprintf(`</div><div class="cap">%s<br>%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Languages, strings.Join(langs, " · "))), html.EscapeString(w.FontsIncluded))
-	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-works-with.jpg", len(out)+1), What: "the apps and languages", Doc: doc(works)})
+	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-works-with.jpg", len(out)+1), Doc: doc(works)})
 	return out
 }
 
@@ -307,7 +309,7 @@ func DownloadPage(r Report, files []deliver.File) []byte {
 	w := wording(r.Config.Language)
 	dw := deliver.Words(r.Config.Language)
 	var links []deliver.Link
-	for _, lang := range sortedKeys(r.Decks) {
+	for _, lang := range slices.Sorted(maps.Keys(r.Decks)) {
 		for _, d := range r.Decks[lang] {
 			if link := CopyLink(r.Config.Slides[lang+"/"+d.Key]); link != "" {
 				links = append(links, deliver.Link{Label: w.SlidesLink + ": " + d.Title, URL: link})

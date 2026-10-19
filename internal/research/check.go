@@ -2,6 +2,8 @@ package research
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -183,7 +185,7 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 		add(RuleBalance, v.Batches[0].Line, fmt.Sprintf("%d voices from %d platforms; research from zero needs %d from %d.", total, len(platforms), MinVoices, MinPlatforms), "Collect more, preferring platforms not yet covered, or add \"· shortfall: <what and why>\" to the batch heading.")
 	}
 	if total >= 10 {
-		for _, name := range sortedKeys(platforms) {
+		for _, name := range slices.Sorted(maps.Keys(platforms)) {
 			if n := platforms[name]; n*5 > total*2 {
 				add(RuleBalance, v.Batches[0].Line, fmt.Sprintf("%d of %d voices (%d%%) come from %s.", n, total, 100*n/total, name), "Keep any one platform at or below 40% so one corner of the market cannot dominate.")
 			}
@@ -281,13 +283,4 @@ func fromZero(batches []Batch) bool {
 		}
 	}
 	return false
-}
-
-func sortedKeys(m map[string]int) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
 }

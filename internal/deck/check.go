@@ -6,6 +6,7 @@ import (
 	"image"
 	_ "image/jpeg" // image sizes
 	_ "image/png"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/markup"
+	"github.com/Anonyfox/lfm/internal/paper"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/theme"
 	"github.com/Anonyfox/lfm/internal/typeface"
@@ -76,38 +78,17 @@ type picture struct {
 	Px, Py int
 }
 
-// Paper is a notes page size in millimetres.
-type Paper struct {
-	Key           string
-	Width, Height float64
-}
+// Paper is a page size in millimetres.
+type Paper = paper.Size
 
 // Papers are the sizes speaker notes print on.
-var Papers = map[string]Paper{
-	"a4":     {"a4", 210, 297},
-	"letter": {"letter", 215.9, 279.4},
-}
-
-var paperNames = map[string]string{"a4": "A4", "letter": "US Letter"}
+var Papers = paper.Office
 
 func at(file string, line int, rule string, sev diagnostic.Severity, message, hint string) diagnostic.Diagnostic {
 	return diagnostic.Diagnostic{Rule: rule, Severity: sev, Location: diagnostic.Location{File: file, Line: max(line, 1), Column: 1}, Message: message, Hint: hint}
 }
 
 var langDir = regexp.MustCompile(`^[a-z]{2,3}(-[a-z0-9]{2,8})?$`)
-
-// papersFor are the papers a language's notes print on: the configured
-// ones, or Letter and A4 for American English and A4 elsewhere.
-func papersFor(lang string, configured []string) []string {
-	if len(configured) > 0 {
-		return configured
-	}
-	switch lang {
-	case "en", "en-us", "en-ca", "es-us":
-		return []string{"letter", "a4"}
-	}
-	return []string{"a4"}
-}
 
 // design is the report's theme laid out on a slide.
 func (r Report) design() design { return newDesign(r.Theme, r.text, r.head) }
@@ -192,7 +173,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*de
 		}
 	}
 	r.digest = r.inputs()
-	for _, key := range sortedKeys(r.Config.Slides) {
+	for _, key := range slices.Sorted(maps.Keys(r.Config.Slides)) {
 		if CopyLink(r.Config.Slides[key]) == "" {
 			r.Diagnostics = append(r.Diagnostics, at("lfm.json", 1, RuleConfig, diagnostic.Warning, fmt.Sprintf("deliverables.deck.slides %q is not a Google Slides link.", key), "Paste the address of the shared Google Slides master, https://docs.google.com/presentation/d/…/edit."))
 			continue
@@ -248,7 +229,7 @@ func (r *Report) readDecks(p project.Project, errorAt, warn func(string, int, st
 		for _, d := range r.Plan.Decks {
 			keys = append(keys, d.Key)
 		}
-		for _, k := range sortedKeys(names) {
+		for _, k := range slices.Sorted(maps.Keys(names)) {
 			if !planned[k] {
 				warn(Dir+"/"+lang+"/"+k+".md", 1, RuleConcept, fmt.Sprintf("%s/%s.md is not in the concept's Decks table.", lang, k), "Plan every deck in the concept, or remove the file.")
 				keys = append(keys, k)
@@ -290,7 +271,7 @@ func (r *Report) readDecks(p project.Project, errorAt, warn func(string, int, st
 			r.Decks[lang] = append(r.Decks[lang], res.deck)
 			r.lint(p, res.deck, errorAt, warn)
 		}
-		r.Editions = append(r.Editions, Edition{Key: lang, Lang: lang, Papers: papersFor(lang, r.Config.Papers)})
+		r.Editions = append(r.Editions, Edition{Key: lang, Lang: lang, Papers: paper.For(lang, r.Config.Papers)})
 		r.Summary.Editions = append(r.Summary.Editions, lang)
 		r.Summary.Languages = append(r.Summary.Languages, lang)
 	}
@@ -427,13 +408,4 @@ func (r Report) Showcase() Edition {
 		return r.Editions[0]
 	}
 	return Edition{}
-}
-
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	slices.Sort(keys)
-	return keys
 }

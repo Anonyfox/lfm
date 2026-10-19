@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"html"
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -569,12 +570,12 @@ func (w *docxWriter) pack() ([]byte, error) {
 			return nil, err
 		}
 	}
-	for _, name := range sortedKeys(w.files) {
+	for _, name := range slices.Sorted(maps.Keys(w.files)) {
 		if err := put(name, w.files[name]); err != nil {
 			return nil, err
 		}
 	}
-	for _, name := range sortedKeys(w.fonts) {
+	for _, name := range slices.Sorted(maps.Keys(w.fonts)) {
 		if err := z.Raw(name, *w.fonts[name]); err != nil {
 			return nil, err
 		}
@@ -747,13 +748,4 @@ func styles(m metrics, lang string) string {
 	b.WriteString(`<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>`)
 	b.WriteString(`</w:styles>`)
 	return b.String()
-}
-
-func sortedKeys[V any](m map[string]V) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	slices.Sort(keys)
-	return keys
 }

@@ -4,11 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html"
+	"maps"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/paper"
 	"github.com/Anonyfox/lfm/internal/typeface"
 )
 
@@ -67,8 +70,6 @@ func wording(lang string) words {
 	return wordings["en"]
 }
 
-var paperNames = map[string]string{"a4": "A4", "letter": "US Letter"}
-
 // GuideName is an edition's start guide as a separate file.
 func (r Report) GuideName(e Edition) string { return r.Slug() + "-" + e.Key + "-start.pdf" }
 
@@ -110,7 +111,7 @@ footer{margin-top:10mm;font-size:8.5pt;color:%s}
 	}
 	fmt.Fprintf(&s, `<ul><li>%s</li><li>%s</li><li>%s</li><li>%s</li></ul>%s`, html.EscapeString(w.Word), html.EscapeString(docs), html.EscapeString(w.Pages), html.EscapeString(w.LibreOffice), links.String())
 	fmt.Fprintf(&s, `<h2>%s</h2><ul><li>%s</li><li>%s</li><li>%s</li><li>%s</li></ul>`, html.EscapeString(w.FillTitle), html.EscapeString(w.Fill), html.EscapeString(w.FillDone), html.EscapeString(w.Restyle), html.EscapeString(w.Rows))
-	fmt.Fprintf(&s, `<h2>%s</h2><p>%s</p>`, html.EscapeString(w.Print), html.EscapeString(fmt.Sprintf(w.PrintPaper, paperNames[e.Paper])))
+	fmt.Fprintf(&s, `<h2>%s</h2><p>%s</p>`, html.EscapeString(w.Print), html.EscapeString(fmt.Sprintf(w.PrintPaper, paper.Label(e.Paper))))
 	fmt.Fprintf(&s, `<h2>%s</h2><p>%s</p>`, html.EscapeString(w.LicenseTitle), html.EscapeString(w.License))
 	footer := r.Config.Seller
 	if r.Config.Version != "" {
@@ -148,8 +149,8 @@ type Shot struct {
 
 // ImagePlan is one listing image to render: 3000×2250 at twice the density.
 type ImagePlan struct {
-	Name, What string
-	Doc        []byte
+	Name string
+	Doc  []byte
 }
 
 // Image is a rendered listing image.
@@ -184,7 +185,7 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 		return fmt.Sprintf(`<img class="page" src="%s" style="height:%.0fpx;width:%.0fpx">`, src(s), height, height/ratio)
 	}
 	var out []ImagePlan
-	out = append(out, ImagePlan{Name: "01-" + deliver.Slug(shots[0].Title, "document") + ".jpg", What: shots[0].Title + ", the product alone", Doc: doc(page(shots[0], 1030))})
+	out = append(out, ImagePlan{Name: "01-" + deliver.Slug(shots[0].Title, "document") + ".jpg", Doc: doc(page(shots[0], 1030))})
 	var tiles strings.Builder
 	n := min(len(shots), 5)
 	// The tiles share the width, gaps included, and leave room for the caption.
@@ -192,22 +193,22 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 %q
 	for _, s := range shots[:n] {
 		fmt.Fprintf(&tiles, `<div class="tile">%s<span>%s</span></div>`, page(s, h), html.EscapeString(s.Title))
 	}
-	out = append(out, ImagePlan{Name: "02-documents.jpg", What: "every document", Doc: doc(fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="row">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Included, r.Summary.Documents)), tiles.String()))})
+	out = append(out, ImagePlan{Name: "02-documents.jpg", Doc: doc(fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="row">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Included, r.Summary.Documents)), tiles.String()))})
 	i := 3
 	for _, s := range shots[1:] {
 		if i > deliver.EtsyImages-1 {
 			break
 		}
-		out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", i, deliver.Slug(s.Title, "document")), What: s.Title, Doc: doc(fmt.Sprintf(`<div class="col">%s<div class="cap">%s</div></div>`, page(s, 930), html.EscapeString(s.Title)))})
+		out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", i, deliver.Slug(s.Title, "document")), Doc: doc(fmt.Sprintf(`<div class="col">%s<div class="cap">%s</div></div>`, page(s, 930), html.EscapeString(s.Title)))})
 		i++
 	}
 	var editions []string
 	for _, e := range r.Editions {
-		editions = append(editions, strings.ToUpper(e.Lang)+" "+paperNames[e.Paper])
+		editions = append(editions, strings.ToUpper(e.Lang)+" "+paper.Label(e.Paper))
 	}
 	works := fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="works"><div>Word ✓</div><div>Google Docs ✓</div><div>Pages ✓</div><div>LibreOffice ✓</div></div><div class="cap">%s<br>%s</div></div>`,
 		html.EscapeString(w.WorksWith), html.EscapeString(fmt.Sprintf(w.Editions, strings.Join(editions, " · "))), html.EscapeString(w.FontsIncluded))
-	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-works-with.jpg", i), What: "the apps and editions", Doc: doc(works)})
+	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-works-with.jpg", i), Doc: doc(works)})
 	return out
 }
 
@@ -221,7 +222,7 @@ func (r Report) Facts() []string {
 		}
 	}
 	for _, e := range r.Editions {
-		editions = append(editions, strings.ToUpper(e.Lang)+" "+paperNames[e.Paper])
+		editions = append(editions, strings.ToUpper(e.Lang)+" "+paper.Label(e.Paper))
 	}
 	return []string{
 		fmt.Sprintf(w.Included, r.Summary.Documents) + ": " + strings.Join(titles, ", "),
@@ -269,7 +270,7 @@ func DownloadPage(r Report, files []deliver.File) []byte {
 	w := wording(r.Config.Language)
 	dw := deliver.Words(r.Config.Language)
 	var links []deliver.Link
-	for _, lang := range sortedKeys(r.Docs) {
+	for _, lang := range slices.Sorted(maps.Keys(r.Docs)) {
 		for _, d := range r.Docs[lang] {
 			if link := CopyLink(r.Config.Docs[lang+"/"+d.Key]); link != "" {
 				label := w.DocsLink + ": " + d.Title
@@ -288,5 +289,5 @@ func DownloadPage(r Report, files []deliver.File) []byte {
 // FileNote is the line under a file on the download page.
 func (r Report) FileNote(e Edition) string {
 	w := wording(e.Lang)
-	return fmt.Sprintf(w.Paper, paperNames[e.Paper]) + " · " + fmt.Sprintf(w.Included, len(r.Docs[e.Lang])) + " · .docx, PDF, " + w.Fonts
+	return fmt.Sprintf(w.Paper, paper.Label(e.Paper)) + " · " + fmt.Sprintf(w.Included, len(r.Docs[e.Lang])) + " · .docx, PDF, " + w.Fonts
 }

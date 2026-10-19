@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/office"
+	"github.com/Anonyfox/lfm/internal/paper"
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/typeface"
 )
@@ -95,7 +96,7 @@ func (r Report) inspect(b Built, pdf []byte, app string) []Finding {
 		h, _ := strconv.ParseFloat(string(m[2]), 64)
 		p := Papers[b.Edition.Paper]
 		if math.Abs(w-p.Width*72/25.4) > 2 || math.Abs(h-p.Height*72/25.4) > 2 {
-			add("prints on %.0f × %.0f mm, not %s.", w*25.4/72, h*25.4/72, paperNames[b.Edition.Paper])
+			add("prints on %.0f × %.0f mm, not %s.", w*25.4/72, h*25.4/72, paper.Label(b.Edition.Paper))
 		}
 	}
 	allowed := []string{}

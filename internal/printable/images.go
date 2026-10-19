@@ -27,8 +27,8 @@ type Shot struct {
 
 // ImagePlan is one listing image: its document and the page rasters it shows.
 type ImagePlan struct {
-	Name, What string
-	Doc        []byte
+	Name string
+	Doc  []byte
 }
 
 // Shots lists the pages the listing images show: the cover, then the first
@@ -112,7 +112,7 @@ h2{margin:0;font-size:40px}
 </style></head><body>%s</body></html>`, ImageWidth, ImageHeight, accent, accent, body))
 	}
 	var out []ImagePlan
-	out = append(out, ImagePlan{Name: "01-cover.jpg", What: "the cover alone, no text: the search thumbnail", Doc: doc(page(1, 1000, ""))})
+	out = append(out, ImagePlan{Name: "01-cover.jpg", Doc: doc(page(1, 1000, ""))})
 
 	parts := r.partPages()
 	// Every part in two rows, the thumbnails as large as the columns allow.
@@ -123,7 +123,7 @@ h2{margin:0;font-size:40px}
 	for _, part := range shown {
 		fmt.Fprintf(&grid, `<div class="col">%s<div class="cap">%s<small>%s</small></div></div>`, page(part.first, thumb, ""), html.EscapeString(part.Name), w.count(part.count))
 	}
-	out = append(out, ImagePlan{Name: "02-included.jpg", What: "every part with its page count", Doc: doc(fmt.Sprintf(`<div class="col"><h2>%s</h2><div class="grid" style="grid-template-columns:repeat(%d,auto)">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Included, r.Summary.Pages)), cols, grid.String()))})
+	out = append(out, ImagePlan{Name: "02-included.jpg", Doc: doc(fmt.Sprintf(`<div class="col"><h2>%s</h2><div class="grid" style="grid-template-columns:repeat(%d,auto)">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Included, r.Summary.Pages)), cols, grid.String()))})
 
 	n := 3
 	for _, part := range parts {
@@ -142,7 +142,7 @@ h2{margin:0;font-size:40px}
 			pages = page(part.first, height, "") + page(part.first+1, height, "")
 		}
 		caption := fmt.Sprintf(`<div class="cap" style="max-width:1100px">%s<small>%s · %s</small></div>`, html.EscapeString(part.Name), w.count(part.count), html.EscapeString(part.Job))
-		out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", n, deliver.Slug(part.Name, "part")), What: part.Name, Doc: doc(`<div class="col"><div style="display:flex;gap:36px">` + pages + `</div>` + caption + `</div>`)})
+		out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", n, deliver.Slug(part.Name, "part")), Doc: doc(`<div class="col"><div style="display:flex;gap:36px">` + pages + `</div>` + caption + `</div>`)})
 		n++
 	}
 
@@ -161,7 +161,7 @@ h2{margin:0;font-size:40px}
 	if r.Summary.Links > 0 {
 		facts += " · " + fmt.Sprintf(w.LinksLine, r.Summary.Links)
 	}
-	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-sizes.jpg", n), What: "the paper sizes to scale, page and link counts", Doc: doc(`<div class="col"><div class="sizes">` + sizes.String() + `</div><div class="cap" style="max-width:none">` + html.EscapeString(facts) + `</div></div>`)})
+	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-sizes.jpg", n), Doc: doc(`<div class="col"><div class="sizes">` + sizes.String() + `</div><div class="cap" style="max-width:none">` + html.EscapeString(facts) + `</div></div>`)})
 	return out
 }
 

@@ -2,7 +2,9 @@ package check
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -143,19 +145,19 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 		visit("<"+elementLabel(n)+" style>", decls)
 	}
 	if len(declared) > 0 {
-		for _, name := range sortedNames(usedFamilies) {
+		for _, name := range slices.Sorted(maps.Keys(usedFamilies)) {
 			if !declared[name] {
 				issues = append(issues, d.Whole(Warning, fmt.Sprintf("Typeface %q is used (%s) but not declared in concept.md.", name, usedFamilies[name].selector), "Use the typefaces the concept declares, or add this one to its Type table with the reason it serves the concept."))
 			}
 		}
-		for _, name := range sortedKeys(declared) {
+		for _, name := range slices.Sorted(maps.Keys(declared)) {
 			if usedFamilies[name] == nil {
 				issues = append(issues, d.Whole(Warning, fmt.Sprintf("Typeface %q is declared in concept.md but never used.", name), "Set it where the concept assigns its role, or remove it from the Type table."))
 			}
 		}
 	}
 	if len(undeclared) > 0 {
-		keys := sortedNames(undeclared)
+		keys := slices.Sorted(maps.Keys(undeclared))
 		sort.SliceStable(keys, func(i, j int) bool { return undeclared[keys[i]].count > undeclared[keys[j]].count })
 		var list []string
 		for i, k := range keys {
@@ -344,14 +346,3 @@ func sizeAttr(v string) int {
 	}
 	return n
 }
-
-func sortedNames[T any](m map[string]T) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func sortedKeys(m map[string]bool) []string { return sortedNames(m) }

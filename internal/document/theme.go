@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/Anonyfox/lfm/internal/paper"
 	"github.com/Anonyfox/lfm/internal/theme"
 	"github.com/Anonyfox/lfm/internal/typeface"
 )
@@ -22,16 +23,10 @@ var Themes = theme.Presets
 func ThemeNames() []string { return theme.Names() }
 
 // Paper is a page size in millimetres.
-type Paper struct {
-	Key           string
-	Width, Height float64
-}
+type Paper = paper.Size
 
 // Papers are the sizes documents are built in.
-var Papers = map[string]Paper{
-	"a4":     {"a4", 210, 297},
-	"letter": {"letter", 215.9, 279.4},
-}
+var Papers = paper.Office
 
 // metrics are a theme laid out on a paper with real fonts: every size,
 // line height and gap in points, the margins in millimetres. All styles

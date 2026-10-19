@@ -3,8 +3,10 @@ package check
 import (
 	"crypto/sha256"
 	"fmt"
+	"maps"
 	"net/url"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -666,7 +668,7 @@ func placeholderRule(d *Document) []Diagnostic {
 		}
 	}
 	if len(d.Options.StarterImages) > 0 {
-		names := sortedNames(d.Options.Assets)
+		names := slices.Sorted(maps.Keys(d.Options.Assets))
 		for _, name := range names {
 			sum := sha256.Sum256(d.Options.Assets[name])
 			for _, starter := range d.Options.StarterImages {

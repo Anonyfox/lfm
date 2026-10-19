@@ -75,7 +75,7 @@ func (r Report) inspect(b Built, p Print, pdf []byte, app string) []Finding {
 			}
 		default:
 			if paper := Papers[p.Paper]; math.Abs(w-paper.Width*72/25.4) > 2 || math.Abs(h-paper.Height*72/25.4) > 2 {
-				add("%s prints the %s on %.0f × %.0f mm, not %s.", app, p.Kind, w*25.4/72, h*25.4/72, paperNames[p.Paper])
+				add("%s prints the %s on %.0f × %.0f mm, not %s.", app, p.Kind, w*25.4/72, h*25.4/72, Papers[p.Paper].Label)
 			}
 		}
 	}

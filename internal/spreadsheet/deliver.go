@@ -171,8 +171,8 @@ type Image = deliver.Image
 
 // ImagePlan is one listing image to render: 3000×2250 at twice the density.
 type ImagePlan struct {
-	Name, What string
-	Doc        []byte
+	Name string
+	Doc  []byte
 }
 
 // Images plans the listing images from the first edition's example: the
@@ -238,18 +238,18 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 Ar
 		report = visible[len(visible)-1]
 	}
 	var out []ImagePlan
-	out = append(out, ImagePlan{Name: "01-" + deliver.Slug(report.Name, "sheet") + ".jpg", What: report.Name + ", the product alone", Doc: doc(window(report, 1000, 1.15))})
+	out = append(out, ImagePlan{Name: "01-" + deliver.Slug(report.Name, "sheet") + ".jpg", Doc: doc(window(report, 1000, 1.15))})
 	var tiles strings.Builder
 	for _, l := range visible {
 		fmt.Fprintf(&tiles, `<div class="tile"><div class="view"><div class="inner" data-fit="400 100000 0.42">%s</div></div><b>%s</b></div>`, sheetHTML(ed, b, l, pal, 14), html.EscapeString(l.Name))
 	}
-	out = append(out, ImagePlan{Name: "02-tabs.jpg", What: "every tab", Doc: doc(fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="tiles">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Tabs, len(visible))), tiles.String()))})
+	out = append(out, ImagePlan{Name: "02-tabs.jpg", Doc: doc(fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="tiles">%s</div></div>`, html.EscapeString(fmt.Sprintf(w.Tabs, len(visible))), tiles.String()))})
 	n := 3
 	for _, l := range visible {
 		if l == report || l.Kind == "guide" || n > deliver.EtsyImages-1 {
 			continue
 		}
-		out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", n, deliver.Slug(l.Name, "sheet")), What: l.Name, Doc: doc(fmt.Sprintf(`<div class="col">%s<div class="cap">%s</div></div>`, window(l, 900, 1), html.EscapeString(l.Name)))})
+		out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-%s.jpg", n, deliver.Slug(l.Name, "sheet")), Doc: doc(fmt.Sprintf(`<div class="col">%s<div class="cap">%s</div></div>`, window(l, 900, 1), html.EscapeString(l.Name)))})
 		n++
 	}
 	var editions []string
@@ -258,7 +258,7 @@ body{display:flex;align-items:center;justify-content:center;font:600 28px/1.3 Ar
 	}
 	works := fmt.Sprintf(`<div class="col"><div class="cap">%s</div><div class="works"><div>Google Sheets ✓</div><div>Excel 2016+ ✓</div><div>LibreOffice ✓</div><div>Numbers (%s)</div></div><div class="cap">%s<br>%s</div></div>`,
 		html.EscapeString(w.WorksWith), html.EscapeString(w.Basic), html.EscapeString(fmt.Sprintf(w.Formulas, r.Summary.Formulas)), html.EscapeString(fmt.Sprintf(w.EditionsLine, strings.Join(editions, " · "))))
-	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-works-with.jpg", n), What: "the apps and editions", Doc: doc(works)})
+	out = append(out, ImagePlan{Name: fmt.Sprintf("%02d-works-with.jpg", n), Doc: doc(works)})
 	return out
 }
 
