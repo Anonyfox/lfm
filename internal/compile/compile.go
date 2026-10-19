@@ -69,8 +69,8 @@ type Result struct {
 	PageURL  string            `json:"url,omitempty"`
 	Files    []File            `json:"files"`
 	Artifact map[string][]byte `json:"-"` // emitted bytes by file name
-	// Distribution holds the store packages per unit (book, printable,
-	// bundle) by file name, published to distribution/<unit>/ and never
+	// Distribution holds the store packages per unit (each deliverable and
+	// the bundle) by file name, published to distribution/<unit>/ and never
 	// deployed. A unit without an entry is left as it is; an empty one is
 	// removed.
 	Distribution map[string]map[string][]byte `json:"-"`

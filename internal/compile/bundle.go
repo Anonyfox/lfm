@@ -36,12 +36,9 @@ func checkBundle(p project.Project, loaded project.Loaded, commerce commercechec
 		cfg.Language = c.Language
 	}
 	d := c.Deliverables
-	units := map[string]bundle.Unit{
-		"book":        {Present: book.Present(p)},
-		"printable":   {Present: printable.Present(p)},
-		"spreadsheet": {Present: spreadsheet.Present(p)},
-		"document":    {Present: document.Present(p)},
-		"deck":        {Present: deck.Present(p)},
+	units := map[string]bundle.Unit{}
+	for _, k := range kinds {
+		units[k.name] = bundle.Unit{Present: k.present(p)}
 	}
 	sell := func(kind, s string) {
 		u := units[kind]
@@ -354,6 +351,8 @@ func (d delivered) parts(r *bundle.Report) ([]part, string, func(*release.Printe
 			pt := part{kind: kind, name: dk.Plan.Name, files: d.decks, pending: dk.Summary.Pending, facts: dk.Facts(), groups: map[string][]string{"decks": all(d.decks)}}
 			pt.cover, pt.coverData = firstImage(kind, d.decks)
 			out = append(out, pt)
+		default:
+			panic("compile: the bundle has no part for " + kind)
 		}
 	}
 	accent := ""

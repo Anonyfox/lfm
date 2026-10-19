@@ -124,8 +124,15 @@ func removeStale(root, dir string) {
 	}
 }
 
-// units are the sellable units that own a folder in distribution/.
-var units = map[string]bool{"book": true, "printable": true, "bundle": true, "spreadsheet": true, "document": true, "deck": true}
+// units are the sellable units that own a folder in distribution/: every
+// deliverable and the bundle.
+var units = func() map[string]bool {
+	out := map[string]bool{"bundle": true}
+	for _, k := range kinds {
+		out[k.name] = true
+	}
+	return out
+}()
 
 // publishDistribution replaces each unit's folder in distribution/ the way
 // publish replaces output/, removes the units that have none any more, and

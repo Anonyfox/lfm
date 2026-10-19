@@ -1,6 +1,8 @@
 package compile
 
 import (
+	"fmt"
+
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deck"
@@ -35,28 +37,29 @@ type checking struct {
 }
 
 // kinds are the deliverables lfm builds, in the order the report lists
-// them; each checks only its own folder.
+// them (bundle.Kinds, by name); each checks only its own folder.
 var kinds = []struct {
+	name    string
 	present func(project.Project) bool
 	check   func(checking) (unit, []diagnostic.Diagnostic)
 }{
-	{book.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
+	{"book", book.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
 		r, found := checkBook(c.p, c.loaded, c.commerce, c.researched)
 		return orNil(r, &bookUnit{r: r}), found
 	}},
-	{printable.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
+	{"printable", printable.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
 		r, found := checkPrintable(c.p, c.loaded, c.commerce)
 		return orNil(r, &printableUnit{r: r}), found
 	}},
-	{spreadsheet.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
+	{"spreadsheet", spreadsheet.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
 		r, found := checkSpreadsheet(c.p, c.loaded, c.commerce)
 		return orNil(r, &spreadsheetUnit{r: r}), found
 	}},
-	{document.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
+	{"document", document.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
 		r, found := checkDocument(c.p, c.loaded, c.commerce)
 		return orNil(r, &documentUnit{r: r}), found
 	}},
-	{deck.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
+	{"deck", deck.Present, func(c checking) (unit, []diagnostic.Diagnostic) {
 		r, found := checkDeck(c.p, c.loaded, c.commerce)
 		return orNil(r, &deckUnit{r: r}), found
 	}},
@@ -180,6 +183,8 @@ func gather(units []unit) delivered {
 			d.document, d.docs = u.r, u.out
 		case *deckUnit:
 			d.deck, d.decks = u.r, u.out
+		default:
+			panic(fmt.Sprintf("compile: the bundle cannot gather a %T", u))
 		}
 	}
 	return d
