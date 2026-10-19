@@ -19,6 +19,7 @@ func commerceProject(t *testing.T) string {
 }
 
 func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
+	t.Parallel()
 	root := commerceProject(t)
 	r, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
@@ -86,6 +87,7 @@ func TestCommercePreflightFinalGateAndRuleControls(t *testing.T) {
 }
 
 func TestCommerceDatasetLocationsAndSecretGate(t *testing.T) {
+	t.Parallel()
 	root := commerceProject(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)

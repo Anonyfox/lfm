@@ -11,6 +11,7 @@ import (
 )
 
 func TestValidationGateAndExactBytes(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
@@ -52,6 +53,7 @@ func TestValidationGateAndExactBytes(t *testing.T) {
 }
 
 func TestOversizedArtifactGivesSourceAndFileRemedy(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -93,6 +95,7 @@ func TestOversizedArtifactGivesSourceAndFileRemedy(t *testing.T) {
 }
 
 func TestRuleConfiguration(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<p id=duplicate>One</p><p id=duplicate>Two</p></body>`, 1))
 	changeConfig(t, root, func(c map[string]any) {
@@ -122,6 +125,7 @@ func TestRuleConfiguration(t *testing.T) {
 }
 
 func TestIdenticalEmbeddedSourcesStayDeterministic(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "assets/images/copy.svg", read(t, root, "assets/images/picture.svg"))
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<img src="assets/images/copy.svg" alt=""></body>`, 1))
@@ -144,6 +148,7 @@ func TestIdenticalEmbeddedSourcesStayDeterministic(t *testing.T) {
 }
 
 func TestOperationalNoticesObeyConfigAndPreserveOutput(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "unused.svg", `<svg xmlns="http://www.w3.org/2000/svg"/>`)
 	write(t, root, "index.html.tmpl", helperHTML("", `<link rel="preload" as="image" href="unused.svg">`))
@@ -202,6 +207,7 @@ func TestReleaseNoticesObeyConfigBeforePublishing(t *testing.T) {
 }
 
 func TestSEOFinalGateAggregatesAndPreservesOutput(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -258,6 +264,7 @@ func TestSEOFinalGateAggregatesAndPreservesOutput(t *testing.T) {
 }
 
 func TestAccessibilityAndInteractionFinalGate(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)

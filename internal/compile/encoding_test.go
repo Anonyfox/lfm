@@ -34,6 +34,7 @@ func decodeInline(t testing.TB, uri string) []byte {
 }
 
 func TestSVGEncodingSurvivesBundlingAndPacking(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	raw := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><defs><linearGradient id="paint"><stop stop-color="#f00"/></linearGradient></defs><path fill="url(#paint)" d="M0,0h20v20z"/><text xml:space="preserve">  café 🐺 &amp; 50% </text></svg>`
 	write(t, root, "assets/images/picture.svg", raw)
@@ -76,6 +77,7 @@ func TestSVGEncodingSurvivesBundlingAndPacking(t *testing.T) {
 }
 
 func TestSVGSidecarRewritePreservesFragments(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	// Each occurrence reaches the holistic planner; together they cross 32 KiB.
 	raw := `<svg xmlns="http://www.w3.org/2000/svg"><!--` + strings.Repeat("many repeated source bytes ", 300) + `--><view id="crop" viewBox="0 0 10 10"/><path d="M0 0h10v10z"/></svg>`

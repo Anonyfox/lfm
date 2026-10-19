@@ -12,6 +12,7 @@ import (
 // TestGoldenPages compiles the example project and lfm.cash itself and
 // holds every file in output/ to the bytes it compiled to before.
 func TestGoldenPages(t *testing.T) {
+	t.Parallel()
 	for name, src := range map[string]string{"example": "../../testdata/example", "site": "../../site"} {
 		dir := t.TempDir()
 		if err := os.CopyFS(dir, os.DirFS(src)); err != nil {

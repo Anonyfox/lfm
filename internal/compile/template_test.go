@@ -9,6 +9,7 @@ import (
 )
 
 func TestMappingGateCollectsHardErrorsAndPreservesOutput(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -33,6 +34,7 @@ func TestMappingGateCollectsHardErrorsAndPreservesOutput(t *testing.T) {
 	assertClean(t, root)
 }
 func TestMappingWarningsMergeWithHTMLGate(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["data"].(map[string]any)["blank"] = "" })
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<p>{{.data.blank}}</p><img src="assets/images/picture.svg"></body>`, 1))
@@ -54,6 +56,7 @@ func TestMappingWarningsMergeWithHTMLGate(t *testing.T) {
 	}
 }
 func TestMappingPoliciesAndRuntimeOnlyConsumption(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"template.unused": "off", "template.inactive": "off"}}
@@ -77,6 +80,7 @@ func TestMappingPoliciesAndRuntimeOnlyConsumption(t *testing.T) {
 	}
 }
 func TestEveryTemplateSyntaxFailureReported(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", `{{if}}`)
 	write(t, root, "partials/bad.html.tmpl", `{{range .data}}`)
@@ -91,6 +95,7 @@ func TestEveryTemplateSyntaxFailureReported(t *testing.T) {
 	}
 }
 func TestDuplicateJSONRejectedBeforeBinding(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "lfm.json", strings.Replace(read(t, root, "lfm.json"), `"enabled":true`, `"enabled":true,"enabled":false`, 1))
 	write(t, root, "data/faq.json", `[{"id":"one","id":"two","question":"Q","answer":"A"}]`)
@@ -105,6 +110,7 @@ func TestDuplicateJSONRejectedBeforeBinding(t *testing.T) {
 	}
 }
 func TestContextualEscapingFailureIsUniform(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", `{{if .data.enabled}}<a href="{{end}}{{.title}}`)
 	report, err := Compile(context.Background(), root, Options{Publish: true})
@@ -114,6 +120,7 @@ func TestContextualEscapingFailureIsUniform(t *testing.T) {
 }
 
 func TestConfigProblemsCollectedWithLocations(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["schemaVersion"] = 2
@@ -138,6 +145,7 @@ func TestConfigProblemsCollectedWithLocations(t *testing.T) {
 	}
 }
 func TestReservedConfigCaseAndUnknowns(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["Title"] = "duplicate through Go case folding"

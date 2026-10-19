@@ -9,6 +9,7 @@ import (
 )
 
 func TestNamedURLsBuildAndEscaping(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["urls"] = map[string]any{"checkout": "https://checkout.example/pay?product=one&ref=hero", "phone": "tel:+49401234", "app": "myapp://product/1", "email": "mailto:hello@example.org?subject=Hi%20there"}
@@ -42,6 +43,7 @@ func TestNamedURLsBuildAndEscaping(t *testing.T) {
 	}
 }
 func TestURLFailuresPreserveOutput(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name, rule string
 		change     func(*testing.T, string)
@@ -92,6 +94,7 @@ func TestURLFailuresPreserveOutput(t *testing.T) {
 	}
 }
 func TestURLRuleOverrides(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"links.literal": "warn", "links.declared": "warn"}}
@@ -110,6 +113,7 @@ func TestURLRuleOverrides(t *testing.T) {
 	}
 }
 func TestMultipleNamedURLErrorsCollected(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["urls"] = map[string]any{"checkout": "htpps://checkout.example/", "help": "https://example.org:99999/"}
@@ -126,6 +130,7 @@ func TestMultipleNamedURLErrorsCollected(t *testing.T) {
 }
 
 func TestContextNormalizedNamedURLs(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["urls"] = map[string]any{
@@ -153,6 +158,7 @@ func TestContextNormalizedNamedURLs(t *testing.T) {
 }
 
 func TestUnicodeCanonicalAndURLValueTypeLocation(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["url"] = "https://bücher.de/über/" })
 	write(t, root, "index.html.tmpl", fixtureHTML)
@@ -178,6 +184,7 @@ func TestUnicodeCanonicalAndURLValueTypeLocation(t *testing.T) {
 }
 
 func TestLiteralURLReportsSyntaxAndExistingOwner(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["urls"] = map[string]any{"checkout": "https://checkout.example/"} })
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="https://checkout.example/">Pay</a><a href="htpps://other.example/">Typo</a></body>`, 1))

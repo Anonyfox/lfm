@@ -54,6 +54,7 @@ func runModule(t *testing.T, source string) map[string]any {
 func strconvJSON(value string) string { raw, _ := json.Marshal(value); return string(raw) }
 
 func TestPackagesVendorFormatsAndTreeShaking(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"inline", "file"} {
 		t.Run(mode, func(t *testing.T) {
 			root := fixture(t)
@@ -108,6 +109,7 @@ func TestPackagesVendorFormatsAndTreeShaking(t *testing.T) {
 }
 
 func TestMultipleEntriesShareOneGraph(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "assets/scripts/shared.mjs", `window.events.push("shared"); export const value=3;`)
 	write(t, root, "assets/scripts/app.js", `import {value} from "./shared.mjs";window.events.push("first:"+value);`)
@@ -127,6 +129,7 @@ func TestMultipleEntriesShareOneGraph(t *testing.T) {
 }
 
 func TestUntypedModuleEntriesWork(t *testing.T) {
+	t.Parallel()
 	for _, source := range []string{`import {answer} from "./answer.js";window.answer=answer;`, `const {answer}=require("./answer.js");window.answer=answer;`} {
 		root := fixture(t)
 		write(t, root, "assets/scripts/app.js", source)
@@ -142,6 +145,7 @@ func TestUntypedModuleEntriesWork(t *testing.T) {
 }
 
 func TestCSSMediaOrderAndNativeBoundaries(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "assets/styles/second.css", `.hero{color:blue}.never-in-static-html{display:block}`)
 	write(t, root, "assets/styles/alternate.css", `.hero{color:green}`)
@@ -169,6 +173,7 @@ func TestCSSMediaOrderAndNativeBoundaries(t *testing.T) {
 }
 
 func TestDeferredClassicKeepsNativeSource(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "assets/scripts/global.js", `function globalHandler(){return 42}`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, `<script type="module" src="assets/scripts/app.js"></script>`, `<script defer src="assets/scripts/global.js"></script>`, 1))
@@ -187,6 +192,7 @@ func TestDeferredClassicKeepsNativeSource(t *testing.T) {
 }
 
 func TestPackageFailurePreservesOutput(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -214,6 +220,7 @@ func TestPackageFailurePreservesOutput(t *testing.T) {
 }
 
 func TestLegacyUMDAndClassicGlobalsRemainAvailable(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "package.json", `{"type":"module"}`)
 	write(t, root, "assets/scripts/legacy.js", `(function(root,factory){if(typeof module==="object" && module.exports)module.exports=factory();else root.Legacy=factory()})(window,function(){return {answer:42}});`)
@@ -248,6 +255,7 @@ func TestLegacyUMDAndClassicGlobalsRemainAvailable(t *testing.T) {
 }
 
 func TestHTMLTemplateBundlesStayDormant(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "assets/scripts/dormant.js", `window.dormant=true;`)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<template id="result"><style>.dormant{color:red}</style><div class="dormant">Future</div><script type="module" src="assets/scripts/dormant.js"></script></template></body>`, 1))

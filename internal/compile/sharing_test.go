@@ -14,6 +14,7 @@ import (
 )
 
 func TestCanonicalFinalGateAndConfigBase(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -89,6 +90,7 @@ func sharingProject(t *testing.T) string {
 }
 
 func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
+	t.Parallel()
 	root := sharingProject(t)
 	r, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
@@ -139,6 +141,7 @@ func TestSharingFinalBytesSidecarsAndFailureAggregation(t *testing.T) {
 }
 
 func TestVendorDiscordTemplateEscapingHasActionableFeedback(t *testing.T) {
+	t.Parallel()
 	root := sharingProject(t)
 	page := strings.Replace(read(t, root, "index.html.tmpl"), `id="discord:component-embed" type="application/json"`, `id="discord:component-embed" type="application/vnd.discord.component-embed+json"`, 1)
 	write(t, root, "index.html.tmpl", page)
@@ -155,6 +158,7 @@ func TestVendorDiscordTemplateEscapingHasActionableFeedback(t *testing.T) {
 }
 
 func TestLinkedDiscordFileIsInspectedWithoutFetch(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["urls"] = map[string]any{"result": "https://example.com/tools/demo/?seed=42"}
@@ -186,6 +190,7 @@ func TestLinkedDiscordFileIsInspectedWithoutFetch(t *testing.T) {
 }
 
 func TestStructuredSharingMediaFollowsAutomaticSidecarNames(t *testing.T) {
+	t.Parallel()
 	root := sharingProject(t)
 	changeConfig(t, root, func(c map[string]any) {
 		delete(c["build"].(map[string]any), "assets")
@@ -219,6 +224,7 @@ func TestStructuredSharingMediaFollowsAutomaticSidecarNames(t *testing.T) {
 }
 
 func TestSocialImageSizesAreFilledFromTheEmittedFile(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	writeSharingPNG(t, root, "card.png", 600, 314)
 	writeSharingPNG(t, root, "second.png", 300, 300)

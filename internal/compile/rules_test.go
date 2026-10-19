@@ -18,6 +18,7 @@ import (
 // Every rule a user or agent can be told about must explain itself in
 // `lfm rules <id>`: a one-line summary and a short help paragraph.
 func TestCatalogRulesHaveStandardHelp(t *testing.T) {
+	t.Parallel()
 	seen := map[string]bool{}
 	sentence := regexp.MustCompile(`[.!?](\s|$)`)
 	for _, rule := range Rules() {
@@ -57,6 +58,7 @@ func TestCatalogRulesHaveStandardHelp(t *testing.T) {
 // Keep future diagnostics and the CLI's catalog/config controls in sync. Dynamic
 // Lighthouse IDs belong to the installed tool and have their own namespace.
 func TestCatalogCoversEmittedRuleIDs(t *testing.T) {
+	t.Parallel()
 	known := map[string]bool{}
 	for _, entry := range Rules() {
 		if known[entry.ID] || entry.ID == "" || entry.Summary == "" {
@@ -115,6 +117,7 @@ func TestCatalogCoversEmittedRuleIDs(t *testing.T) {
 }
 
 func TestEveryCatalogRuleHasAnHonestConfigControl(t *testing.T) {
+	t.Parallel()
 	for _, entry := range Rules() {
 		for _, level := range []diagnostic.Severity{diagnostic.Off, diagnostic.Warning, diagnostic.Error} {
 			err := ruleCheck(entry.ID, level)
@@ -138,6 +141,7 @@ func TestEveryCatalogRuleHasAnHonestConfigControl(t *testing.T) {
 }
 
 func TestRuleLevelsAreValidated(t *testing.T) {
+	t.Parallel()
 	for id, level := range map[string]diagnostic.Severity{"typo": diagnostic.Off, "html.ids": "warning", "html.ids ": diagnostic.Off} {
 		if ruleCheck(id, level) == nil {
 			t.Errorf("accepted %s=%q", id, level)

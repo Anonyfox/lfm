@@ -36,6 +36,7 @@ func imageProject(t *testing.T, body, styles string) string {
 }
 
 func TestImageInferencePreservesAuthoredSizing(t *testing.T) {
+	t.Parallel()
 	body := `<img id="plain" src="assets/images/photo.png" alt=""><img id="width" src="assets/images/photo.png" width="006" alt=""><img id="height" src="assets/images/photo.png" height="4" alt=""><img id="both" src="assets/images/photo.png" width="5" height="7" alt=""><img id="zero" src="assets/images/photo.png" width="0" alt=""><img id="empty" src="assets/images/photo.png" width="" alt=""><img id="relative" src="assets/images/photo.png" width="50%" alt=""><img id="fraction" src="assets/images/photo.png" width="5" alt=""><template><img id="dormant" src="assets/images/photo.png" alt=""></template>`
 	root := imageProject(t, body, "")
 	report, err := Compile(context.Background(), root, Options{Publish: true})
@@ -63,6 +64,7 @@ func TestImageInferencePreservesAuthoredSizing(t *testing.T) {
 }
 
 func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
+	t.Parallel()
 	for _, test := range []struct {
 		name, style, wrapper string
 		infer                bool
@@ -108,6 +110,7 @@ func TestImageInferenceScreensCSSWithoutChangingIt(t *testing.T) {
 }
 
 func TestImageInferenceHandlesInlineFilesSVGAndResponsiveSelection(t *testing.T) {
+	t.Parallel()
 	data := "data:image/png;base64," + base64.StdEncoding.EncodeToString(imagePNG(t, 12, 8))
 	body := `<img id="data" src="` + data + `" alt=""><img id="file" src="assets/images/photo.png?v=1" alt=""><img id="svg" src="fixed.svg" alt=""><img id="viewbox" src="ratio.svg" alt=""><img id="fragment" src="fixed.svg#crop" alt=""><img id="srcset" src="assets/images/photo.png" srcset="assets/images/photo.png 1x, assets/images/photo.png 2x" alt=""><picture><source type="image/png" srcset="assets/images/photo.png" width="20" height="30"><img id="picture" src="assets/images/photo.png" alt=""></picture>`
 	root := imageProject(t, body, "")
@@ -145,6 +148,7 @@ func TestImageInferenceHandlesInlineFilesSVGAndResponsiveSelection(t *testing.T)
 }
 
 func TestOversizedImageWarningsAreActionableAndDeduplicated(t *testing.T) {
+	t.Parallel()
 	root := imageProject(t, `<img src="large.png" width="100" height="100" alt=""><img src="large.png" width="100" height="100" alt="">`, "")
 	// Change only the valid IHDR and CRC. Header inspection must never allocate
 	// a 20-megapixel pixel buffer or pretend to validate the compressed payload.

@@ -70,6 +70,7 @@ func writePrintable(t *testing.T, dir string) {
 }
 
 func TestPrintableIsPublishedBehindItsPath(t *testing.T) {
+	t.Parallel()
 	dir := printableProject(t)
 	result, err := Compile(context.Background(), dir, Options{Publish: true})
 	if err != nil {
@@ -133,6 +134,7 @@ func TestPrintableIsPublishedBehindItsPath(t *testing.T) {
 }
 
 func TestPageThatLeaksThePrintablePathFails(t *testing.T) {
+	t.Parallel()
 	dir := printableProject(t)
 	tmpl, _ := os.ReadFile(filepath.Join(dir, "index.html.tmpl"))
 	os.WriteFile(filepath.Join(dir, "index.html.tmpl"), bytes.Replace(tmpl, []byte("</main>"), []byte(`<p>`+printablePath+`</p></main>`), 1), 0o644)
@@ -167,6 +169,7 @@ func findings(r Result, prefix string) []string {
 }
 
 func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
+	t.Parallel()
 	dir := bookProject(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
 	writePrintable(t, dir)
@@ -227,6 +230,7 @@ func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
 }
 
 func TestShopsModeLinksToTheShopInsteadOfADownloadPage(t *testing.T) {
+	t.Parallel()
 	dir := printableProject(t)
 	configure(t, dir, func(c map[string]any) {
 		c["deliverables"] = map[string]any{"printable": map[string]any{"sell": "shops", "offer": "pack"}}
@@ -262,6 +266,7 @@ func TestShopsModeLinksToTheShopInsteadOfADownloadPage(t *testing.T) {
 }
 
 func TestBundleConfigErrors(t *testing.T) {
+	t.Parallel()
 	dir := printableProject(t)
 	configure(t, dir, func(c map[string]any) {
 		c["deliverables"] = map[string]any{"printable": map[string]any{"sell": "bundle"}}

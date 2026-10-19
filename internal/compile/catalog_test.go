@@ -19,6 +19,7 @@ import (
 // notices) and holds it to 'lfm rules', which build.validation.rules is
 // checked against: a rule missing there could be reported but never set.
 func TestEveryReportedRuleIsInTheCatalog(t *testing.T) {
+	t.Parallel()
 	known := map[string]bool{}
 	for _, r := range Rules() {
 		known[r.ID] = true

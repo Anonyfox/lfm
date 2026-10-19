@@ -13,6 +13,7 @@ import (
 // its allocations, which time on a busy machine cannot measure: half again
 // what it takes today. A change that needs more should say why here.
 func TestCompileKeepsItsBudget(t *testing.T) {
+	// Not parallel: memory statistics are the whole process's.
 	dir := t.TempDir()
 	if err := os.CopyFS(dir, os.DirFS("../../testdata/example")); err != nil {
 		t.Fatal(err)

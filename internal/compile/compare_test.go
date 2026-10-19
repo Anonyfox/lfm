@@ -8,6 +8,7 @@ import (
 )
 
 func TestComparisonsOrderNumbersByValue(t *testing.T) {
+	t.Parallel()
 	n := func(s string) json.Number { return json.Number(s) }
 	for _, tc := range []struct {
 		name string
@@ -40,6 +41,7 @@ func TestComparisonsOrderNumbersByValue(t *testing.T) {
 }
 
 func TestTemplatesCompareConfigNumbersByValue(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "<h1>{{.title}}</h1>", `<h1>{{.title}}</h1><p id="cmp">{{if ge .data.quiz.value 6}}big{{else}}small{{end}} {{if eq .data.quiz.value 42}}exact{{end}} {{if lt .data.quiz.value 100}}below{{end}}</p>`, 1))
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
@@ -51,6 +53,7 @@ func TestTemplatesCompareConfigNumbersByValue(t *testing.T) {
 }
 
 func TestSameDocumentFragmentsNeedNoRegistry(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "<h1>{{.title}}</h1>", `<h1>{{.title}}</h1><a href="#faq-one">Read the answer</a><form action="#explanation"><button>Show</button></form>`, 1))
 	result, err := Compile(context.Background(), root, Options{Publish: true})

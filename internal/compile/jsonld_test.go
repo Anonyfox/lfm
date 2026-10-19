@@ -11,6 +11,7 @@ import (
 )
 
 func TestJSONLDCompilation(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"] = map[string]any{"@context": "https://schema.org", "@type": "WebPage", "url": "{{.url}}", "name": "{{.title}}", "description": "{{.description}}", "inLanguage": "{{.language}}", "identifier": "{{.data.quiz.prompt}}"}
@@ -58,6 +59,7 @@ func TestJSONLDCompilation(t *testing.T) {
 }
 
 func TestJSONLDFailuresPreserveOutput(t *testing.T) {
+	t.Parallel()
 	for _, tc := range []struct {
 		name, template, rule string
 		jsonld               any
@@ -102,6 +104,7 @@ func TestJSONLDFailuresPreserveOutput(t *testing.T) {
 }
 
 func TestJSONLDUnknownContextAndDisabledBlock(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(config map[string]any) {
 		config["jsonld"] = map[string]any{"@context": "https://custom.example/context", "@type": "Custom", "name": "Name"}
@@ -129,6 +132,7 @@ func TestJSONLDUnknownContextAndDisabledBlock(t *testing.T) {
 }
 
 func TestJSONLDEntityIdentifiersFollowURLPolicy(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(config map[string]any) {
 		config["urls"] = map[string]any{"entity": "#entity", "legacyEntity": "http://example.com/entity"}

@@ -41,6 +41,7 @@ func spreadsheetProject(t *testing.T) string {
 }
 
 func TestSpreadsheetIsBuiltCheckedAndDelivered(t *testing.T) {
+	t.Parallel()
 	dir := spreadsheetProject(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
 	result, err := Compile(context.Background(), dir, Options{Publish: true})

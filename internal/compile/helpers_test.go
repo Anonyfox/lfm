@@ -17,6 +17,7 @@ func helperHTML(script, style string) string {
 }
 
 func TestHelpersLocalPartialPackageAndRepeatedDeclarations(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "features/shared.cjs", `window.events.push('shared');module.exports=7`)
 	write(t, root, "features/main.ts", `import value from './shared.cjs';window.events.push('main:'+value)`)
@@ -60,6 +61,7 @@ func TestHelpersLocalPartialPackageAndRepeatedDeclarations(t *testing.T) {
 }
 
 func TestHelperErrorsAggregatedBeforeStaging(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "missing-a.js"}}{{script "missing-b.js"}}`, `{{style ""}}`))
 	report, err := Compile(context.Background(), root, Options{Publish: true})
@@ -84,6 +86,7 @@ func TestHelperErrorsAggregatedBeforeStaging(t *testing.T) {
 }
 
 func TestHelperContextsDormancyAndFileOverrides(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "app.js", `window.helperApp=true`)
 	write(t, root, "theme.css", `.helper{color:red}`)
@@ -114,6 +117,7 @@ func TestHelperContextsDormancyAndFileOverrides(t *testing.T) {
 }
 
 func TestCSSModulesImportedFromHelperEntry(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "ui.module.css", `.card{color:rebeccapurple}.unused{color:green}`)
 	write(t, root, "ui.js", `import classes from './ui.module.css';window.cssClass=classes.card;`)
@@ -136,6 +140,7 @@ func TestCSSModulesImportedFromHelperEntry(t *testing.T) {
 }
 
 func TestIndependentCSSModuleGraphsCannotSilentlyCollide(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	write(t, root, "first.module.css", `.card{color:red}`)
 	write(t, root, "second.module.css", `.card{color:blue}`)
@@ -162,6 +167,7 @@ func TestIndependentCSSModuleGraphsCannotSilentlyCollide(t *testing.T) {
 }
 
 func TestHelperPathsCannotEscapeOrReadGeneratedSources(t *testing.T) {
+	t.Parallel()
 	for _, name := range []string{"../outside.js", "output/cached.js"} {
 		t.Run(name, func(t *testing.T) {
 			root := fixture(t)
@@ -177,6 +183,7 @@ func TestHelperPathsCannotEscapeOrReadGeneratedSources(t *testing.T) {
 }
 
 func TestHelperConfigBindingsLoopsAndPipelines(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["data"].(map[string]any)["scripts"] = []any{"assets/scripts/app.js", "assets/scripts/app.js"}

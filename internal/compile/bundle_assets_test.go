@@ -7,6 +7,7 @@ import (
 )
 
 func TestFileLoaderPreservesResourceSuffixes(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "assets/styles/main.css", `.hero{background:url('../images/picture.svg?v=1#shape')}`)
@@ -22,6 +23,7 @@ func TestFileLoaderPreservesResourceSuffixes(t *testing.T) {
 }
 
 func TestFileLoaderEncodesAssetNames(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "assets/images/a b#c.webp", "asset")

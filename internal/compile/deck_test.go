@@ -43,6 +43,7 @@ func deckProject(t testing.TB) string {
 }
 
 func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
+	t.Parallel()
 	dir := deckProject(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
 	result, err := Compile(context.Background(), dir, Options{Publish: true})
@@ -91,6 +92,7 @@ func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 }
 
 func TestBundleSellsDeckAndDocumentsTogether(t *testing.T) {
+	t.Parallel()
 	dir := deckProject(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
 	// The kit's handouts: the club's documents stand in for them.

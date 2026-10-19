@@ -44,6 +44,7 @@ func documentProject(t *testing.T) string {
 }
 
 func TestDocumentsAreBuiltCheckedAndDelivered(t *testing.T) {
+	t.Parallel()
 	dir := documentProject(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
 	result, err := Compile(context.Background(), dir, Options{Publish: true})

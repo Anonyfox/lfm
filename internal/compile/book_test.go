@@ -91,6 +91,7 @@ func bookProject(t *testing.T) string {
 }
 
 func TestBookIsPublishedBehindItsPath(t *testing.T) {
+	t.Parallel()
 	dir := bookProject(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
 	listing := "# Listing: The Weekend Starter\n\n## Description\n" + strings.Repeat("Keep a starter alive on a working week. ", 8) +
@@ -159,6 +160,7 @@ func TestBookIsPublishedBehindItsPath(t *testing.T) {
 }
 
 func TestPageThatLeaksTheBookPathFails(t *testing.T) {
+	t.Parallel()
 	dir := bookProject(t)
 	tmpl, _ := os.ReadFile(filepath.Join(dir, "index.html.tmpl"))
 	tmpl = bytes.Replace(tmpl, []byte("</body>"), []byte("<p>Your copy: example.com/"+bookPath+"/</p></body>"), 1)
@@ -177,6 +179,7 @@ func TestPageThatLeaksTheBookPathFails(t *testing.T) {
 }
 
 func TestUnfinishedBookPublishesThePresalePage(t *testing.T) {
+	t.Parallel()
 	dir := bookProject(t)
 	os.Remove(filepath.Join(dir, book.Dir, "chapters", "03.md"))
 	result, err := Compile(context.Background(), dir, Options{Publish: true})

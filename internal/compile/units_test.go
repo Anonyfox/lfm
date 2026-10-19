@@ -17,6 +17,7 @@ import (
 // missing from one list is built and then dropped, such as a distribution/
 // folder written and deleted again.
 func TestEveryListNamesEveryDeliverable(t *testing.T) {
+	t.Parallel()
 	var names []string
 	for _, k := range kinds {
 		names = append(names, k.name)
@@ -42,6 +43,7 @@ func TestEveryListNamesEveryDeliverable(t *testing.T) {
 
 // A deliverable sold only in the bundle is held to it, whichever it is.
 func TestEveryDeliverableCanSellInTheBundle(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	if _, err := scaffold.Create(dir); err != nil {
 		t.Fatal(err)

@@ -20,6 +20,7 @@ func autoFixture(t *testing.T) string {
 }
 
 func TestAutomaticPackingUsesRolesAndWholeDocument(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	for name, n := range map[string]int{"tiny.svg": 100, "large.png": 30000, "lazy.webp": 6000, "small.webp": 200, "font.woff2": 6000} {
 		write(t, root, name, strings.Repeat("A", n))
@@ -62,6 +63,7 @@ func TestAutomaticPackingUsesRolesAndWholeDocument(t *testing.T) {
 }
 
 func TestPackingTargetAndPins(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	var imgs strings.Builder
 	for i := 0; i < 35; i++ {
@@ -98,6 +100,7 @@ func TestPackingTargetAndPins(t *testing.T) {
 }
 
 func TestPackingRewritesGeneratedCodeButPreservesInertAndVisibleData(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	raw := strings.Repeat("z", 16000)
 	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte(raw))
@@ -155,6 +158,7 @@ func TestPackingRewritesGeneratedCodeButPreservesInertAndVisibleData(t *testing.
 }
 
 func TestIdenticalAssetAliasesHonorInlinePin(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "a.png", strings.Repeat("x", 16000))
 	write(t, root, "b.png", read(t, root, "a.png"))
@@ -172,6 +176,7 @@ func TestIdenticalAssetAliasesHonorInlinePin(t *testing.T) {
 }
 
 func TestFaviconFallbackAndAuthoredIdentity(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "index.html.tmpl", helperHTML("", ""))
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
@@ -214,6 +219,7 @@ func TestFaviconFallbackAndAuthoredIdentity(t *testing.T) {
 }
 
 func TestLocalHintsFollowCompiledFilesAndDropInlineResources(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "one.js", `window.one=1;export{}`)
 	write(t, root, "two.js", `window.two=2;export{}`)
@@ -261,6 +267,7 @@ func TestLocalHintsFollowCompiledFilesAndDropInlineResources(t *testing.T) {
 }
 
 func TestAutomaticSidecarsEscapeCSSAndResolveBasenameCollisions(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "one/same(a).png", strings.Repeat("a", 30000))
 	write(t, root, "two/same(a).png", strings.Repeat("b", 30000))
@@ -286,6 +293,7 @@ func TestAutomaticSidecarsEscapeCSSAndResolveBasenameCollisions(t *testing.T) {
 }
 
 func TestAutomaticCodePackingPreservesNativeInlineBoundaries(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	large := strings.Repeat("abc", 20000)
 	write(t, root, "app.js", `window.moduleValue="`+large+`"`)
@@ -321,6 +329,7 @@ func TestAutomaticCodePackingPreservesNativeInlineBoundaries(t *testing.T) {
 }
 
 func TestUnusedLargeAutomaticImportDoesNotEmitSidecar(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "unused.png", strings.Repeat("x", 100000))
 	write(t, root, "app.js", `import unused from './unused.png';window.answer=42`)
@@ -342,6 +351,7 @@ func TestUnusedLargeAutomaticImportDoesNotEmitSidecar(t *testing.T) {
 }
 
 func TestSmallLinkedDocumentKeepsNavigableFileURL(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "assets/free.pdf", "small PDF fixture")
 	write(t, root, "index.html.tmpl", strings.Replace(helperHTML("", ""), "</body>", `<a href="assets/free.pdf">Read the document</a></body>`, 1))
@@ -361,6 +371,7 @@ func TestSmallLinkedDocumentKeepsNavigableFileURL(t *testing.T) {
 }
 
 func TestAutomaticFileNamesFollowContent(t *testing.T) {
+	t.Parallel()
 	root := autoFixture(t)
 	write(t, root, "a/photo.webp", strings.Repeat("A", 40000))
 	write(t, root, "b/photo.webp", strings.Repeat("A", 40000))

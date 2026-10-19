@@ -106,6 +106,7 @@ func parsePage(t *testing.T, value string) []*html.Node {
 }
 
 func TestInlineBuild(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err != nil {
@@ -191,6 +192,7 @@ func TestInlineBuild(t *testing.T) {
 }
 
 func TestFileModeAndCleanReplacement(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) { c["build"].(map[string]any)["assets"].(map[string]any)["default"] = "file" })
 	write(t, root, "output/stale.txt", "old")
@@ -234,6 +236,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 }
 
 func TestFailuresPreserveOutput(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name, expected string
 		change         func(*testing.T, string)
@@ -303,6 +306,7 @@ func TestFailuresPreserveOutput(t *testing.T) {
 }
 
 func TestOutputSymlinkAndBuildLock(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	outside := t.TempDir()
 	write(t, outside, "keep.txt", "safe")
@@ -375,6 +379,7 @@ func assertClean(t *testing.T, root string) {
 }
 
 func TestRemoteResourcesAndClassicGlobals(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	changeConfig(t, root, func(c map[string]any) {
 		c["urls"] = map[string]any{"stylesheet": "https://example.org/theme.css", "image": "https://example.org/image.webp", "sdk": "https://example.org/sdk.js"}
@@ -399,6 +404,7 @@ func TestRemoteResourcesAndClassicGlobals(t *testing.T) {
 }
 
 func TestExample(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	// Copy authoring inputs only. Ignored browser/npm research and output can
 	// be large; copying and then deleting them made local verification slow.
@@ -438,6 +444,7 @@ func TestExample(t *testing.T) {
 }
 
 func TestCancelledCompileNeverPublishes(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -454,6 +461,7 @@ func TestCancelledCompileNeverPublishes(t *testing.T) {
 }
 
 func TestMissingProjectIsAPlainError(t *testing.T) {
+	t.Parallel()
 	r, err := Compile(context.Background(), filepath.Join(t.TempDir(), "absent"), Options{Publish: true})
 	if err == nil || r.Validation != nil {
 		t.Fatalf("%v %+v", err, r.Validation)
@@ -461,6 +469,7 @@ func TestMissingProjectIsAPlainError(t *testing.T) {
 }
 
 func TestPublishSurvivesCleanupFailureAndRollsBack(t *testing.T) {
+	t.Parallel()
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -486,6 +495,7 @@ func TestPublishSurvivesCleanupFailureAndRollsBack(t *testing.T) {
 }
 
 func TestPublishDistributionReportsAFailedCleanup(t *testing.T) {
+	t.Parallel()
 	root := t.TempDir()
 	write(t, root, "distribution/old/listing.txt", "flat layout of an earlier version")
 	stale := filepath.Join(root, "distribution", "old")

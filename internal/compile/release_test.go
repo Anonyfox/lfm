@@ -45,6 +45,7 @@ func TestReleaseMissingBrowserWarnsAndPublishesNormalArtifact(t *testing.T) {
 }
 
 func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -125,6 +126,7 @@ func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
 }
 
 func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -168,6 +170,7 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 }
 
 func TestReleaseFillsImageLoadingHints(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
