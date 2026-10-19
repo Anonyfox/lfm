@@ -212,7 +212,6 @@ func (r *Report) readDocs(p project.Project, errorAt, warn func(string, int, str
 		key      string
 	}
 	results := map[string][]parsed{}
-	var mu sync.Mutex
 	var wg sync.WaitGroup
 	for _, lang := range langs {
 		names := map[string]bool{}
@@ -232,10 +231,13 @@ func (r *Report) readDocs(p project.Project, errorAt, warn func(string, int, str
 				keys = append(keys, k)
 			}
 		}
-		results[lang] = make([]parsed, len(keys))
+		// Each goroutine fills its own slot of this language's slice; the
+		// map is only written here, before any of them starts.
+		slots := make([]parsed, len(keys))
+		results[lang] = slots
 		for i, key := range keys {
 			if !names[key] {
-				results[lang][i] = parsed{missing: true, key: key}
+				slots[i] = parsed{missing: true, key: key}
 				continue
 			}
 			wg.Go(func() {
@@ -245,9 +247,7 @@ func (r *Report) readDocs(p project.Project, errorAt, warn func(string, int, str
 					return
 				}
 				d, problems := parseDoc(key, lang, file, src)
-				mu.Lock()
-				results[lang][i] = parsed{doc: d, problems: problems, key: key}
-				mu.Unlock()
+				slots[i] = parsed{doc: d, problems: problems, key: key}
 			})
 		}
 	}
