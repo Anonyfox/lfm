@@ -607,7 +607,10 @@ func resetFrames(dir string) error {
 	}
 	old, _ := filepath.Glob(filepath.Join(dir, "*.jpg"))
 	for _, f := range old {
-		os.Remove(f)
+		// A frame of the last run left among the new ones would show a page that is gone.
+		if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 	return nil
 }

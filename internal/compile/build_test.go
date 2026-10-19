@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
+	"github.com/Anonyfox/lfm/internal/project"
 	"golang.org/x/net/html"
 )
 
@@ -481,5 +482,19 @@ func TestPublishSurvivesCleanupFailureAndRollsBack(t *testing.T) {
 	matches, _ := filepath.Glob(filepath.Join(root, "output.next-*"))
 	for _, m := range matches {
 		os.Chmod(m, 0o755)
+	}
+}
+
+func TestPublishDistributionReportsAFailedCleanup(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "distribution/old/listing.txt", "flat layout of an earlier version")
+	stale := filepath.Join(root, "distribution", "old")
+	if err := os.Chmod(stale, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(stale, 0o755) })
+	err := publishDistribution(project.Project{Root: root}, map[string]map[string][]byte{"book": {"cover.jpg": []byte("jpeg")}})
+	if err == nil {
+		t.Fatal("a stale file left in distribution/ was reported as published")
 	}
 }

@@ -171,6 +171,18 @@ func TestBuildReusesFilesOfTheSameInputs(t *testing.T) {
 	}
 }
 
+func TestBuildFailsOnWhatTheFileCannotHold(t *testing.T) {
+	raw := read(t, "testdata/budget/workbook.json")
+	wide := strings.Replace(raw, "\"widths\": [\n    2,", "\"widths\": [\n    300,", 1)
+	if wide == raw {
+		t.Fatal("the fixture's widths did not change")
+	}
+	r := Check(fixture(t, "budget", map[string]string{WorkbookFile: wide}), testConfig, true, nil, "")
+	if _, err := r.Build(func(string) []byte { return nil }); err == nil || !strings.Contains(err.Error(), "column A") {
+		t.Fatalf("a column too wide for Excel was left out silently: %v", err)
+	}
+}
+
 func read(t *testing.T, path string) string {
 	t.Helper()
 	data, err := os.ReadFile(path)

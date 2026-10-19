@@ -87,6 +87,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 		var wg sync.WaitGroup
 		var layout []string               // findings in the order first seen
 		layoutIn := map[string][]string{} // finding -> editions it occurs in
+		unchecked := false                // an edition's layout check did not run
 		for _, ed := range r.Editions {
 			wg.Go(func() {
 				e := ed.Edition
@@ -94,15 +95,21 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 					return printer.Print(ed.Doc, r.Assets, e.Size.Digital)
 				})
 				var found []string
+				var layoutErr error
 				if st.release && err == nil {
 					if printer, perr := pr.printerFor(); perr == nil {
-						found, _ = printer.PageLayout(ed.Doc, r.Assets, mmPixels(e.Size.Width), mmPixels(e.Size.Height), float64(mmPixels(printable.Safe)))
+						found, layoutErr = printer.PageLayout(ed.Doc, r.Assets, mmPixels(e.Size.Width), mmPixels(e.Size.Height), float64(mmPixels(printable.Safe)))
 					}
 				}
 				mu.Lock()
 				defer mu.Unlock()
+				if layoutErr != nil {
+					unchecked = true
+					warn(printable.RuleLayout, fmt.Sprintf("The layout check of the %s edition could not run: %s", e.Label, layoutErr), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+				}
 				switch {
 				case err != nil:
+					unchecked = true
 					warn(printable.RuleLayout, fmt.Sprintf("The %s edition could not be printed: %s", e.Label, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
 				case pdf != nil:
 					printed.PDFs[e.Key] = pdf
@@ -134,7 +141,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 		printed.Pending = pr.pending
 		r.Summary.Pending = pr.pending
 		r.Summary.Images = len(images)
-		if st.release && pr.startErr == nil {
+		if st.release && pr.startErr == nil && !unchecked {
 			r.Summary.Layout = "every page inside the safe margin"
 			if len(layout) > 0 {
 				r.Summary.Layout = term.Plural(len(layout), "layout finding")

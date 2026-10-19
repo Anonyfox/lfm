@@ -148,10 +148,15 @@ func publishDistribution(p project.Project, packages map[string]map[string][]byt
 			return err
 		}
 	}
-	entries, _ := os.ReadDir(root)
+	entries, err := os.ReadDir(root)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
 	for _, e := range entries {
 		if !units[e.Name()] && !strings.Contains(e.Name(), ".next-") {
-			os.RemoveAll(filepath.Join(root, e.Name()))
+			if err := os.RemoveAll(filepath.Join(root, e.Name())); err != nil {
+				return err
+			}
 		}
 	}
 	if entries, _ := os.ReadDir(root); len(entries) == 0 {

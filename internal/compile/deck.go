@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
@@ -121,6 +122,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 		return out, []diagnostic.Diagnostic{{Rule: deck.RuleSource, Severity: diagnostic.Error, Location: diagnostic.Location{File: deck.Dir, Line: 1, Column: 1}, Message: "The decks could not be written: " + err.Error(), Hint: "Fix what the error names, then compile again."}}
 	}
 	var prints []printJob
+	var unchecked atomic.Bool // a slide check did not run
 	for _, b := range built {
 		for _, pp := range b.Prints() {
 			prints = append(prints, printJob{key: printKeys[b.PrintKey(pp)], slot: b.PrintKey(pp), file: b.Deck.File, name: b.Name,
@@ -132,7 +134,11 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 					}
 					// A slide's box that cuts its text off, as Chrome lays it out.
 					sw, sh := deck.ShotPixels()
-					over, _ := printer.Overflows(r.PrintDoc(b, pp), fonts, sw, sh)
+					over, err := printer.Overflows(r.PrintDoc(b, pp), fonts, sw, sh)
+					if err != nil {
+						unchecked.Store(true)
+						w.add(b.Deck.File, deck.RuleLayout, fmt.Sprintf("%s (%s): the check for slides that cut their text off could not run: %v", b.Deck.Title, b.Edition.Key, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+					}
 					for _, n := range over {
 						found = append(found, finding{b.Deck.File, fmt.Sprintf("%s (%s): slide %s holds more than its box shows; the print cuts it off as PowerPoint would spill it.", b.Deck.Title, b.Edition.Key, n)})
 					}
@@ -148,6 +154,8 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 		checked := []string{fmt.Sprintf("%s print as planned", term.Plural(len(built)-len(found), "deck"))}
 		if len(found) > 0 {
 			checked = []string{term.Plural(len(found), "layout finding")}
+		} else if unchecked.Load() {
+			checked = nil
 		}
 		// LibreOffice, when present, opens the real files too; a release
 		// needs none of it. LFM_OFFICE, a switch for lfm's own tests, has

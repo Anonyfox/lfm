@@ -74,7 +74,9 @@ func writeXLSX(ed *edition, b *book, pal Palette, created, key string) ([]byte, 
 		return nil, err
 	}
 	yes, no := true, false
-	_ = f.SetCalcProps(&excelize.CalcPropsOptions{FullCalcOnLoad: &yes})
+	if err := f.SetCalcProps(&excelize.CalcPropsOptions{FullCalcOnLoad: &yes}); err != nil {
+		return nil, err
+	}
 	// Cells a buyer types outside the styled ranges look like the rest.
 	if err := f.SetDefaultFont("Arial"); err != nil {
 		return nil, err
@@ -91,11 +93,15 @@ func writeXLSX(ed *edition, b *book, pal Palette, created, key string) ([]byte, 
 		}
 		cached[i+1] = map[string]formula.Value{}
 		if l.Kind != "table" {
-			_ = f.SetSheetView(l.Name, 0, &excelize.ViewOptions{ShowGridLines: &no})
+			if err := f.SetSheetView(l.Name, 0, &excelize.ViewOptions{ShowGridLines: &no}); err != nil {
+				return nil, err
+			}
 		}
 		for _, c := range slices.Sorted(maps.Keys(l.Widths)) {
 			col := formula.ColumnName(c)
-			_ = f.SetColWidth(l.Name, col, col, l.Widths[c])
+			if err := f.SetColWidth(l.Name, col, col, l.Widths[c]); err != nil {
+				return nil, fmt.Errorf("%s column %s: %w", l.Name, col, err)
+			}
 		}
 		lastRow := 0
 		for _, p := range l.Order {
@@ -110,7 +116,9 @@ func writeXLSX(ed *edition, b *book, pal Palette, created, key string) ([]byte, 
 				}
 				cached[i+1][cell] = v
 			case sp.Text != "":
-				_ = f.SetCellStr(l.Name, cell, sp.Text)
+				if err := f.SetCellStr(l.Name, cell, sp.Text); err != nil {
+					return nil, fmt.Errorf("%s!%s: %w", l.Name, cell, err)
+				}
 			default:
 				if v, ok := b.inputs[cellKey{l, p}]; ok {
 					if err := setValue(f, l.Name, cell, v); err != nil {
@@ -120,21 +128,31 @@ func writeXLSX(ed *edition, b *book, pal Palette, created, key string) ([]byte, 
 			}
 			// A table's rows share their column's style, set once below.
 			if id := st.id(sp); id > 0 && (l.Table == nil || p.Row < l.Table.First) {
-				_ = f.SetCellStyle(l.Name, cell, cell, id)
+				if err := f.SetCellStyle(l.Name, cell, cell, id); err != nil {
+					return nil, err
+				}
 			}
 			if sp.Merge > 0 {
-				_ = f.MergeCell(l.Name, cell, formula.CellName(p.Col+sp.Merge, p.Row))
+				if err := f.MergeCell(l.Name, cell, formula.CellName(p.Col+sp.Merge, p.Row)); err != nil {
+					return nil, fmt.Errorf("%s!%s: %w", l.Name, cell, err)
+				}
 			}
 			if sp.Note != "" && sp.Style == "heading" {
-				_ = f.AddComment(l.Name, excelize.Comment{Author: "lfm", Cell: cell, Text: sp.Note})
+				if err := f.AddComment(l.Name, excelize.Comment{Author: "lfm", Cell: cell, Text: sp.Note}); err != nil {
+					return nil, fmt.Errorf("%s!%s: %w", l.Name, cell, err)
+				}
 			}
 		}
 		if t := l.Table; t != nil {
-			_ = f.SetPanes(l.Name, &excelize.Panes{Freeze: true, YSplit: 1, TopLeftCell: "A2", ActivePane: "bottomLeft"})
+			if err := f.SetPanes(l.Name, &excelize.Panes{Freeze: true, YSplit: 1, TopLeftCell: "A2", ActivePane: "bottomLeft"}); err != nil {
+				return nil, err
+			}
 			for c := range t.Columns {
 				first := l.Cells[Pos{c + 1, t.First}]
 				if id := st.id(first); id > 0 {
-					_ = f.SetCellStyle(l.Name, formula.CellName(c+1, t.First), formula.CellName(c+1, t.Last), id)
+					if err := f.SetCellStyle(l.Name, formula.CellName(c+1, t.First), formula.CellName(c+1, t.Last), id); err != nil {
+						return nil, err
+					}
 				}
 				ref := fmt.Sprintf("%s%d:%s%d", formula.ColumnName(c+1), t.First, formula.ColumnName(c+1), t.Last)
 				if err := st.validate(l.Name, ref, first); err != nil {
@@ -166,7 +184,9 @@ func writeXLSX(ed *edition, b *book, pal Palette, created, key string) ([]byte, 
 		}
 
 		if l.Hidden && i > 0 {
-			_ = f.SetSheetVisible(l.Name, false)
+			if err := f.SetSheetVisible(l.Name, false); err != nil {
+				return nil, err
+			}
 		}
 	}
 	// Named cells are defined names, so formulas read as words.

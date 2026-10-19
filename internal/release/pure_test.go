@@ -100,6 +100,16 @@ func TestResetFramesClearsOnlyOldFrames(t *testing.T) {
 	if resetFrames(filepath.Join(file, "frames")) == nil {
 		t.Fatal("a folder under a file")
 	}
+	// Frames that cannot be cleared would mix with the new run's.
+	os.WriteFile(filepath.Join(dir, "390x844-01.jpg"), []byte("x"), 0o644)
+	os.Chmod(dir, 0o555)
+	t.Cleanup(func() { os.Chmod(dir, 0o755) })
+	if os.Remove(filepath.Join(dir, "390x844-01.jpg")) == nil {
+		t.Skip("the folder stays writable, as for root")
+	}
+	if resetFrames(dir) == nil {
+		t.Fatal("stale frames were kept silently")
+	}
 }
 
 func TestFramesAndReportsLiveInTempPerProject(t *testing.T) {
