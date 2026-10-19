@@ -52,7 +52,7 @@ func checkSpreadsheet(p project.Project, loaded project.Loaded, commerce commerc
 // milliseconds), prints the start PDFs and renders the listing images in a
 // release or reuses them, recalculates the files in LibreOffice in a
 // release, and publishes the download page and shop packages.
-func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, isRelease bool, result *Result) (shipped, []diagnostic.Diagnostic) {
+func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, st *stock, result *Result) (shipped, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
 	pageSale := r.Summary.Sell == deliver.SellPage && deliver.ValidPath(r.Config.Path) && r.Summary.URL != ""
 	if r.Summary.Sell == deliver.SellPage && !pageSale {
@@ -87,7 +87,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, i
 	var plans []spreadsheet.ImagePlan
 	previews := make([][]byte, len(r.Workbook.Editions))
 	var prep sync.WaitGroup
-	prep.Go(func() { pr = newPress(p, isRelease) })
+	prep.Go(func() { pr = st.press() })
 	prep.Go(func() { starts = r.StartDocs() })
 	if pictured(r.Listing.Present, r.Summary.Sell) {
 		prep.Go(func() { plans = r.Images() })
@@ -99,7 +99,6 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, i
 	for i, e := range r.Workbook.Editions {
 		result.Previews[root+"/preview/"+e.Key+".html"] = previews[i]
 	}
-	defer pr.close()
 	built, err := r.Build(func(key string) []byte { return pr.lookup(key) })
 	if err != nil {
 		return out, append(issues, diagnostic.Diagnostic{Rule: spreadsheet.RuleWorkbook, Severity: diagnostic.Error, Location: diagnostic.Location{File: spreadsheet.WorkbookFile, Line: 1, Column: 1}, Message: "The workbook could not be written: " + err.Error(), Hint: "Fix what the error names, then compile again."})
@@ -131,7 +130,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, i
 	}
 	var compat []string
 	var compatErr error
-	if isRelease {
+	if st.release {
 		wg.Go(func() {
 			office, err := spreadsheet.Office()
 			if err != nil {
@@ -152,7 +151,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, i
 	}
 	r.Summary.Pending = pr.pending
 	r.Summary.Images = len(images)
-	if isRelease {
+	if st.release {
 		switch {
 		case office.Missing(compatErr):
 			// A second opinion only: lfm's engine computed every formula.

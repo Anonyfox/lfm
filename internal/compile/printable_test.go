@@ -31,7 +31,7 @@ func printableProject(t *testing.T) string {
 }
 
 // configure edits lfm.json.
-func configure(t *testing.T, dir string, edit func(map[string]any)) {
+func configure(t testing.TB, dir string, edit func(map[string]any)) {
 	t.Helper()
 	raw, _ := os.ReadFile(filepath.Join(dir, "lfm.json"))
 	var c map[string]any

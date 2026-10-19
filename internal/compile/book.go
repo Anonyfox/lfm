@@ -97,7 +97,7 @@ func downloadPage(result *Result, path string, page []byte, s shipped) {
 // download page when it sells through the page, and assembles its store
 // packages when it has a listing and sells on its own. It returns the files
 // for a bundle.
-func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool, result *Result) (shipped, []diagnostic.Diagnostic) {
+func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, result *Result) (shipped, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
 	sell := r.Summary.Sell
 	pageSale := sell == deliver.SellPage && deliver.ValidPath(r.Config.Path) && r.Summary.URL != ""
@@ -124,8 +124,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool,
 		if r.Config.Wants("epub") {
 			out.add(deliver.File{Name: slug + ".epub", Label: "EPUB", Note: book.Words(r.Config.Language).EPUBNote}, built.EPUB)
 		}
-		pr := newPress(p, isRelease)
-		defer pr.close()
+		pr := st.press()
 		var pdf []byte
 		var pdfErr, layoutErr error
 		var layout []string
@@ -137,7 +136,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool,
 		if ownStores {
 			wg.Go(func() { printed = pr.paperback(r, built) })
 		}
-		if isRelease {
+		if st.release {
 			wg.Go(func() {
 				if printer, err := pr.printerFor(); err != nil {
 					layoutErr = err
@@ -179,7 +178,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, isRelease bool,
 		} else {
 			result.distribute("book", map[string][]byte{}) // no package of its own
 		}
-		if isRelease {
+		if st.release {
 			switch {
 			case layoutErr != nil:
 				at(diagnostic.Warning, book.RuleLayout, "The book layout check could not run: "+layoutErr.Error(), "Install Chrome or Chromium, or set LFM_CHROME.")

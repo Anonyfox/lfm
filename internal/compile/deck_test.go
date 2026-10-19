@@ -16,7 +16,7 @@ import (
 
 const deckPath = "q7w2e9r4t1y8u3i6o5"
 
-func deckProject(t *testing.T) string {
+func deckProject(t testing.TB) string {
 	t.Helper()
 	dir := t.TempDir()
 	if _, err := scaffold.Create(dir); err != nil {

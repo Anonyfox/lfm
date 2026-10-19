@@ -54,7 +54,7 @@ func checkDocument(p project.Project, loaded project.Loaded, commerce commercech
 // Word lays them out, checks what every app will show, renders the listing
 // images from the real first pages and prints the start guides; later
 // compiles reuse those. Each edition ships as one ZIP.
-func deliverDocument(p project.Project, r *document.Report, page []byte, isRelease bool, result *Result) (shipped, []diagnostic.Diagnostic) {
+func deliverDocument(p project.Project, r *document.Report, page []byte, st *stock, result *Result) (shipped, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
 	s, stop := startSale(r.Summary.Sell, r.Config.Path, r.Summary.URL, page, document.RuleDelivery, "document")
 	if s.skip || stop != nil {
@@ -71,8 +71,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 	for i, e := range r.Editions {
 		keys[i] = e.Key
 	}
-	pr := s.open(p, isRelease, result, keys, func(i int) []byte { return r.Preview(r.Editions[i]) }, r.PreviewAssets())
-	defer pr.close()
+	pr := s.open(st, result, keys, func(i int) []byte { return r.Preview(r.Editions[i]) }, r.PreviewAssets())
 
 	// Every print is keyed by what Chrome prints, every file by its inputs
 	// and the binary: an unchanged set reuses its complete ZIPs as they are,
@@ -92,7 +91,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 		printKeys[b.Key] = printKey("document print", append(r.PrintDoc(b), fontKey...), nil)
 	}
 	zipKeys := make([]string, len(r.Editions))
-	reuse := !isRelease
+	reuse := !st.release
 	for i, e := range r.Editions {
 		parts := []string{buildid.Writer(), guideKeys[i]}
 		for _, b := range jobs {
@@ -125,7 +124,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 			}}
 	}
 	pdfs, found := printAll(pr, prints, fonts, document.RuleLayout, w)
-	if isRelease {
+	if st.release {
 		for _, f := range found {
 			w.add(f.File, document.RuleLayout, f.Message, "Shorten the text, split the document or change its planned pages; check the theme's fonts draw every character.")
 		}
@@ -152,7 +151,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, isRelea
 
 	// The listing images show the real first pages, rendered in a release.
 	var shots []document.Shot
-	if isRelease && pictures {
+	if st.release && pictures {
 		if printer, err := pr.printerFor(); err == nil {
 			for _, b := range built {
 				if b.Edition != r.Showcase() {

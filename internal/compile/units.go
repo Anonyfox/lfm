@@ -21,7 +21,7 @@ type unit interface {
 	// sale names its lfm.json field, how it sells, its offer and its rule.
 	sale(project.Deliverables) (field, sell, offer, rule string, ok bool)
 	// deliver builds, prints and publishes it; the files go to the bundle.
-	deliver(p project.Project, page []byte, release bool, result *Result) []diagnostic.Diagnostic
+	deliver(p project.Project, page []byte, st *stock, result *Result) []diagnostic.Diagnostic
 	// opens is the file type LibreOffice checks for it, or "".
 	opens() string
 }
@@ -82,9 +82,9 @@ func (u *bookUnit) sale(d project.Deliverables) (string, string, string, string,
 	}
 	return "deliverables.book", d.Book.Sell, d.Book.Offer, book.RuleConfig, true
 }
-func (u *bookUnit) deliver(p project.Project, page []byte, release bool, res *Result) []diagnostic.Diagnostic {
+func (u *bookUnit) deliver(p project.Project, page []byte, st *stock, res *Result) []diagnostic.Diagnostic {
 	var found []diagnostic.Diagnostic
-	u.out, found = deliverBook(p, u.r, page, release, res)
+	u.out, found = deliverBook(p, u.r, page, st, res)
 	return found
 }
 
@@ -102,9 +102,9 @@ func (u *printableUnit) sale(d project.Deliverables) (string, string, string, st
 	}
 	return "deliverables.printable", d.Printable.Sell, d.Printable.Offer, printable.RuleConfig, true
 }
-func (u *printableUnit) deliver(p project.Project, page []byte, release bool, res *Result) []diagnostic.Diagnostic {
+func (u *printableUnit) deliver(p project.Project, page []byte, st *stock, res *Result) []diagnostic.Diagnostic {
 	var found []diagnostic.Diagnostic
-	u.out, u.images, found = deliverPrintable(p, u.r, page, release, res)
+	u.out, u.images, found = deliverPrintable(p, u.r, page, st, res)
 	return found
 }
 
@@ -121,9 +121,9 @@ func (u *spreadsheetUnit) sale(d project.Deliverables) (string, string, string, 
 	}
 	return "deliverables.spreadsheet", d.Spreadsheet.Sell, d.Spreadsheet.Offer, spreadsheet.RuleConfig, true
 }
-func (u *spreadsheetUnit) deliver(p project.Project, page []byte, release bool, res *Result) []diagnostic.Diagnostic {
+func (u *spreadsheetUnit) deliver(p project.Project, page []byte, st *stock, res *Result) []diagnostic.Diagnostic {
 	var found []diagnostic.Diagnostic
-	u.out, found = deliverSpreadsheet(p, u.r, page, release, res)
+	u.out, found = deliverSpreadsheet(p, u.r, page, st, res)
 	return found
 }
 
@@ -140,9 +140,9 @@ func (u *documentUnit) sale(d project.Deliverables) (string, string, string, str
 	}
 	return "deliverables.document", d.Document.Sell, d.Document.Offer, document.RuleConfig, true
 }
-func (u *documentUnit) deliver(p project.Project, page []byte, release bool, res *Result) []diagnostic.Diagnostic {
+func (u *documentUnit) deliver(p project.Project, page []byte, st *stock, res *Result) []diagnostic.Diagnostic {
 	var found []diagnostic.Diagnostic
-	u.out, found = deliverDocument(p, u.r, page, release, res)
+	u.out, found = deliverDocument(p, u.r, page, st, res)
 	return found
 }
 
@@ -159,9 +159,9 @@ func (u *deckUnit) sale(d project.Deliverables) (string, string, string, string,
 	}
 	return "deliverables.deck", d.Deck.Sell, d.Deck.Offer, deck.RuleConfig, true
 }
-func (u *deckUnit) deliver(p project.Project, page []byte, release bool, res *Result) []diagnostic.Diagnostic {
+func (u *deckUnit) deliver(p project.Project, page []byte, st *stock, res *Result) []diagnostic.Diagnostic {
 	var found []diagnostic.Diagnostic
-	u.out, found = deliverDeck(p, u.r, page, release, res)
+	u.out, found = deliverDeck(p, u.r, page, st, res)
 	return found
 }
 

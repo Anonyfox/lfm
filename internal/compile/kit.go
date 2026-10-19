@@ -7,7 +7,6 @@ import (
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/office"
-	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/term"
 )
@@ -193,9 +192,7 @@ func listingImages(pr *press, planned []listingPlan, render func(*release.Printe
 		return out
 	}
 	pending := func() []deliver.Image {
-		pr.mu.Lock()
-		pr.pending = true
-		pr.mu.Unlock()
+		pr.wait()
 		return out
 	}
 	if !pr.release || render == nil {
@@ -264,11 +261,11 @@ func startSale(sell, path, url string, page []byte, rule, kind string) (sale, []
 
 // open starts the press beside the previews of every edition, which lfm
 // serve shows under the deliverable's folder.
-func (s sale) open(p project.Project, isRelease bool, result *Result, editions []string, preview func(i int) []byte, assets map[string][]byte) *press {
+func (s sale) open(st *stock, result *Result, editions []string, preview func(i int) []byte, assets map[string][]byte) *press {
 	var pr *press
 	previews := make([][]byte, len(editions))
 	var wg sync.WaitGroup
-	wg.Go(func() { pr = newPress(p, isRelease) })
+	wg.Go(func() { pr = st.press() })
 	for i := range editions {
 		wg.Go(func() { previews[i] = preview(i) })
 	}

@@ -48,7 +48,7 @@ func mmPixels(mm float64) int64 { return int64(mm*96/25.4 + 0.5) }
 // printed pages, renders the listing images, publishes the download page when
 // the printable sells through the page, and assembles its store packages when
 // it sells on its own. It returns the files and images for a bundle.
-func deliverPrintable(p project.Project, r *printable.Report, page []byte, isRelease bool, result *Result) (shipped, []printable.Image, []diagnostic.Diagnostic) {
+func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *stock, result *Result) (shipped, []printable.Image, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
 	sell := r.Summary.Sell
 	pageSale := sell == deliver.SellPage && deliver.ValidPath(r.Config.Path) && r.Summary.URL != ""
@@ -81,8 +81,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, isRel
 	}
 	var images []printable.Image
 	if r.Buildable {
-		pr := newPress(p, isRelease)
-		defer pr.close()
+		pr := st.press()
 		printed := printable.Printed{PDFs: map[string][]byte{}}
 		var mu sync.Mutex
 		var wg sync.WaitGroup
@@ -95,7 +94,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, isRel
 					return printer.Print(ed.Doc, r.Assets, e.Size.Digital)
 				})
 				var found []string
-				if isRelease && err == nil {
+				if st.release && err == nil {
 					if printer, perr := pr.printerFor(); perr == nil {
 						found, _ = printer.PageLayout(ed.Doc, r.Assets, mmPixels(e.Size.Width), mmPixels(e.Size.Height), float64(mmPixels(printable.Safe)))
 					}
@@ -135,7 +134,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, isRel
 		printed.Pending = pr.pending
 		r.Summary.Pending = pr.pending
 		r.Summary.Images = len(images)
-		if isRelease && pr.startErr == nil {
+		if st.release && pr.startErr == nil {
 			r.Summary.Layout = "every page inside the safe margin"
 			if len(layout) > 0 {
 				r.Summary.Layout = term.Plural(len(layout), "layout finding")

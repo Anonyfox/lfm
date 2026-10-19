@@ -21,3 +21,18 @@ func BenchmarkCompile(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkRecompileReleasedDeck compiles a deck whose release is published:
+// every print is reused from output/ and distribution/.
+func BenchmarkRecompileReleasedDeck(b *testing.B) {
+	dir := deckProject(b)
+	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil {
+		b.Skip("no release:", err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := Compile(context.Background(), dir, Options{Publish: true}); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

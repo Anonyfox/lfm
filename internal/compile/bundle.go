@@ -131,7 +131,7 @@ type part struct {
 // deliverBundle publishes the bundle's download page with every file of
 // every unit when it sells through the page, and assembles its shop
 // packages from them when it has a listing.
-func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent string, page []byte, isRelease bool, result *Result, heroDoc func(printer *release.Printer) (map[string][]byte, error)) []diagnostic.Diagnostic {
+func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent string, page []byte, st *stock, result *Result, heroDoc func(printer *release.Printer) (map[string][]byte, error)) []diagnostic.Diagnostic {
 	pageSale := r.Summary.Sell == deliver.SellPage && r.Summary.URL != ""
 	if pageSale {
 		if leak := leaks(page, r.Config.Path, bundle.RuleDelivery, "bundle"); leak != nil {
@@ -171,7 +171,7 @@ func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent str
 		facts = append(facts, pt.name+":")
 		facts = append(facts, pt.facts...)
 	}
-	listingImages, heroErr := bundleImages(p, r, parts, accent, isRelease, heroDoc)
+	listingImages, heroErr := bundleImages(p, r, parts, accent, st, heroDoc)
 	r.Summary.Images = len(listingImages)
 	dist, channels, issues := bundle.Distribution(*r, all.Files, all.Data, groups, listingImages, facts, r.Summary.Pending, time.Now().Format("2006-01-02"))
 	if heroErr != nil {
@@ -186,7 +186,7 @@ func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent str
 // bundleImages are the bundle's listing images: every unit's cover
 // together first, then each unit's own images in turn. The first is
 // rendered by a release and reused while the covers are unchanged.
-func bundleImages(p project.Project, r *bundle.Report, parts []part, accent string, isRelease bool, render func(printer *release.Printer) (map[string][]byte, error)) ([]bundle.Image, error) {
+func bundleImages(p project.Project, r *bundle.Report, parts []part, accent string, st *stock, render func(printer *release.Printer) (map[string][]byte, error)) ([]bundle.Image, error) {
 	var out []bundle.Image
 	var heroErr error
 	var covers []bundle.Cover
@@ -204,8 +204,7 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 	if len(covers) >= 2 {
 		doc := bundle.HeroDoc(covers, accent)
 		key := printKey("bundle hero", append(append([]byte{}, doc...), made...), assets)
-		press := newPress(p, isRelease)
-		defer press.close()
+		press := st.press()
 		hero, err := press.job(key, func(printer *release.Printer) ([]byte, error) {
 			more, err := render(printer)
 			if err != nil {

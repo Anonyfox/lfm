@@ -54,7 +54,7 @@ func checkDeck(p project.Project, loaded project.Loaded, commerce commercecheck.
 // holds every slide's boxes to what they show, renders the listing images
 // and prints the start guides; later compiles reuse those. Each language
 // ships as one ZIP.
-func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool, result *Result) (shipped, []diagnostic.Diagnostic) {
+func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, result *Result) (shipped, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
 	s, stop := startSale(r.Summary.Sell, r.Config.Path, r.Summary.URL, page, deck.RuleDelivery, "deck")
 	if s.skip || stop != nil {
@@ -71,8 +71,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 	for i, e := range r.Editions {
 		keys[i] = e.Key
 	}
-	pr := s.open(p, isRelease, result, keys, func(i int) []byte { return r.Preview(r.Editions[i]) }, r.PreviewAssets())
-	defer pr.close()
+	pr := s.open(st, result, keys, func(i int) []byte { return r.Preview(r.Editions[i]) }, r.PreviewAssets())
 
 	// Every print is keyed by what Chrome prints, every deck by its inputs
 	// and the binary: an unchanged set reuses its complete ZIPs as they are,
@@ -94,7 +93,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 		}
 	}
 	zipKeys := make([]string, len(r.Editions))
-	reuse := !isRelease
+	reuse := !st.release
 	for i, e := range r.Editions {
 		parts := []string{buildid.Writer(), guideKeys[i]}
 		for _, b := range jobs {
@@ -142,7 +141,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 		}
 	}
 	pdfs, found := printAll(pr, prints, fonts, deck.RuleLayout, w)
-	if isRelease {
+	if st.release {
 		for _, f := range found {
 			w.add(f.File, deck.RuleLayout, f.Message, "Cut the slide's text, move detail into the notes, or split the slide; check the theme's fonts draw every character.")
 		}
@@ -169,7 +168,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, isRelease bool,
 
 	// The listing images show the real slides, notes and quiz sheet.
 	var shots []deck.Shot
-	if isRelease && pictures {
+	if st.release && pictures {
 		if printer, err := pr.printerFor(); err == nil {
 			shots = deckShots(printer, r, built, fonts)
 		}

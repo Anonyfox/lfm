@@ -329,14 +329,17 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		result.Validation.Stats = stats
 		return result.Errors() == 0
 	}
+	// One stock for every deliverable: the last publish indexed once, one Chrome.
+	st := newStock(p, options.Release)
+	defer st.close()
 	for _, u := range units {
-		if !add(u.deliver(p, page, options.Release, &result)) {
+		if !add(u.deliver(p, page, st, &result)) {
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
 	if pack != nil && len(pack.Summary.Units) >= 2 && result.Errors() == 0 {
 		parts, accent, render := gather(units).parts(pack)
-		if !add(deliverBundle(p, pack, parts, accent, page, options.Release, &result, render)) {
+		if !add(deliverBundle(p, pack, parts, accent, page, st, &result, render)) {
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
