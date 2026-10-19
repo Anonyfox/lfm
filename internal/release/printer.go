@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,7 +25,12 @@ type Printer struct {
 	stop    func()
 	jobs    sync.Map // "/<n>/" -> http.Handler
 	next    atomic.Int64
+	slots   chan struct{} // open tabs; a release prints many files side by side
 }
+
+// tabs is how many tabs print at once: enough to keep the cores busy, few
+// enough that Chrome's memory stays bounded however many files a set has.
+var tabs = min(max(2, runtime.NumCPU()), 8)
 
 // NewPrinter starts Chrome. Close it when the release is done.
 func NewPrinter() (*Printer, error) {
@@ -32,7 +38,7 @@ func NewPrinter() (*Printer, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Printer{}
+	p := &Printer{slots: make(chan struct{}, tabs)}
 	p.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		job, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		if h, ok := p.jobs.Load(job); ok {
@@ -41,7 +47,9 @@ func NewPrinter() (*Printer, error) {
 		}
 		http.NotFound(w, r)
 	}))
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	// No deadline on the browser itself: a large release prints for longer
+	// than any fixed limit; each tab has its own.
+	ctx, cancel := context.WithCancel(context.Background())
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
@@ -59,12 +67,14 @@ func NewPrinter() (*Printer, error) {
 func (p *Printer) Close() { p.stop() }
 
 // tab opens a new tab serving doc and its flat assets and returns its address.
+// It waits for a free slot first; the tab's minute starts once it has one.
 func (p *Printer) tab(doc []byte, assets map[string][]byte) (context.Context, string, func()) {
+	p.slots <- struct{}{}
 	job := fmt.Sprint(p.next.Add(1))
 	p.jobs.Store(job, Handler(doc, assets))
 	tab, cancelTab := chromedp.NewContext(p.browser)
 	tab, cancelTimeout := context.WithTimeout(tab, 60*time.Second)
-	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job) }
+	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job); <-p.slots }
 }
 
 // Print prints a document to PDF at the page size its @page rule
