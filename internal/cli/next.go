@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/project"
@@ -65,7 +67,7 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "spreadsheet", "write deliverables/spreadsheet/workbook.json: the editions, the sheets the concept's Tabs plan, and an example dataset with expected values. "+skill("spreadsheet")
 	case r.Spreadsheet != nil && ruleFamily(r, "spreadsheet.") > ruleCount(r, "spreadsheet.sheets"):
 		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "spreadsheet.")-ruleCount(r, "spreadsheet.sheets"), "spreadsheet finding"), skill("spreadsheet"))
-	case r.Spreadsheet != nil && !r.Spreadsheet.Listing:
+	case r.Spreadsheet != nil && !r.Spreadsheet.Listing && r.Spreadsheet.Sell != "bundle":
 		n.Phase, n.Do = "spreadsheet", "write deliverables/spreadsheet/listing.md, the shop texts lfm renders into every channel's guide under distribution/. "+skill("spreadsheet")
 	case r.Document != nil && !r.Document.Concept:
 		n.Phase, n.Do = "document", "write deliverables/document/concept.md: buyer, promise, documents, look. "+skill("document")
@@ -73,7 +75,7 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "document", "write every document the concept plans as deliverables/document/<language>/<document>.md, and add the theme's fonts to deliverables/document/fonts. "+skill("document")
 	case r.Document != nil && ruleFamily(r, "document.") > 0:
 		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "document."), "document finding"), skill("document"))
-	case r.Document != nil && !r.Document.Listing:
+	case r.Document != nil && !r.Document.Listing && r.Document.Sell != "bundle":
 		n.Phase, n.Do = "document", "write deliverables/document/listing.md, the shop texts lfm renders into every channel's guide under distribution/. "+skill("document")
 	case r.Deck != nil && !r.Deck.Concept:
 		n.Phase, n.Do = "deck", "write deliverables/deck/concept.md: buyer, promise, decks, look. "+skill("deck")
@@ -81,12 +83,12 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "deck", "write every deck the concept plans as deliverables/deck/<language>/<deck>.md, and add the theme's fonts to deliverables/deck/fonts. "+skill("deck")
 	case r.Deck != nil && ruleFamily(r, "deck.") > 0:
 		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "deck."), "deck finding"), skill("deck"))
-	case r.Deck != nil && !r.Deck.Listing:
+	case r.Deck != nil && !r.Deck.Listing && r.Deck.Sell != "bundle":
 		n.Phase, n.Do = "deck", "write deliverables/deck/listing.md, the shop texts lfm renders into every channel's guide under distribution/. "+skill("deck")
 	case r.Spreadsheet != nil && ruleCount(r, "spreadsheet.sheets") > 0:
 		n.Phase, n.Do = "spreadsheet", "link the Google Sheets masters: upload each .xlsx in output/ to Google Drive, open it with Google Sheets, share it as anyone with the link can view, and paste its address into deliverables.spreadsheet.sheets; only the owner's Google account can do this. "+skill("spreadsheet")
-	case r.Bundle != nil && ruleFamily(r, "bundle.") > 0:
-		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "bundle."), "bundle finding"), skill("printable"))
+	case r.Bundle != nil && ruleFamily(r, "bundle.")-ruleCount(r, bundlerRule) > 0:
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "bundle.")-ruleCount(r, bundlerRule), "bundle finding"), skill("printable"))
 	case r.Printable != nil && !r.Printable.Listing && r.Printable.Sell != "bundle":
 		n.Phase, n.Do = "printable", "write deliverables/printable/listing.md, the store texts lfm renders into every channel's guide under distribution/. "+skill("printable")
 	case r.Book != nil && r.Book.Complete && !r.Book.Listing && r.Book.Sell != "bundle":
@@ -112,8 +114,8 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		if page := pageWarnings(r); page > 0 {
 			n.Notes = append(n.Notes, fmt.Sprintf("The page itself has %s to resolve before it ships.", term.Plural(page, "warning")))
 		}
-	case r.Bundle != nil && !r.Bundle.Listing && r.Book != nil && r.Book.Complete:
-		n.Phase, n.Do = "bundle", "write deliverables/bundle/listing.md, the shop texts for the book and the printable sold together. "+skill("printable")
+	case r.Bundle != nil && !r.Bundle.Listing && (r.Book == nil || r.Book.Complete):
+		n.Phase, n.Do = "bundle", "write deliverables/bundle/listing.md, the shop texts for the "+listed(r.Bundle.Units)+" sold together. "+skill("printable")
 	case r.Warnings() > 0:
 		n.Phase, n.Do = "fix", "resolve the warnings above; a page is done at 0 errors and 0 warnings."
 	case r.Release == nil:
@@ -237,19 +239,27 @@ func bookFindings(r compile.Result) int {
 	return n
 }
 
-// pageWarnings counts the warnings that are not about the book.
+// pageWarnings counts the warnings about the page itself, not about what it sells.
 func pageWarnings(r compile.Result) int {
 	if r.Validation == nil {
 		return 0
 	}
 	n := 0
 	for _, d := range r.Validation.Diagnostics {
-		if d.Severity == diagnostic.Warning && !strings.HasPrefix(d.Rule, "book.") && !strings.HasPrefix(d.Rule, "printable.") && !strings.HasPrefix(d.Rule, "bundle.") && !strings.HasPrefix(d.Rule, "spreadsheet.") && !strings.HasPrefix(d.Rule, "document.") && !strings.HasPrefix(d.Rule, "deck.") {
+		family, _, _ := strings.Cut(d.Rule, ".")
+		if d.Severity == diagnostic.Warning && (!slices.Contains(deliverables, family) || d.Rule == bundlerRule) {
 			n++
 		}
 	}
 	return n
 }
+
+// deliverables are the rule families of the things a page sells.
+var deliverables = append(slices.Clone(bundle.Kinds), "bundle")
+
+// bundlerRule shares the bundle family but reports esbuild bundling the
+// page's scripts and styles, not the bundle deliverable.
+const bundlerRule = "bundle.warning"
 
 // ruleFamily counts the warnings and errors whose rule starts with prefix.
 func ruleFamily(r compile.Result, prefix string) int {
