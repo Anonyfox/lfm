@@ -81,16 +81,6 @@ const (
 	Day
 )
 
-// End returns the last day of the period starting at t.
-func (p Precision) End(t time.Time) time.Time {
-	switch p {
-	case Year:
-		return t.AddDate(1, 0, -1)
-	case Month:
-		return t.AddDate(0, 1, -1)
-	}
-	return t
-}
 
 // postedDate reads YYYY-MM-DD, YYYY-MM or YYYY.
 func postedDate(s string) (time.Time, Precision, bool) {

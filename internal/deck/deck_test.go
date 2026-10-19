@@ -14,6 +14,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // fonts are the fixture fonts the deck tests share with the document tests.
@@ -90,7 +91,7 @@ func TestBriefingChecksCleanAndBuildsTheSameBytes(t *testing.T) {
 				t.Errorf("%s (%s) lacks %s", b.Name, b.Edition.Key, want)
 			}
 		}
-		if Stamp(b.Data) != b.Key {
+		if zipx.Stamp(b.Data) != b.Key {
 			t.Errorf("%s carries no stamp", b.Name)
 		}
 	}

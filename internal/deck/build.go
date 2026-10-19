@@ -45,9 +45,6 @@ type Built struct {
 	Data    []byte
 }
 
-// Stamp is the input key a built .pptx or .zip carries in its zip comment.
-func Stamp(tail []byte) string { return zipx.Stamp(tail) }
-
 // inputs hashes what every file of the set shares: the theme and the
 // faces and images it embeds.
 func (r Report) inputs() []byte {

@@ -18,6 +18,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
 // fixture copies a testdata set into a project's deliverables/document.
@@ -74,7 +75,7 @@ func TestClubChecksCleanAndBuildsTheSameBytes(t *testing.T) {
 		if !bytes.Equal(b.Data, again[i].Data) {
 			t.Errorf("%s %s is not byte-identical on a rebuild", b.Name, b.Edition.Key)
 		}
-		if Stamp(b.Data) != b.Key || Stamp(b.Data[len(b.Data)-200:]) != b.Key {
+		if zipx.Stamp(b.Data) != b.Key || zipx.Stamp(b.Data[len(b.Data)-200:]) != b.Key {
 			t.Errorf("%s carries no stamp", b.Name)
 		}
 		kept[b.Key] = b.Data

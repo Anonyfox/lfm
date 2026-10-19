@@ -29,9 +29,6 @@ type Built struct {
 	Data    []byte
 }
 
-// Stamp is the input key a built .docx or .zip carries in its zip comment.
-func Stamp(tail []byte) string { return zipx.Stamp(tail) }
-
 var withStamp = zipx.WithStamp
 
 // FileName is a document's file name: its title, safe on every system.
