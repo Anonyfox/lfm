@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/sfnt"
@@ -36,8 +37,10 @@ type Face struct {
 	glyphs        map[rune]bool
 	font          *sfnt.Font
 	upm           int
-	mu            sync.Mutex
-	advances      map[rune]float64 // in em, measured once
+	latin         [256]glyph // Latin-1, measured when the font is read
+	mu            sync.Mutex // guards more and buf
+	more          map[rune]glyph
+	buf           sfnt.Buffer
 }
 
 // Slot is where a face goes in a family: the four faces Word knows.
@@ -129,6 +132,9 @@ func Read(file string, data []byte) (*Face, error) {
 	if n > 0 {
 		face.AvgChar = total / float64(n)
 	}
+	for r := range face.latin {
+		face.latin[r] = face.measure(rune(r))
+	}
 	face.glyphs = map[rune]bool{}
 	for _, r := range Symbols {
 		if idx, err := f.GlyphIndex(&buf, r); err == nil && idx != 0 {
@@ -153,14 +159,7 @@ const Symbols = "•–◦·☐☒□■❦❧◆—"
 func (f *Face) Has(r rune) bool { return f != nil && f.glyphs[r] }
 
 // Covers reports whether the face draws r.
-func (f *Face) Covers(r rune) bool {
-	if f == nil || f.font == nil {
-		return false
-	}
-	var buf sfnt.Buffer
-	idx, err := f.font.GlyphIndex(&buf, r)
-	return err == nil && idx != 0
-}
+func (f *Face) Covers(r rune) bool { return f.glyph(r).covered }
 
 // Tables maps a font's table tags to their bytes.
 func Tables(data []byte) (map[string][]byte, error) {
@@ -203,33 +202,59 @@ func (f *Face) Width(s string, size float64) float64 {
 	if f == nil || f.font == nil {
 		return float64(len([]rune(s))) * 0.55 * size
 	}
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.advances == nil {
-		f.advances = map[rune]float64{}
-	}
-	var buf sfnt.Buffer
-	measure := func(r rune) float64 {
-		if a, ok := f.advances[r]; ok {
-			return a
-		}
-		idx, err := f.font.GlyphIndex(&buf, r)
-		if err != nil || idx == 0 {
-			idx, _ = f.font.GlyphIndex(&buf, 'M')
-		}
-		adv, err := f.font.GlyphAdvance(&buf, idx, fixed.Int26_6(f.upm)<<6, font.HintingNone)
-		a := 0.6
-		if err == nil && f.upm > 0 {
-			a = float64(adv) / 64 / float64(f.upm)
-		}
-		f.advances[r] = a
-		return a
-	}
 	total := 0.0
-	for _, r := range s {
-		total += measure(r)
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; c < 0x80 {
+			total += f.latin[c].advance
+			continue
+		}
+		r, n := utf8.DecodeRuneInString(s[i:])
+		total += f.glyph(r).advance
+		i += n - 1
 	}
 	return total * size
+}
+
+// glyph is what a face knows of one character.
+type glyph struct {
+	advance float64 // in em; an "M" where the face lacks it
+	covered bool
+}
+
+// glyph is r's entry: from the Latin-1 table without a lock, else measured
+// once and kept.
+func (f *Face) glyph(r rune) glyph {
+	if f == nil || f.font == nil {
+		return glyph{advance: 0.55}
+	}
+	if r >= 0 && r < 256 {
+		return f.latin[r]
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if g, ok := f.more[r]; ok {
+		return g
+	}
+	if f.more == nil {
+		f.more = map[rune]glyph{}
+	}
+	g := f.measure(r)
+	f.more[r] = g
+	return g
+}
+
+// measure reads r's glyph from the font; callers hold mu or own the face.
+func (f *Face) measure(r rune) glyph {
+	idx, err := f.font.GlyphIndex(&f.buf, r)
+	g := glyph{covered: err == nil && idx != 0}
+	if !g.covered {
+		idx, _ = f.font.GlyphIndex(&f.buf, 'M')
+	}
+	g.advance = 0.6
+	if adv, err := f.font.GlyphAdvance(&f.buf, idx, fixed.Int26_6(f.upm)<<6, font.HintingNone); err == nil && f.upm > 0 {
+		g.advance = float64(adv) / 64 / float64(f.upm)
+	}
+	return g
 }
 
 // Family is the faces of one font family a deliverable ships.
