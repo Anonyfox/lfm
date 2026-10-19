@@ -27,3 +27,8 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: the binary reports the tag
+        run: |
+          bin=$(find dist -type f -name lfm -path '*linux_amd64*' | head -1)
+          "$bin" version | tee "$RUNNER_TEMP/version"
+          grep -Eq "^lfm v?${GITHUB_REF_NAME#v}( |\$)" "$RUNNER_TEMP/version"
