@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"math"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/zipx"
@@ -810,18 +810,8 @@ body { width: %.4fin; height: %.4fin; position: relative; overflow: hidden; back
 
 // luminance is the relative luminance of a #rrggbb color.
 func luminance(hex string) float64 {
-	var r, g, b int
-	if _, err := fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b); err != nil {
-		return 0
-	}
-	lin := func(v int) float64 {
-		c := float64(v) / 255
-		if c <= 0.03928 {
-			return c / 12.92
-		}
-		return math.Pow((c+0.055)/1.055, 2.4)
-	}
-	return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
+	c, _ := color.ParseHex(hex)
+	return c.Luminance()
 }
 
 // DownloadPage renders the unlisted page buyers land on after paying. With no

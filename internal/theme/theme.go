@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/concept"
 )
 
@@ -64,27 +65,9 @@ func Names() []string {
 
 // Contrast is the WCAG 2.1 contrast ratio of two #rrggbb colors.
 func Contrast(a, b string) float64 {
-	la, lb := luminance(a), luminance(b)
-	if la < lb {
-		la, lb = lb, la
-	}
-	return (la + 0.05) / (lb + 0.05)
-}
-
-func luminance(hex string) float64 {
-	hex = strings.TrimPrefix(hex, "#")
-	if len(hex) != 6 {
-		return 0
-	}
-	ch := func(i int) float64 {
-		v, _ := strconv.ParseUint(hex[i:i+2], 16, 8)
-		c := float64(v) / 255
-		if c <= 0.03928 {
-			return c / 12.92
-		}
-		return math.Pow((c+0.055)/1.055, 2.4)
-	}
-	return 0.2126*ch(0) + 0.7152*ch(2) + 0.0722*ch(4)
+	ca, _ := color.ParseHex(a)
+	cb, _ := color.ParseHex(b)
+	return color.Contrast(ca, cb)
 }
 
 // Tint mixes a color with white: share 0 is the color, 1 white.

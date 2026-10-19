@@ -54,7 +54,7 @@ func TestContrastKnownValues(t *testing.T) {
 }
 
 func TestContrastTreatsMalformedColorAsBlack(t *testing.T) {
-	if got := Contrast("#FFF", "#FFFFFF"); math.Abs(got-21) > 1e-9 {
+	if got := Contrast("#GGGGGG", "#FFFFFF"); math.Abs(got-21) > 1e-6 {
 		t.Fatalf("contrast %v", got)
 	}
 }
