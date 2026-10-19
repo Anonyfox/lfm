@@ -101,7 +101,9 @@ func TestMissingCapabilitiesReportAllSetupRequirements(t *testing.T) {
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
 	t.Setenv("LFM_LIGHTHOUSE", "/does-not-exist/lighthouse")
 	r := Audit([]byte("page"), nil, t.TempDir())
-	if len(r.Diagnostics) != 2 || !strings.Contains(r.Lighthouse.Hint, "LFM_CHROME") || !strings.Contains(r.Lighthouse.Hint, "npm install") {
+	// Only the missing browser warns; Lighthouse is optional, but the skip
+	// still names how to set up both.
+	if len(r.Diagnostics) != 1 || !strings.Contains(r.Lighthouse.Hint, "LFM_CHROME") || !strings.Contains(r.Lighthouse.Hint, "npm install") {
 		t.Fatal(r)
 	}
 }

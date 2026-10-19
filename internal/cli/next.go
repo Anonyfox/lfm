@@ -18,7 +18,7 @@ import (
 // next is the step a compile points to: the phase a project is in, or what
 // is left before it ships. Agents read it to stay on the intended path.
 type next struct {
-	Phase string   `json:"phase"` // research, design, implementation, book, printable, bundle, fix, review, deploy
+	Phase string   `json:"phase"` // research, design, implementation, book, printable, spreadsheet, document, deck, bundle, fix, review, deploy
 	Do    string   `json:"do"`
 	Skill string   `json:"skill,omitempty"` // the skill that covers the step
 	Notes []string `json:"notes,omitempty"`
@@ -59,6 +59,32 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "printable", "write deliverables/printable/printable.html.tmpl: one <section class=\"page\"> per page, as the concept's Contents plans. "+skill("printable")
 	case r.Printable != nil && ruleFamily(r, "printable.") > 0:
 		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "printable."), "printable finding"), skill("printable"))
+	case r.Spreadsheet != nil && !r.Spreadsheet.Concept:
+		n.Phase, n.Do = "spreadsheet", "write deliverables/spreadsheet/concept.md: buyer, promise, tabs, look. "+skill("spreadsheet")
+	case r.Spreadsheet != nil && !r.Spreadsheet.Workbook:
+		n.Phase, n.Do = "spreadsheet", "write deliverables/spreadsheet/workbook.json: the editions, the sheets the concept's Tabs plan, and an example dataset with expected values. "+skill("spreadsheet")
+	case r.Spreadsheet != nil && ruleFamily(r, "spreadsheet.") > ruleCount(r, "spreadsheet.sheets"):
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "spreadsheet.")-ruleCount(r, "spreadsheet.sheets"), "spreadsheet finding"), skill("spreadsheet"))
+	case r.Spreadsheet != nil && !r.Spreadsheet.Listing:
+		n.Phase, n.Do = "spreadsheet", "write deliverables/spreadsheet/listing.md, the shop texts lfm renders into every channel's guide under distribution/. "+skill("spreadsheet")
+	case r.Document != nil && !r.Document.Concept:
+		n.Phase, n.Do = "document", "write deliverables/document/concept.md: buyer, promise, documents, look. "+skill("document")
+	case r.Document != nil && r.Document.Documents == 0 && ruleFamily(r, "document.") <= 1:
+		n.Phase, n.Do = "document", "write every document the concept plans as deliverables/document/<language>/<document>.md, and add the theme's fonts to deliverables/document/fonts. "+skill("document")
+	case r.Document != nil && ruleFamily(r, "document.") > 0:
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "document."), "document finding"), skill("document"))
+	case r.Document != nil && !r.Document.Listing:
+		n.Phase, n.Do = "document", "write deliverables/document/listing.md, the shop texts lfm renders into every channel's guide under distribution/. "+skill("document")
+	case r.Deck != nil && !r.Deck.Concept:
+		n.Phase, n.Do = "deck", "write deliverables/deck/concept.md: buyer, promise, decks, look. "+skill("deck")
+	case r.Deck != nil && r.Deck.Decks == 0 && ruleFamily(r, "deck.") <= 1:
+		n.Phase, n.Do = "deck", "write every deck the concept plans as deliverables/deck/<language>/<deck>.md, and add the theme's fonts to deliverables/deck/fonts. "+skill("deck")
+	case r.Deck != nil && ruleFamily(r, "deck.") > 0:
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "deck."), "deck finding"), skill("deck"))
+	case r.Deck != nil && !r.Deck.Listing:
+		n.Phase, n.Do = "deck", "write deliverables/deck/listing.md, the shop texts lfm renders into every channel's guide under distribution/. "+skill("deck")
+	case r.Spreadsheet != nil && ruleCount(r, "spreadsheet.sheets") > 0:
+		n.Phase, n.Do = "spreadsheet", "link the Google Sheets masters: upload each .xlsx in output/ to Google Drive, open it with Google Sheets, share it as anyone with the link can view, and paste its address into deliverables.spreadsheet.sheets; only the owner's Google account can do this. "+skill("spreadsheet")
 	case r.Bundle != nil && ruleFamily(r, "bundle.") > 0:
 		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above. %s", term.Plural(ruleFamily(r, "bundle."), "bundle finding"), skill("printable"))
 	case r.Printable != nil && !r.Printable.Listing && r.Printable.Sell != "bundle":
@@ -94,6 +120,15 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		n.Phase, n.Do = "review", "run 'lfm compile --release' and look at every frame it saves, at phone and desktop size."
 		if r.Book != nil && r.Book.Pending {
 			n.Notes = append(n.Notes, "The release also prints the book's PDF and paperback; open them and look at every page.")
+		}
+		if r.Document != nil && r.Document.Pending {
+			n.Notes = append(n.Notes, "The release also prints every document as Word lays it out and checks its pages and fonts, prints the start guides and renders the listing images from the real files; look at them.")
+		}
+		if r.Deck != nil && r.Deck.Pending {
+			n.Notes = append(n.Notes, "The release also prints every deck as PowerPoint lays it out, with its speaker notes and quiz sheet, checks every slide's boxes, prints the start guides and renders the listing images; look at them.")
+		}
+		if r.Spreadsheet != nil && r.Spreadsheet.Pending {
+			n.Notes = append(n.Notes, "The release also prints the spreadsheet's start PDFs, renders its listing images and, with LibreOffice installed, recalculates every file there too; look at them.")
 		}
 		if r.Printable != nil && r.Printable.Pending {
 			n.Notes = append(n.Notes, "The release also prints the printable's PDFs and listing images; open them and look at every page.")
@@ -209,7 +244,7 @@ func pageWarnings(r compile.Result) int {
 	}
 	n := 0
 	for _, d := range r.Validation.Diagnostics {
-		if d.Severity == diagnostic.Warning && !strings.HasPrefix(d.Rule, "book.") && !strings.HasPrefix(d.Rule, "printable.") && !strings.HasPrefix(d.Rule, "bundle.") {
+		if d.Severity == diagnostic.Warning && !strings.HasPrefix(d.Rule, "book.") && !strings.HasPrefix(d.Rule, "printable.") && !strings.HasPrefix(d.Rule, "bundle.") && !strings.HasPrefix(d.Rule, "spreadsheet.") && !strings.HasPrefix(d.Rule, "document.") && !strings.HasPrefix(d.Rule, "deck.") {
 			n++
 		}
 	}
@@ -246,6 +281,15 @@ func sold(r compile.Result) []unit {
 	}
 	if b := r.Bundle; b != nil {
 		out = append(out, unit{"bundle", "bundle", b.URL, b.Sell, b.Channels})
+	}
+	if d := r.Document; d != nil {
+		out = append(out, unit{"document", "document", d.URL, d.Sell, d.Channels})
+	}
+	if d := r.Deck; d != nil {
+		out = append(out, unit{"deck", "deck", d.URL, d.Sell, d.Channels})
+	}
+	if s := r.Spreadsheet; s != nil {
+		out = append(out, unit{"spreadsheet", "spreadsheet", s.URL, s.Sell, s.Channels})
 	}
 	return out
 }

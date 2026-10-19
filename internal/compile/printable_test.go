@@ -216,7 +216,7 @@ func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
 	}
 	// The book has no cover yet, so the bundle shows the printable's images.
 	guide, err := os.ReadFile(filepath.Join(dir, "distribution", "bundle", "stores", "etsy.md"))
-	if err != nil || !bytes.Contains(guide, []byte("maze-pack-a4.pdf")) || !bytes.Contains(guide, []byte("the-weekend-starter.epub")) || !bytes.Contains(guide, []byte("images/01-cover.jpg")) {
+	if err != nil || !bytes.Contains(guide, []byte("maze-pack-a4.pdf")) || !bytes.Contains(guide, []byte("the-weekend-starter.epub")) || !bytes.Contains(guide, []byte("images/01-printable-cover.jpg")) {
 		t.Fatalf("bundle etsy guide: %v\n%s", err, guide)
 	}
 	again, _ := Compile(context.Background(), dir, Options{Publish: true})
@@ -273,7 +273,7 @@ func TestBundleConfigErrors(t *testing.T) {
 		c["deliverables"] = map[string]any{"printable": map[string]any{"sell": "bundle"}, "bundle": map[string]any{"name": "Kit", "sell": "shops"}}
 	})
 	result, _ = Compile(context.Background(), dir, Options{Publish: true})
-	if f := findings(result, "bundle.config"); len(f) != 1 || !strings.Contains(f[0], "needs both") {
+	if f := findings(result, "bundle.config"); len(f) != 1 || !strings.Contains(f[0], "two or more") {
 		t.Fatalf("%v", f)
 	}
 }

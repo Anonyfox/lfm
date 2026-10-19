@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/deliver"
 
 	"github.com/Anonyfox/lfm/internal/book"
@@ -50,8 +51,21 @@ func checkBook(p project.Project, loaded project.Loaded, commerce commercecheck.
 // shipped is what a deliverable built for buyers: its downloads with their
 // bytes, which its own download page and a bundle's offer.
 type shipped struct {
-	Files []deliver.File
-	Data  map[string][]byte
+	Files  []deliver.File
+	Data   map[string][]byte
+	Images []bundle.Image // the listing images, for a bundle that holds the unit
+}
+
+// pictured reports whether a unit renders listing images: for its own
+// listing, or for the bundle that sells it.
+func pictured(listing bool, sell string) bool {
+	return listing || deliver.Sell(sell) == deliver.SellBundle
+}
+
+// ownStores reports whether a unit gets shop packages of its own: it has a
+// listing and does not sell only inside the bundle.
+func ownStores(listing bool, sell string) bool {
+	return listing && deliver.Sell(sell) != deliver.SellBundle
 }
 
 func (s *shipped) add(f deliver.File, data []byte) {

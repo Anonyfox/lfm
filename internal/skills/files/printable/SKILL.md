@@ -193,9 +193,9 @@ Statement: <one sentence stores show about the AI use>
 
 - `sell` decides how buyers get the files: `page` (default) publishes the download page the report prints;
   never link it from the page (`printable.delivery`); Stripe's Payment Link redirects there. `shops`: the
-  shops deliver, and once a listing is live the page's offer links to it. `bundle`: only together with the
-  book, in `deliverables.bundle` with its own [[.Printable.Bundle]] in the Phase 4 format. Its download
-  page and shop packages hold every file of both. `lfm help config deliverables.bundle` lists its options.
+  shops deliver, and once a listing is live the page's offer links to it. `bundle`: only together with other
+  deliverables, in `deliverables.bundle` with its own [[.Printable.Bundle]] in the Phase 4 format. Its
+  download page and shop packages hold every file of each. `lfm help config deliverables.bundle` lists its options.
 - `[[.Printable.Distribution]]/` holds every PDF and listing image once, `README.md`, and per channel
   ([[.Printable.Channels]]) a guide in `stores/` naming the files and images to upload, in order, and
   every field ready to paste. Etsy takes [[.Printable.EtsyFiles]] files; lfm zips by paper size when the

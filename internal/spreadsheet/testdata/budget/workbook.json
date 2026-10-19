@@ -1,0 +1,1061 @@
+{
+ "editions": [
+  {
+   "key": "en",
+   "language": "en",
+   "currency": "USD"
+  },
+  {
+   "key": "de",
+   "language": "de",
+   "currency": "EUR"
+  }
+ ],
+ "today": "2026-10-19",
+ "words": {
+  "needs": {
+   "en": "Needs",
+   "de": "Fixkosten"
+  },
+  "wants": {
+   "en": "Wants",
+   "de": "Wünsche"
+  },
+  "savings": {
+   "en": "Savings",
+   "de": "Sparen"
+  },
+  "checking": {
+   "en": "Checking",
+   "de": "Girokonto"
+  },
+  "card": {
+   "en": "Credit card",
+   "de": "Kreditkarte"
+  },
+  "cash": {
+   "en": "Cash",
+   "de": "Bargeld"
+  },
+  "savings_account": {
+   "en": "Savings account",
+   "de": "Sparkonto"
+  }
+ },
+ "sheets": [
+  {
+   "key": "start",
+   "name": {
+    "en": "Start Here",
+    "de": "Start"
+   },
+   "kind": "guide",
+   "lines": [
+    {
+     "en": "# Paycheck & Monthly Budget",
+     "de": "# Haushaltsbuch"
+    },
+    {
+     "en": "Know what is safe to spend until your next payday, and where every dollar went.",
+     "de": "Wisse, was du bis zum nächsten Gehalt noch ausgeben kannst, und wohin jeder Euro ging."
+    },
+    {
+     "en": "",
+     "de": ""
+    },
+    {
+     "en": "## Start in three steps",
+     "de": "## In drei Schritten loslegen"
+    },
+    {
+     "en": "1. Settings: pick the month to show, your next payday and your savings goal.",
+     "de": "1. Einstellungen: Wähle den Monat, deinen nächsten Zahltag und dein Sparziel."
+    },
+    {
+     "en": "2. Categories: rename the categories and set a monthly budget for each.",
+     "de": "2. Kategorien: Benenne die Kategorien um und lege für jede ein Monatsbudget fest."
+    },
+    {
+     "en": "3. Log: add every payment and income. Spending is negative, income positive, as on your bank statement.",
+     "de": "3. Buchungen: Trage jede Ausgabe und Einnahme ein. Ausgaben sind negativ, Einnahmen positiv, wie auf dem Kontoauszug."
+    },
+    {
+     "en": "",
+     "de": ""
+    },
+    {
+     "en": "## What each tab does",
+     "de": "## Was jedes Blatt tut"
+    },
+    {
+     "en": "Dashboard: income, spending, what is left and safe to spend per day until payday.",
+     "de": "Übersicht: Einnahmen, Ausgaben, was übrig ist und was du bis zum Zahltag pro Tag ausgeben kannst."
+    },
+    {
+     "en": "Year: what each category cost in every month of the year.",
+     "de": "Jahr: was jede Kategorie in jedem Monat des Jahres gekostet hat."
+    },
+    {
+     "en": "Tinted cells are yours to fill; everything else computes itself. Nothing is locked.",
+     "de": "Getönte Zellen füllst du aus, alles andere rechnet sich selbst. Nichts ist gesperrt."
+    },
+    {
+     "en": "Made a mistake? File > Version history brings back any earlier state.",
+     "de": "Etwas verrechnet? Datei > Versionsverlauf holt jeden früheren Stand zurück."
+    }
+   ]
+  },
+  {
+   "key": "settings",
+   "name": {
+    "en": "Settings",
+    "de": "Einstellungen"
+   },
+   "kind": "form",
+   "cells": [
+    {
+     "name": "month",
+     "label": {
+      "en": "Month to show",
+      "de": "Angezeigter Monat"
+     },
+     "type": "date",
+     "value": "2026-10-01",
+     "note": {
+      "en": "Any day of the month works.",
+      "de": "Jeder Tag des Monats geht."
+     }
+    },
+    {
+     "name": "payday",
+     "label": {
+      "en": "Next payday",
+      "de": "Nächster Zahltag"
+     },
+     "type": "date",
+     "value": "2026-10-31"
+    },
+    {
+     "name": "savings_rate",
+     "label": {
+      "en": "Savings goal, share of income",
+      "de": "Sparziel, Anteil am Einkommen"
+     },
+     "type": "percent",
+     "value": 0.1
+    },
+    {
+     "name": "month_start",
+     "label": {
+      "en": "First day",
+      "de": "Erster Tag"
+     },
+     "type": "date",
+     "formula": "=DATE(YEAR([month]),MONTH([month]),1)"
+    },
+    {
+     "name": "month_end",
+     "label": {
+      "en": "Last day",
+      "de": "Letzter Tag"
+     },
+     "type": "date",
+     "formula": "=EOMONTH([month],0)"
+    },
+    {
+     "name": "year",
+     "label": {
+      "en": "Year",
+      "de": "Jahr"
+     },
+     "type": "number",
+     "formula": "=YEAR([month])"
+    }
+   ]
+  },
+  {
+   "key": "categories",
+   "name": {
+    "en": "Categories",
+    "de": "Kategorien"
+   },
+   "kind": "table",
+   "rows": 40,
+   "columns": [
+    {
+     "key": "name",
+     "title": {
+      "en": "Category",
+      "de": "Kategorie"
+     },
+     "type": "text",
+     "width": 24
+    },
+    {
+     "key": "group",
+     "title": {
+      "en": "Group",
+      "de": "Gruppe"
+     },
+     "type": "enum",
+     "values": [
+      "@needs",
+      "@wants",
+      "@savings"
+     ],
+     "width": 14
+    },
+    {
+     "key": "budget",
+     "title": {
+      "en": "Monthly budget",
+      "de": "Monatsbudget"
+     },
+     "type": "money"
+    },
+    {
+     "key": "spent",
+     "title": {
+      "en": "Spent",
+      "de": "Ausgegeben"
+     },
+     "type": "money",
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&[month_start],[log.date],\"<=\"&[month_end]))"
+    },
+    {
+     "key": "left",
+     "title": {
+      "en": "Left",
+      "de": "Übrig"
+     },
+     "type": "money",
+     "formula": "=IF([.name]=\"\",\"\",[.budget]-[.spent])",
+     "highlight": [
+      {
+       "if": "<0",
+       "style": "bad"
+      }
+     ]
+    },
+    {
+     "key": "used",
+     "title": {
+      "en": "Used",
+      "de": "Verbraucht"
+     },
+     "type": "percent",
+     "formula": "=IF(OR([.name]=\"\",[.budget]=0),\"\",[.spent]/[.budget])",
+     "highlight": [
+      {
+       "if": ">1",
+       "style": "bad"
+      },
+      {
+       "if": ">=0.9",
+       "style": "warn"
+      }
+     ]
+    }
+   ],
+   "seed": [
+    {
+     "name": {
+      "en": "Rent",
+      "de": "Miete"
+     },
+     "group": "@needs",
+     "budget": 1200
+    },
+    {
+     "name": {
+      "en": "Groceries",
+      "de": "Lebensmittel"
+     },
+     "group": "@needs",
+     "budget": 450
+    },
+    {
+     "name": {
+      "en": "Utilities",
+      "de": "Strom & Internet"
+     },
+     "group": "@needs",
+     "budget": 180
+    },
+    {
+     "name": {
+      "en": "Transport",
+      "de": "Mobilität"
+     },
+     "group": "@needs",
+     "budget": 120
+    },
+    {
+     "name": {
+      "en": "Insurance",
+      "de": "Versicherungen"
+     },
+     "group": "@needs",
+     "budget": 90
+    },
+    {
+     "name": {
+      "en": "Eating out",
+      "de": "Essen gehen"
+     },
+     "group": "@wants",
+     "budget": 150
+    },
+    {
+     "name": {
+      "en": "Fun",
+      "de": "Freizeit"
+     },
+     "group": "@wants",
+     "budget": 120
+    },
+    {
+     "name": {
+      "en": "Shopping",
+      "de": "Shopping"
+     },
+     "group": "@wants",
+     "budget": 100
+    },
+    {
+     "name": {
+      "en": "Subscriptions",
+      "de": "Abos"
+     },
+     "group": "@wants",
+     "budget": 40
+    },
+    {
+     "name": {
+      "en": "Emergency fund",
+      "de": "Notgroschen"
+     },
+     "group": "@savings",
+     "budget": 200
+    },
+    {
+     "name": {
+      "en": "Goals",
+      "de": "Sparziele"
+     },
+     "group": "@savings",
+     "budget": 100
+    }
+   ]
+  },
+  {
+   "key": "log",
+   "name": {
+    "en": "Log",
+    "de": "Buchungen"
+   },
+   "kind": "table",
+   "rows": 1000,
+   "columns": [
+    {
+     "key": "date",
+     "title": {
+      "en": "Date",
+      "de": "Datum"
+     },
+     "type": "date"
+    },
+    {
+     "key": "payee",
+     "title": {
+      "en": "Payee",
+      "de": "Empfänger"
+     },
+     "type": "text"
+    },
+    {
+     "key": "category",
+     "title": {
+      "en": "Category",
+      "de": "Kategorie"
+     },
+     "type": "enum",
+     "from": "categories.name"
+    },
+    {
+     "key": "account",
+     "title": {
+      "en": "Account",
+      "de": "Konto"
+     },
+     "type": "enum",
+     "values": [
+      "@checking",
+      "@card",
+      "@cash",
+      "@savings_account"
+     ]
+    },
+    {
+     "key": "amount",
+     "title": {
+      "en": "Amount",
+      "de": "Betrag"
+     },
+     "type": "money",
+     "highlight": [
+      {
+       "if": ">0",
+       "style": "good"
+      }
+     ],
+     "note": {
+      "en": "Spending negative, income positive.",
+      "de": "Ausgaben negativ, Einnahmen positiv."
+     }
+    },
+    {
+     "key": "note",
+     "title": {
+      "en": "Note",
+      "de": "Notiz"
+     },
+     "type": "text",
+     "width": 30
+    }
+   ]
+  },
+  {
+   "key": "dashboard",
+   "name": {
+    "en": "Dashboard",
+    "de": "Übersicht"
+   },
+   "kind": "report",
+   "widths": [
+    2,
+    30,
+    16,
+    4,
+    30,
+    16
+   ],
+   "cells": [
+    {
+     "at": "B2",
+     "text": {
+      "en": "This month",
+      "de": "Dieser Monat"
+     },
+     "style": "title"
+    },
+    {
+     "at": "C2",
+     "formula": "=[month_start]",
+     "type": "date",
+     "style": "title"
+    },
+    {
+     "at": "B4",
+     "text": {
+      "en": "Income",
+      "de": "Einnahmen"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C4",
+     "name": "income",
+     "type": "money",
+     "formula": "=SUMIFS([log.amount],[log.amount],\">0\",[log.date],\">=\"&[month_start],[log.date],\"<=\"&[month_end])"
+    },
+    {
+     "at": "B5",
+     "text": {
+      "en": "Spent",
+      "de": "Ausgegeben"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C5",
+     "name": "spent",
+     "type": "money",
+     "formula": "=-SUMIFS([log.amount],[log.amount],\"<0\",[log.date],\">=\"&[month_start],[log.date],\"<=\"&[month_end])"
+    },
+    {
+     "at": "B6",
+     "text": {
+      "en": "Left this month",
+      "de": "Übrig diesen Monat"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C6",
+     "name": "left",
+     "type": "money",
+     "style": "total",
+     "formula": "=[income]-[spent]",
+     "highlight": [
+      {
+       "if": "<0",
+       "style": "bad"
+      }
+     ]
+    },
+    {
+     "at": "B7",
+     "text": {
+      "en": "Savings goal",
+      "de": "Sparziel"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C7",
+     "name": "goal",
+     "type": "money",
+     "formula": "=ROUND([income]*[savings_rate],2)"
+    },
+    {
+     "at": "B8",
+     "text": {
+      "en": "Safe to spend until payday",
+      "de": "Bis zum Zahltag frei verfügbar"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C8",
+     "name": "safe",
+     "type": "money",
+     "style": "total",
+     "formula": "=MAX(0,[left]-[goal])"
+    },
+    {
+     "at": "B9",
+     "text": {
+      "en": "Days until payday",
+      "de": "Tage bis zum Zahltag"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C9",
+     "name": "days",
+     "type": "number",
+     "formula": "=MAX(0,[payday]-TODAY())"
+    },
+    {
+     "at": "B10",
+     "text": {
+      "en": "Safe to spend per day",
+      "de": "Pro Tag frei verfügbar"
+     },
+     "style": "label"
+    },
+    {
+     "at": "C10",
+     "name": "per_day",
+     "type": "money",
+     "style": "total",
+     "formula": "=IF([days]=0,[safe],ROUND([safe]/[days],2))"
+    },
+    {
+     "at": "E4",
+     "text": {
+      "en": "Needs (aim: 50%)",
+      "de": "Fixkosten (Ziel: 50 %)"
+     },
+     "style": "label"
+    },
+    {
+     "at": "F4",
+     "name": "needs",
+     "type": "percent",
+     "formula": "=IF([income]=0,0,SUMIFS([categories.spent],[categories.group],[@needs])/[income])",
+     "highlight": [
+      {
+       "if": ">0.5",
+       "style": "warn"
+      }
+     ]
+    },
+    {
+     "at": "E5",
+     "text": {
+      "en": "Wants (aim: 30%)",
+      "de": "Wünsche (Ziel: 30 %)"
+     },
+     "style": "label"
+    },
+    {
+     "at": "F5",
+     "name": "wants",
+     "type": "percent",
+     "formula": "=IF([income]=0,0,SUMIFS([categories.spent],[categories.group],[@wants])/[income])",
+     "highlight": [
+      {
+       "if": ">0.3",
+       "style": "warn"
+      }
+     ]
+    },
+    {
+     "at": "E6",
+     "text": {
+      "en": "Savings (aim: 20%)",
+      "de": "Sparen (Ziel: 20 %)"
+     },
+     "style": "label"
+    },
+    {
+     "at": "F6",
+     "name": "saved",
+     "type": "percent",
+     "formula": "=IF([income]=0,0,SUMIFS([categories.spent],[categories.group],[@savings])/[income])",
+     "highlight": [
+      {
+       "if": ">=0.2",
+       "style": "good"
+      }
+     ]
+    },
+    {
+     "at": "E8",
+     "text": {
+      "en": "Monthly budget",
+      "de": "Monatsbudget"
+     },
+     "style": "label"
+    },
+    {
+     "at": "F8",
+     "name": "budget",
+     "type": "money",
+     "formula": "=SUM([categories.budget])"
+    },
+    {
+     "at": "E9",
+     "text": {
+      "en": "Categories over budget",
+      "de": "Kategorien über Budget"
+     },
+     "style": "label"
+    },
+    {
+     "at": "F9",
+     "name": "over",
+     "type": "number",
+     "formula": "=COUNTIF([categories.left],\"<0\")",
+     "highlight": [
+      {
+       "if": ">0",
+       "style": "bad"
+      }
+     ]
+    }
+   ],
+   "charts": [
+    {
+     "type": "doughnut",
+     "title": {
+      "en": "Spending by category",
+      "de": "Ausgaben nach Kategorie"
+     },
+     "labels": "[categories.name]",
+     "values": "[categories.spent]",
+     "at": "B12",
+     "width": 420,
+     "height": 300
+    },
+    {
+     "type": "bar",
+     "title": {
+      "en": "Spent per category",
+      "de": "Ausgegeben je Kategorie"
+     },
+     "labels": "[categories.name]",
+     "values": "[categories.spent]",
+     "at": "E12",
+     "width": 420,
+     "height": 300
+    }
+   ]
+  },
+  {
+   "key": "year",
+   "name": {
+    "en": "Year",
+    "de": "Jahr"
+   },
+   "kind": "table",
+   "rows": 40,
+   "columns": [
+    {
+     "key": "name",
+     "title": {
+      "en": "Category",
+      "de": "Kategorie"
+     },
+     "type": "text",
+     "width": 24,
+     "formula": "=IF(INDEX([categories.name],ROW()-1)=\"\",\"\",INDEX([categories.name],ROW()-1))"
+    },
+    {
+     "key": "m1",
+     "title": {
+      "en": "Jan",
+      "de": "Jan"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],1,1),[log.date],\"<\"&DATE([year],2,1)))"
+    },
+    {
+     "key": "m2",
+     "title": {
+      "en": "Feb",
+      "de": "Feb"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],2,1),[log.date],\"<\"&DATE([year],3,1)))"
+    },
+    {
+     "key": "m3",
+     "title": {
+      "en": "Mar",
+      "de": "Mär"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],3,1),[log.date],\"<\"&DATE([year],4,1)))"
+    },
+    {
+     "key": "m4",
+     "title": {
+      "en": "Apr",
+      "de": "Apr"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],4,1),[log.date],\"<\"&DATE([year],5,1)))"
+    },
+    {
+     "key": "m5",
+     "title": {
+      "en": "May",
+      "de": "Mai"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],5,1),[log.date],\"<\"&DATE([year],6,1)))"
+    },
+    {
+     "key": "m6",
+     "title": {
+      "en": "Jun",
+      "de": "Jun"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],6,1),[log.date],\"<\"&DATE([year],7,1)))"
+    },
+    {
+     "key": "m7",
+     "title": {
+      "en": "Jul",
+      "de": "Jul"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],7,1),[log.date],\"<\"&DATE([year],8,1)))"
+    },
+    {
+     "key": "m8",
+     "title": {
+      "en": "Aug",
+      "de": "Aug"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],8,1),[log.date],\"<\"&DATE([year],9,1)))"
+    },
+    {
+     "key": "m9",
+     "title": {
+      "en": "Sep",
+      "de": "Sep"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],9,1),[log.date],\"<\"&DATE([year],10,1)))"
+    },
+    {
+     "key": "m10",
+     "title": {
+      "en": "Oct",
+      "de": "Okt"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],10,1),[log.date],\"<\"&DATE([year],11,1)))"
+    },
+    {
+     "key": "m11",
+     "title": {
+      "en": "Nov",
+      "de": "Nov"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],11,1),[log.date],\"<\"&DATE([year],12,1)))"
+    },
+    {
+     "key": "m12",
+     "title": {
+      "en": "Dec",
+      "de": "Dez"
+     },
+     "type": "money",
+     "width": 11,
+     "formula": "=IF([.name]=\"\",\"\",-SUMIFS([log.amount],[log.category],[.name],[log.date],\">=\"&DATE([year],12,1),[log.date],\"<\"&DATE([year],13,1)))"
+    },
+    {
+     "key": "total",
+     "title": {
+      "en": "Year",
+      "de": "Jahr"
+     },
+     "type": "money",
+     "width": 12,
+     "formula": "=IF([.name]=\"\",\"\",[.m1]+[.m2]+[.m3]+[.m4]+[.m5]+[.m6]+[.m7]+[.m8]+[.m9]+[.m10]+[.m11]+[.m12])"
+    }
+   ]
+  }
+ ],
+ "datasets": {
+  "example": {
+   "tables": {
+    "log": [
+     {
+      "date": "2026-09-28",
+      "payee": "Landlord",
+      "category": {
+       "en": "Rent",
+       "de": "Miete"
+      },
+      "account": "@checking",
+      "amount": -1200
+     },
+     {
+      "date": "2026-10-01",
+      "payee": "Employer",
+      "account": "@checking",
+      "amount": 3200
+     },
+     {
+      "date": "2026-10-01",
+      "payee": "Landlord",
+      "category": {
+       "en": "Rent",
+       "de": "Miete"
+      },
+      "account": "@checking",
+      "amount": -1200
+     },
+     {
+      "date": "2026-10-02",
+      "payee": "Supermarket",
+      "category": {
+       "en": "Groceries",
+       "de": "Lebensmittel"
+      },
+      "account": "@card",
+      "amount": -84.37
+     },
+     {
+      "date": "2026-10-03",
+      "payee": "Power company",
+      "category": {
+       "en": "Utilities",
+       "de": "Strom & Internet"
+      },
+      "account": "@checking",
+      "amount": -95
+     },
+     {
+      "date": "2026-10-03",
+      "payee": "Internet",
+      "category": {
+       "en": "Utilities",
+       "de": "Strom & Internet"
+      },
+      "account": "@checking",
+      "amount": -39.99
+     },
+     {
+      "date": "2026-10-04",
+      "payee": "Bakery",
+      "category": {
+       "en": "Groceries",
+       "de": "Lebensmittel"
+      },
+      "account": "@cash",
+      "amount": -6.8
+     },
+     {
+      "date": "2026-10-05",
+      "payee": "Transit pass",
+      "category": {
+       "en": "Transport",
+       "de": "Mobilität"
+      },
+      "account": "@card",
+      "amount": -58
+     },
+     {
+      "date": "2026-10-06",
+      "payee": "Streaming",
+      "category": {
+       "en": "Subscriptions",
+       "de": "Abos"
+      },
+      "account": "@card",
+      "amount": -13.99
+     },
+     {
+      "date": "2026-10-07",
+      "payee": "Pizzeria",
+      "category": {
+       "en": "Eating out",
+       "de": "Essen gehen"
+      },
+      "account": "@card",
+      "amount": -32.5
+     },
+     {
+      "date": "2026-10-09",
+      "payee": "Supermarket",
+      "category": {
+       "en": "Groceries",
+       "de": "Lebensmittel"
+      },
+      "account": "@card",
+      "amount": -112.15
+     },
+     {
+      "date": "2026-10-10",
+      "payee": "Cinema",
+      "category": {
+       "en": "Fun",
+       "de": "Freizeit"
+      },
+      "account": "@card",
+      "amount": -24
+     },
+     {
+      "date": "2026-10-11",
+      "payee": "Savings account",
+      "category": {
+       "en": "Emergency fund",
+       "de": "Notgroschen"
+      },
+      "account": "@checking",
+      "amount": -200
+     },
+     {
+      "date": "2026-10-12",
+      "payee": "Bookshop",
+      "category": {
+       "en": "Shopping",
+       "de": "Shopping"
+      },
+      "account": "@card",
+      "amount": -27.9
+     },
+     {
+      "date": "2026-10-14",
+      "payee": "Supermarket",
+      "category": {
+       "en": "Groceries",
+       "de": "Lebensmittel"
+      },
+      "account": "@card",
+      "amount": -96.42
+     },
+     {
+      "date": "2026-10-15",
+      "payee": "Insurance",
+      "category": {
+       "en": "Insurance",
+       "de": "Versicherungen"
+      },
+      "account": "@checking",
+      "amount": -88.6
+     },
+     {
+      "date": "2026-10-16",
+      "payee": "Café",
+      "category": {
+       "en": "Eating out",
+       "de": "Essen gehen"
+      },
+      "account": "@cash",
+      "amount": -9.4
+     },
+     {
+      "date": "2026-10-17",
+      "payee": "Sports shop",
+      "category": {
+       "en": "Shopping",
+       "de": "Shopping"
+      },
+      "account": "@card",
+      "amount": -79.99
+     },
+     {
+      "date": "2026-10-18",
+      "payee": "Concert",
+      "category": {
+       "en": "Fun",
+       "de": "Freizeit"
+      },
+      "account": "@card",
+      "amount": -110
+     }
+    ]
+   },
+   "cells": {
+    "month": "2026-10-01",
+    "payday": "2026-10-31",
+    "savings_rate": 0.1
+   }
+  }
+ },
+ "expect": {
+  "empty": {
+   "income": 0,
+   "spent": 0,
+   "safe": 0,
+   "per_day": 0,
+   "budget": 2750
+  },
+  "example": {
+   "income": 3200,
+   "spent": 2279.11,
+   "left": 920.89,
+   "goal": 320,
+   "safe": 600.89,
+   "days": 12,
+   "per_day": 50.07,
+   "over": 2,
+   "categories.spent[2]": 299.74,
+   "categories.left[7]": -14,
+   "year.m10[1]": 1200,
+   "year.m9[1]": 1200
+  }
+ }
+}

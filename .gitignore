@@ -5,3 +5,7 @@
 .DS_Store
 output/
 output.next-*/
+
+# .NET build output of the Open XML validator
+internal/ooxml/validator/bin/
+internal/ooxml/validator/obj/

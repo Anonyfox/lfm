@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -72,7 +73,14 @@ func Create(dir string) ([]string, error) {
 	sort.Strings(names)
 	sort.Strings(conflicts)
 	if len(conflicts) > 0 {
-		return nil, fmt.Errorf("%s already contains %s; choose an empty or new directory", dir, strings.Join(conflicts, ", "))
+		listed := strings.Join(conflicts, ", ")
+		if len(conflicts) > 3 {
+			listed = fmt.Sprintf("%s and %d more starter files", strings.Join(conflicts[:3], ", "), len(conflicts)-3)
+		}
+		if slices.Contains(conflicts, "lfm.json") {
+			return nil, fmt.Errorf("%s is already an lfm project (%s); run 'lfm compile' there, or init into an empty or new directory", dir, listed)
+		}
+		return nil, fmt.Errorf("%s already contains %s; choose an empty or new directory", dir, listed)
 	}
 	for _, rel := range names {
 		target := filepath.Join(abs, filepath.FromSlash(rel))

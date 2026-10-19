@@ -31,15 +31,19 @@ import (
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/deck"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
 	"github.com/Anonyfox/lfm/internal/htmlcompact"
 	"github.com/Anonyfox/lfm/internal/imaging"
+	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
 	"github.com/Anonyfox/lfm/internal/scaffold"
+	"github.com/Anonyfox/lfm/internal/spreadsheet"
 
 	"golang.org/x/net/html"
 )
@@ -71,25 +75,31 @@ type Result struct {
 	Distribution map[string]map[string][]byte `json:"-"`
 	// Previews are rendered deliverable pages lfm serve shows and publish
 	// never writes, such as each printable edition as HTML.
-	Previews   map[string][]byte   `json:"-"`
-	External   []string            `json:"externalAssets,omitempty"`
-	Validation *check.Report       `json:"validation,omitempty"`
-	Published  bool                `json:"published"`
-	Release    *release.Result     `json:"release,omitempty"`
-	Packing    []AssetDecision     `json:"assets,omitempty"`
-	Cost       *Cost               `json:"cost,omitempty"`
-	Compaction *htmlcompact.Result `json:"htmlCompaction,omitempty"`
-	Images     []imaging.Decision  `json:"images,omitempty"`
-	Fonts      []fontcheck.Info    `json:"fonts,omitempty"`
-	Research   research.Summary    `json:"research"`
-	Concept    concept.Summary     `json:"concept"`
-	FontHints  int                 `json:"fontHintRepairs,omitempty"`
-	Starter    bool                `json:"starter"` // the template is still the starter page of lfm init
-	Book       *book.Summary       `json:"book,omitempty"`
-	Printable  *printable.Summary  `json:"printable,omitempty"`
-	Bundle     *bundle.Summary     `json:"bundle,omitempty"`
-	Inputs     []string            `json:"-"` // resolved source files, for watchers
-	Duration   time.Duration       `json:"-"`
+	Previews    map[string][]byte    `json:"-"`
+	External    []string             `json:"externalAssets,omitempty"`
+	Validation  *check.Report        `json:"validation,omitempty"`
+	Published   bool                 `json:"published"`
+	Release     *release.Result      `json:"release,omitempty"`
+	Packing     []AssetDecision      `json:"assets,omitempty"`
+	Cost        *Cost                `json:"cost,omitempty"`
+	Compaction  *htmlcompact.Result  `json:"htmlCompaction,omitempty"`
+	Images      []imaging.Decision   `json:"images,omitempty"`
+	Fonts       []fontcheck.Info     `json:"fonts,omitempty"`
+	Research    research.Summary     `json:"research"`
+	Concept     concept.Summary      `json:"concept"`
+	FontHints   int                  `json:"fontHintRepairs,omitempty"`
+	Starter     bool                 `json:"starter"` // the template is still the starter page of lfm init
+	Book        *book.Summary        `json:"book,omitempty"`
+	Printable   *printable.Summary   `json:"printable,omitempty"`
+	Bundle      *bundle.Summary      `json:"bundle,omitempty"`
+	Spreadsheet *spreadsheet.Summary `json:"spreadsheet,omitempty"`
+	Document    *document.Summary    `json:"document,omitempty"`
+	Deck        *deck.Summary        `json:"deck,omitempty"`
+	// Optional names the helpers a release found missing and what each
+	// would add; no release needs them.
+	Optional []string      `json:"optional,omitempty"`
+	Inputs   []string      `json:"-"` // resolved source files, for watchers
+	Duration time.Duration `json:"-"`
 }
 
 // Errors and Warnings count the reported diagnostics.
@@ -196,7 +206,10 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	// The deliverables are checked side by side; each reads only its own folder.
 	var shelf *book.Report
 	var sheet *printable.Report
-	var bookFindings, printableFindings []diagnostic.Diagnostic
+	var grid *spreadsheet.Report
+	var docs *document.Report
+	var decks *deck.Report
+	var bookFindings, printableFindings, gridFindings, docFindings, deckFindings []diagnostic.Diagnostic
 	if len(loaded.Problems) == 0 {
 		var wg sync.WaitGroup
 		if book.Present(p) {
@@ -204,6 +217,15 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		}
 		if printable.Present(p) {
 			wg.Go(func() { sheet, printableFindings = checkPrintable(p, loaded, prepared.Commerce) })
+		}
+		if spreadsheet.Present(p) {
+			wg.Go(func() { grid, gridFindings = checkSpreadsheet(p, loaded, prepared.Commerce) })
+		}
+		if document.Present(p) {
+			wg.Go(func() { docs, docFindings = checkDocument(p, loaded, prepared.Commerce) })
+		}
+		if deck.Present(p) {
+			wg.Go(func() { decks, deckFindings = checkDeck(p, loaded, prepared.Commerce) })
 		}
 		wg.Wait()
 	}
@@ -214,6 +236,18 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if sheet != nil {
 		result.Printable = &sheet.Summary
 		findings = append(findings, diagnostic.Apply(printableFindings, c.Build.Validation.Rules)...)
+	}
+	if grid != nil {
+		result.Spreadsheet = &grid.Summary
+		findings = append(findings, diagnostic.Apply(gridFindings, c.Build.Validation.Rules)...)
+	}
+	if docs != nil {
+		result.Document = &docs.Summary
+		findings = append(findings, diagnostic.Apply(docFindings, c.Build.Validation.Rules)...)
+	}
+	if decks != nil {
+		result.Deck = &decks.Summary
+		findings = append(findings, diagnostic.Apply(deckFindings, c.Build.Validation.Rules)...)
 	}
 	var pack *bundle.Report
 	if len(loaded.Problems) == 0 {
@@ -233,6 +267,15 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		}
 		if pack != nil {
 			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.bundle", d.Bundle.Sell, d.Bundle.Offer, bundle.RuleConfig)...)
+		}
+		if grid != nil && d.Spreadsheet != nil {
+			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.spreadsheet", d.Spreadsheet.Sell, d.Spreadsheet.Offer, spreadsheet.RuleConfig)...)
+		}
+		if docs != nil && d.Document != nil {
+			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.document", d.Document.Sell, d.Document.Offer, document.RuleConfig)...)
+		}
+		if decks != nil && d.Deck != nil {
+			sale = append(sale, saleFindings(prepared.Commerce, "deliverables.deck", d.Deck.Sell, d.Deck.Offer, deck.RuleConfig)...)
 		}
 		findings = append(findings, diagnostic.Apply(sale, c.Build.Validation.Rules)...)
 	}
@@ -314,7 +357,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		close(auditDone)
 	}
 	defer func() { <-auditDone }() // never leave the browser running behind a return
-	// Deliverables: the printable and the book, then the bundle of both.
+	// Deliverables: each on its own, then the bundle of those it holds.
 	add := func(found []diagnostic.Diagnostic) bool {
 		stats := result.Validation.Stats
 		result.Validation = summarize(result.Validation.Stage, append(result.Validation.Diagnostics, diagnostic.Apply(found, c.Build.Validation.Rules)...))
@@ -337,8 +380,33 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
-	if pack != nil && shelf != nil && sheet != nil {
-		if !add(deliverBundle(p, pack, shelf, sheet, books, prints, images, page, options.Release, &result)) {
+	var grids, docFiles, deckFiles shipped
+	if grid != nil {
+		var found []diagnostic.Diagnostic
+		grids, found = deliverSpreadsheet(p, grid, page, options.Release, &result)
+		if !add(found) {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+	if docs != nil {
+		var found []diagnostic.Diagnostic
+		docFiles, found = deliverDocument(p, docs, page, options.Release, &result)
+		if !add(found) {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+	if decks != nil {
+		var found []diagnostic.Diagnostic
+		deckFiles, found = deliverDeck(p, decks, page, options.Release, &result)
+		if !add(found) {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+	if pack != nil && len(pack.Summary.Units) >= 2 && result.Errors() == 0 {
+		units := delivered{book: shelf, printable: sheet, spreadsheet: grid, document: docs, deck: decks,
+			books: books, prints: prints, grids: grids, docs: docFiles, decks: deckFiles, printImages: images}
+		parts, accent, render := units.parts(pack)
+		if !add(deliverBundle(p, pack, parts, accent, page, options.Release, &result, render)) {
 			return result, &Failure{Errors: result.Errors()}
 		}
 	}
@@ -350,6 +418,17 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		}
 		<-auditDone
 		result.Release.Audit = audit
+		var kinds []string
+		if docs != nil {
+			kinds = append(kinds, ".docx")
+		}
+		if decks != nil {
+			kinds = append(kinds, ".pptx")
+		}
+		if grid != nil {
+			kinds = append(kinds, ".xlsx")
+		}
+		result.Optional = optionalHelpers(kinds, audit)
 		audited := append(result.Validation.Diagnostics, diagnostic.Apply(result.Release.Audit.Diagnostics, c.Build.Validation.Rules)...)
 		stats := result.Validation.Stats
 		result.Validation = summarize("audit", audited)
@@ -558,4 +637,17 @@ func (r *Result) distribute(unit string, files map[string][]byte) {
 		r.Distribution = map[string]map[string][]byte{}
 	}
 	r.Distribution[unit] = files
+}
+
+// optionalHelpers are the helpers a release did without and what each
+// would have added.
+func optionalHelpers(kinds []string, audit *release.AuditResult) []string {
+	var out []string
+	if _, err := office.Find(); len(kinds) > 0 && office.Missing(err) {
+		out = append(out, "LibreOffice, a second opinion on how another app opens the "+strings.Join(kinds, " and ")+" files")
+	}
+	if audit != nil && audit.Lighthouse != nil && audit.Lighthouse.Missing {
+		out = append(out, "Lighthouse, scores for performance, accessibility, best practices and SEO")
+	}
+	return out
 }

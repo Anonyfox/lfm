@@ -33,6 +33,7 @@ type LighthouseResult struct {
 	Status     string            `json:"status"`
 	Reason     string            `json:"reason,omitempty"`
 	Hint       string            `json:"hint,omitempty"`
+	Missing    bool              `json:"missing,omitempty"` // not installed, which no release needs
 	Version    string            `json:"version,omitempty"`
 	Chrome     string            `json:"chrome,omitempty"`
 	Scope      string            `json:"scope"`
@@ -86,7 +87,6 @@ func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
 		if toolErr != nil {
 			r.Lighthouse.Reason = "Chrome and Lighthouse unavailable"
 			r.Lighthouse.Hint = BrowserSetup + " " + LighthouseSetup
-			warn("release.lighthouse", "Lighthouse executable also unavailable: "+toolErr.Error(), LighthouseSetup)
 		}
 		return r
 	}
@@ -110,12 +110,13 @@ func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
 		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "Chrome could not start for navigation", Hint: r.Runtime.Hint, Scope: auditScope}
 		if toolErr != nil {
 			r.Lighthouse.Hint += " " + LighthouseSetup
-			warn("release.lighthouse", "Lighthouse executable also unavailable: "+toolErr.Error(), LighthouseSetup)
 		}
 		return r
 	}
 	r.Lighthouse = runLighthouse(page, assets, browser, root)
-	if r.Lighthouse.Status != "ok" {
+	// Lighthouse is optional: when it is not installed the report says so
+	// and nothing warns; a run that fails does.
+	if r.Lighthouse.Status != "ok" && !r.Lighthouse.Missing {
 		warn("release.lighthouse", "Lighthouse skipped: "+r.Lighthouse.Reason, r.Lighthouse.Hint)
 	}
 	r.Diagnostics = append(r.Diagnostics, LighthouseDiagnostics(r.Lighthouse)...)
@@ -176,7 +177,7 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root string) 
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
 	tool, err := lighthousePath(root)
 	if err != nil {
-		r.Reason, r.Hint = err.Error(), LighthouseSetup
+		r.Reason, r.Hint, r.Missing = err.Error(), LighthouseSetup, true
 		return r
 	}
 	// Chrome's proxy sends ALL HTTP(S), including loopback, through this deny-by-

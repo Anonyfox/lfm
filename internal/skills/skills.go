@@ -10,19 +10,26 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
 
+	"github.com/Anonyfox/lfm/internal/deck"
 	"github.com/Anonyfox/lfm/internal/deliver"
+	"github.com/Anonyfox/lfm/internal/document"
+	"github.com/Anonyfox/lfm/internal/term"
+	"github.com/Anonyfox/lfm/internal/theme"
 
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/formula"
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
+	"github.com/Anonyfox/lfm/internal/spreadsheet"
 )
 
 //go:embed files
@@ -44,6 +51,9 @@ type Data struct {
 	Screens      string    // the screen sizes of the release layout audit
 	Book         Book      // the book deliverable
 	Printable    Printable // the printable deliverable
+	Spreadsheet  Spreadsheet
+	Document     Document
+	Deck         Deck
 }
 
 // Book holds the layout and minimums of the book deliverable.
@@ -69,6 +79,25 @@ type Printable struct {
 	Safe                                float64
 	MinPath, EtsyFiles                  int
 	MaxTitle, MaxTags, MaxTag           int
+}
+
+// Spreadsheet holds the layout and vocabulary of the spreadsheet deliverable.
+type Spreadsheet struct {
+	Dir, Concept, Listing, Distribution string
+	Functions, Types, Styles            string
+	MinPath                             int
+}
+
+// Document holds the layout and vocabulary of the document deliverable.
+type Document struct {
+	Dir, Concept, Fonts, Listing, Distribution, Themes string
+	MinPath                                            int
+}
+
+// Deck holds the layout and vocabulary of the deck deliverable.
+type Deck struct {
+	Dir, Concept, Fonts, Listing, Distribution, Themes string
+	MinPath                                            int
 }
 
 // Design holds the minimums the compiler checks in concept.md.
@@ -107,6 +136,19 @@ func NewData(version string) Data {
 			Safe: printable.Safe, MinPath: deliver.MinPathLength, EtsyFiles: deliver.EtsyFiles,
 			MaxTitle: deliver.MaxTitle, MaxTags: deliver.MaxTags, MaxTag: deliver.MaxTag,
 		},
+		Spreadsheet: Spreadsheet{
+			Dir: spreadsheet.Dir, Concept: spreadsheet.ConceptFile, Listing: spreadsheet.ListingFile, Distribution: project.DistributionDir + "/spreadsheet",
+			Functions: strings.Join(formula.Functions(), ", "), Types: "text, number, money, percent, date, enum",
+			Styles: "title, heading, label, input, output, note, total", MinPath: deliver.MinPathLength,
+		},
+		Document: Document{
+			Dir: document.Dir, Concept: document.ConceptFile, Fonts: document.FontsDir, Listing: document.ListingFile,
+			Distribution: project.DistributionDir + "/document", Themes: strings.Join(document.ThemeNames(), ", "), MinPath: deliver.MinPathLength,
+		},
+		Deck: Deck{
+			Dir: deck.Dir, Concept: deck.ConceptFile, Fonts: deck.FontsDir, Listing: deck.ListingFile,
+			Distribution: project.DistributionDir + "/deck", Themes: strings.Join(theme.Names(), ", "), MinPath: deliver.MinPathLength,
+		},
 		Design: Design{
 			MinVoiceNotes: concept.MinVoiceNotes, MinPathSteps: concept.MinPathSteps, MinRejected: concept.MinRejected,
 			MinFacts: concept.MinFacts, MinAxes: concept.MinAxes, MinSparks: concept.MinSparks, MaxSparks: concept.MaxSparks,
@@ -136,7 +178,7 @@ type Skill struct {
 }
 
 // lifecycle orders the skills as a project uses them; others follow by name.
-var lifecycle = []string{"research", "design", "implementation", "book", "printable"}
+var lifecycle = []string{"research", "design", "implementation", "book", "printable", "spreadsheet", "document", "deck"}
 
 func rank(topic string) int {
 	for i, t := range lifecycle {
@@ -145,6 +187,22 @@ func rank(topic string) int {
 		}
 	}
 	return len(lifecycle)
+}
+
+// Topics are every skill's topic in lifecycle order, without rendering.
+func Topics() []string {
+	found, _ := fs.Glob(files, "files/*/SKILL.md")
+	out := make([]string, 0, len(found))
+	for _, f := range found {
+		out = append(out, path.Base(path.Dir(f)))
+	}
+	slices.SortStableFunc(out, func(a, b string) int {
+		if d := rank(a) - rank(b); d != 0 {
+			return d
+		}
+		return strings.Compare(a, b)
+	})
+	return out
 }
 
 // All renders every skill in lifecycle order.
@@ -173,7 +231,7 @@ func All(data Data) ([]Skill, error) {
 // Get renders the skill for topic.
 func Get(topic string, data Data) (Skill, error) {
 	if _, err := fs.Stat(files, "files/"+topic+"/SKILL.md"); err != nil || strings.ContainsAny(topic, "/.") {
-		return Skill{}, fmt.Errorf("no skill named %q", topic)
+		return Skill{}, fmt.Errorf("no skill named %q.%s", topic, term.DidYouMean(topic, Topics()))
 	}
 	return render(topic, data)
 }

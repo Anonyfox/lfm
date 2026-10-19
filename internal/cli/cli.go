@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/project"
+	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -44,6 +45,15 @@ type command struct {
 	flags               []flagSpec
 	details             string
 	run                 func(context.Context, Env, parsed) error
+}
+
+// commandNames are every command's name, for suggestions.
+func commandNames() []string {
+	var out []string
+	for _, c := range commands() {
+		out = append(out, c.name)
+	}
+	return out
 }
 
 func commands() []command {
@@ -82,7 +92,7 @@ func Run(ctx context.Context, env Env, args []string) int {
 				printCommandHelp(env.Stdout, c)
 				return 0
 			}
-			fmt.Fprintf(env.Stderr, "lfm: unknown command %q\nRun 'lfm help' for the list.\n", args[1])
+			fmt.Fprintf(env.Stderr, "lfm: unknown command %q.%s\nRun 'lfm help' for the list.\n", args[1], term.DidYouMean(args[1], commandNames()))
 			return 2
 		}
 		printHelp(env.Stdout)
@@ -93,7 +103,7 @@ func Run(ctx context.Context, env Env, args []string) int {
 	}
 	c, ok := find(args[0])
 	if !ok {
-		fmt.Fprintf(env.Stderr, "lfm: unknown command %q\nRun 'lfm help' for the list.\n", args[0])
+		fmt.Fprintf(env.Stderr, "lfm: unknown command %q.%s\nRun 'lfm help' for the list.\n", args[0], term.DidYouMean(args[0], commandNames()))
 		return 2
 	}
 	p, err := parse(c.name, args[1:], c.flags)
@@ -138,7 +148,9 @@ func printHelp(w io.Writer) {
 	fmt.Fprintf(w, "%s compiles agent-built sales pages into fast, checked, static output.\n\n", s.Bold("lfm"))
 	fmt.Fprintln(w, "Start a page:")
 	fmt.Fprintln(w, "  lfm init my-page && cd my-page")
-	fmt.Fprintln(w, "  lfm skills install    the process skills (research, design, implementation, book, printable) for your agent")
+	fmt.Fprintln(w, "  lfm skills install    the process skills for your agent:")
+	indent := strings.Repeat(" ", 24)
+	fmt.Fprintln(w, indent+term.Wrap(strings.Join(skills.Topics(), ", "), 56, indent))
 	fmt.Fprintln(w, "  lfm compile           after every change; it reports findings and the next step")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")

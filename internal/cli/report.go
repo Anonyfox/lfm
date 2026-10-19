@@ -13,10 +13,13 @@ import (
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/deck"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
+	"github.com/Anonyfox/lfm/internal/spreadsheet"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -110,9 +113,15 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	renderBook(w, s, r.Book, r.Files)
 	renderPrintable(w, s, r.Printable)
 	renderBundle(w, s, r.Bundle)
+	renderSpreadsheet(w, s, r.Spreadsheet)
+	renderDocument(w, s, r.Document)
+	renderDeck(w, s, r.Deck)
 	renderResearch(w, s, r.Research)
 	renderConcept(w, s, r.Concept)
 	renderRelease(w, s, r.Release)
+	if len(r.Optional) > 0 {
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("optional", 12), s.Dim(term.Wrap("not installed, and not needed: "+strings.Join(r.Optional, "; "), term.Width-15, strings.Repeat(" ", 15))))
+	}
 }
 
 func findings(r compile.Result) string {
@@ -403,16 +412,92 @@ func sellNote(sell string) string {
 	return ""
 }
 
-// renderBundle summarizes the bundle of the book and the printable.
+// renderSpreadsheet summarizes the spreadsheet: what is built and checked,
+// the Google Sheets masters, and the shop packages.
+func renderSpreadsheet(w io.Writer, s term.Style, sp *spreadsheet.Summary) {
+	if sp == nil {
+		return
+	}
+	switch {
+	case !sp.Concept && !sp.Workbook:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("spreadsheet", 12), s.Dim("no deliverables/spreadsheet/concept.md yet"))
+		return
+	case !sp.Workbook:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("spreadsheet", 12), s.Dim(sp.Name+" · no workbook.json yet"))
+		return
+	}
+	line := fmt.Sprintf("%s · %s · %s · %s", sp.Name, term.Plural(len(sp.Editions), "edition"), term.Plural(sp.Sheets, "tab"), term.Plural(sp.Formulas, "formula"))
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("spreadsheet", 12), line+sellNote(sp.Sell))
+	detail := fmt.Sprintf("computed with %s data · %s", strings.Join(sp.Checked, " and "), term.Plural(len(sp.Files), "file"))
+	if sp.Compat != "" {
+		detail += " · " + sp.Compat
+	}
+	if sp.Pending {
+		detail += " · the start PDFs and images render with --release"
+	}
+	detail += fmt.Sprintf(" · %d Google Sheets linked", sp.Linked)
+	if sp.URL != "" {
+		detail += " · " + sp.URL
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
+	if len(sp.Channels) > 0 {
+		stores := fmt.Sprintf("distribution/spreadsheet/ · %d channels", len(sp.Channels))
+		if sp.Images > 0 {
+			stores += " · " + term.Plural(sp.Images, "listing image")
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
+	}
+}
+
+// renderDocument summarizes the document set: what is built and printed,
+// the editions and where it goes.
+func renderDocument(w io.Writer, s term.Style, d *document.Summary) {
+	if d == nil {
+		return
+	}
+	switch {
+	case !d.Concept && d.Documents == 0:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("documents", 12), s.Dim("no deliverables/document/concept.md yet"))
+		return
+	case d.Documents == 0:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("documents", 12), s.Dim(d.Name+" · no documents yet"))
+		return
+	}
+	line := fmt.Sprintf("%s · %s · %s theme · %s", d.Name, term.Plural(d.Documents, "document"), d.Theme, term.Plural(len(d.Editions), "edition"))
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("documents", 12), line+sellNote(d.Sell))
+	detail := fmt.Sprintf("%s · %s to fill · %s", strings.Join(d.Editions, ", "), term.Plural(d.Fields, "field"), term.Plural(len(d.Files), "ZIP"))
+	if d.Layout != "" {
+		detail += " · " + d.Layout
+	}
+	if d.Pending {
+		detail += " · the PDFs, guides and images print with --release"
+	}
+	if d.Linked > 0 {
+		detail += fmt.Sprintf(" · %d Google Docs linked", d.Linked)
+	}
+	if d.URL != "" {
+		detail += " · " + d.URL
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
+	if len(d.Channels) > 0 {
+		stores := fmt.Sprintf("distribution/document/ · %d channels", len(d.Channels))
+		if d.Images > 0 {
+			stores += " · " + term.Plural(d.Images, "listing image")
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
+	}
+}
+
+// renderBundle summarizes the bundle and the deliverables it holds.
 func renderBundle(w io.Writer, s term.Style, b *bundle.Summary) {
 	if b == nil {
 		return
 	}
-	line := b.Name + " · book and printable" + sellNote(b.Sell)
+	line := b.Name + " · " + listed(b.Units) + sellNote(b.Sell)
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("bundle", 12), line)
 	detail := term.Plural(len(b.Files), "file")
 	if !b.Ready {
-		detail = "waits until both are built"
+		detail = "waits until every unit is built"
 	}
 	if b.URL != "" {
 		detail += " · " + b.URL
@@ -433,4 +518,59 @@ func groupDigits(n int) string {
 		s = s[:i] + "," + s[i:]
 	}
 	return s
+}
+
+func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
+	if d == nil {
+		return
+	}
+	switch {
+	case !d.Concept && d.Decks == 0:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("decks", 12), s.Dim("no deliverables/deck/concept.md yet"))
+		return
+	case d.Decks == 0:
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("decks", 12), s.Dim(d.Name+" · no decks yet"))
+		return
+	}
+	line := fmt.Sprintf("%s · %s, %s", d.Name, term.Plural(d.Decks, "deck"), term.Plural(d.Slides, "slide"))
+	if d.Minutes > 0 {
+		line += fmt.Sprintf(", %d minutes", d.Minutes)
+	}
+	if d.Quizzes > 0 {
+		line += ", " + term.Plural(d.Quizzes, "quiz question")
+	}
+	line += fmt.Sprintf(" · %s theme · %s", d.Theme, term.Plural(len(d.Editions), "language"))
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("decks", 12), line+sellNote(d.Sell))
+	detail := fmt.Sprintf("%s · %s", strings.Join(d.Editions, ", "), term.Plural(len(d.Files), "ZIP"))
+	if d.Layout != "" {
+		detail += " · " + d.Layout
+	}
+	if d.Pending {
+		detail += " · the slide and notes PDFs, quiz sheets, guides and images print with --release"
+	}
+	if d.Linked > 0 {
+		detail += fmt.Sprintf(" · %d Google Slides linked", d.Linked)
+	}
+	if d.URL != "" {
+		detail += " · " + d.URL
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
+	if len(d.Channels) > 0 {
+		stores := fmt.Sprintf("distribution/deck/ · %d channels", len(d.Channels))
+		if d.Images > 0 {
+			stores += " · " + term.Plural(d.Images, "listing image")
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
+	}
+}
+
+// listed joins names as prose: "deck", "deck and document", "a, b and c".
+func listed(names []string) string {
+	switch len(names) {
+	case 0:
+		return "no deliverables"
+	case 1:
+		return names[0]
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }

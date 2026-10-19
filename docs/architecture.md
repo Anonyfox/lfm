@@ -16,7 +16,14 @@ one package per responsibility, each testable on its own.
 | `deliver` | What every deliverable shares: the unlisted download path, file names, prices, the download page. |
 | `pdfx` | Reads and stamps the PDFs Chrome prints: page counts, outline targets, transparency, the input key that lets a compile reuse a print. |
 | `printable` | The printable deliverable: its concept, the page template and generators (calendar, bingo, word search, sudoku, maze), page checks per edition, listing images and the store guides. |
-| `bundle` | The book and the printable sold together: its config, listing, download page, hero image and shop packages. |
+| `formula` | The spreadsheet formula language: placeholders, parsing, printing to the stored syntax, the portable functions and an evaluator with Excel semantics. |
+| `spreadsheet` | The spreadsheet deliverable: its concept and workbook, layout per edition, computing and checking every formula, the Excel files, previews, the LibreOffice check, the start PDF, listing images and store guides. |
+| `deck` | The slide deck deliverable: the concept, Markdown decks per language, the slide model and its font-measured fit check, the .pptx writer with master, layouts, notes and embedded fonts, the Chrome prints of slides, notes and quiz sheets, previews, start guides, listing images and store guides. |
+| `typeface`, `theme`, `markup` | What the editable deliverables share: font files read, measured and embedded (ODTTF, EOT); the theme presets, color checks and the Office theme part; the Markdown source model with its directives and typography. |
+| `document` | The editable document deliverable: the concept and themes, Markdown sources per language, font inspection and embedding, the .docx writer, previews, the print check, start guides, listing images and store guides. |
+| `office` | Runs LibreOffice headless (finds it, converts a batch in one run) and, on a Mac, drives Microsoft Word and Excel to open, print and recalculate files, catching repair prompts in their logs. |
+| `ooxml` | Puts every Office Open XML part into the order the schemas require, which Word and Excel enforce, and runs Microsoft's Open XML SDK validator in tests. |
+| `bundle` | Two or more deliverables sold together: its config and units, listing, download page, hero image and shop packages. |
 | `book` | The book deliverable: its concept, chapter, prose and listing checks, the EPUB, the print documents, the cover wrap and the download page, and the store packages per channel. |
 | `compile` | The compile lifecycle and the assemble stage: bundling with esbuild, packing, images, fonts, hints. |
 | `research` | Parses, checks and summarizes the two research files. |

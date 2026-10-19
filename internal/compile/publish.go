@@ -1,7 +1,9 @@
 package compile
 
 import (
+	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,6 +27,9 @@ func publishTo(p project.Project, dir string, files map[string][]byte) error {
 		return err
 	}
 	removeStale(p.Root, dir)
+	if holds(output, files) {
+		return nil // already published: rewriting would only churn
+	}
 	parent := filepath.Dir(output)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return err
@@ -71,6 +76,46 @@ func publishTo(p project.Project, dir string, files map[string][]byte) error {
 	return nil
 }
 
+// holds reports whether dir holds exactly files: the same names, sizes and
+// bytes, and nothing else. Sizes are compared before any file is read.
+func holds(dir string, files map[string][]byte) bool {
+	n := 0
+	same := true
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		rel, _ := filepath.Rel(dir, path)
+		want, ok := files[filepath.ToSlash(rel)]
+		info, ierr := d.Info()
+		if !ok || !d.Type().IsRegular() || ierr != nil || info.Size() != int64(len(want)) {
+			same = false
+			return filepath.SkipAll
+		}
+		n++
+		return nil
+	})
+	if err != nil || !same || n != len(files) {
+		return false
+	}
+	for name, want := range files {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		// Stamped files carry the key of their inputs: the same key and
+		// size are the same file, without reading it.
+		if key := stampOf(want[max(0, len(want)-4096):]); key != "" && key == tailStampOfFile(path, stampOf) {
+			continue
+		}
+		got, err := os.ReadFile(path)
+		if err != nil || !bytes.Equal(got, want) {
+			return false
+		}
+	}
+	return true
+}
+
 // removeStale deletes leftovers of publishes interrupted by a crash.
 func removeStale(root, dir string) {
 	matches, _ := filepath.Glob(filepath.Join(root, dir+".next-*"))
@@ -80,7 +125,7 @@ func removeStale(root, dir string) {
 }
 
 // units are the sellable units that own a folder in distribution/.
-var units = map[string]bool{"book": true, "printable": true, "bundle": true}
+var units = map[string]bool{"book": true, "printable": true, "bundle": true, "spreadsheet": true, "document": true}
 
 // publishDistribution replaces each unit's folder in distribution/ the way
 // publish replaces output/, removes the units that have none any more, and

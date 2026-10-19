@@ -18,8 +18,9 @@ var skillsCommand = command{
 	summary: "Print or install the process guides for agents",
 	details: `
 A page is made in three phases, each with a skill: research, design and
-implementation. What the page sells has its own: book or printable. Without
-arguments, lists them; with a topic, prints that SKILL.md for this version.
+implementation. What the page sells has its own: book, printable,
+spreadsheet, document or deck. Without arguments, lists them; with a topic,
+prints that SKILL.md for this version.
 
 install writes all of them into the project (default: the current directory)
 where agents load skills, as <folder>/lfm-<topic>/SKILL.md:
@@ -53,7 +54,7 @@ lfm: untouched copies are updated, copies the project changed are kept.`,
 		case 1:
 			skill, err := skills.Get(p.args[0], data)
 			if err != nil {
-				return usageError("%v; run 'lfm skills' for the list", err)
+				return usageError("%v Run 'lfm skills' for the list.", err)
 			}
 			fmt.Fprint(env.Stdout, skill.Text)
 			return nil
@@ -131,9 +132,14 @@ func installSkills(env Env, p parsed, data skills.Data) error {
 			return fmt.Errorf("%s: %w", label, err)
 		}
 		fmt.Fprintf(env.Stdout, "%s %s %s\n", s.Bold(s.Green("✓")), s.Bold(label), s.Dim("for "+readers[f.rel]+", "+f.why))
-		width := 0
+		width, same := 0, true
 		for _, c := range changes {
 			width = max(width, len(c.Name))
+			same = same && c.Action == "unchanged"
+		}
+		if same && len(changes) > 0 {
+			fmt.Fprintf(env.Stdout, "  %s\n", s.Dim(fmt.Sprintf("all %d skills are current", len(changes))))
+			continue
 		}
 		for _, c := range changes {
 			line := fmt.Sprintf("  %s %s", term.Pad(c.Action, 9), c.Name)

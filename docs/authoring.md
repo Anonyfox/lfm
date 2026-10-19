@@ -13,7 +13,10 @@ my-page/
   concept.md          the design decisions the page is built from (never compiled)
   deliverables/book/  optional: a book the page sells (concept.md, chapters/, images/, fonts/, book.css)
   deliverables/printable/ optional: a printable (concept.md, printable.html.tmpl, data/)
-  deliverables/bundle/    optional: listing.md of the book and the printable sold together
+  deliverables/spreadsheet/ optional: a spreadsheet template (concept.md, workbook.json)
+  deliverables/document/  optional: editable documents (concept.md, <language>/<document>.md, fonts/)
+  deliverables/deck/      optional: slide decks (concept.md, <language>/<deck>.md, fonts/)
+  deliverables/bundle/    optional: listing.md of two or more deliverables sold together
   output/             the compiled page; replaced on every successful compile
   distribution/       the book's store packages, when it has a listing.md; never deployed
 ```
@@ -191,6 +194,85 @@ release prints each edition, checks every page for overflow and content in the s
 against the rendered page count (`printable.layout`), and renders the listing images. `lfm serve` shows
 every edition as HTML at `/<path>/preview/<edition>.html`; previews are never published.
 
+## Deliverables: a spreadsheet
+
+A spreadsheet is a budget, bookkeeping template, calculator or tracker for Excel and Google Sheets.
+`lfm skills spreadsheet` prints the process.
+
+```text
+deliverables/spreadsheet/
+  concept.md            buyer, promise, Tabs (sheet key, job), look
+  workbook.json         editions, words, sheets, datasets and expected values
+  listing.md            store texts: title, description, tags, price, AI use
+```
+
+`lfm.json` holds `"deliverables": {"spreadsheet": {"path": "…", "version": "…", "sheets": {…}}}`.
+`workbook.json` describes the sheets by kind: `guide` (lines of text), `form` (labelled inputs and
+results), `table` (typed columns, the rows it holds, seed rows) and `report` (cells at positions,
+charts). Editions pick a language and currency; any text is one string or one per language. Formulas
+name things, never cells: `[log.amount]` a table column, `[.amount]` the same row, `[income]` a named
+cell, `[@needs]` a word in the edition's language. Only functions that Excel, Google Sheets and
+LibreOffice compute alike are accepted.
+
+Every compile lays out every edition, computes every formula with the blank template and every dataset,
+and holds the results to `expect` (`spreadsheet.formulas`): errors, cycles and expected values each name
+the cell and the formula. `lfm serve` shows every edition computed with the example at
+`/<path>/preview/<edition>.html`; previews are never published. Only the owner can create the Google
+Sheets masters buyers copy: upload each file, save it as Google Sheets, share it as viewable by link, and
+put the address into `deliverables.spreadsheet.sheets`.
+
+## Deliverables: editable documents
+
+A document set is letters, invoices, minutes, programs, binders, contracts or any document buyers fill in
+Word, Google Docs, Pages or LibreOffice. `lfm skills document` prints the process.
+
+```text
+deliverables/document/
+  concept.md            buyer, promise, Documents (file name, job), Look (theme, accent, fonts)
+  en/invoice.md         one Markdown file per document and language
+  fonts/                the theme's Google Fonts families as static .ttf files, with OFL.txt
+  images/               logos and pictures the documents place
+  listing.md            store texts: title, description, tags, price, AI use
+```
+
+`lfm.json` holds `"deliverables": {"document": {"path": "…", "version": "…"}}`; `papers` overrides the
+paper sizes (US Letter and A4 for `en`, A4 elsewhere) and `docs` names optional Google Docs masters.
+The concept's Look picks one of the themes (classic, editorial, minimal, modern, technical, warm), which
+the compiler turns into Word's built-in styles: sizes on a modular scale, leading, spacing, margins from
+the line length, table rules and the accent. Documents are Markdown with front matter (`title`, `pages`,
+`kind`, `cover`, `header`, `footer`) and a few directives: `::: title`, `::: columns` (separated by
+`+++`), `::: form`, `::: signature` and `::: center`. `==text==` marks a field the buyer replaces;
+quotes, dashes and non-breaking spaces follow the language.
+
+Every compile checks the fonts (static, embeddable, licensed, drawing every character), every document
+against the format, the theme's contrast and line length on every paper, and the sample content for
+filler and emoji. `lfm serve` shows every edition at `/<path>/preview/<edition>.html`.
+
+## Deliverables: slide decks
+
+A deck set is training briefings, workshops, courses or quiz games buyers present from PowerPoint,
+Keynote or Google Slides. `lfm skills deck` prints the process.
+
+```text
+deliverables/deck/
+  concept.md            buyer, promise, Decks (file name, job), Look (theme, accent, fonts)
+  en/briefing.md        one Markdown file per deck and language
+  fonts/                the theme's Google Fonts families as static .ttf files, with OFL.txt
+  images/               pictures the slides show
+  listing.md            store texts: title, description, tags, price, AI use
+```
+
+`lfm.json` holds `"deliverables": {"deck": {"path": "…", "version": "…"}}`; `papers` sets the paper the
+speaker notes and quiz sheets print on (US Letter and A4 for `en`, A4 elsewhere) and `slides` names
+optional Google Slides masters. The Look picks the same themes documents use, so a deck and its handouts
+match. A deck is Markdown with front matter (`title`, `minutes`, `slides`); `---` starts a slide, the first
+`#` heading is the cover, later `#` headings open sections and `##` titles a slide. `::: columns`, `:::
+notes` and `::: title` are its directives; a checklist with `- [x]` answers is a quiz question.
+
+Every compile measures each slide's text with the fonts against its box, and checks titles, word and
+point counts, speaker notes against `minutes`, quiz answers, pictures for a 1080p projector, translations
+slide for slide, and sample content. `lfm serve` shows every language at `/<path>/preview/<language>.html`.
+
 ## Selling: page, shops or a bundle
 
 Each deliverable says how it sells with `sell` in its `lfm.json` entry:
@@ -204,18 +286,21 @@ Each deliverable says how it sells with `sell` in its `lfm.json` entry:
   to a shop.
 - `bundle`: sold only inside the bundle.
 
-A project with a book and a printable can sell them together:
+A project with two or more deliverables can sell them together, such as a deck with its handout
+documents or a book with its printable:
 
 ```json
 "deliverables": {
-  "book": {"author": "Ada Baker", "path": "…", "sell": "page"},
-  "printable": {"sell": "bundle"},
-  "bundle": {"name": "Starter Kit", "path": "…", "offer": "kit", "sell": "page"}
+  "deck": {"sell": "bundle"},
+  "document": {"sell": "bundle"},
+  "bundle": {"name": "Fire Safety Kit", "path": "…", "offer": "kit", "sell": "page", "units": ["deck", "document"]}
 }
 ```
 
 The bundle has its own name, `path` (for `sell: page`), offer and `deliverables/bundle/listing.md` in the
-printable's listing format. Its download page and store packages hold every file of both; its first
-listing image shows both covers together. Each part still sells on its own when its `sell` is `page` or
-`shops`.
+shop listing format; `units` names the deliverables it holds, every one of the project when left out.
+Its download page and store packages hold every file of each unit, its README the facts of each, and
+its first listing image shows every unit's cover together, followed by the units' own images in turn.
+Each unit still sells on its own when its `sell` is `page` or `shops`; with `sell: bundle` it sells only
+inside the bundle and gets no shop package of its own.
 

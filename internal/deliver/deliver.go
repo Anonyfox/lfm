@@ -67,6 +67,9 @@ func Slug(title, fallback string) string {
 	return s
 }
 
+// Link is an address on the download page, such as a Google Sheets copy link.
+type Link struct{ Label, URL, Note string }
+
 // File is one download on the page.
 type File struct {
 	Name, Label, Note string
@@ -77,6 +80,7 @@ type File struct {
 type Download struct {
 	Language, Title, Subtitle, Accent string
 	Heading                           string // the page title, e.g. "Download: <title>"
+	Links                             []Link // shown before the files
 	Files                             []File
 	Thanks                            string // above the files
 	Pending                           string // instead of the files while they are not ready
@@ -113,6 +117,13 @@ a.file:focus-visible { outline: 3px solid #1a1a1a; outline-offset: 2px; }
 `, esc(d.Language), esc(d.Heading), CSSValue(d.Accent), esc(d.Title))
 	if d.Subtitle != "" {
 		fmt.Fprintf(&b, "<p class=\"sub\">%s</p>\n", esc(d.Subtitle))
+	}
+	if len(d.Links) > 0 {
+		b.WriteString("<ul>\n")
+		for _, l := range d.Links {
+			fmt.Fprintf(&b, "<li><a class=\"file\" href=\"%s\" rel=\"noreferrer\">%s</a><span class=\"note\">%s</span></li>\n", esc(l.URL), esc(l.Label), esc(l.Note))
+		}
+		b.WriteString("</ul>\n")
 	}
 	if len(d.Files) == 0 {
 		fmt.Fprintf(&b, "<p>%s</p>\n", esc(d.Pending))
@@ -164,4 +175,17 @@ func JPEGStamp(jpg []byte) string {
 		return ""
 	}
 	return comment
+}
+
+var googleLink = regexp.MustCompile(`^https://docs\.google\.com/(document|presentation|spreadsheets)/d/([A-Za-z0-9_-]{20,})`)
+
+// CopyLink turns the address of a shared Google Docs, Slides or Sheets
+// master of kind (document, presentation, spreadsheets) into the link
+// that makes the buyer's own copy; "" for any other address.
+func CopyLink(url, kind string) string {
+	m := googleLink.FindStringSubmatch(strings.TrimSpace(url))
+	if m == nil || m[1] != kind {
+		return ""
+	}
+	return "https://docs.google.com/" + kind + "/d/" + m[2] + "/copy"
 }

@@ -204,7 +204,7 @@ Once every chapter exists, read the book in one pass with fresh eyes, as its har
 
 - `sell` in `lfm.json`: `page` (default) publishes a download page at `path`, never linked from the page
   (`book.delivery`): Stripe redirects there, the invoice footer carries it. `shops`: the stores deliver and
-  the page's offer links to the live listing. `bundle`: sold only with the printable (`lfm skills printable`).
+  the page's offer links to the live listing. `bundle`: sold only inside `deliverables.bundle` with the project's other deliverables.
 - EU buyers of digital content consent to immediate delivery and the end of their withdrawal right: the
   page concept's Offer carries that wording as an `Open:` line until the owner gives it.
 - Presale: until every chapter exists the download page says the copy is being written; then the owner

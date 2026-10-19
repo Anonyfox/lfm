@@ -191,6 +191,18 @@ return out})()`, safe)
 	return chromedp.Run(tab, chromedp.Evaluate[[]string](script))
 }
 
+// Overflows loads a document in print media and names the data-fit value
+// of every element whose content does not fit inside it, each once: text
+// a box would cut off or spill.
+func (p *Printer) Overflows(doc []byte, assets map[string][]byte, width, height int64) ([]string, error) {
+	tab, done, err := p.load(doc, assets, width, height, 1, "print")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	return chromedp.Run(tab, chromedp.Evaluate[[]string](`(()=>{const out=[];for(const el of document.querySelectorAll('[data-fit]')){if((el.dataset.over||el.scrollHeight>el.clientHeight+1)&&!out.includes(el.dataset.fit))out.push(el.dataset.fit)}return out})()`))
+}
+
 // PageImages renders pages (1-based) of a document of .page sections as PNGs
 // at scale device pixels per CSS pixel.
 func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height int64, scale float64, pages []int) ([][]byte, error) {
@@ -218,5 +230,19 @@ func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height in
 		return nil, err
 	}
 	defer done()
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](fitScript)); err != nil {
+		return nil, fmt.Errorf("fit the document: %w", err)
+	}
 	return chromedp.Run(tab, chromedp.CaptureScreenshot())
 }
+
+// fitScript scales every element marked data-fit="width height max" to
+// fit its box, at most max; with data-fit-size its parent takes the scaled
+// size, since transforms do not change layout. Pages run no scripts of
+// their own, so the printer does this layout step.
+const fitScript = `(()=>{for(const el of document.querySelectorAll('[data-fit]')){
+const [w,h,m]=el.dataset.fit.split(' ').map(Number);
+const s=Math.min(m,w/el.scrollWidth,h/el.scrollHeight);
+el.style.transformOrigin='top left';el.style.transform='scale('+s+')';
+if('fitSize' in el.dataset){el.parentElement.style.width=el.scrollWidth*s+'px';el.parentElement.style.height=el.scrollHeight*s+'px';el.parentElement.style.overflow='hidden'}}
+return true})()`

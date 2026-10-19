@@ -1,0 +1,588 @@
+{
+ "editions": [
+  {
+   "key": "en",
+   "language": "en",
+   "currency": "USD"
+  }
+ ],
+ "today": "2026-10-19",
+ "sheets": [
+  {
+   "key": "data",
+   "name": "Data",
+   "kind": "table",
+   "rows": 6,
+   "columns": [
+    {
+     "key": "t",
+     "title": "T",
+     "type": "text"
+    },
+    {
+     "key": "n",
+     "title": "N",
+     "type": "number"
+    },
+    {
+     "key": "d",
+     "title": "D",
+     "type": "date"
+    },
+    {
+     "key": "s",
+     "title": "S",
+     "type": "number"
+    }
+   ],
+   "seed": [
+    {
+     "t": "a",
+     "n": 1,
+     "d": "2026-01-10",
+     "s": 1
+    },
+    {
+     "t": "b",
+     "n": 2,
+     "d": "2026-01-20",
+     "s": 2
+    },
+    {
+     "t": "ab",
+     "n": 3,
+     "d": "2026-02-01",
+     "s": 3
+    },
+    {
+     "n": 4,
+     "d": "2026-02-15",
+     "s": 5
+    },
+    {
+     "t": "A",
+     "n": -1,
+     "d": "2025-12-31",
+     "s": 8
+    },
+    {
+     "t": "*",
+     "n": 2.5,
+     "s": 13
+    }
+   ]
+  },
+  {
+   "key": "calc",
+   "name": "Calc",
+   "kind": "report",
+   "cells": [
+    {
+     "at": "B2",
+     "formula": "=SUM([data.n])",
+     "name": "f0"
+    },
+    {
+     "at": "B3",
+     "formula": "=SUMIF([data.t],\"a*\",[data.n])",
+     "name": "f1"
+    },
+    {
+     "at": "B4",
+     "formula": "=SUMIF([data.t],\"?b\",[data.n])",
+     "name": "f2"
+    },
+    {
+     "at": "B5",
+     "formula": "=SUMIF([data.t],\"~*\",[data.n])",
+     "name": "f3"
+    },
+    {
+     "at": "B6",
+     "formula": "=SUMIFS([data.n],[data.t],\"<>a\",[data.n],\">1\")",
+     "name": "f4"
+    },
+    {
+     "at": "B7",
+     "formula": "=SUMIFS([data.n],[data.t],\"\")",
+     "name": "f5"
+    },
+    {
+     "at": "B8",
+     "formula": "=COUNTIFS([data.t],\"<>\")",
+     "name": "f6"
+    },
+    {
+     "at": "B9",
+     "formula": "=COUNTIF([data.n],\">=2\")",
+     "name": "f7"
+    },
+    {
+     "at": "B10",
+     "formula": "=COUNTIF([data.n],\"<>2\")",
+     "name": "f8"
+    },
+    {
+     "at": "B11",
+     "formula": "=COUNTIF([data.t],\"A\")",
+     "name": "f9"
+    },
+    {
+     "at": "B12",
+     "formula": "=COUNTIF([data.d],\">=\"&DATE(2026,1,15))",
+     "name": "f10"
+    },
+    {
+     "at": "B13",
+     "formula": "=AVERAGEIF([data.t],\"a\",[data.n])",
+     "name": "f11"
+    },
+    {
+     "at": "B14",
+     "formula": "=IFERROR(AVERAGEIFS([data.n],[data.t],\"zzz\"),\"none\")",
+     "name": "f12"
+    },
+    {
+     "at": "B15",
+     "formula": "=MAXIFS([data.n],[data.t],\"<>a\")",
+     "name": "f13"
+    },
+    {
+     "at": "B16",
+     "formula": "=MINIFS([data.n],[data.n],\">0\")",
+     "name": "f14"
+    },
+    {
+     "at": "B17",
+     "formula": "=SUMPRODUCT(([data.t]=\"a\")*[data.n])",
+     "name": "f15"
+    },
+    {
+     "at": "B18",
+     "formula": "=SUMPRODUCT([data.n],[data.n])",
+     "name": "f16"
+    },
+    {
+     "at": "B19",
+     "formula": "=SUMPRODUCT(--([data.n]>2))",
+     "name": "f17"
+    },
+    {
+     "at": "B20",
+     "formula": "=COUNT([data.n])",
+     "name": "f18"
+    },
+    {
+     "at": "B21",
+     "formula": "=COUNTA([data.t])",
+     "name": "f19"
+    },
+    {
+     "at": "B22",
+     "formula": "=COUNTBLANK([data.t])",
+     "name": "f20"
+    },
+    {
+     "at": "B23",
+     "formula": "=AVERAGE([data.n])",
+     "name": "f21"
+    },
+    {
+     "at": "B24",
+     "formula": "=MIN([data.n])",
+     "name": "f22"
+    },
+    {
+     "at": "B25",
+     "formula": "=MAX([data.n])",
+     "name": "f23"
+    },
+    {
+     "at": "B26",
+     "formula": "=ROUND(2.345,2)",
+     "name": "f24"
+    },
+    {
+     "at": "B27",
+     "formula": "=ROUND(-2.345,2)",
+     "name": "f25"
+    },
+    {
+     "at": "B28",
+     "formula": "=ROUND(1234.5,-2)",
+     "name": "f26"
+    },
+    {
+     "at": "B29",
+     "formula": "=ROUNDUP(2.301,1)",
+     "name": "f27"
+    },
+    {
+     "at": "B30",
+     "formula": "=ROUNDDOWN(-2.399,1)",
+     "name": "f28"
+    },
+    {
+     "at": "B31",
+     "formula": "=ROUND(0.5,0)",
+     "name": "f29"
+    },
+    {
+     "at": "B32",
+     "formula": "=ROUND(1.005,2)",
+     "name": "f30"
+    },
+    {
+     "at": "B33",
+     "formula": "=INT(-2.5)",
+     "name": "f31"
+    },
+    {
+     "at": "B34",
+     "formula": "=ABS(-3)",
+     "name": "f32"
+    },
+    {
+     "at": "B35",
+     "formula": "=MOD(10,3)",
+     "name": "f33"
+    },
+    {
+     "at": "B36",
+     "formula": "=MOD(-10,3)",
+     "name": "f34"
+    },
+    {
+     "at": "B37",
+     "formula": "=MOD(10,-3)",
+     "name": "f35"
+    },
+    {
+     "at": "B38",
+     "formula": "=SQRT(16)",
+     "name": "f36"
+    },
+    {
+     "at": "B39",
+     "formula": "=POWER(2,10)",
+     "name": "f37"
+    },
+    {
+     "at": "B40",
+     "formula": "=2^-1",
+     "name": "f38"
+    },
+    {
+     "at": "B41",
+     "formula": "=-2^2",
+     "name": "f39"
+    },
+    {
+     "at": "B42",
+     "formula": "=10%",
+     "name": "f40"
+    },
+    {
+     "at": "B43",
+     "formula": "=INDEX([data.n],3)",
+     "name": "f41"
+    },
+    {
+     "at": "B44",
+     "formula": "=INDEX([data.t],2)",
+     "name": "f42"
+    },
+    {
+     "at": "B45",
+     "formula": "=MATCH(3,[data.n],0)",
+     "name": "f43"
+    },
+    {
+     "at": "B46",
+     "formula": "=MATCH(\"b\",[data.t],0)",
+     "name": "f44"
+    },
+    {
+     "at": "B47",
+     "formula": "=MATCH(2.5,[data.s],1)",
+     "name": "f45"
+    },
+    {
+     "at": "B48",
+     "formula": "=MATCH(10,[data.s],1)",
+     "name": "f46"
+    },
+    {
+     "at": "B49",
+     "formula": "=IFERROR(MATCH(0,[data.s],1),\"na\")",
+     "name": "f47"
+    },
+    {
+     "at": "B50",
+     "formula": "=VLOOKUP(3,[data.s],1,TRUE)",
+     "name": "f48"
+    },
+    {
+     "at": "B51",
+     "formula": "=IFERROR(VLOOKUP(\"zz\",[data.t],1,FALSE),\"miss\")",
+     "name": "f49"
+    },
+    {
+     "at": "B52",
+     "formula": "=IF(1>2,\"y\",\"n\")",
+     "name": "f50"
+    },
+    {
+     "at": "B53",
+     "formula": "=IF(0,\"y\")",
+     "name": "f51"
+    },
+    {
+     "at": "B54",
+     "formula": "=IF(\"\",\"y\",\"n\")",
+     "name": "f52"
+    },
+    {
+     "at": "B55",
+     "formula": "=IFS(1=2,\"a\",2=2,\"b\")",
+     "name": "f53"
+    },
+    {
+     "at": "B56",
+     "formula": "=IFERROR(1/0,0)",
+     "name": "f54"
+    },
+    {
+     "at": "B57",
+     "formula": "=IFNA(NA(),\"x\")",
+     "name": "f55"
+    },
+    {
+     "at": "B58",
+     "formula": "=AND(1,1,0)",
+     "name": "f56"
+    },
+    {
+     "at": "B59",
+     "formula": "=OR(0,0,1)",
+     "name": "f57"
+    },
+    {
+     "at": "B60",
+     "formula": "=NOT(0)",
+     "name": "f58"
+    },
+    {
+     "at": "B61",
+     "formula": "=CHOOSE(2,\"a\",\"b\",\"c\")",
+     "name": "f59"
+    },
+    {
+     "at": "B62",
+     "formula": "=DATE(2026,2,29)",
+     "name": "f60"
+    },
+    {
+     "at": "B63",
+     "formula": "=DATE(2026,0,1)",
+     "name": "f61"
+    },
+    {
+     "at": "B64",
+     "formula": "=DATE(2026,1,0)",
+     "name": "f62"
+    },
+    {
+     "at": "B65",
+     "formula": "=EOMONTH(DATE(2026,1,31),1)",
+     "name": "f63"
+    },
+    {
+     "at": "B66",
+     "formula": "=EOMONTH(DATE(2026,3,15),-1)",
+     "name": "f64"
+    },
+    {
+     "at": "B67",
+     "formula": "=EDATE(DATE(2026,3,31),-1)",
+     "name": "f65"
+    },
+    {
+     "at": "B68",
+     "formula": "=EDATE(DATE(2028,2,29),12)",
+     "name": "f66"
+    },
+    {
+     "at": "B69",
+     "formula": "=YEAR(DATE(2026,12,31))",
+     "name": "f67"
+    },
+    {
+     "at": "B70",
+     "formula": "=MONTH(DATE(2026,12,31))",
+     "name": "f68"
+    },
+    {
+     "at": "B71",
+     "formula": "=DAY(DATE(2026,12,31))",
+     "name": "f69"
+    },
+    {
+     "at": "B72",
+     "formula": "=WEEKDAY(DATE(2026,10,18))",
+     "name": "f70"
+    },
+    {
+     "at": "B73",
+     "formula": "=WEEKDAY(DATE(2026,10,18),2)",
+     "name": "f71"
+    },
+    {
+     "at": "B74",
+     "formula": "=WEEKDAY(DATE(2026,10,18),3)",
+     "name": "f72"
+    },
+    {
+     "at": "B75",
+     "formula": "=ISOWEEKNUM(DATE(2026,12,31))",
+     "name": "f73"
+    },
+    {
+     "at": "B76",
+     "formula": "=ISOWEEKNUM(DATE(2027,1,4))",
+     "name": "f74"
+    },
+    {
+     "at": "B77",
+     "formula": "=DAYS(DATE(2026,12,25),DATE(2026,10,19))",
+     "name": "f75"
+    },
+    {
+     "at": "B78",
+     "formula": "=ROUND(PMT(0.004,24,-5000),4)",
+     "name": "f76"
+    },
+    {
+     "at": "B79",
+     "formula": "=ROUND(PMT(0,12,1200),4)",
+     "name": "f77"
+    },
+    {
+     "at": "B80",
+     "formula": "=ROUND(FV(0.003,36,-150,-1000),4)",
+     "name": "f78"
+    },
+    {
+     "at": "B81",
+     "formula": "=ROUND(NPER(0.015,-100,2000),6)",
+     "name": "f79"
+    },
+    {
+     "at": "B82",
+     "formula": "=ROUND(PMT(0.05/12,60,20000,0,1),4)",
+     "name": "f80"
+    },
+    {
+     "at": "B83",
+     "formula": "=LEN(\"Gr\u00f6\u00dfe \")",
+     "name": "f81"
+    },
+    {
+     "at": "B84",
+     "formula": "=LEFT(\"abc\")",
+     "name": "f82"
+    },
+    {
+     "at": "B85",
+     "formula": "=RIGHT(\"abc\",2)",
+     "name": "f83"
+    },
+    {
+     "at": "B86",
+     "formula": "=MID(\"abcdef\",2,3)",
+     "name": "f84"
+    },
+    {
+     "at": "B87",
+     "formula": "=UPPER(\"\u00e4\")",
+     "name": "f85"
+    },
+    {
+     "at": "B88",
+     "formula": "=LOWER(\"\u00c4B\")",
+     "name": "f86"
+    },
+    {
+     "at": "B89",
+     "formula": "=TRIM(\"  a   b \")",
+     "name": "f87"
+    },
+    {
+     "at": "B90",
+     "formula": "=REPT(\"ab\",3)",
+     "name": "f88"
+    },
+    {
+     "at": "B91",
+     "formula": "=SUBSTITUTE(\"a-b-c\",\"-\",\"+\")",
+     "name": "f89"
+    },
+    {
+     "at": "B92",
+     "formula": "=SEARCH(\"C\",\"abc\")",
+     "name": "f90"
+    },
+    {
+     "at": "B93",
+     "formula": "=IFERROR(FIND(\"C\",\"abc\"),\"no\")",
+     "name": "f91"
+    },
+    {
+     "at": "B94",
+     "formula": "=SEARCH(\"b?\",\"abcd\")",
+     "name": "f92"
+    },
+    {
+     "at": "B95",
+     "formula": "=ISBLANK(INDEX([data.t],4))",
+     "name": "f93"
+    },
+    {
+     "at": "B96",
+     "formula": "=ISNUMBER([data.n])",
+     "name": "f94"
+    },
+    {
+     "at": "B97",
+     "formula": "=ISTEXT(\"x\")",
+     "name": "f95"
+    },
+    {
+     "at": "B98",
+     "formula": "=ISERROR(1/0)",
+     "name": "f96"
+    },
+    {
+     "at": "B99",
+     "formula": "=1=\"1\"",
+     "name": "f97"
+    },
+    {
+     "at": "B100",
+     "formula": "=\"A\"=\"a\"",
+     "name": "f98"
+    },
+    {
+     "at": "B101",
+     "formula": "=2<\"a\"",
+     "name": "f99"
+    },
+    {
+     "at": "B102",
+     "formula": "=ROWS([data.n])",
+     "name": "f100"
+    }
+   ]
+  }
+ ]
+}

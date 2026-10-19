@@ -4,7 +4,7 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
 ## Start here
 
-Run `lfm skills install` once. It puts the research, design, implementation, book and printable skills where your
+Run `lfm skills install` once. It puts the research, design, implementation, book, printable, spreadsheet, document and deck skills where your
 agent loads them (`.agents/skills`, or `.claude/skills` under Claude Code); run it again after
 updating lfm. Without installed skills, `lfm skills <topic>` prints the one you need.
 
@@ -32,8 +32,11 @@ review or deploy) and the skill that covers it. Follow that line until it says d
 | `concept.md` | The design decisions, written by the design skill and cited to research |
 | `deliverables/book/` | Optional: a book the page sells, planned in its `concept.md`, chapters in `chapters/`, store texts in `listing.md` |
 | `deliverables/printable/` | Optional: a printable the page sells (planner, game, puzzle pack), planned in its `concept.md`, pages in `printable.html.tmpl` |
-| `deliverables/bundle/` | Optional: `listing.md` of the book and the printable sold together |
-| `distribution/` | Store packages per unit (`book/`, `printable/`, `bundle/`), written by `lfm compile`. Never edit or deploy it |
+| `deliverables/spreadsheet/` | Optional: a spreadsheet template the page sells, planned in its `concept.md`, sheets in `workbook.json` |
+| `deliverables/document/` | Optional: editable documents the page sells (letters, invoices, minutes), planned in its `concept.md`, one Markdown file per document and language |
+| `deliverables/deck/` | Optional: slide decks the page sells (training briefings, workshops, quiz games), planned in its `concept.md`, one Markdown file per deck and language |
+| `deliverables/bundle/` | Optional: `listing.md` of two or more deliverables sold together |
+| `distribution/` | Store packages per unit (`book/`, `printable/`, `spreadsheet/`, `document/`, `deck/`, `bundle/`), written by `lfm compile`. Never edit or deploy it |
 | `output/` | The compiled page. Never edit it; deploy it as is |
 
 ## Working rules
@@ -49,7 +52,13 @@ Every page goes through three phases, each with its own skill:
 - A book the page sells is written with the book skill (`lfm skills book`): its own concept, then one
   chapter at a time; `lfm compile` builds it and publishes it behind an unlisted download page.
 - A printable the page sells is built with the printable skill (`lfm skills printable`): one template of
-  fixed-size pages, rendered for every paper size and variant. Each deliverable sells through the page,
+  fixed-size pages, rendered for every paper size and variant.
+- A spreadsheet the page sells is built with the spreadsheet skill (`lfm skills spreadsheet`): one
+  `workbook.json`, built as Excel files per language and currency, every formula computed and checked.
+- Editable documents the page sells are written with the document skill (`lfm skills document`): one
+  Markdown file per document and language, styled by the concept's theme, built as .docx per paper.
+- Slide decks the page sells are written with the deck skill (`lfm skills deck`): one Markdown file per
+  deck and language with speaker notes, built as .pptx with a notes PDF and quiz sheet. Each deliverable sells through the page,
   through shops, or both together as a bundle (`sell` in `lfm.json`).
 - New customer signals go into research first, then into `concept.md` with a changelog entry, then the page.
 - Reference local files from the template; `{{style "…"}}` and `{{script "…"}}` bundle CSS and JS.

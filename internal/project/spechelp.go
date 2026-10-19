@@ -5,6 +5,8 @@ import (
 	"maps"
 	"slices"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/term"
 )
 
 // Explain renders lfm.json's reference for the terminal: every top-level
@@ -21,9 +23,13 @@ func Explain(path string) (string, error) {
 	}
 	f, ok := Lookup(path)
 	if !ok {
-		return "", fmt.Errorf("lfm.json has no field %q; 'lfm help config' lists them", path)
+		var paths []string
+		for _, f := range Spec {
+			paths = append(paths, f.Path)
+		}
+		return "", fmt.Errorf("lfm.json has no field %q.%s 'lfm help config' lists them", path, term.DidYouMean(path, paths))
 	}
-	fmt.Fprintf(&b, "%s  %s\n  %s\n", f.Path, f.Shape(), f.Doc)
+	fmt.Fprintf(&b, "%s  %s\n  %s\n", f.Path, f.Shape(), term.Wrap(f.Doc, term.Width-2, "  "))
 	if f.Required {
 		b.WriteString("  required\n")
 	}
@@ -62,7 +68,9 @@ func rows(b *strings.Builder, fields []Field) {
 		if len(Children(f.Path)) > 0 {
 			more = " (more: 'lfm help config " + strings.ReplaceAll(f.Path, ".*", "") + "')"
 		}
-		fmt.Fprintf(b, "  %-*s  %s · %s%s%s\n", width, f.Name(), f.Shape(), note, f.Doc, more)
+		indent := strings.Repeat(" ", width+4)
+		line := fmt.Sprintf("%s · %s%s%s", f.Shape(), note, f.Doc, more)
+		fmt.Fprintf(b, "  %-*s  %s\n", width, f.Name(), term.Wrap(line, max(40, term.Width-len(indent)), indent))
 	}
 }
 

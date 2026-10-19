@@ -50,7 +50,7 @@ func OperationalRules() []RuleInfo {
 		{
 			ID:      "release.lighthouse",
 			Summary: "Installed Lighthouse ran and produced a complete audit",
-			Help:    "With --release, lfm runs an installed Lighthouse against the artifact; this warns when the executable is missing or the run fails, times out or returns incomplete JSON. Without it you get no performance, accessibility, best-practice or SEO scores for this build. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) and check that the Node, Lighthouse and Chrome versions are compatible.",
+			Help:    "With --release, lfm runs an installed Lighthouse against the artifact; this warns when a run fails, times out or returns incomplete JSON. Lighthouse is optional: when it is not installed the report notes the skip and nothing warns, so a release on a machine with Chrome alone comes out clean. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
 		},
 		{
 			ID:      "lighthouse.*",

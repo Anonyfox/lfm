@@ -5,6 +5,7 @@ package jsonsrc
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -52,7 +53,11 @@ func Index(files map[string][]byte) Sources {
 			if syntax, ok := err.(*json.SyntaxError); ok {
 				offset = int(syntax.Offset) - 1
 			}
-			s.Issues = append(s.Issues, diagnostic.Diagnostic{Rule: "config.invalid", Severity: diagnostic.Error, Location: diagnostic.At(name, files[name], offset), Message: "Invalid JSON: " + err.Error(), Hint: "Fix this JSON document before template mapping can be checked."})
+			message := err.Error()
+			if errors.Is(err, io.ErrUnexpectedEOF) || err == io.EOF || strings.HasSuffix(message, "EOF") {
+				message = "the file ends before its last value closes"
+			}
+			s.Issues = append(s.Issues, diagnostic.Diagnostic{Rule: "config.invalid", Severity: diagnostic.Error, Location: diagnostic.At(name, files[name], offset), Message: name + " is not valid JSON: " + message + ".", Hint: "Fix the JSON at this place: a missing comma, quote or closing bracket is the usual cause. Nothing else is checked until it parses."})
 		}
 	}
 	return s

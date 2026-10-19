@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Validates .docx and .xlsx files with Microsoft's Open XML SDK, the way
+       Office reads them. Used by lfm's tests when LFM_OOXML_VALIDATOR names
+       the built dll: dotnet build -c Release -o out internal/ooxml/validator -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ooxml-validator</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+  </ItemGroup>
+</Project>

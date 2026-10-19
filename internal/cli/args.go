@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/term"
 )
 
 // flagSpec declares one --flag. Boolean flags take no value; value flags read
@@ -53,7 +55,11 @@ func parse(command string, args []string, specs []flagSpec) (parsed, error) {
 		name, value, hasValue := strings.Cut(arg[2:], "=")
 		spec, ok := lookup(specs, name)
 		if !ok {
-			return p, usageError("unknown flag --%s for lfm %s", name, command)
+			var names []string
+			for _, s := range specs {
+				names = append(names, "--"+s.name)
+			}
+			return p, usageError("unknown flag --%s for lfm %s.%s", name, command, term.DidYouMean("--"+name, names))
 		}
 		if _, repeated := p.flags[name]; repeated {
 			return p, usageError("--%s given twice", name)

@@ -14,6 +14,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/jsonsrc"
+	"github.com/Anonyfox/lfm/internal/term"
 )
 
 // Config is lfm.json. Reserved fields use exact casing; product values live
@@ -38,19 +39,58 @@ type Config struct {
 // deliverables/book and a printable in deliverables/printable each need their
 // entry, and a bundle sells both together.
 type Deliverables struct {
-	Book      *BookConfig      `json:"book"`
-	Printable *PrintableConfig `json:"printable"`
-	Bundle    *BundleConfig    `json:"bundle"`
+	Book        *BookConfig        `json:"book"`
+	Printable   *PrintableConfig   `json:"printable"`
+	Bundle      *BundleConfig      `json:"bundle"`
+	Spreadsheet *SpreadsheetConfig `json:"spreadsheet"`
+	Document    *DocumentConfig    `json:"document"`
+	Deck        *DeckConfig        `json:"deck"`
 }
 
-// BundleConfig is deliverables.bundle: the book and the printable sold
+// SpreadsheetConfig is deliverables.spreadsheet: how the spreadsheet sells
+// and the Google Sheets masters buyers copy.
+type SpreadsheetConfig struct {
+	Path     string            `json:"path"`
+	Offer    string            `json:"offer"`
+	Language string            `json:"language"`
+	Sell     string            `json:"sell"`
+	Version  string            `json:"version"`
+	Sheets   map[string]string `json:"sheets"` // edition key, or key-example -> Google Sheets address
+}
+
+// DocumentConfig is deliverables.document: how the editable document set
+// sells, its paper sizes and the Google Docs masters behind its copy links.
+type DocumentConfig struct {
+	Path     string            `json:"path"`
+	Offer    string            `json:"offer"`
+	Language string            `json:"language"`
+	Sell     string            `json:"sell"`
+	Version  string            `json:"version"`
+	Papers   []string          `json:"papers"`
+	Docs     map[string]string `json:"docs"` // "language/document" -> Google Docs address
+}
+
+// DeckConfig is deliverables.deck: how the decks sell, the papers their
+// notes print on and the Google Slides masters behind their copy links.
+type DeckConfig struct {
+	Path     string            `json:"path"`
+	Offer    string            `json:"offer"`
+	Language string            `json:"language"`
+	Sell     string            `json:"sell"`
+	Version  string            `json:"version"`
+	Papers   []string          `json:"papers"`
+	Slides   map[string]string `json:"slides"` // "language/deck" -> Google Slides address
+}
+
+// BundleConfig is deliverables.bundle: two or more deliverables sold
 // together, with its own name, listing and download path.
 type BundleConfig struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	Offer    string `json:"offer"`
-	Sell     string `json:"sell"` // page (default) or shops
-	Language string `json:"language"`
+	Name     string   `json:"name"`
+	Units    []string `json:"units"` // the deliverables it holds; every one when empty
+	Path     string   `json:"path"`
+	Offer    string   `json:"offer"`
+	Sell     string   `json:"sell"` // page (default) or shops
+	Language string   `json:"language"`
 }
 
 // PrintableConfig is deliverables.printable: the unlisted folder its files
@@ -320,6 +360,13 @@ func checkShape(raw []byte) []Problem {
 				hint := "Custom values belong under data."
 				if to, moved := Moved[child]; moved {
 					hint = "It moved to " + to + "."
+				}
+				var names []string
+				for _, sib := range Children(pattern) {
+					names = append(names, sib.Name())
+				}
+				if near := term.Suggest(key, names); near != "" && !strings.HasPrefix(hint, "It moved") {
+					hint = "Did you mean " + jsonsrc.Child(path, near) + "?"
 				}
 				for _, sib := range Children(pattern) {
 					if strings.EqualFold(sib.Name(), key) {

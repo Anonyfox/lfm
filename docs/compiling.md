@@ -11,7 +11,7 @@ of them report through the same findings, so a single run lists everything that 
 | optimize | `--release` only: split critical CSS after measuring it in headless Chrome. |
 | finalize | Serialize and compact the HTML. |
 | verify | Run every check on the exact bytes that will be written. |
-| deliver | When `deliverables/book/` or `deliverables/printable/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of both when one is configured. PDFs, a book's paperback and covers, and a printable's listing images are made in Chrome by `--release` and reused by every later compile while their inputs are unchanged. |
+| deliver | When `deliverables/book/`, `deliverables/printable/`, `deliverables/spreadsheet/`, `deliverables/document/` or `deliverables/deck/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of the units it holds when one is configured. PDFs, a book's paperback and covers, a printable's and a spreadsheet's listing images and start PDFs are made in Chrome by `--release` and reused by every later compile while their inputs are unchanged. |
 | audit | `--release` only: a runtime probe, the layout audit and, when installed, Lighthouse. |
 | publish | Replace `output/` with one rename. |
 
@@ -62,7 +62,7 @@ email are how buyers get there; `lfm compile` prints the address.
 ### Store packages
 
 With `deliverables/book/listing.md`, the same compile writes `distribution/book/` next to `output/`
-(each sellable unit has its folder: `book/`, `printable/`, `bundle/`):
+(each sellable unit has its folder: `book/`, `printable/`, `spreadsheet/`, `document/`, `deck/`, `bundle/`):
 
 ```text
 distribution/book/
@@ -105,6 +105,44 @@ Gumroad, Payhip, Ko-fi) naming the files and images to upload and every field re
 page count, sizes and link count taken from the build. Etsy takes five files: when the PDFs are more, lfm
 adds a ZIP per paper size. `printable.channels` warns about files over 20 MB and links that send Etsy
 buyers elsewhere.
+
+### Spreadsheet packages
+
+A spreadsheet builds two Excel files per edition on every compile: `<slug>-<edition>.xlsx`, the blank
+template, and `<slug>-<edition>-example.xlsx`, filled with the example dataset. Every formula is written
+with its computed value, so the files open with numbers in any app, and a rebuild of unchanged sources is
+byte-identical. `--release` adds `<slug>-<edition>-start.pdf`, the start-here guide with the Google Sheets
+copy link from `deliverables.spreadsheet.sheets`, and recalculates every file in LibreOffice when it is
+installed (`spreadsheet.compat`). The download page lists the copy links first, then the files. With
+`deliverables/spreadsheet/listing.md`, `distribution/spreadsheet/` holds every file once, `images/` with
+the listing images (the dashboard alone, every tab, each tab, what it works with) and a guide per shop;
+for Etsy, more than five files are zipped per edition.
+
+### Document packages
+
+A document set builds one `.docx` per document, language and paper size on every compile, each stamped
+with the key of its inputs and reused while they are unchanged, and ships one ZIP per edition
+(`<slug>-<language>-<paper>.zip`): the documents named by their titles, the fonts with their licence and,
+after a release, `PDF/` with the print of every document and the start guide. `--release` prints each
+document's print layout, which follows the .docx line for line, in Chrome and holds it to its planned
+pages, paper and fonts (`document.layout`), renders the listing images from the first pages and prints
+the start guides; later compiles reuse all of it from the published ZIPs. A release needs Chrome alone:
+LibreOffice, when installed, opens every .docx as a second opinion. The report names optional
+helpers that are not installed and what each would add; none is a warning. With
+`deliverables/document/listing.md`, `distribution/document/` holds the ZIPs, the images and a guide per
+shop.
+
+### Deck packages
+
+A deck set builds one `.pptx` per deck and language on every compile: a 16:9 slide master with six layouts
+(title, title and content, section, two content, picture, statement) whose placeholders every slide fills,
+the theme's fonts embedded, and speaker notes from `::: notes` on notes pages. Every compile measures each
+slide's text with the fonts and warns where it would not fit (`deck.design`). It ships one ZIP per language
+(`<slug>-<language>.zip`); `--release` adds `PDF/` with the slides, the speaker notes beside every slide on
+each of the language's papers and, when the deck asks questions, a quiz sheet with its answer key, holds
+every slide's boxes to what they show (`deck.layout`), renders the listing images from the real slides,
+notes and quiz sheet and prints the start guides. LibreOffice, when installed, opens every .pptx as a
+second opinion.
 
 Compiles of the same project are serialized across processes by locking the project directory; no lock
 file is created, and a second compile waits and says so. Nothing is written into the project except

@@ -9,9 +9,12 @@ import (
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/concept"
+	"github.com/Anonyfox/lfm/internal/deck"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/research"
+	"github.com/Anonyfox/lfm/internal/spreadsheet"
 	"github.com/Anonyfox/lfm/internal/templatecheck"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 )
@@ -27,6 +30,9 @@ func Rules() []diagnostic.RuleInfo {
 	rules = append(rules, book.Rules()...)
 	rules = append(rules, printable.Rules()...)
 	rules = append(rules, bundle.Rules()...)
+	rules = append(rules, spreadsheet.Rules()...)
+	rules = append(rules, document.Rules()...)
+	rules = append(rules, deck.Rules()...)
 	for _, rule := range check.DefaultRules() {
 		rules = append(rules, rule.RuleInfo)
 	}

@@ -179,7 +179,7 @@ func listingImages(pr *press, r *printable.Report) []printable.Image {
 	}
 	for i, plan := range plans {
 		keys[i] = printKey("listing image "+plan.Name, append(append([]byte{}, plan.Doc...), inputs...), r.Assets)
-		if jpg := pr.previous[keys[i]]; jpg != nil {
+		if jpg := pr.lookup(keys[i]); jpg != nil {
 			out = append(out, printable.Image{Name: plan.Name, What: plan.What, Data: jpg})
 		} else {
 			all = false

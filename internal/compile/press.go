@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -17,9 +18,11 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deliver"
+	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/spreadsheet"
 )
 
 // printFormat names how lfm prints deliverables; changing the passes below changes it,
@@ -34,7 +37,8 @@ const printFormat = "lfm-book-print-1"
 // browser; a changed one keeps everything else current and waits for the
 // next release for its prints.
 type press struct {
-	previous map[string][]byte // stamp key -> PDF or JPEG
+	previous map[string][]byte // stamp key -> PDF, JPEG or workbook
+	zipped   map[string]zipRef // stamp key -> a stored file inside a published ZIP, read on use
 	release  bool
 	pending  bool // a print was due but this compile does not print
 
@@ -45,7 +49,7 @@ type press struct {
 }
 
 func newPress(p project.Project, isRelease bool) *press {
-	pr := &press{previous: map[string][]byte{}, release: isRelease}
+	pr := &press{previous: map[string][]byte{}, zipped: map[string]zipRef{}, release: isRelease}
 	// Stamped prints live in the deliverables' download folders in output/
 	// and in distribution/; the page's own assets carry no stamp.
 	for _, dir := range []string{filepath.Join(p.Root, project.OutputDir), filepath.Join(p.Root, project.DistributionDir)} {
@@ -59,17 +63,120 @@ func newPress(p project.Project, isRelease bool) *press {
 				key = stampOfFile(path)
 			case strings.HasSuffix(path, ".jpg"):
 				key = jpegStampOfFile(path)
+			case strings.HasSuffix(path, ".xlsx"):
+				key = tailStampOfFile(path, spreadsheet.Stamp)
+			case strings.HasSuffix(path, ".docx"), strings.HasSuffix(path, ".pptx"):
+				key = tailStampOfFile(path, ooxml.Stamp)
+			case strings.HasSuffix(path, ".zip"):
+				pr.scanZip(path)
+				return nil
 			}
 			if key == "" || pr.previous[key] != nil {
 				return nil
 			}
-			if data, err := os.ReadFile(path); err == nil && (pdfx.StampOf(data) == key || deliver.JPEGStamp(data) == key) {
+			if data, err := os.ReadFile(path); err == nil && stampOf(data) == key {
 				pr.previous[key] = data
 			}
 			return nil
 		})
 	}
 	return pr
+}
+
+// stampOf is the key any stamped print or build carries.
+func stampOf(data []byte) string {
+	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, spreadsheet.Stamp, ooxml.Stamp} {
+		if key := of(data); key != "" {
+			return key
+		}
+	}
+	return ""
+}
+
+// zipRef locates a stored file inside a ZIP, or the whole ZIP.
+type zipRef struct {
+	path         string
+	offset, size int64
+}
+
+// scanZip indexes the stamped files packed in a published ZIP, such as the
+// documents and PDFs of an edition's download, and the ZIP's own stamp. It
+// reads only their ends, where the stamps are; lookup reads a file when a
+// compile uses it.
+func (pr *press) scanZip(path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return
+	}
+	tail := func(offset, size int64) string {
+		buf := make([]byte, min(size, 4096))
+		if _, err := f.ReadAt(buf, offset+size-int64(len(buf))); err != nil {
+			return ""
+		}
+		return stampOf(buf)
+	}
+	if key := tail(0, info.Size()); key != "" {
+		pr.zipped[key] = zipRef{path, 0, info.Size()}
+	}
+	z, err := zip.NewReader(f, info.Size())
+	if err != nil {
+		return
+	}
+	for _, e := range z.File {
+		switch strings.ToLower(filepath.Ext(e.Name)) {
+		case ".pdf", ".docx", ".xlsx":
+		default:
+			continue
+		}
+		offset, err := e.DataOffset()
+		if err != nil || e.Method != zip.Store {
+			continue
+		}
+		if key := tail(offset, int64(e.CompressedSize64)); key != "" {
+			if _, seen := pr.zipped[key]; !seen {
+				pr.zipped[key] = zipRef{path, offset, int64(e.CompressedSize64)}
+			}
+		}
+	}
+}
+
+// has reports whether the last publish holds the stamped file of key,
+// without reading it.
+func (pr *press) has(key string) bool {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	_, zipped := pr.zipped[key]
+	return pr.previous[key] != nil || zipped
+}
+
+// lookup returns the stamped print or build of key from the last publish:
+// a file in output/ or distribution/, or one packed in a ZIP there.
+func (pr *press) lookup(key string) []byte {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	if data := pr.previous[key]; data != nil {
+		return data
+	}
+	ref, ok := pr.zipped[key]
+	if !ok {
+		return nil
+	}
+	f, err := os.Open(ref.path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	data := make([]byte, ref.size)
+	if _, err := f.ReadAt(data, ref.offset); err != nil || stampOf(data) != key {
+		return nil
+	}
+	pr.previous[key] = data
+	return data
 }
 
 // jpegStampOfFile reads only the start of a JPEG, where the stamp is.
@@ -85,7 +192,9 @@ func jpegStampOfFile(path string) string {
 }
 
 // stampOfFile reads only the end of a file, where the stamp is.
-func stampOfFile(path string) string {
+func stampOfFile(path string) string { return tailStampOfFile(path, pdfx.StampOf) }
+
+func tailStampOfFile(path string, stampOf func([]byte) string) string {
 	f, err := os.Open(path)
 	if err != nil {
 		return ""
@@ -99,7 +208,7 @@ func stampOfFile(path string) string {
 	if _, err := f.ReadAt(tail, info.Size()-int64(len(tail))); err != nil {
 		return ""
 	}
-	return pdfx.StampOf(tail)
+	return stampOf(tail)
 }
 
 func (pr *press) printerFor() (*release.Printer, error) {
@@ -139,7 +248,7 @@ func printKey(kind string, doc []byte, assets map[string][]byte) string {
 // a release, a fresh print stamped with key. Otherwise it returns nil and
 // marks the press pending.
 func (pr *press) job(key string, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
-	if pdf := pr.previous[key]; pdf != nil {
+	if pdf := pr.lookup(key); pdf != nil {
 		return pdf, nil
 	}
 	if !pr.release {
