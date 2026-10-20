@@ -28,6 +28,8 @@ jobs:
         run: go vet ./...
       - name: staticcheck
         run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 -checks all ./...
+      - name: shellcheck the installer
+        run: shellcheck -s sh install.sh
 
   test:
     strategy:
