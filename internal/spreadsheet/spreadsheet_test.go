@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/formula"
 	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/project"
@@ -249,6 +250,18 @@ func TestExcelComputesAsLfm(t *testing.T) {
 		}
 		for _, d := range diffs {
 			t.Errorf("%s: %s", name, d)
+		}
+	}
+}
+
+// TestTortureUsesEveryFunction holds the workbook LibreOffice recalculates
+// against lfm's engine to every function lfm supports, so a new function
+// cannot ship unchecked. TODAY changes daily, so no file can pin it.
+func TestTortureUsesEveryFunction(t *testing.T) {
+	raw := strings.ToUpper(read(t, "testdata/torture/workbook.json"))
+	for _, f := range formula.Functions() {
+		if f != "TODAY" && !strings.Contains(raw, f+"(") {
+			t.Errorf("testdata/torture/workbook.json never calls %s", f)
 		}
 	}
 }

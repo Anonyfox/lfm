@@ -581,6 +581,16 @@
      "at": "B102",
      "formula": "=ROWS([data.n])",
      "name": "f100"
+    },
+    {
+     "at": "B103",
+     "formula": "=CONCATENATE(\"n=\",SUM([data.n]),\"; \",\"x\")",
+     "name": "f101"
+    },
+    {
+     "at": "B104",
+     "formula": "=ROW()",
+     "name": "f102"
     }
    ]
   }

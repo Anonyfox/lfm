@@ -1,9 +1,9 @@
 images/01-calc.jpg.html 4424 56757daebb6516fe
 images/02-tabs.jpg.html 5234 a4bb33d933423f51
 images/03-data.jpg.html 4087 5da5ee055ad3da3e
-images/04-works-with.jpg.html 2800 f042e08d74984fcd
+images/04-works-with.jpg.html 2800 e82a3c5c9dd2b598
 preview/en.html 7370 9c6ef07f475bddc5
-spreadsheet-en.xlsx/xl/worksheets/sheet2.xml 9455 17440d302786a627
+spreadsheet-en.xlsx/xl/worksheets/sheet2.xml 9660 d8af889be3758d64
 spreadsheet-en.xlsx/xl/worksheets/sheet1.xml 1937 30b4d0a1f7456a5b
 spreadsheet-en.xlsx/xl/workbook.xml 1083 9c799010e3002086
 spreadsheet-en.xlsx/xl/theme/theme1.xml 7269 7132e0167227dc0a
