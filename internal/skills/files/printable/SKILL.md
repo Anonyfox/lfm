@@ -126,8 +126,8 @@ every edition and wraps it in the page CSS. What it sees:
 - `maze 14 18 5` (columns, rows, seed): `.SVG 10 false` draws it, entrance top left, exit bottom right;
   `.SVG 10 true` adds the path with class `solution` for the key. Style both with CSS.
 - `seq 12` (1 to 12), `chunk .Cards 4` (groups of any list, e.g. cards per page), `add`, `sub`, `mul`,
-  `mod`, and `dict "a" 1 "b" 2` to pass several values to a `{{template}}`. Loops run at most 10000
-  rounds and arithmetic stays within ±100000, so a slip fails the build instead of hanging it.
+  `mod`, and `dict "a" 1 "b" 2` to pass several values to a `{{template}}`. A loop over a number runs
+  at most 10000 rounds and arithmetic stays within ±100000; nest loops over lists, not numbers.
 - A seed fixes a puzzle; change it for a new one. Every generator checks its result and fails the
   build rather than print an unsolvable puzzle.
 

@@ -32,8 +32,8 @@ func (c *capped) Write(p []byte) (int, error) {
 }
 
 // Property: a template of any shape parses, and its helpers execute without
-// panicking or exhausting memory. Templates that range are left out: the
-// standard library ranges over any integer.
+// panicking or exhausting memory. Templates that range are left out: each
+// loop is bounded, but loops nested in loops multiply.
 func FuzzTemplate(f *testing.F) {
 	f.Add(testTemplate)
 	f.Add(`{{seq 12}}{{chunk (seq 10) 3}}{{dict "a" 1}}{{add 1 2}}{{mod 5 0}}`)
