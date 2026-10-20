@@ -19,7 +19,7 @@
   spreadsheet  no deliverables/spreadsheet/concept.md yet
   spreadsheet  Budget · no workbook.json yet
   spreadsheet  Budget · 1 edition · 1 tab · 1 formula · sold in the bundle
-               computed with example data · 1 file · recalculated in LibreOffice · 1 Google Sheets linked
+               computed with example data · 1 file · recalculated in LibreOffice · 1 of 1 Google Sheets linked
   stores       distribution/spreadsheet/ · 1 channel · 3 listing images
                etsy
 ## document

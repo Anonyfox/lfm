@@ -446,7 +446,7 @@ func renderSpreadsheet(w io.Writer, s term.Style, sp *spreadsheet.Summary) {
 	if sp.Pending {
 		detail += " · the start PDFs and images render with --release"
 	}
-	detail += fmt.Sprintf(" · %d Google Sheets linked", sp.Linked)
+	detail += fmt.Sprintf(" · %d of %d Google Sheets linked", sp.Linked, len(sp.Files))
 	if sp.URL != "" {
 		detail += " · " + sp.URL
 	}
