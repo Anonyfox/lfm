@@ -1,0 +1,464 @@
+{
+  "root": "<root>",
+  "output": "<root>/output",
+  "url": "https://example.com/001/",
+  "files": [
+    {
+      "name": "favicon.png",
+      "bytes": 332
+    },
+    {
+      "name": "index.html",
+      "bytes": 1231
+    },
+    {
+      "name": "share-3f93c132da0c.png",
+      "bytes": 240
+    },
+    {
+      "name": "q7w2k9m4x8c3v6b1n5zt/index.html",
+      "bytes": 1415
+    },
+    {
+      "name": "q7w2k9m4x8c3v6b1n5zt/the-weekend-starter.epub",
+      "bytes": 5283
+    }
+  ],
+  "validation": {
+    "stage": "html",
+    "stats": {
+      "htmlBytes": 1231,
+      "elements": 23,
+      "maxDepth": 4,
+      "inlineCSSBytes": 98,
+      "inlineJSBytes": 46,
+      "embeddedBytes": 0,
+      "embeds": []
+    },
+    "diagnostics": [
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/01.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "15 sentences of four words or fewer.",
+        "hint": "Fragments land when rare; join most of them to the sentence they belong to."
+      },
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/01.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Readability (Flesch reading ease) 99; mass-market nonfiction reads between 50 and 85.",
+        "hint": "Split long sentences and prefer shorter words; keep the main point in the main clause."
+      },
+      {
+        "rule": "book.machine",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/01.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "AI-text detectors would likely flag this chapter as generated (315 words): the same three-word phrases return; a few words carry much of the text; the text compresses like repetitive prose. The passage from line 3 reads most generated.",
+        "hint": "Revise the passages that read most generic: let the key phrase come back where the thought returns, as people do. Never add errors or random words to fool a detector; readers notice the same habits."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/01.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The chapter names no source a reader can check.",
+        "hint": "Link at least one real source next to the claim it supports: a study, a book, a practitioner, the research voice it comes from."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/01.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "0.0 names, numbers and quotes per 1000 words; generic advice starts below 6.",
+        "hint": "Add the case, the figure, the date, the words someone actually said."
+      },
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/02.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "15 sentences of four words or fewer.",
+        "hint": "Fragments land when rare; join most of them to the sentence they belong to."
+      },
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/02.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Readability (Flesch reading ease) 99; mass-market nonfiction reads between 50 and 85.",
+        "hint": "Split long sentences and prefer shorter words; keep the main point in the main clause."
+      },
+      {
+        "rule": "book.machine",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/02.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "AI-text detectors would likely flag this chapter as generated (315 words): the same three-word phrases return; a few words carry much of the text; the text compresses like repetitive prose. The passage from line 3 reads most generated.",
+        "hint": "Revise the passages that read most generic: let the key phrase come back where the thought returns, as people do. Never add errors or random words to fool a detector; readers notice the same habits."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/02.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The chapter names no source a reader can check.",
+        "hint": "Link at least one real source next to the claim it supports: a study, a book, a practitioner, the research voice it comes from."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/02.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "0.0 names, numbers and quotes per 1000 words; generic advice starts below 6.",
+        "hint": "Add the case, the figure, the date, the words someone actually said."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/02.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "This passage repeats deliverables/book/chapters/01.md word for word: \"the jar sat on the shelf overnight it rose by morning when\".",
+        "hint": "Say it once. Where the point returns, add what is new: a complication, a counter-case, the next step."
+      },
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "15 sentences of four words or fewer.",
+        "hint": "Fragments land when rare; join most of them to the sentence they belong to."
+      },
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Readability (Flesch reading ease) 99; mass-market nonfiction reads between 50 and 85.",
+        "hint": "Split long sentences and prefer shorter words; keep the main point in the main clause."
+      },
+      {
+        "rule": "book.machine",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "AI-text detectors would likely flag this chapter as generated (315 words): the same three-word phrases return; a few words carry much of the text; the text compresses like repetitive prose. The passage from line 3 reads most generated.",
+        "hint": "Revise the passages that read most generic: let the key phrase come back where the thought returns, as people do. Never add errors or random words to fool a detector; readers notice the same habits."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The chapter names no source a reader can check.",
+        "hint": "Link at least one real source next to the claim it supports: a study, a book, a practitioner, the research voice it comes from."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "0.0 names, numbers and quotes per 1000 words; generic advice starts below 6.",
+        "hint": "Add the case, the figure, the date, the words someone actually said."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "This passage repeats deliverables/book/chapters/01.md word for word: \"the jar sat on the shelf overnight it rose by morning when\".",
+        "hint": "Say it once. Where the point returns, add what is new: a complication, a counter-case, the next step."
+      },
+      {
+        "rule": "book.value",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/chapters/03.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "This paragraph makes the point of deliverables/book/chapters/02.md line 3 again.",
+        "hint": "Say it once. Where the point returns, add what is new: a complication, a counter-case, the next step."
+      },
+      {
+        "rule": "book.concept",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 42,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Missing section Objections.",
+        "hint": "Every decision needs its section; write it even if the answer is short."
+      },
+      {
+        "rule": "book.concept",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 3,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Reader cites no voice.",
+        "hint": "Describe the reader from what readers wrote, citing their IDs."
+      },
+      {
+        "rule": "book.concept",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 7,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Promise cites no voice.",
+        "hint": "The promise answers what readers want; cite the voices that want it."
+      },
+      {
+        "rule": "book.concept",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 7,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Promise has no \"Before:\" and \"After:\" lines.",
+        "hint": "State the change in observable terms: what the reader does or has before the book and after it. Every chapter's job adds up to it."
+      },
+      {
+        "rule": "book.concept",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 33,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Imagery plans no cover.",
+        "hint": "Add a row whose Job is cover: the image readers see in the store and their library."
+      },
+      {
+        "rule": "book.copy",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 20,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The book never says \"nail polish\", which the Voice uses.",
+        "hint": "Use the readers' phrase where it fits, or change the Voice when the decision changed."
+      },
+      {
+        "rule": "book.evidence",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The book concept has no research to stand on.",
+        "hint": "Collect research first (lfm skills research), including the books readers already compare."
+      },
+      {
+        "rule": "book.listing",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The book has no listing.md for the stores.",
+        "hint": "Write deliverables/book/listing.md as the lfm-book skill shows: descriptions, keywords, categories, prices and AI use, which lfm renders for every channel."
+      },
+      {
+        "rule": "book.open",
+        "severity": "warn",
+        "location": {
+          "file": "deliverables/book/concept.md",
+          "line": 36,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Open question in Imagery: the owner sends the cover",
+        "hint": "Get the answer from the owner or a source, then replace the line with the decision."
+      }
+    ],
+    "errors": 0,
+    "warnings": 27
+  },
+  "published": true,
+  "assets": [
+    {
+      "source": "assets/images/share.png",
+      "mode": "file",
+      "bytes": 240,
+      "encodedContributionBytes": 0,
+      "htmlContributionBytes": 0,
+      "occurrences": 0,
+      "reason": "required native/social file URL",
+      "output": "share-3f93c132da0c.png"
+    }
+  ],
+  "cost": {
+    "htmlBytes": 1231,
+    "htmlGzipLevel1Bytes": 604,
+    "sidecarBytes": 572,
+    "totalRawBytes": 1803,
+    "totalCSSBytes": 98,
+    "totalJSBytes": 46,
+    "externalCSSBytes": 0,
+    "externalJSBytes": 0
+  },
+  "htmlCompaction": {
+    "beforeBytes": 1299,
+    "afterBytes": 1231,
+    "savedBytes": 68
+  },
+  "research": {
+    "voices": 0,
+    "peers": 0,
+    "batches": 0,
+    "dated": 0,
+    "recent": 0
+  },
+  "concept": {
+    "present": false,
+    "voices": 0,
+    "peers": 0,
+    "platforms": 0,
+    "colors": 0,
+    "typefaces": 0,
+    "plannedImages": 0,
+    "openQuestions": 0
+  },
+  "starter": true,
+  "book": {
+    "present": true,
+    "concept": true,
+    "title": "The Weekend Starter",
+    "chapters": [
+      {
+        "n": 1,
+        "title": "Why starters die",
+        "job": "Diagnose why the last starter died",
+        "words": 300,
+        "file": "chapters/01.md",
+        "written": true
+      },
+      {
+        "n": 2,
+        "title": "A week that feeds itself",
+        "job": "Plan feedings around a working week",
+        "words": 300,
+        "file": "chapters/02.md",
+        "written": true
+      },
+      {
+        "n": 3,
+        "title": "The first loaf",
+        "job": "Bake one loaf and judge its crumb",
+        "words": 300,
+        "file": "chapters/03.md",
+        "written": true
+      }
+    ],
+    "written": 3,
+    "words": 945,
+    "targetWords": 900,
+    "complete": true,
+    "downloadURL": "https://example.com/001/q7w2k9m4x8c3v6b1n5zt/",
+    "files": [
+      "the-weekend-starter.epub"
+    ],
+    "listing": false,
+    "printPending": true,
+    "sell": "page"
+  },
+  "errors": 0,
+  "warnings": 27,
+  "durationMs": 0,
+  "next": {
+    "phase": "research",
+    "do": "collect real buyer voices and competitor pages into research/. Follow 'lfm skills research', or install them all with 'lfm skills install'.",
+    "skill": "lfm-research"
+  },
+  "skills": []
+}

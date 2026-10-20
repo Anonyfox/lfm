@@ -1,0 +1,9 @@
+✓ <project> compiled → output/ in <duration>
+  index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
+  2 assets     572 B       favicon.png, share-3f93c132da0c.png
+  printable    Maze Pack · 2 editions · 5 pages
+               A4, US Letter · the PDFs print with --release · https://example.com/001/p7m2x9q4w8e3r6t5y1u0/
+  stores       distribution/printable/ · 4 channels
+               etsy, gumroad, payhip, ko-fi
+Next (research): collect real buyer voices and competitor pages into research/.
+                 Follow 'lfm skills research', or install them all with 'lfm skills install'.

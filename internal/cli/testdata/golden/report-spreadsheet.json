@@ -1,0 +1,178 @@
+{
+  "root": "<root>",
+  "output": "<root>/output",
+  "url": "https://example.com/001/",
+  "files": [
+    {
+      "name": "favicon.png",
+      "bytes": 332
+    },
+    {
+      "name": "index.html",
+      "bytes": 1231
+    },
+    {
+      "name": "share-3f93c132da0c.png",
+      "bytes": 240
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/index.html",
+      "bytes": 2017
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-en.xlsx",
+      "bytes": 41704
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-en-example.xlsx",
+      "bytes": 42555
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-de.xlsx",
+      "bytes": 41962
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-de-example.xlsx",
+      "bytes": 42851
+    }
+  ],
+  "validation": {
+    "stage": "html",
+    "stats": {
+      "htmlBytes": 1231,
+      "elements": 23,
+      "maxDepth": 4,
+      "inlineCSSBytes": 98,
+      "inlineJSBytes": 46,
+      "embeddedBytes": 0,
+      "embeds": []
+    },
+    "diagnostics": [
+      {
+        "rule": "spreadsheet.sheets",
+        "severity": "warn",
+        "location": {
+          "file": "lfm.json",
+          "line": 3,
+          "column": 5,
+          "offset": 26
+        },
+        "message": "No Google Sheets master is linked for en-example.",
+        "hint": "Upload paycheck-budget-en-example.xlsx to Google Drive, open it with Google Sheets (File \u003e Save as Google Sheets), share it as \"anyone with the link: viewer\", and add \"sheets\": {\"en-example\": \"\u003cits address\u003e\"} to deliverables.spreadsheet. Buyers get a copy link to it."
+      },
+      {
+        "rule": "spreadsheet.sheets",
+        "severity": "warn",
+        "location": {
+          "file": "lfm.json",
+          "line": 3,
+          "column": 5,
+          "offset": 26
+        },
+        "message": "No Google Sheets master is linked for de.",
+        "hint": "Upload paycheck-budget-de.xlsx to Google Drive, open it with Google Sheets (File \u003e Save as Google Sheets), share it as \"anyone with the link: viewer\", and add \"sheets\": {\"de\": \"\u003cits address\u003e\"} to deliverables.spreadsheet. Buyers get a copy link to it."
+      },
+      {
+        "rule": "spreadsheet.sheets",
+        "severity": "warn",
+        "location": {
+          "file": "lfm.json",
+          "line": 3,
+          "column": 5,
+          "offset": 26
+        },
+        "message": "No Google Sheets master is linked for de-example.",
+        "hint": "Upload paycheck-budget-de-example.xlsx to Google Drive, open it with Google Sheets (File \u003e Save as Google Sheets), share it as \"anyone with the link: viewer\", and add \"sheets\": {\"de-example\": \"\u003cits address\u003e\"} to deliverables.spreadsheet. Buyers get a copy link to it."
+      }
+    ],
+    "errors": 0,
+    "warnings": 3
+  },
+  "published": true,
+  "assets": [
+    {
+      "source": "assets/images/share.png",
+      "mode": "file",
+      "bytes": 240,
+      "encodedContributionBytes": 0,
+      "htmlContributionBytes": 0,
+      "occurrences": 0,
+      "reason": "required native/social file URL",
+      "output": "share-3f93c132da0c.png"
+    }
+  ],
+  "cost": {
+    "htmlBytes": 1231,
+    "htmlGzipLevel1Bytes": 604,
+    "sidecarBytes": 572,
+    "totalRawBytes": 1803,
+    "totalCSSBytes": 98,
+    "totalJSBytes": 46,
+    "externalCSSBytes": 0,
+    "externalJSBytes": 0
+  },
+  "htmlCompaction": {
+    "beforeBytes": 1299,
+    "afterBytes": 1231,
+    "savedBytes": 68
+  },
+  "research": {
+    "voices": 0,
+    "peers": 0,
+    "batches": 0,
+    "dated": 0,
+    "recent": 0
+  },
+  "concept": {
+    "present": false,
+    "voices": 0,
+    "peers": 0,
+    "platforms": 0,
+    "colors": 0,
+    "typefaces": 0,
+    "plannedImages": 0,
+    "openQuestions": 0
+  },
+  "starter": true,
+  "spreadsheet": {
+    "name": "Paycheck Budget",
+    "concept": true,
+    "workbook": true,
+    "editions": [
+      "en",
+      "de"
+    ],
+    "sheets": 6,
+    "formulas": 696,
+    "checked": [
+      "empty",
+      "example"
+    ],
+    "sell": "page",
+    "url": "https://example.com/001/x7m2x9q4w8e3r6t5y1u0/",
+    "files": [
+      "paycheck-budget-en.xlsx",
+      "paycheck-budget-en-example.xlsx",
+      "paycheck-budget-de.xlsx",
+      "paycheck-budget-de-example.xlsx"
+    ],
+    "listing": true,
+    "linked": 1,
+    "channels": [
+      "etsy",
+      "gumroad",
+      "payhip",
+      "ko-fi"
+    ],
+    "pending": true
+  },
+  "errors": 0,
+  "warnings": 3,
+  "durationMs": 0,
+  "next": {
+    "phase": "research",
+    "do": "collect real buyer voices and competitor pages into research/. Follow 'lfm skills research', or install them all with 'lfm skills install'.",
+    "skill": "lfm-research"
+  },
+  "skills": []
+}

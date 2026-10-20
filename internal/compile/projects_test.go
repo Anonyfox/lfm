@@ -14,7 +14,6 @@ const (
 
 var (
 	configure          = testproject.Configure
-	writePrintable     = testproject.WritePrintable
 	bookProject        = testproject.Book
 	printableProject   = testproject.Printable
 	spreadsheetProject = testproject.Spreadsheet

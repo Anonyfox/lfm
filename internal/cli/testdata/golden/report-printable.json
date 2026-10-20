@@ -1,0 +1,114 @@
+{
+  "root": "<root>",
+  "output": "<root>/output",
+  "url": "https://example.com/001/",
+  "files": [
+    {
+      "name": "favicon.png",
+      "bytes": 332
+    },
+    {
+      "name": "index.html",
+      "bytes": 1231
+    },
+    {
+      "name": "share-3f93c132da0c.png",
+      "bytes": 240
+    },
+    {
+      "name": "p7m2x9q4w8e3r6t5y1u0/index.html",
+      "bytes": 1122
+    }
+  ],
+  "validation": {
+    "stage": "html",
+    "stats": {
+      "htmlBytes": 1231,
+      "elements": 23,
+      "maxDepth": 4,
+      "inlineCSSBytes": 98,
+      "inlineJSBytes": 46,
+      "embeddedBytes": 0,
+      "embeds": []
+    },
+    "diagnostics": [],
+    "errors": 0,
+    "warnings": 0
+  },
+  "published": true,
+  "assets": [
+    {
+      "source": "assets/images/share.png",
+      "mode": "file",
+      "bytes": 240,
+      "encodedContributionBytes": 0,
+      "htmlContributionBytes": 0,
+      "occurrences": 0,
+      "reason": "required native/social file URL",
+      "output": "share-3f93c132da0c.png"
+    }
+  ],
+  "cost": {
+    "htmlBytes": 1231,
+    "htmlGzipLevel1Bytes": 604,
+    "sidecarBytes": 572,
+    "totalRawBytes": 1803,
+    "totalCSSBytes": 98,
+    "totalJSBytes": 46,
+    "externalCSSBytes": 0,
+    "externalJSBytes": 0
+  },
+  "htmlCompaction": {
+    "beforeBytes": 1299,
+    "afterBytes": 1231,
+    "savedBytes": 68
+  },
+  "research": {
+    "voices": 0,
+    "peers": 0,
+    "batches": 0,
+    "dated": 0,
+    "recent": 0
+  },
+  "concept": {
+    "present": false,
+    "voices": 0,
+    "peers": 0,
+    "platforms": 0,
+    "colors": 0,
+    "typefaces": 0,
+    "plannedImages": 0,
+    "openQuestions": 0
+  },
+  "starter": true,
+  "printable": {
+    "name": "Maze Pack",
+    "concept": true,
+    "template": true,
+    "editions": [
+      "A4",
+      "US Letter"
+    ],
+    "pages": 5,
+    "links": 0,
+    "url": "https://example.com/001/p7m2x9q4w8e3r6t5y1u0/",
+    "pending": true,
+    "listing": true,
+    "channels": [
+      "etsy",
+      "gumroad",
+      "payhip",
+      "ko-fi"
+    ],
+    "sell": "page"
+  },
+  "errors": 0,
+  "warnings": 0,
+  "durationMs": 0,
+  "next": {
+    "phase": "research",
+    "do": "collect real buyer voices and competitor pages into research/. Follow 'lfm skills research', or install them all with 'lfm skills install'.",
+    "skill": "lfm-research"
+  },
+  "skills": []
+}

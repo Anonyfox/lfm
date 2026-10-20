@@ -1,0 +1,134 @@
+{
+  "root": "<root>",
+  "output": "<root>/output",
+  "url": "https://example.com/001/",
+  "files": [
+    {
+      "name": "favicon.png",
+      "bytes": 332
+    },
+    {
+      "name": "index.html",
+      "bytes": 1231
+    },
+    {
+      "name": "share-3f93c132da0c.png",
+      "bytes": 240
+    },
+    {
+      "name": "q7w2e9r4t1y8u3i6o5/index.html",
+      "bytes": 1474
+    },
+    {
+      "name": "q7w2e9r4t1y8u3i6o5/fire-safety-briefing-de.zip",
+      "bytes": 897725
+    },
+    {
+      "name": "q7w2e9r4t1y8u3i6o5/fire-safety-briefing-en.zip",
+      "bytes": 897064
+    }
+  ],
+  "validation": {
+    "stage": "html",
+    "stats": {
+      "htmlBytes": 1231,
+      "elements": 23,
+      "maxDepth": 4,
+      "inlineCSSBytes": 98,
+      "inlineJSBytes": 46,
+      "embeddedBytes": 0,
+      "embeds": []
+    },
+    "diagnostics": [],
+    "errors": 0,
+    "warnings": 0
+  },
+  "published": true,
+  "assets": [
+    {
+      "source": "assets/images/share.png",
+      "mode": "file",
+      "bytes": 240,
+      "encodedContributionBytes": 0,
+      "htmlContributionBytes": 0,
+      "occurrences": 0,
+      "reason": "required native/social file URL",
+      "output": "share-3f93c132da0c.png"
+    }
+  ],
+  "cost": {
+    "htmlBytes": 1231,
+    "htmlGzipLevel1Bytes": 604,
+    "sidecarBytes": 572,
+    "totalRawBytes": 1803,
+    "totalCSSBytes": 98,
+    "totalJSBytes": 46,
+    "externalCSSBytes": 0,
+    "externalJSBytes": 0
+  },
+  "htmlCompaction": {
+    "beforeBytes": 1299,
+    "afterBytes": 1231,
+    "savedBytes": 68
+  },
+  "research": {
+    "voices": 0,
+    "peers": 0,
+    "batches": 0,
+    "dated": 0,
+    "recent": 0
+  },
+  "concept": {
+    "present": false,
+    "voices": 0,
+    "peers": 0,
+    "platforms": 0,
+    "colors": 0,
+    "typefaces": 0,
+    "plannedImages": 0,
+    "openQuestions": 0
+  },
+  "starter": true,
+  "deck": {
+    "name": "Fire Safety Briefing",
+    "concept": true,
+    "theme": "warm",
+    "decks": 1,
+    "slides": 11,
+    "quizzes": 2,
+    "minutes": 15,
+    "languages": [
+      "de",
+      "en"
+    ],
+    "editions": [
+      "de",
+      "en"
+    ],
+    "sell": "page",
+    "url": "https://example.com/001/q7w2e9r4t1y8u3i6o5/",
+    "files": [
+      "fire-safety-briefing-de.zip",
+      "fire-safety-briefing-en.zip"
+    ],
+    "listing": true,
+    "linked": 0,
+    "channels": [
+      "etsy",
+      "gumroad",
+      "payhip",
+      "ko-fi"
+    ],
+    "images": 0,
+    "pending": true
+  },
+  "errors": 0,
+  "warnings": 0,
+  "durationMs": 0,
+  "next": {
+    "phase": "research",
+    "do": "collect real buyer voices and competitor pages into research/. Follow 'lfm skills research', or install them all with 'lfm skills install'.",
+    "skill": "lfm-research"
+  },
+  "skills": []
+}

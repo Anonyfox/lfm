@@ -1,0 +1,12 @@
+✓ <project> compiled → output/ in <duration>
+  index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
+  2 assets     572 B       favicon.png, share-3f93c132da0c.png
+  bundle       Fire Safety Kit · deck and document
+               4 files · https://example.com/001/b7m2x9q4w8e3r6t5y1u0/
+  stores       distribution/bundle/ · 4 channels
+  documents    Allotment Society Kit · 3 documents · warm theme · 2 editions · sold in the bundle
+               en-letter, en-a4 · 15 fields to fill · 2 ZIPs · the PDFs, guides and images print with --release
+  decks        Fire Safety Briefing · 1 deck, 11 slides, 15 minutes, 2 quiz questions · warm theme · 2 languages · sold in the bundle
+               de, en · 2 ZIPs · the slide and notes PDFs, quiz sheets, guides and images print with --release
+Next (research): collect real buyer voices and competitor pages into research/.
+                 Follow 'lfm skills research', or install them all with 'lfm skills install'.

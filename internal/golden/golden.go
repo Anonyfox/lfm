@@ -1,8 +1,8 @@
 // Package golden holds tests to the exact output they produced before: a
 // manifest of every file, and of every entry inside an archive, with its
-// size and content hash, kept in testdata/golden. A refactor that changes
-// one byte a buyer would get fails the test; LFM_UPDATE_GOLDEN=1 rewrites
-// the manifests when the change is meant.
+// size and content hash, or a text as it reads, kept in testdata/golden. A
+// refactor that changes one byte a buyer would get fails the test;
+// LFM_UPDATE_GOLDEN=1 rewrites the golden files when the change is meant.
 package golden
 
 import (
@@ -28,8 +28,19 @@ func Files(t testing.TB, name string, files map[string][]byte) {
 	for _, n := range sorted(files) {
 		lines = append(lines, manifest(n, files[n])...)
 	}
-	got := strings.Join(lines, "\n") + "\n"
-	path := filepath.Join("testdata", "golden", name+".txt")
+	compare(t, name+".txt", strings.Join(lines, "\n")+"\n")
+}
+
+// Text compares a text, such as a command's output, with the file
+// testdata/golden/<name>.
+func Text(t testing.TB, name, got string) {
+	t.Helper()
+	compare(t, name, got)
+}
+
+func compare(t testing.TB, name, got string) {
+	t.Helper()
+	path := filepath.Join("testdata", "golden", name)
 	if os.Getenv("LFM_UPDATE_GOLDEN") != "" {
 		os.MkdirAll(filepath.Dir(path), 0o755)
 		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
@@ -39,7 +50,7 @@ func Files(t testing.TB, name string, files map[string][]byte) {
 	}
 	want, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("no golden manifest %s; run with LFM_UPDATE_GOLDEN=1 once", path)
+		t.Fatalf("no golden file %s; run with LFM_UPDATE_GOLDEN=1 once", path)
 	}
 	if got != string(want) {
 		t.Errorf("output differs from %s; if the change is meant, run with LFM_UPDATE_GOLDEN=1:\n%s", path, diff(string(want), got))

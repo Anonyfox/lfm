@@ -1,0 +1,28 @@
+warning  spreadsheet.sheets  lfm.json:3:5
+         No Google Sheets master is linked for en-example.
+         fix: Upload paycheck-budget-en-example.xlsx to Google Drive, open it with Google Sheets
+              (File > Save as Google Sheets), share it as "anyone with the link: viewer", and
+              add "sheets": {"en-example": "<its address>"} to deliverables.spreadsheet. Buyers
+              get a copy link to it.
+warning  spreadsheet.sheets  lfm.json:3:5
+         No Google Sheets master is linked for de.
+         fix: Upload paycheck-budget-de.xlsx to Google Drive, open it with Google Sheets (File >
+              Save as Google Sheets), share it as "anyone with the link: viewer", and add
+              "sheets": {"de": "<its address>"} to deliverables.spreadsheet. Buyers get a copy
+              link to it.
+warning  spreadsheet.sheets  lfm.json:3:5
+         No Google Sheets master is linked for de-example.
+         fix: Upload paycheck-budget-de-example.xlsx to Google Drive, open it with Google Sheets
+              (File > Save as Google Sheets), share it as "anyone with the link: viewer", and
+              add "sheets": {"de-example": "<its address>"} to deliverables.spreadsheet. Buyers
+              get a copy link to it.
+
+✓ <project> compiled → output/ in <duration>, 3 warnings
+  index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
+  2 assets     572 B       favicon.png, share-3f93c132da0c.png
+  spreadsheet  Paycheck Budget · 2 editions · 6 tabs · 696 formulas
+               computed with empty and example data · 4 files · the start PDFs and images render with --release · 1 Google Sheets linked · https://example.com/001/x7m2x9q4w8e3r6t5y1u0/
+  stores       distribution/spreadsheet/ · 4 channels
+'lfm rules <id>' explains any rule above.
+Next (research): collect real buyer voices and competitor pages into research/.
+                 Follow 'lfm skills research', or install them all with 'lfm skills install'.

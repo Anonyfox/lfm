@@ -1,0 +1,119 @@
+warning  book.copy  deliverables/book/chapters/01.md:1:1
+         15 sentences of four words or fewer.
+         fix: Fragments land when rare; join most of them to the sentence they belong to.
+warning  book.copy  deliverables/book/chapters/01.md:1:1
+         Readability (Flesch reading ease) 99; mass-market nonfiction reads between 50 and 85.
+         fix: Split long sentences and prefer shorter words; keep the main point in the main
+              clause.
+warning  book.machine  deliverables/book/chapters/01.md:3:1
+         AI-text detectors would likely flag this chapter as generated (315 words): the same
+         three-word phrases return; a few words carry much of the text; the text compresses like
+         repetitive prose. The passage from line 3 reads most generated.
+         fix: Revise the passages that read most generic: let the key phrase come back where the
+              thought returns, as people do. Never add errors or random words to fool a
+              detector; readers notice the same habits.
+warning  book.value  deliverables/book/chapters/01.md:1:1
+         The chapter names no source a reader can check.
+         fix: Link at least one real source next to the claim it supports: a study, a book, a
+              practitioner, the research voice it comes from.
+warning  book.value  deliverables/book/chapters/01.md:1:1
+         0.0 names, numbers and quotes per 1000 words; generic advice starts below 6.
+         fix: Add the case, the figure, the date, the words someone actually said.
+warning  book.copy  deliverables/book/chapters/02.md:1:1
+         15 sentences of four words or fewer.
+         fix: Fragments land when rare; join most of them to the sentence they belong to.
+warning  book.copy  deliverables/book/chapters/02.md:1:1
+         Readability (Flesch reading ease) 99; mass-market nonfiction reads between 50 and 85.
+         fix: Split long sentences and prefer shorter words; keep the main point in the main
+              clause.
+warning  book.machine  deliverables/book/chapters/02.md:3:1
+         AI-text detectors would likely flag this chapter as generated (315 words): the same
+         three-word phrases return; a few words carry much of the text; the text compresses like
+         repetitive prose. The passage from line 3 reads most generated.
+         fix: Revise the passages that read most generic: let the key phrase come back where the
+              thought returns, as people do. Never add errors or random words to fool a
+              detector; readers notice the same habits.
+warning  book.value  deliverables/book/chapters/02.md:1:1
+         The chapter names no source a reader can check.
+         fix: Link at least one real source next to the claim it supports: a study, a book, a
+              practitioner, the research voice it comes from.
+warning  book.value  deliverables/book/chapters/02.md:1:1
+         0.0 names, numbers and quotes per 1000 words; generic advice starts below 6.
+         fix: Add the case, the figure, the date, the words someone actually said.
+warning  book.value  deliverables/book/chapters/02.md:3:1
+         This passage repeats deliverables/book/chapters/01.md word for word: "the jar sat on
+         the shelf overnight it rose by morning when".
+         fix: Say it once. Where the point returns, add what is new: a complication, a
+              counter-case, the next step.
+warning  book.copy  deliverables/book/chapters/03.md:1:1
+         15 sentences of four words or fewer.
+         fix: Fragments land when rare; join most of them to the sentence they belong to.
+warning  book.copy  deliverables/book/chapters/03.md:1:1
+         Readability (Flesch reading ease) 99; mass-market nonfiction reads between 50 and 85.
+         fix: Split long sentences and prefer shorter words; keep the main point in the main
+              clause.
+warning  book.machine  deliverables/book/chapters/03.md:3:1
+         AI-text detectors would likely flag this chapter as generated (315 words): the same
+         three-word phrases return; a few words carry much of the text; the text compresses like
+         repetitive prose. The passage from line 3 reads most generated.
+         fix: Revise the passages that read most generic: let the key phrase come back where the
+              thought returns, as people do. Never add errors or random words to fool a
+              detector; readers notice the same habits.
+warning  book.value  deliverables/book/chapters/03.md:1:1
+         The chapter names no source a reader can check.
+         fix: Link at least one real source next to the claim it supports: a study, a book, a
+              practitioner, the research voice it comes from.
+warning  book.value  deliverables/book/chapters/03.md:1:1
+         0.0 names, numbers and quotes per 1000 words; generic advice starts below 6.
+         fix: Add the case, the figure, the date, the words someone actually said.
+warning  book.value  deliverables/book/chapters/03.md:3:1
+         This passage repeats deliverables/book/chapters/01.md word for word: "the jar sat on
+         the shelf overnight it rose by morning when".
+         fix: Say it once. Where the point returns, add what is new: a complication, a
+              counter-case, the next step.
+warning  book.value  deliverables/book/chapters/03.md:3:1
+         This paragraph makes the point of deliverables/book/chapters/02.md line 3 again.
+         fix: Say it once. Where the point returns, add what is new: a complication, a
+              counter-case, the next step.
+warning  book.concept  deliverables/book/concept.md:42:1
+         Missing section Objections.
+         fix: Every decision needs its section; write it even if the answer is short.
+warning  book.concept  deliverables/book/concept.md:3:1
+         Reader cites no voice.
+         fix: Describe the reader from what readers wrote, citing their IDs.
+warning  book.concept  deliverables/book/concept.md:7:1
+         Promise cites no voice.
+         fix: The promise answers what readers want; cite the voices that want it.
+warning  book.concept  deliverables/book/concept.md:7:1
+         Promise has no "Before:" and "After:" lines.
+         fix: State the change in observable terms: what the reader does or has before the book
+              and after it. Every chapter's job adds up to it.
+warning  book.concept  deliverables/book/concept.md:33:1
+         Imagery plans no cover.
+         fix: Add a row whose Job is cover: the image readers see in the store and their
+              library.
+warning  book.copy  deliverables/book/concept.md:20:1
+         The book never says "nail polish", which the Voice uses.
+         fix: Use the readers' phrase where it fits, or change the Voice when the decision
+              changed.
+warning  book.evidence  deliverables/book/concept.md:1:1
+         The book concept has no research to stand on.
+         fix: Collect research first (lfm skills research), including the books readers already
+              compare.
+warning  book.listing  deliverables/book/concept.md:1:1
+         The book has no listing.md for the stores.
+         fix: Write deliverables/book/listing.md as the lfm-book skill shows: descriptions,
+              keywords, categories, prices and AI use, which lfm renders for every channel.
+warning  book.open  deliverables/book/concept.md:36:1
+         Open question in Imagery: the owner sends the cover
+         fix: Get the answer from the owner or a source, then replace the line with the
+              decision.
+
+✓ <project> compiled → output/ in <duration>, 27 warnings
+  index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
+  2 assets     572 B       favicon.png, share-3f93c132da0c.png
+  book         The Weekend Starter · 3 of 3 chapters · 945 of 900 words
+               EPUB 5.2 KiB · the PDF and paperback print with --release · https://example.com/001/q7w2k9m4x8c3v6b1n5zt/
+'lfm rules <id>' explains any rule above.
+Next (research): collect real buyer voices and competitor pages into research/.
+                 Follow 'lfm skills research', or install them all with 'lfm skills install'.

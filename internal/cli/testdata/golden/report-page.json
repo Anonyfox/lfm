@@ -1,0 +1,161 @@
+{
+  "root": "<root>",
+  "output": "<root>/output",
+  "url": "https://example.com/tagungskosten/",
+  "files": [
+    {
+      "name": "favicon.png",
+      "bytes": 321
+    },
+    {
+      "name": "index.html",
+      "bytes": 10535
+    },
+    {
+      "name": "share-4c2fc583eba1.webp",
+      "bytes": 26682
+    }
+  ],
+  "validation": {
+    "stage": "html",
+    "stats": {
+      "htmlBytes": 10535,
+      "elements": 81,
+      "maxDepth": 10,
+      "inlineCSSBytes": 2182,
+      "inlineJSBytes": 767,
+      "embeddedBytes": 1289,
+      "embeds": [
+        {
+          "sources": [
+            "assets/images/cost-breakdown.svg"
+          ],
+          "mime": "image/svg+xml",
+          "bytes": 1289,
+          "count": 1,
+          "totalBytes": 1289,
+          "offset": 4536
+        }
+      ]
+    },
+    "diagnostics": [
+      {
+        "rule": "copy.placeholder",
+        "severity": "warn",
+        "location": {
+          "file": "index.html",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "The page URL is still the placeholder https://example.com/tagungskosten/.",
+        "hint": "Set url in lfm.json to the address the page will be served from; the canonical, share links and previews are built from it."
+      },
+      {
+        "rule": "design.eyebrows",
+        "severity": "warn",
+        "location": {
+          "file": "index.html",
+          "line": 24,
+          "column": 9,
+          "offset": 3452
+        },
+        "element": "p.eyebrow",
+        "message": "Eyebrow \"Tagungsplanung 🧮\" above heading \"Was kostet deine Tagung pro Kopf?\": small tracked label restating or framing the heading.",
+        "hint": "Delete it, or merge its information into the heading. Keep a label only for time, step, price or status. Deliberate? Keep it and add data-design-reason=\"…\" on the element, or set build.validation.rules.design.eyebrows.",
+        "reference": "guides/ui-ux.md#generator-defaults"
+      },
+      {
+        "rule": "design.type",
+        "severity": "warn",
+        "location": {
+          "file": "index.html",
+          "line": 25,
+          "column": 9,
+          "offset": 3501
+        },
+        "element": "h1",
+        "message": "\"system-ui\" sets both the display headline and the body: the one-sans generator default.",
+        "hint": "Give display a typeface chosen for this subject; keep a readable text face for copy. Deliberate? Keep it and add data-design-reason=\"…\" on the element, or set build.validation.rules.design.type.",
+        "reference": "guides/ui-ux.md#generator-defaults"
+      }
+    ],
+    "errors": 0,
+    "warnings": 3
+  },
+  "published": true,
+  "assets": [
+    {
+      "source": "assets/images/cost-breakdown.svg",
+      "mode": "inline",
+      "bytes": 768,
+      "encodedContributionBytes": 1289,
+      "htmlContributionBytes": 1289,
+      "occurrences": 1,
+      "reason": "small asset; inline bias",
+      "encoding": "percent"
+    },
+    {
+      "source": "assets/images/share.webp",
+      "mode": "file",
+      "bytes": 26682,
+      "encodedContributionBytes": 0,
+      "htmlContributionBytes": 0,
+      "occurrences": 0,
+      "reason": "required native/social file URL",
+      "output": "share-4c2fc583eba1.webp"
+    }
+  ],
+  "cost": {
+    "htmlBytes": 10535,
+    "htmlGzipLevel1Bytes": 4132,
+    "sidecarBytes": 27003,
+    "totalRawBytes": 37538,
+    "totalCSSBytes": 2182,
+    "totalJSBytes": 767,
+    "externalCSSBytes": 0,
+    "externalJSBytes": 0
+  },
+  "htmlCompaction": {
+    "beforeBytes": 10751,
+    "afterBytes": 10535,
+    "savedBytes": 216
+  },
+  "images": [
+    {
+      "source": "assets/images/cost-breakdown.svg",
+      "format": "svg",
+      "intrinsicWidth": 600,
+      "intrinsicHeight": 360,
+      "bytes": 768,
+      "reason": "authored width/height preserved"
+    }
+  ],
+  "research": {
+    "voices": 0,
+    "peers": 0,
+    "batches": 0,
+    "dated": 0,
+    "recent": 0
+  },
+  "concept": {
+    "present": false,
+    "voices": 0,
+    "peers": 0,
+    "platforms": 0,
+    "colors": 0,
+    "typefaces": 0,
+    "plannedImages": 0,
+    "openQuestions": 0
+  },
+  "starter": false,
+  "errors": 0,
+  "warnings": 3,
+  "durationMs": 0,
+  "next": {
+    "phase": "research",
+    "do": "collect real buyer voices and competitor pages into research/. Follow 'lfm skills research', or install them all with 'lfm skills install'.",
+    "skill": "lfm-research"
+  },
+  "skills": []
+}
