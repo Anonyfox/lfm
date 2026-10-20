@@ -10,6 +10,7 @@ import (
 // renders for Chrome, the guide, the preview and the listing images, to
 // the bytes it built before.
 func TestGoldenOutput(t *testing.T) {
+	t.Parallel()
 	for _, set := range []string{"club", "features"} {
 		var r Report
 		if set == "club" {

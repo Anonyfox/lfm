@@ -7,6 +7,7 @@ import (
 )
 
 func TestRuleUnionPreservesOrderGroupsAndGlobals(t *testing.T) {
+	t.Parallel()
 	rules := []rule{{Key: "a", Text: "@layer base;"}, {Prefix: "@media (width>0){", Children: []rule{{Key: "b", Text: "p{color:red}"}, {Key: "c", Text: "aside{color:blue}"}}}, {Key: "d", Text: "@font-face{font-family:Demo}"}}
 	got := render(rules, map[string]bool{"a": true, "b": true, "d": true})
 	if got != "@layer base;@media (width>0){p{color:red}}@font-face{font-family:Demo}" {
@@ -15,6 +16,7 @@ func TestRuleUnionPreservesOrderGroupsAndGlobals(t *testing.T) {
 }
 
 func TestPreviewOnlyServesArtifactAndGET(t *testing.T) {
+	t.Parallel()
 	h := Handler([]byte("page"), map[string][]byte{"style.css": []byte("css")})
 	for _, test := range []struct {
 		method, path string
@@ -32,6 +34,7 @@ func TestPreviewOnlyServesArtifactAndGET(t *testing.T) {
 }
 
 func TestInstalledBrowserCriticalExtraction(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -49,6 +52,7 @@ func TestInstalledBrowserCriticalExtraction(t *testing.T) {
 }
 
 func TestInstalledBrowserPromotesOffscreenLayoutRules(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}

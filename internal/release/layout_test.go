@@ -8,6 +8,7 @@ import (
 )
 
 func TestLayoutAuditFindsEmptyFramesOverflowAndSplitValues(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -61,6 +62,7 @@ header{position:fixed;top:0;left:0;right:0;height:40px;background:#eee}
 }
 
 func TestLayoutAuditFindsPinnedLayersOverText(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -103,6 +105,7 @@ p{position:relative;z-index:1;margin:0 1rem 2rem}
 }
 
 func TestLayoutAuditKeepsCleanPagesQuiet(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -123,6 +126,7 @@ func TestLayoutAuditKeepsCleanPagesQuiet(t *testing.T) {
 }
 
 func TestLayoutAuditFirstScreenSmallTextAndContrast(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -157,6 +161,7 @@ svg text{font-size:8px}
 }
 
 func TestLayoutAuditFindsMotionThatIgnoresReducedMotion(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -191,6 +196,7 @@ REDUCE</style></head><body><main><h1>Motion</h1><p><a href="#x">Act</a></p><div 
 }
 
 func TestLayoutAuditComparesThePageWithoutScripts(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -219,6 +225,7 @@ func TestLayoutAuditComparesThePageWithoutScripts(t *testing.T) {
 }
 
 func TestLayoutAuditFindsFallbackFonts(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}

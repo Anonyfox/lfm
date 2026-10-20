@@ -16,6 +16,7 @@ import (
 )
 
 func TestScreensCoverPhoneLaptopAndDesktop(t *testing.T) {
+	t.Parallel()
 	var names []string
 	for _, s := range Screens {
 		names = append(names, s.String())
@@ -26,6 +27,7 @@ func TestScreensCoverPhoneLaptopAndDesktop(t *testing.T) {
 }
 
 func TestEmptyFramesMergeIntoRanges(t *testing.T) {
+	t.Parallel()
 	v := Screen{390, 800, true}
 	frames := []frameState{{Y: 0}, {Y: 400}, {Y: 800}, {Y: 2400}, {Y: 2800, Faint: true}, {Y: 3200, Faint: true}}
 	var got []string
@@ -49,6 +51,7 @@ func TestEmptyFramesMergeIntoRanges(t *testing.T) {
 }
 
 func TestPerElementMergesScreensAndCutsTheList(t *testing.T) {
+	t.Parallel()
 	var p perElement
 	if p.findings("small", "Small: %s.", "h") != nil {
 		t.Fatal("nothing observed, yet a finding")
@@ -72,6 +75,7 @@ func TestPerElementMergesScreensAndCutsTheList(t *testing.T) {
 }
 
 func TestSubset(t *testing.T) {
+	t.Parallel()
 	known := map[string]bool{"a": true, "b": true}
 	if !subset(nil, known) || !subset([]string{"a", "b", "a"}, known) || subset([]string{"a", "c"}, known) {
 		t.Fatal("subset")
@@ -79,6 +83,7 @@ func TestSubset(t *testing.T) {
 }
 
 func TestResetFramesClearsOnlyOldFrames(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), "frames")
 	if err := resetFrames(dir); err != nil {
 		t.Fatal(err)
@@ -113,6 +118,7 @@ func TestResetFramesClearsOnlyOldFrames(t *testing.T) {
 }
 
 func TestFramesAndReportsLiveInTempPerProject(t *testing.T) {
+	t.Parallel()
 	a, b := FramesPath("/projects/a"), FramesPath("/projects/b")
 	if a == b || a != FramesPath("/projects/a") || filepath.Dir(a) != filepath.Clean(os.TempDir()) || !strings.HasPrefix(filepath.Base(a), "lfm-frames-") {
 		t.Fatalf("%q %q", a, b)
@@ -123,6 +129,7 @@ func TestFramesAndReportsLiveInTempPerProject(t *testing.T) {
 }
 
 func TestRemoveProfileDeletesTheFolder(t *testing.T) {
+	t.Parallel()
 	dir := filepath.Join(t.TempDir(), "profile")
 	os.MkdirAll(filepath.Join(dir, "Default", "Cache"), 0o755)
 	os.WriteFile(filepath.Join(dir, "Default", "Cache", "x"), []byte("x"), 0o644)
@@ -138,12 +145,14 @@ func TestRemoveProfileDeletesTheFolder(t *testing.T) {
 }
 
 func TestCapitalize(t *testing.T) {
+	t.Parallel()
 	if capitalize("at phone width") != "At phone width" || capitalize("") != "" {
 		t.Fatal(capitalize("at phone width"))
 	}
 }
 
 func TestCompactCollapsesWhitespace(t *testing.T) {
+	t.Parallel()
 	if got := compact("a\n\tb   c", 100); got != "a b c" {
 		t.Fatalf("%q", got)
 	}
@@ -153,6 +162,7 @@ func TestCompactCollapsesWhitespace(t *testing.T) {
 }
 
 func TestCollectSelectsCriticalAndDocumentRules(t *testing.T) {
+	t.Parallel()
 	rules := []rule{
 		{Key: "a", Critical: true},
 		{Key: "b", Document: true},
@@ -188,6 +198,7 @@ func pngOf(t *testing.T, w, h int, paint func(x, y int) color.Color) []byte {
 }
 
 func TestSamePixelsToleratesRasterNoiseOnly(t *testing.T) {
+	t.Parallel()
 	grey := func(v uint8) func(x, y int) color.Color {
 		return func(x, y int) color.Color { return color.RGBA{v, v, v, 255} }
 	}
@@ -222,6 +233,7 @@ func TestSamePixelsToleratesRasterNoiseOnly(t *testing.T) {
 }
 
 func TestHandlerTypesAssets(t *testing.T) {
+	t.Parallel()
 	h := Handler([]byte("<p>page"), map[string][]byte{"font.woff2": {1}, "style.css": []byte("p{}")})
 	for path, want := range map[string]string{"/": "text/html; charset=utf-8", "/index.html": "text/html; charset=utf-8", "/style.css": "text/css; charset=utf-8", "/font.woff2": "font/woff2"} {
 		w := httpGet(h, path)
@@ -253,6 +265,7 @@ func TestAuditHandlerServesAssetsAndRefusesUpgrades(t *testing.T) {
 }
 
 func TestLighthouseParsingReadsMetricsErrorsWarningsAndSamples(t *testing.T) {
+	t.Parallel()
 	report := map[string]any{
 		"lighthouseVersion": "13.5.0", "userAgent": "HeadlessChrome/140",
 		"runWarnings": []string{"The page loaded too slowly."},
@@ -321,6 +334,7 @@ func TestLighthouseParsingReadsMetricsErrorsWarningsAndSamples(t *testing.T) {
 }
 
 func TestLighthouseParsingRefusesBrokenReports(t *testing.T) {
+	t.Parallel()
 	good := `{"lighthouseVersion":"13","categories":{"performance":{"score":1},"accessibility":{"score":1},"best-practices":{"score":1},"seo":{"score":1}},"audits":{"a":{"score":1}}}`
 	if _, err := parseLighthouse([]byte(good), ""); err != nil {
 		t.Fatal(err)
@@ -343,6 +357,7 @@ func TestLighthouseParsingRefusesBrokenReports(t *testing.T) {
 }
 
 func TestAuditItemsReadTablesAndTrees(t *testing.T) {
+	t.Parallel()
 	if got := auditItems(json.RawMessage(`{"items":[{"a":1},{"b":2}]}`)); len(got) != 2 {
 		t.Fatal(got)
 	}
@@ -358,6 +373,7 @@ func TestAuditItemsReadTablesAndTrees(t *testing.T) {
 }
 
 func TestDetailSampleNamesWhatMatters(t *testing.T) {
+	t.Parallel()
 	for raw, want := range map[string]string{
 		`{"url":"http://o/a.js","wastedBytes":1200,"ignored":"x"}`:      "url=/a.js; wastedBytes=1200",
 		`{"source":{"url":"http://o/b.js","line":3,"column":7}}`:        "/b.js; 3; 7",
@@ -375,6 +391,7 @@ func TestDetailSampleNamesWhatMatters(t *testing.T) {
 }
 
 func TestLighthouseDiagnosticsMarkUnscoredFindings(t *testing.T) {
+	t.Parallel()
 	got := LighthouseDiagnostics(&LighthouseResult{Report: "r.json", Findings: []AuditFinding{{ID: "dom-size", Title: "Avoid an excessive DOM size", Hint: "Fewer nodes.", Samples: []string{"body"}, Items: 1}}})
 	if len(got) != 1 || got[0].Message != "Avoid an excessive DOM size (diagnostic)" || got[0].Hint != "Fewer nodes.\n  body" || got[0].Location.File != "index.html" {
 		t.Fatalf("%+v", got)

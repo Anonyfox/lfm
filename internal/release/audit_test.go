@@ -14,6 +14,7 @@ import (
 )
 
 func TestLighthouseParsingSeparatesScoresDiagnosticsAndManualChecks(t *testing.T) {
+	t.Parallel()
 	raw := `{"lighthouseVersion":"13.5.0","userAgent":"Chrome","categories":{"performance":{"score":1,"auditRefs":[{"id":"speed","weight":10},{"id":"size","weight":0}]},"accessibility":{"score":1},"best-practices":{"score":0.96,"auditRefs":[{"id":"console","weight":1}]},"seo":{"score":1}},"audits":{"speed":{"score":1},"console":{"title":"Browser errors","description":"Fix errors.","score":0,"details":{"items":[{"url":"http://local/favicon.ico"}]}},"size":{"title":"Transfer bytes","description":"Compress.","score":0.5},"keyboard":{"title":"Logical tab order","description":"Test it.","score":null,"scoreDisplayMode":"manual"},"cache-insight":{"title":"Use efficient cache lifetimes","description":"Cache.","score":0.5}}}`
 	r, err := parseLighthouse([]byte(raw), "http://local")
 	if err != nil {
@@ -37,6 +38,7 @@ func TestLighthouseParsingSeparatesScoresDiagnosticsAndManualChecks(t *testing.T
 }
 
 func TestOwnedBrowserExposesPortForLighthouse(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
@@ -80,6 +82,7 @@ func TestOwnedBrowserExposesPortForLighthouse(t *testing.T) {
 }
 
 func TestAuditHandlerNeverForwardsOrMutates(t *testing.T) {
+	t.Parallel()
 	h := AuditHandler([]byte("page"), map[string][]byte{"app.js": []byte("code")}, "http://127.0.0.1:54321")
 	for _, tc := range []struct {
 		method, url string
@@ -109,6 +112,7 @@ func TestMissingCapabilitiesReportAllSetupRequirements(t *testing.T) {
 }
 
 func TestRuntimeAuditExecutesJSAndBlocksOutsideTraffic(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}

@@ -26,7 +26,7 @@ func FuzzAnalyzeBounded(f *testing.F) {
 		}
 		start := time.Now()
 		report, err := Analyze([]byte(input), Options{})
-		if elapsed := time.Since(start); elapsed > time.Second {
+		if elapsed := time.Since(start); elapsed > slowdown*time.Second {
 			t.Fatalf("Analyze took %v on %d bytes", elapsed, len(input))
 		}
 		again, err2 := Analyze([]byte(input), Options{})

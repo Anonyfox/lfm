@@ -17,6 +17,7 @@ import (
 // Word. The print sets lines as tall as Word for Windows does, which Word
 // for Mac sets a little tighter, so it may need fewer. LFM_WORD=1 runs it.
 func TestPrintMatchesWord(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("LFM_WORD") == "" || !office.HasWord() {
 		t.Skip("set LFM_WORD=1 with Word for Mac installed")
 	}

@@ -63,6 +63,7 @@ func briefing(t testing.TB) Report {
 }
 
 func TestBriefingChecksCleanAndBuildsTheSameBytes(t *testing.T) {
+	t.Parallel()
 	r := briefing(t)
 	if len(r.Diagnostics) > 0 || !r.Buildable {
 		t.Fatalf("findings:\n%s", messages(r.Diagnostics))
@@ -104,6 +105,7 @@ func TestBriefingChecksCleanAndBuildsTheSameBytes(t *testing.T) {
 }
 
 func TestAnUnreadableDeckIsAnError(t *testing.T) {
+	t.Parallel()
 	p := fixture(t, "briefing", nil)
 	outside := filepath.Join(t.TempDir(), "briefing.md")
 	if err := os.WriteFile(outside, []byte("# Briefing\n"), 0o644); err != nil {
@@ -123,6 +125,7 @@ func TestAnUnreadableDeckIsAnError(t *testing.T) {
 }
 
 func TestSlidesTakeTheirLayoutFromTheContent(t *testing.T) {
+	t.Parallel()
 	r := briefing(t)
 	d := r.Decks["en"][0]
 	var got []string
@@ -141,6 +144,7 @@ func TestSlidesTakeTheirLayoutFromTheContent(t *testing.T) {
 }
 
 func TestSlideChecksCatchWhatDoesNotFit(t *testing.T) {
+	t.Parallel()
 	long := strings.Repeat("Every member of staff checks the fryer thermostat before the first batch of the day. ", 14)
 	src := "---\ntitle: Briefing\nminutes: 20\nheader: Shop\n---\n# Cover\n\n---\n## A slide that says too much\n\n" + long + "\n\n---\n\n---\nNo title here\n\n- [ ] one\n- [x] two\n---\n## Jeopardy night\n\n::: columns\nleft\n+++\nmiddle\n+++\nright\n:::\n---\n## Signed\n\n::: form\nName: Lena\n:::\n"
 	r := Check(fixture(t, "briefing", map[string]string{Dir + "/en/briefing.md": src}), testConfig, true, nil, "")
@@ -165,6 +169,7 @@ func TestSlideChecksCatchWhatDoesNotFit(t *testing.T) {
 }
 
 func TestQuizSheetAndGuide(t *testing.T) {
+	t.Parallel()
 	r := briefing(t)
 	built, _ := r.Build(func(string) []byte { return nil })
 	var de Built
@@ -206,6 +211,7 @@ func TestQuizSheetAndGuide(t *testing.T) {
 // TestStoredEntriesCarryTheirSizes keeps every stored zip entry free of a
 // trailing data descriptor, which LibreOffice refuses in a .pptx.
 func TestStoredEntriesCarryTheirSizes(t *testing.T) {
+	t.Parallel()
 	r := briefing(t)
 	built, _ := r.Build(func(string) []byte { return nil })
 	archives := map[string][]byte{}
@@ -278,6 +284,7 @@ func TestChromePrintsDecksAsPlanned(t *testing.T) {
 // TestPowerPointReadsEveryDeck holds every built deck to Microsoft's Open
 // XML SDK, which reads them as PowerPoint does. LFM_OOXML_VALIDATOR runs it.
 func TestPowerPointReadsEveryDeck(t *testing.T) {
+	t.Parallel()
 	dll := os.Getenv("LFM_OOXML_VALIDATOR")
 	if dll == "" {
 		t.Skip("LFM_OOXML_VALIDATOR is not set")
@@ -296,6 +303,7 @@ func TestPowerPointReadsEveryDeck(t *testing.T) {
 // TestLibreOfficeOpensEveryDeck converts every deck in LibreOffice, when
 // installed, and holds its print to the plan.
 func TestLibreOfficeOpensEveryDeck(t *testing.T) {
+	t.Parallel()
 	soffice, err := office.Find()
 	if err != nil || testing.Short() {
 		t.Skip("no LibreOffice")
@@ -315,6 +323,7 @@ func TestLibreOfficeOpensEveryDeck(t *testing.T) {
 // PowerPoint for Mac: no repair, every slide, the theme's fonts.
 // LFM_POWERPOINT=1 runs it; LFM_KEEP names a folder for its PDFs.
 func TestPowerPointOpensEveryDeck(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("LFM_POWERPOINT") == "" || !office.HasPowerPoint() {
 		t.Skip("set LFM_POWERPOINT=1 with PowerPoint for Mac installed")
 	}
@@ -357,6 +366,7 @@ func BenchmarkCheck(b *testing.B) {
 // checks: prints are keyed by their HTML, so unordered output would print
 // every compile anew.
 func TestPrintsAreTheSameHTMLEveryTime(t *testing.T) {
+	t.Parallel()
 	p := fixture(t, "briefing", nil)
 	for range 5 {
 		a, b := Check(p, testConfig, true, nil, ""), Check(p, testConfig, true, nil, "")

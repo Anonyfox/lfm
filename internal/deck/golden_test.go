@@ -10,6 +10,7 @@ import (
 // TestGoldenOutput holds every deck, print, guide, preview and listing
 // image document the briefing builds to the bytes it built before.
 func TestGoldenOutput(t *testing.T) {
+	t.Parallel()
 	r := briefing(t)
 	built, err := r.Build(func(string) []byte { return nil })
 	if err != nil {

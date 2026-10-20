@@ -58,6 +58,7 @@ func messages(ds []diagnostic.Diagnostic) string {
 }
 
 func TestClubChecksCleanAndBuildsTheSameBytes(t *testing.T) {
+	t.Parallel()
 	r := Check(fixture(t, "club", nil), testConfig, true, nil, "https://example.org/")
 	if len(r.Diagnostics) > 0 || !r.Buildable {
 		t.Fatalf("findings:\n%s", messages(r.Diagnostics))
@@ -102,6 +103,7 @@ func TestClubChecksCleanAndBuildsTheSameBytes(t *testing.T) {
 }
 
 func TestAnUnreadableDocumentIsAnError(t *testing.T) {
+	t.Parallel()
 	p := fixture(t, "club", nil)
 	outside := filepath.Join(t.TempDir(), "minutes.md")
 	if err := os.WriteFile(outside, []byte("# Minutes\n"), 0o644); err != nil {
@@ -121,6 +123,7 @@ func TestAnUnreadableDocumentIsAnError(t *testing.T) {
 }
 
 func TestDocumentsPrintAsPlannedInLibreOffice(t *testing.T) {
+	t.Parallel()
 	soffice, err := office.Find()
 	if err != nil || testing.Short() {
 		t.Skip(err)
@@ -140,6 +143,7 @@ func TestDocumentsPrintAsPlannedInLibreOffice(t *testing.T) {
 // Chrome a release needs anyway: the planned pages, paper and fonts,
 // without any office suite installed.
 func TestChromePrintsAsPlanned(t *testing.T) {
+	t.Parallel()
 	printer, err := release.NewPrinter()
 	if err != nil || testing.Short() {
 		t.Skip(err)
@@ -170,6 +174,7 @@ func TestChromePrintsAsPlanned(t *testing.T) {
 }
 
 func TestSourcesAreHeldToTheFormat(t *testing.T) {
+	t.Parallel()
 	bad := "---\ntitle: Broken\nfoo: bar\n---\n#### Too deep\n\n::: wobble\nx\n:::\n\n::: center\nNot ceremonial\n:::\n\n<div>raw</div>\n\n| A | Amount |\n| :-- | :-- |\n| x | 12.50 |\n\nLorem ipsum and \"a stray quote. 🎉\n"
 	r := Check(fixture(t, "club", map[string]string{Dir + "/en/minutes.md": bad}), testConfig, true, nil, "")
 	got := messages(r.Diagnostics)
@@ -188,6 +193,7 @@ func TestSourcesAreHeldToTheFormat(t *testing.T) {
 }
 
 func TestThemesReadWell(t *testing.T) {
+	t.Parallel()
 	fam := &family{Name: "X", Faces: map[string]*Face{"Regular": {AvgChar: 0.48, Natural: 1.2}}}
 	for _, name := range ThemeNames() {
 		for _, paper := range []string{"a4", "letter"} {
@@ -199,6 +205,7 @@ func TestThemesReadWell(t *testing.T) {
 }
 
 func TestTiesKeepWhatBelongsTogether(t *testing.T) {
+	t.Parallel()
 	for in, want := range map[string]string{
 		"Kleingartenverein Am Mühlbach e. V.": "Kleingartenverein Am Mühlbach e.\u00a0V.",
 		"zahlbar bis 1. Dezember, 75 € netto": "zahlbar bis 1.\u00a0Dezember, 75\u00a0€ netto",
@@ -225,6 +232,7 @@ func BenchmarkCheck(b *testing.B) {
 // SDK, which reads them as Word does; Word refuses what LibreOffice and
 // Pages forgive. Set LFM_OOXML_VALIDATOR to the built validator to run it.
 func TestWordReadsEveryDocument(t *testing.T) {
+	t.Parallel()
 	dll := os.Getenv("LFM_OOXML_VALIDATOR")
 	if dll == "" {
 		t.Skip("LFM_OOXML_VALIDATOR is not set")
@@ -243,6 +251,7 @@ func TestWordReadsEveryDocument(t *testing.T) {
 // TestWordOpensEveryDocument opens every built file in Microsoft Word for
 // Mac: no repair, the planned pages, the theme's fonts. LFM_WORD=1 runs it.
 func TestWordOpensEveryDocument(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("LFM_WORD") == "" || !office.HasWord() {
 		t.Skip("set LFM_WORD=1 with Word for Mac installed")
 	}
@@ -303,6 +312,7 @@ func features(t testing.TB, theme string) project.Project {
 // and holds the files to LibreOffice and, when set up, to Microsoft's
 // validator (LFM_OOXML_VALIDATOR) and Word itself (LFM_WORD=1).
 func TestEveryFeatureInEveryTheme(t *testing.T) {
+	t.Parallel()
 	files := map[string][]byte{}
 	var all []Built
 	var last Report
@@ -358,6 +368,7 @@ func TestEveryFeatureInEveryTheme(t *testing.T) {
 // separate checks of one set: prints are keyed by their HTML, so any
 // unordered output (a map range) would print every compile anew.
 func TestPrintsAreTheSameHTMLEveryTime(t *testing.T) {
+	t.Parallel()
 	p := fixture(t, "club", nil)
 	for range 5 {
 		a, b := Check(p, testConfig, true, nil, ""), Check(p, testConfig, true, nil, "")

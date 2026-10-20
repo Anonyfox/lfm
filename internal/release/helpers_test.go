@@ -8,6 +8,7 @@ import (
 )
 
 func TestCompactCountsRunes(t *testing.T) {
+	t.Parallel()
 	if got := compact("  größe   über\n alles ", 20); got != "größe über alles" {
 		t.Fatalf("short multibyte text was cut: %q", got)
 	}
@@ -17,6 +18,7 @@ func TestCompactCountsRunes(t *testing.T) {
 }
 
 func TestCappedBufferKeepsTheLimitAndReportsTruncation(t *testing.T) {
+	t.Parallel()
 	b := cappedBuffer{Limit: 5}
 	n, err := b.Write([]byte("abc"))
 	if n != 3 || err != nil || b.Truncated {
@@ -29,6 +31,7 @@ func TestCappedBufferKeepsTheLimitAndReportsTruncation(t *testing.T) {
 }
 
 func TestLighthouseDiagnostics(t *testing.T) {
+	t.Parallel()
 	if LighthouseDiagnostics(nil) != nil {
 		t.Fatal("nil result must yield nothing")
 	}

@@ -18,6 +18,7 @@ import (
 // compile runs without a browser, to Chrome's print of the same slides:
 // it must flag every slide Chrome cuts off, and at most one step before.
 func TestFitAgreesWithChrome(t *testing.T) {
+	t.Parallel()
 	printer, err := release.NewPrinter()
 	if err != nil || testing.Short() {
 		t.Skip(err)

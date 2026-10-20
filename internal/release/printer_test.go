@@ -69,6 +69,7 @@ section.page{box-sizing:border-box;width:` + strconv.Itoa(w) + `px;height:` + st
 }
 
 func TestPrinter(t *testing.T) {
+	t.Parallel()
 	p := printer(t)
 	font, err := os.ReadFile("../fontcheck/testdata/Go-Regular.woff2")
 	if err != nil {
@@ -246,6 +247,7 @@ func TestPrinter(t *testing.T) {
 }
 
 func TestClosedPrinterFailsFast(t *testing.T) {
+	t.Parallel()
 	p := printer(t)
 	p.Close()
 	doc := []byte(`<!doctype html><p>x`)
@@ -270,6 +272,7 @@ func TestClosedPrinterFailsFast(t *testing.T) {
 }
 
 func TestPageImagesFailsFastOnAMissingPage(t *testing.T) {
+	t.Parallel()
 	p := printer(t)
 	doc := pageDoc(200, 100, "", "<p>One</p>")
 	start := time.Now()
@@ -282,6 +285,7 @@ func TestPageImagesFailsFastOnAMissingPage(t *testing.T) {
 }
 
 func TestImagePlacementFindsTheFirstScreen(t *testing.T) {
+	t.Parallel()
 	if testing.Short() {
 		t.Skip("browser integration")
 	}
