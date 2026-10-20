@@ -126,10 +126,13 @@ func DosTime(t time.Time) (date, clock uint16) {
 // never show the comment.
 const StampPrefix = "lfm-input:"
 
+// stampWindow is the longest comment Stamp looks back for.
+const stampWindow = 256
+
 // Stamp is the input key an archive carries in its comment, read from the
 // end of the file; tail may be the whole file or its last bytes.
 func Stamp(tail []byte) string {
-	for i := len(tail) - 22; i >= max(0, len(tail)-22-256); i-- {
+	for i := len(tail) - 22; i >= max(0, len(tail)-22-stampWindow); i-- {
 		if tail[i] != 'P' || tail[i+1] != 'K' || tail[i+2] != 5 || tail[i+3] != 6 {
 			continue
 		}
@@ -143,13 +146,14 @@ func Stamp(tail []byte) string {
 	return ""
 }
 
-// WithStamp sets the comment of an archive without one to the key.
+// WithStamp sets the comment of an archive without one to the key; a key
+// longer than Stamp reads leaves the archive as it is.
 func WithStamp(data []byte, key string) []byte {
+	comment := StampPrefix + key
 	// The end record is the last 22 bytes while the comment is empty.
-	if len(data) < 22 || !bytes.Equal(data[len(data)-22:len(data)-18], []byte("PK\x05\x06")) {
+	if len(data) < 22 || !bytes.Equal(data[len(data)-22:len(data)-18], []byte("PK\x05\x06")) || len(comment) > stampWindow {
 		return data
 	}
-	comment := StampPrefix + key
 	out := make([]byte, 0, len(data)+len(comment))
 	out = append(out, data[:len(data)-2]...)
 	out = append(out, byte(len(comment)), byte(len(comment)>>8))

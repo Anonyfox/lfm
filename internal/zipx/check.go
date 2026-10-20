@@ -32,6 +32,9 @@ func Problems(data []byte) []string {
 		}
 		nameLen, extraLen, commentLen := int(le.Uint16(data[at+28:])), int(le.Uint16(data[at+30:])), int(le.Uint16(data[at+32:]))
 		local := int(le.Uint32(data[at+42:]))
+		if at+46+nameLen > len(data) {
+			return append(out, "the central directory is cut off")
+		}
 		name := string(data[at+46 : at+46+nameLen])
 		if extraLen > 0 {
 			out = append(out, fmt.Sprintf("%s: an extra field of %d bytes in the directory", name, extraLen))
