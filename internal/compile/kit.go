@@ -1,9 +1,16 @@
 package compile
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"sync"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/office"
@@ -280,4 +287,51 @@ func (s sale) open(st *stock, result *Result, editions []string, preview func(i 
 		result.Previews[s.root+"/preview/"+name] = data
 	}
 	return pr
+}
+
+// remembered is what LibreOffice found in files the last time it opened
+// exactly these bytes with this lfm and this LibreOffice, or run's fresh
+// result, kept for next time. Opening them takes seconds a release with
+// unchanged files does not need. The verdicts live beside the release
+// frames in the system temp directory; only successful runs are kept.
+func remembered[T any](soffice, kind string, files [][]byte, run func() (T, error)) (T, error) {
+	h := sha256.New()
+	fmt.Fprintf(h, "%s\x00%s\x00%s\x00", kind, buildid.Writer(), soffice)
+	if real, err := filepath.EvalSymlinks(soffice); err == nil {
+		if info, err := os.Stat(real); err == nil {
+			fmt.Fprintf(h, "%s\x00%d\x00%d\x00", real, info.Size(), info.ModTime().UnixNano())
+		}
+	}
+	for _, f := range files {
+		fmt.Fprintf(h, "%d\x00", len(f))
+		h.Write(f)
+	}
+	path := filepath.Join(os.TempDir(), "lfm-libreoffice", hex.EncodeToString(h.Sum(nil))[:32]+".json")
+	var out T
+	if raw, err := os.ReadFile(path); err == nil && json.Unmarshal(raw, &out) == nil {
+		return out, nil
+	}
+	out, err := run()
+	if err != nil {
+		return out, err
+	}
+	if raw, err := json.Marshal(out); err == nil && os.MkdirAll(filepath.Dir(path), 0o755) == nil {
+		// A rename makes the verdict appear whole to a parallel release.
+		if tmp, err := os.CreateTemp(filepath.Dir(path), ".verdict-*"); err == nil {
+			_, werr := tmp.Write(raw)
+			if tmp.Close() == nil && werr == nil {
+				os.Rename(tmp.Name(), path)
+			}
+			os.Remove(tmp.Name())
+		}
+	}
+	return out, nil
+}
+
+func builtData[B any](built []B, data func(B) []byte) [][]byte {
+	out := make([][]byte, len(built))
+	for i, b := range built {
+		out[i] = data(b)
+	}
+	return out
 }

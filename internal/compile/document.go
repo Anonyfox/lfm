@@ -137,8 +137,10 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 		// Word on a Mac open every file too; it opens windows, so no user
 		// gets it.
 		apps := []opinion{libreOffice(func(soffice string) ([]finding, error) {
-			f, err := r.Verify(pr.ctx, soffice, built)
-			return documentFindings(f), err
+			return remembered(soffice, "document", builtData(built, func(b document.Built) []byte { return b.Data }), func() ([]finding, error) {
+				f, err := r.Verify(pr.ctx, soffice, built)
+				return documentFindings(f), err
+			})
 		}, "LibreOffice lays the file out differently; shorten the text or change the planned pages.")}
 		if os.Getenv("LFM_OFFICE") != "" && office.HasWord() {
 			apps = append(apps, opinion{app: "Word", run: func() ([]finding, error) {

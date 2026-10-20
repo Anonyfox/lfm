@@ -137,7 +137,9 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 				compatErr = err
 				return
 			}
-			compat, compatErr = r.Compat(pr.ctx, office, built)
+			compat, compatErr = remembered(office, "spreadsheet", builtData(built, func(b spreadsheet.Built) []byte { return b.Data }), func() ([]string, error) {
+				return r.Compat(pr.ctx, office, built)
+			})
 		})
 	}
 	wg.Wait()
