@@ -63,7 +63,7 @@ Headings: Georgia, serif
 Accent: #8a3b12
 `
 
-func bookProject(t *testing.T) string {
+func bookProject(t testing.TB) string {
 	t.Helper()
 	dir := t.TempDir()
 	if _, err := scaffold.Create(dir); err != nil {

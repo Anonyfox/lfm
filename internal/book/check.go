@@ -8,6 +8,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/Anonyfox/lfm/internal/deliver"
 
@@ -121,7 +122,10 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 	})
 	r.Summary.Title = r.Plan.Title
 
+	var sources sync.Mutex // chapters are checked side by side
 	exists := func(rel string) bool {
+		sources.Lock()
+		defer sources.Unlock()
 		if _, ok := r.Sources[rel]; ok {
 			return true
 		}
@@ -135,20 +139,37 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 		r.Sources[rel] = b
 		return true
 	}
+	// Each chapter is checked on its own; the report keeps the plan's order.
+	type checked struct {
+		src    []byte
+		err    error
+		pr     prose
+		issues []diagnostic.Diagnostic
+	}
+	results := make([]checked, len(r.Plan.Chapters))
+	var wg sync.WaitGroup
+	for i, ch := range r.Plan.Chapters {
+		wg.Go(func() {
+			c := &results[i]
+			if c.src, c.err = p.Read(Dir + "/" + ch.File); c.err == nil {
+				ch.Exists = true
+				c.pr, c.issues = checkChapter(ch, c.src, r.Plan, cfg, exists)
+			}
+		})
+	}
+	wg.Wait()
 	var all []byte
 	var texts []chapterText
-	for _, ch := range r.Plan.Chapters {
+	for i, ch := range r.Plan.Chapters {
 		r.Summary.Target += ch.Words
-		src, err := p.Read(Dir + "/" + ch.File)
-		if err == nil {
+		if c := results[i]; c.err == nil {
 			ch.Exists = true
-			r.Sources[ch.File] = src
-			pr, issues := checkChapter(ch, src, r.Plan, cfg, exists)
-			texts = append(texts, chapterText{Dir + "/" + ch.File, pr.blocks})
+			r.Sources[ch.File] = c.src
+			texts = append(texts, chapterText{Dir + "/" + ch.File, c.pr.blocks})
 			r.Summary.Written++
-			r.Summary.Words += pr.words
-			r.Diagnostics = append(r.Diagnostics, issues...)
-			all = append(append(all, src...), '\n')
+			r.Summary.Words += c.pr.words
+			r.Diagnostics = append(r.Diagnostics, c.issues...)
+			all = append(append(all, c.src...), '\n')
 		}
 		r.Summary.Chapters = append(r.Summary.Chapters, ch)
 	}
