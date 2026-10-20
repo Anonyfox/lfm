@@ -32,6 +32,9 @@ type Printer struct {
 // enough that Chrome's memory stays bounded however many files a set has.
 var tabs = min(max(2, runtime.NumCPU()), 8)
 
+// tabTime is how long one print or render may take once it has a tab.
+const tabTime = time.Minute
+
 // NewPrinter starts Chrome. Close it when the release is done.
 func NewPrinter(ctx context.Context) (*Printer, error) {
 	path, err := BrowserPath()
@@ -73,7 +76,7 @@ func (p *Printer) tab(doc []byte, assets map[string][]byte) (context.Context, st
 	job := fmt.Sprint(p.next.Add(1))
 	p.jobs.Store(job, Handler(doc, assets))
 	tab, cancelTab := chromedp.NewContext(p.browser)
-	tab, cancelTimeout := context.WithTimeout(tab, 60*time.Second)
+	tab, cancelTimeout := context.WithTimeout(tab, tabTime)
 	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job); <-p.slots }
 }
 

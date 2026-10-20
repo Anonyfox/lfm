@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -219,14 +220,15 @@ func TestCancelledReleaseStopsItsBrowsers(t *testing.T) {
 	}
 	dir := deckProject(t)
 	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(1500*time.Millisecond, cancel)
-	start := time.Now()
+	var cancelled atomic.Int64
+	time.AfterFunc(1500*time.Millisecond, func() { cancelled.Store(time.Now().UnixNano()); cancel() })
 	result, err := Compile(ctx, dir, Options{Publish: true, Release: true})
 	if !errors.Is(err, context.Canceled) || result.Published {
 		t.Fatalf("err %v, published %v", err, result.Published)
 	}
-	if took := time.Since(start); took > 4*time.Second {
-		t.Fatalf("a cancelled release took %s", took)
+	// The audit and LibreOffice would run tens of seconds on.
+	if took := time.Since(time.Unix(0, cancelled.Load())); took > 5*time.Second {
+		t.Fatalf("a cancelled release took %s to stop", took)
 	}
 }
 

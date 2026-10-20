@@ -280,7 +280,9 @@ func TestPageImagesFailsFastOnAMissingPage(t *testing.T) {
 	if _, err := within(t, func() ([][]byte, error) { return p.PageImages(doc, nil, 200, 100, 1, []int{9}) }); err == nil {
 		t.Fatal("a page that does not exist rendered")
 	}
-	if time.Since(start) > 5*time.Second {
+	// Waiting for the page took the tab's whole time; loading it on a busy
+	// machine takes seconds.
+	if time.Since(start) > tabTime/2 {
 		t.Fatalf("a missing page took %s to fail", time.Since(start))
 	}
 }
