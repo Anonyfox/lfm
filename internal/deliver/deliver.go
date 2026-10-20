@@ -152,10 +152,10 @@ func CSSValue(s string) string {
 // way a stamped PDF records its inputs, so a later compile can reuse the
 // image while its inputs are unchanged.
 func StampJPEG(jpg []byte, key string) []byte {
-	if len(jpg) < 2 || jpg[0] != 0xff || jpg[1] != 0xd8 {
+	comment := "lfm-build " + key
+	if len(jpg) < 2 || jpg[0] != 0xff || jpg[1] != 0xd8 || len(comment)+2 > 0xffff {
 		return jpg
 	}
-	comment := "lfm-build " + key
 	segment := []byte{0xff, 0xfe, byte((len(comment) + 2) >> 8), byte(len(comment) + 2)}
 	out := append(append(append([]byte{0xff, 0xd8}, segment...), comment...), jpg[2:]...)
 	return out
