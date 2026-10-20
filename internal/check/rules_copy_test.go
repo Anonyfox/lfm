@@ -243,3 +243,27 @@ func TestGenericActions(t *testing.T) {
 		}
 	}
 }
+
+// Copy typed with curly apostrophes, as typographers and models write it,
+// gets the findings of the same copy with straight ones.
+func TestCopyTellsReadEitherApostrophe(t *testing.T) {
+	for _, body := range []string{
+		`<p>In today's fast-paced world, planning is hard.</p>`,
+		`<p>It's not a diet. It's a rota.</p><p>This is not a course, this is a kit.</p>`,
+		`<p>Let's dive in and unlock your garden's full potential.</p>`,
+		`<p>Whether you're a beginner or a pro, you'll love it.</p>`,
+		`<p>Don't just plan. It's time to take your herbs to the next level.</p>`,
+	} {
+		straight := runOn(t, copyTellsRule, "", body, Options{})
+		curly := runOn(t, copyTellsRule, "", strings.ReplaceAll(body, "'", "’"), Options{})
+		if len(straight) == 0 || len(curly) != len(straight) {
+			t.Errorf("%s: %d findings straight, %d curly", body, len(straight), len(curly))
+			continue
+		}
+		for i := range straight {
+			if straight[i].Message != Straight(curly[i].Message) {
+				t.Errorf("%s:\n straight %s\n curly    %s", body, straight[i].Message, curly[i].Message)
+			}
+		}
+	}
+}

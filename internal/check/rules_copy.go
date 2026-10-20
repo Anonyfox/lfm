@@ -113,7 +113,7 @@ func copyTellsRule(d *Document) []Diagnostic {
 	dashes, words := 0, 0
 	var firstDash *html.Node
 	for _, s := range segments {
-		text := normalizeQuotes(s.text)
+		text := Straight(s.text)
 		lower := strings.ToLower(text)
 		words += len(strings.Fields(text))
 		if n := ProseDashes(text); n > 0 {
@@ -192,9 +192,12 @@ func containsAny(s string, keys []string) bool {
 	return false
 }
 
-func normalizeQuotes(s string) string {
-	return strings.NewReplacer("’", "'", "‘", "'", " ", " ").Replace(s)
-}
+// Straight is text with curly and modifier-letter apostrophes and quotes
+// made straight and no-break spaces plain, as every copy pattern is
+// written: writers, typographers and models mostly type the curly ones.
+func Straight(s string) string { return quotes.Replace(s) }
+
+var quotes = strings.NewReplacer("’", "'", "‘", "'", "ʼ", "'", " ", " ")
 
 type copySegment struct {
 	node *html.Node
@@ -760,7 +763,7 @@ func actionsRule(d *Document) []Diagnostic {
 		if hidden(n) || HasAttr(n, "data-design-reason") {
 			continue
 		}
-		name := strings.ToLower(strings.Join(strings.Fields(normalizeQuotes(d.controlName(n))), " "))
+		name := strings.ToLower(strings.Join(strings.Fields(Straight(d.controlName(n))), " "))
 		name = strings.TrimRight(name, " .!→›»>")
 		if n.Data == "input" {
 			name = strings.ToLower(strings.TrimSpace(Attr(n, "value")))
@@ -794,7 +797,7 @@ func FindTells(segments []string) []TellHit {
 		hits[i].Segment = -1
 	}
 	for n, segment := range segments {
-		text := normalizeQuotes(segment)
+		text := Straight(segment)
 		lower := strings.ToLower(text)
 		for i, t := range copyTells {
 			if !containsAny(lower, t.keys) {

@@ -181,7 +181,7 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 		for _, phrase := range facts.Avoid {
 			re := phraseMatcher(phrase)
 			for _, s := range own {
-				if re.MatchString(normalizeQuotes(s.text)) {
+				if re.MatchString(Straight(s.text)) {
 					issues = append(issues, d.At(s.node, Warning, fmt.Sprintf("concept.md says to avoid %q; the page uses it.", phrase), "Say it in the buyers' words the Copy section gives; quotes of real buyers in <blockquote> or <q> are exempt."))
 					break
 				}
@@ -208,7 +208,7 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 // phrase to use counts when its words appear in that order nearby.
 func wordsInOrder(text, phrase string, gap int) bool {
 	split := func(s string) []string {
-		return strings.FieldsFunc(strings.ToLower(normalizeQuotes(s)), func(r rune) bool {
+		return strings.FieldsFunc(strings.ToLower(Straight(s)), func(r rune) bool {
 			return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '\''
 		})
 	}
@@ -243,7 +243,7 @@ func wordsInOrder(text, phrase string, gap int) bool {
 
 // phraseMatcher matches a phrase case-insensitively as whole words.
 func phraseMatcher(phrase string) *regexp.Regexp {
-	return regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}])` + regexp.QuoteMeta(normalizeQuotes(phrase)) + `(?:$|[^\p{L}\p{N}])`)
+	return regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}])` + regexp.QuoteMeta(Straight(phrase)) + `(?:$|[^\p{L}\p{N}])`)
 }
 
 // declaredColor accepts a declared color in any opacity, a tint close to one

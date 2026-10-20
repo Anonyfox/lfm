@@ -615,7 +615,7 @@ func qualityChecks(q quality, p prose, plan Plan, language, author string, warn 
 	var proseLines []int
 	for _, b := range p.blocks {
 		if !b.quote {
-			prose = append(prose, b.text)
+			prose = append(prose, b.raw)
 			proseLines = append(proseLines, b.line)
 		}
 	}

@@ -75,7 +75,8 @@ type heading struct {
 }
 
 type block struct {
-	text    string
+	text    string // with straight quotes, as the checks' patterns are written
+	raw     string // as written, for the AI-text estimate
 	line    int
 	list    bool
 	quote   bool
@@ -180,7 +181,7 @@ func parseChapter(src []byte) (ast.Node, prose) {
 		}
 		switch v := n.(type) {
 		case *ast.Heading:
-			p.headings = append(p.headings, heading{v.Level, inlineText(v, src), blockLine(v, l)})
+			p.headings = append(p.headings, heading{v.Level, check.Straight(inlineText(v, src)), blockLine(v, l)})
 			if v.Level == 2 {
 				section++
 			}
@@ -196,8 +197,9 @@ func parseChapter(src []byte) (ast.Node, prose) {
 		case *ast.FencedCodeBlock, *ast.CodeBlock:
 			return ast.WalkSkipChildren, nil
 		case *ast.Paragraph, *ast.TextBlock:
-			t := inlineText(v, src)
-			b := block{text: t, line: blockLine(v, l), list: inside(v, ast.KindListItem), quote: inside(v, ast.KindBlockquote), at: p.words, section: section}
+			raw := inlineText(v, src)
+			t := check.Straight(raw)
+			b := block{text: t, raw: raw, line: blockLine(v, l), list: inside(v, ast.KindListItem), quote: inside(v, ast.KindBlockquote), at: p.words, section: section}
 			strongWords := 0
 			_ = ast.Walk(v, func(c ast.Node, entering bool) (ast.WalkStatus, error) {
 				if !entering {
@@ -248,7 +250,7 @@ func parseChapter(src []byte) (ast.Node, prose) {
 	for c := doc.FirstChild(); c != nil; c = c.NextSibling() {
 		if h, ok := c.(*ast.Heading); ok {
 			if ph, ok := prev.(*ast.Heading); ok && h.Level <= ph.Level {
-				p.sectionEmpty = append(p.sectionEmpty, heading{ph.Level, inlineText(ph, src), blockLine(ph, l)})
+				p.sectionEmpty = append(p.sectionEmpty, heading{ph.Level, check.Straight(inlineText(ph, src)), blockLine(ph, l)})
 			}
 		}
 		prev = c
@@ -351,7 +353,7 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 	switch {
 	case len(p.headings) == 0 || p.headings[0].level != 1:
 		warn(RuleChapter, 1, fmt.Sprintf("The chapter does not start with \"# %s\".", ch.Title), "Open every chapter with its planned title as the one top heading.")
-	case !strings.EqualFold(strings.TrimSpace(p.headings[0].text), strings.TrimSpace(ch.Title)):
+	case !strings.EqualFold(strings.TrimSpace(p.headings[0].text), strings.TrimSpace(check.Straight(ch.Title))):
 		warn(RuleChapter, p.headings[0].line, fmt.Sprintf("The title %q differs from the plan's %q.", p.headings[0].text, ch.Title), "Change the title in the concept first when it changed, then here.")
 	}
 	if len(tops) > 1 {
@@ -495,9 +497,9 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 			warn(RuleCopy, at[0], fmt.Sprintf("%d paragraphs open with %q.", len(at), o), "Vary how paragraphs begin; start from what the paragraph is about.")
 		}
 	}
-	lower := strings.ToLower(string(src))
+	lower := strings.ToLower(check.Straight(string(src)))
 	for _, phrase := range plan.Avoid {
-		if i := strings.Index(lower, strings.ToLower(phrase)); i >= 0 {
+		if i := strings.Index(lower, strings.ToLower(check.Straight(phrase))); i >= 0 {
 			warn(RuleCopy, newLines(src).at(i), fmt.Sprintf("The chapter says %q, which the Voice avoids.", phrase), "Replace it, or change the Voice in the concept when the decision changed.")
 		}
 	}
@@ -511,7 +513,8 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 // every language moves words around a phrase it uses.
 func containsPhrase(text, phrase string) bool {
 	norm := func(s string) []string {
-		return strings.FieldsFunc(strings.ToLower(s), func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsNumber(r) && r != '\'' })
+		s = strings.ToLower(check.Straight(s))
+		return strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsNumber(r) && r != '\'' })
 	}
 	want := norm(phrase)
 	if len(want) == 0 {
