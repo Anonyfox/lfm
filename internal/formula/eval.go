@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 // Kind is the type of a value.
@@ -50,6 +51,12 @@ const (
 	ErrName  = "#NAME?"
 	ErrNum   = "#NUM!"
 )
+
+// maxCells caps the values one area or array operation makes, far above any
+// table lfm lays out (50000 rows), so a formula over the whole grid is an
+// error instead of exhausting memory; maxText is the longest text a cell
+// holds in Excel.
+const maxCells, maxText = 1 << 20, 32767
 
 // String shows a value the way a test or a finding names it.
 func (v Value) String() string {
@@ -186,6 +193,9 @@ func (c *Context) area(a Area) Value {
 	sheet := c.sheetOf(a.Sheet)
 	r1, r2 := min(a.From.Row, a.To.Row), max(a.From.Row, a.To.Row)
 	c1, c2 := min(a.From.Col, a.To.Col), max(a.From.Col, a.To.Col)
+	if (r2-r1+1)*(c2-c1+1) > maxCells {
+		return ErrorValue(ErrNum)
+	}
 	if ab, ok := c.Book.(AreaBook); ok {
 		rows, cells := ab.Area(sheet, c1, r1, c2, r2)
 		return Value{Kind: Array, Rows: rows, cells: cells}
@@ -237,6 +247,9 @@ func binary(op string, l, r Value) Value {
 		if (lr != rows && lr != 1) || (rr != rows && rr != 1) || (lc != cols && lc != 1) || (rc != cols && rc != 1) {
 			return ErrorValue(ErrValue)
 		}
+		if rows*cols > maxCells {
+			return ErrorValue(ErrNum)
+		}
 		out := make([][]Value, rows)
 		for i := range rows {
 			out[i] = make([]Value, cols)
@@ -254,7 +267,7 @@ func binary(op string, l, r Value) Value {
 	}
 	switch op {
 	case "&":
-		return TextValue(toText(l) + toText(r))
+		return text(toText(l) + toText(r))
 	case "=", "<>", "<", ">", "<=", ">=":
 		c := compare(l, r)
 		var b bool
@@ -282,27 +295,46 @@ func binary(op string, l, r Value) Value {
 	if e != "" {
 		return ErrorValue(e)
 	}
+	var x float64
 	switch op {
 	case "+":
-		return NumberValue(a + b)
+		x = a + b
 	case "-":
-		return NumberValue(a - b)
+		x = a - b
 	case "*":
-		return NumberValue(a * b)
+		x = a * b
 	case "/":
 		if b == 0 {
 			return ErrorValue(ErrDiv0)
 		}
-		return NumberValue(a / b)
+		x = a / b
 	case "^":
-		p := math.Pow(a, b)
-		if math.IsNaN(p) || math.IsInf(p, 0) {
-			return ErrorValue(ErrNum)
-		}
-		return NumberValue(p)
+		x = math.Pow(a, b)
+	default:
+		return ErrorValue(ErrValue)
 	}
-	return ErrorValue(ErrValue)
+	return finite(x)
 }
+
+// finite is f, or #NUM! where the apps overflow.
+func finite(f float64) Value {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return ErrorValue(ErrNum)
+	}
+	return NumberValue(f)
+}
+
+// text is s, or #VALUE! when it is longer than a cell holds.
+func text(s string) Value {
+	if utf8.RuneCountInString(s) > maxText {
+		return ErrorValue(ErrValue)
+	}
+	return TextValue(s)
+}
+
+// whole truncates f to an int for a position or count, clamped so huge
+// arguments compare as out of range instead of overflowing.
+func whole(f float64) int { return int(max(min(f, 1<<40), -1<<40)) }
 
 func dims(v Value) (int, int) {
 	if v.Kind != Array || len(v.Rows) == 0 {
@@ -333,8 +365,10 @@ func toNumber(v Value) (float64, string) {
 	case Number, Logical:
 		return v.Num, ""
 	case Text:
-		f, err := strconv.ParseFloat(strings.TrimSpace(v.Str), 64)
-		if err != nil {
+		s := strings.TrimSpace(v.Str)
+		f, err := strconv.ParseFloat(s, 64)
+		// ParseFloat also reads Inf, NaN and hexadecimal, which no app does.
+		if err != nil || math.IsNaN(f) || math.IsInf(f, 0) || strings.ContainsAny(s, "xX") {
 			return 0, ErrValue
 		}
 		return f, ""
@@ -486,7 +520,7 @@ func flat(v Value) []Value {
 // Sheets and LibreOffice count from March 1900.
 func Serial(t time.Time) float64 {
 	d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-	return math.Round(d.Sub(epoch).Hours() / 24)
+	return float64((d.Unix() - epoch.Unix()) / 86400) // Sub saturates after 292 years
 }
 
 // Date is the calendar date of a serial.

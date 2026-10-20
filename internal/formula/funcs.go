@@ -185,6 +185,9 @@ func numArg(c *Context, args []Node, i int) (float64, Value, bool) {
 	if e != "" {
 		return 0, ErrorValue(e), false
 	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, ErrorValue(ErrNum), false
+	}
 	return f, Value{}, true
 }
 
@@ -753,7 +756,7 @@ func choose(c *Context, args []Node) Value {
 	if !ok {
 		return e
 	}
-	n := int(i)
+	n := whole(i)
 	if n < 1 || n >= len(args) {
 		return ErrorValue(ErrValue)
 	}
@@ -780,7 +783,7 @@ func index(c *Context, args []Node) Value {
 	if rows == 1 && !present(args, 2) {
 		r, col = 1, r
 	}
-	ri, ci := int(r), int(col)
+	ri, ci := whole(r), whole(col)
 	if ri < 1 || ci < 1 || ri > rows || ci > cols {
 		return ErrorValue(ErrRef)
 	}
@@ -866,7 +869,7 @@ func vlookup(c *Context, args []Node) Value {
 	if table.Kind != Array {
 		return ErrorValue(ErrValue)
 	}
-	ci := int(col)
+	ci := whole(col)
 	if ci < 1 || ci > len(table.Rows[0]) {
 		return ErrorValue(ErrRef)
 	}
@@ -950,7 +953,7 @@ func weekday(c *Context, args []Node) Value {
 		}
 	}
 	d := int(Date(n).Weekday()) // Sunday 0
-	switch int(kind) {
+	switch whole(kind) {
 	case 1:
 		return NumberValue(float64(d + 1))
 	case 2:
@@ -972,7 +975,7 @@ func monthShift(end bool) func(*Context, []Node) Value {
 			return ev
 		}
 		t := Date(n)
-		months := int(math.Trunc(m))
+		months := whole(m)
 		if end {
 			first := time.Date(t.Year(), t.Month()+time.Month(months)+1, 1, 0, 0, 0, 0, time.UTC)
 			return NumberValue(Serial(first.AddDate(0, 0, -1)))
@@ -1074,7 +1077,7 @@ func leftRight(left bool) func(*Context, []Node) Value {
 			return ErrorValue(ErrValue)
 		}
 		r := []rune(toText(v))
-		k := min(int(n), len(r))
+		k := min(whole(n), len(r))
 		if left {
 			return TextValue(string(r[:k]))
 		}
@@ -1099,8 +1102,8 @@ func mid(c *Context, args []Node) Value {
 		return ErrorValue(ErrValue)
 	}
 	r := []rune(toText(v))
-	s := min(int(start)-1, len(r))
-	return TextValue(string(r[s:min(s+int(n), len(r))]))
+	s := min(whole(start)-1, len(r))
+	return TextValue(string(r[s:min(s+whole(n), len(r))]))
 }
 
 func rept(c *Context, args []Node) Value {
@@ -1115,7 +1118,11 @@ func rept(c *Context, args []Node) Value {
 	if n < 0 {
 		return ErrorValue(ErrValue)
 	}
-	return TextValue(strings.Repeat(toText(v), int(n)))
+	t := toText(v)
+	if float64(utf8.RuneCountInString(t))*n > maxText {
+		return ErrorValue(ErrValue)
+	}
+	return TextValue(strings.Repeat(t, whole(n)))
 }
 
 func concatenate(c *Context, args []Node) Value {
@@ -1130,7 +1137,7 @@ func concatenate(c *Context, args []Node) Value {
 		}
 		b.WriteString(toText(v))
 	}
-	return TextValue(b.String())
+	return text(b.String())
 }
 
 func substitute(c *Context, args []Node) Value {
@@ -1145,7 +1152,10 @@ func substitute(c *Context, args []Node) Value {
 	if s[1] == "" {
 		return TextValue(s[0])
 	}
-	return TextValue(strings.ReplaceAll(s[0], s[1], s[2]))
+	if grow := utf8.RuneCountInString(s[2]) - utf8.RuneCountInString(s[1]); grow > 0 && utf8.RuneCountInString(s[0])+strings.Count(s[0], s[1])*grow > maxText {
+		return ErrorValue(ErrValue)
+	}
+	return text(strings.ReplaceAll(s[0], s[1], s[2]))
 }
 
 func find(fold bool) func(*Context, []Node) Value {
@@ -1165,10 +1175,10 @@ func find(fold bool) func(*Context, []Node) Value {
 			}
 		}
 		h, n := []rune(toText(hay)), toText(needle)
-		if start < 1 || int(start) > len(h)+1 {
+		if start < 1 || whole(start) > len(h)+1 {
 			return ErrorValue(ErrValue)
 		}
-		rest := string(h[int(start)-1:])
+		rest := string(h[whole(start)-1:])
 		var i int
 		if fold {
 			i = -1
@@ -1181,7 +1191,7 @@ func find(fold bool) func(*Context, []Node) Value {
 		if i < 0 {
 			return ErrorValue(ErrValue)
 		}
-		return NumberValue(float64(utf8.RuneCountInString(rest[:i]) + int(start)))
+		return NumberValue(float64(utf8.RuneCountInString(rest[:i]) + whole(start)))
 	}
 }
 

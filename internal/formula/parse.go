@@ -13,6 +13,9 @@ import (
 	"unicode"
 )
 
+// The grid every app shares: columns A to XFD, 1048576 rows.
+const maxCols, maxRows = 16384, 1048576
+
 // errorLiterals are the error values a formula may name.
 var errorLiterals = []string{"#DIV/0!", "#N/A", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#NULL!"}
 
@@ -425,6 +428,9 @@ func parseRef(s string) (Ref, error) {
 	var r Ref
 	if strings.HasPrefix(s, "'") {
 		i := strings.LastIndex(s, "'!")
+		if i < 1 {
+			return r, fmt.Errorf("%q is not a cell reference or a known name", s)
+		}
 		r.Sheet = s[1:i]
 		s = s[i+2:]
 	}
@@ -441,12 +447,15 @@ func parseRef(s string) (Ref, error) {
 		return r, fmt.Errorf("%q is not a cell reference or a known name", s)
 	}
 	r.Col = ColumnNumber(strings.ToUpper(s[i:j]))
+	if r.Col > maxCols {
+		return r, fmt.Errorf("%q is not a cell reference or a known name", s)
+	}
 	if j < len(s) && s[j] == '$' {
 		r.AbsRow = true
 		j++
 	}
 	row, err := strconv.Atoi(s[j:])
-	if err != nil || row < 1 {
+	if err != nil || row < 1 || row > maxRows {
 		return r, fmt.Errorf("%q is not a cell reference or a known name", s)
 	}
 	r.Row = row

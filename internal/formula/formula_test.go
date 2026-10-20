@@ -87,6 +87,13 @@ func TestEvaluatesLikeTheApps(t *testing.T) {
 		`=1/0`:                   "#DIV/0!",
 		`=SUM(B2,"x")`:           "#VALUE!",
 		`=MATCH("nope",A2:A7,0)`: "#N/A",
+		`=SUM(A1:XFD1048576)`:    "#NUM!",
+		`=LEN(REPT("ab",20000))`: "#VALUE!",
+		`=LEN(SUBSTITUTE(REPT("a",30000),"a","bb"))`: "#VALUE!",
+		`=MID("abc",2,1E+300)`:                       "bc",
+		`="inf"*1`:                                   "#VALUE!",
+		`=1E+308*10-1E+308*10`:                       "#NUM!",
+		`=YEAR(DATE(2300,1,1))`:                      "2300",
 	}
 	for src, want := range cases {
 		got := eval(t, g, src)
@@ -121,7 +128,7 @@ func TestPrintsTheStoredSyntax(t *testing.T) {
 			t.Errorf("%s printed %s, want %s", src, got, want)
 		}
 	}
-	for _, bad := range []string{`=XLOOKUP(1,A1:A2,B1:B2)`, `=FILTER(A1:A9,B1:B9>0)`, `=TEXT(A1,"dd.mm.yyyy")`, `=SUM(A1;A2)`, `=SUM(A1`, `=[nope]`, `=ROUND(1)`} {
+	for _, bad := range []string{`=XLOOKUP(1,A1:A2,B1:B2)`, `=FILTER(A1:A9,B1:B9>0)`, `=TEXT(A1,"dd.mm.yyyy")`, `=SUM(A1;A2)`, `=SUM(A1`, `=XFE1`, `=A1048577`, `=[nope]`, `=ROUND(1)`} {
 		if _, err := Parse(bad, resolve); err == nil {
 			t.Errorf("%s accepted", bad)
 		}
