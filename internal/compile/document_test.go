@@ -10,38 +10,9 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
-	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/scaffold"
 )
-
-const docPath = "k3n8q2w7x5r9t4m6p1"
-
-func documentProject(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	if _, err := scaffold.Create(dir); err != nil {
-		t.Fatal(err)
-	}
-	configure(t, dir, func(c map[string]any) {
-		c["deliverables"] = map[string]any{"document": map[string]any{"path": docPath, "version": "2027.1"}}
-		c["seller"] = map[string]any{"name": "Riverside Press"}
-	})
-	src := filepath.Join("..", "document", "testdata", "club")
-	dst := filepath.Join(dir, filepath.FromSlash(document.Dir))
-	filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		rel, _ := filepath.Rel(src, path)
-		os.MkdirAll(filepath.Join(dst, filepath.Dir(rel)), 0o755)
-		data, _ := os.ReadFile(path)
-		return os.WriteFile(filepath.Join(dst, rel), data, 0o644)
-	})
-	os.WriteFile(filepath.Join(dst, "listing.md"), []byte("# Listing: Allotment Society Kit\n\n## Title\nAllotment Society Templates for Word and Google Docs, Minutes, Invoice, Fair Program\n\n## Description\n"+strings.Repeat("Run your community garden's paperwork in one evening: minutes, plot fee invoices and the harvest fair program, ready to fill. ", 3)+"\n\n## Tags\n- allotment templates\n\n## Price\n9.90 USD\n\n## AI\nText: assisted\nImages: none\nTools: Claude\nStatement: Texts edited with Claude; layout and checks by software.\n"), 0o644)
-	return dir
-}
 
 func TestDocumentsAreBuiltCheckedAndDelivered(t *testing.T) {
 	t.Parallel()

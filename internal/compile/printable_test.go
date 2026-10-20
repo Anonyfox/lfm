@@ -3,7 +3,6 @@ package compile
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,62 +11,8 @@ import (
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/scaffold"
+	"github.com/Anonyfox/lfm/internal/testproject"
 )
-
-const printablePath = "p7m2x9q4w8e3r6t5y1u0"
-
-func printableProject(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	if _, err := scaffold.Create(dir); err != nil {
-		t.Fatal(err)
-	}
-	configure(t, dir, func(c map[string]any) {
-		c["deliverables"] = map[string]any{"printable": map[string]any{"path": printablePath, "version": "2027.1"}}
-	})
-	writePrintable(t, dir)
-	return dir
-}
-
-// configure edits lfm.json.
-func configure(t testing.TB, dir string, edit func(map[string]any)) {
-	t.Helper()
-	raw, _ := os.ReadFile(filepath.Join(dir, "lfm.json"))
-	var c map[string]any
-	_ = json.Unmarshal(raw, &c)
-	edit(c)
-	raw, _ = json.MarshalIndent(c, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "lfm.json"), raw, 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// writePrintable adds a small maze pack in deliverables/printable.
-func writePrintable(t *testing.T, dir string) {
-	t.Helper()
-	files := map[string]string{
-		printable.ConceptFile: "# Printable: Maze Pack\n\n## Buyer\nParents with a rainy afternoon.\n- Not for: toddlers.\n\n## Promise\nTwo mazes and their solutions, printed in a minute.\n\n" +
-			"## Contents\n| Part | Pages | Job |\n| --- | --- | --- |\n| Cover | 1 | shows the pack and what is inside |\n| Guide | 1 | explains printing at actual size |\n| Mazes | 2 | two mazes to solve with a pencil |\n| Key | 1 | both solutions to check |\n\n" +
-			"## Editions\n- Sizes: a4, letter\n\n## Look\nBody: system-ui, sans-serif\nHeadings: system-ui, sans-serif\nAccent: #2b6e5a\n",
-		printable.TemplateFile: `{{- $a := maze 10 12 1 -}}{{- $b := maze 12 14 2 -}}
-<section class="page" data-part="Cover" data-role="cover"><h1>{{.Name}}</h1></section>
-<section class="page" data-part="Guide" data-role="guide"><p>Print at 100%. Solutions on page <span class="page-ref" data-ref="key"></span>.</p></section>
-<section class="page" data-part="Mazes" data-role="puzzle">{{$a.SVG 10 false}}</section>
-<section class="page" data-part="Mazes" data-role="puzzle">{{$b.SVG 10 false}}</section>
-<section class="page" data-part="Key" data-role="key" id="key">{{$a.SVG 6 true}}{{$b.SVG 6 true}}</section>
-`,
-		printable.Dir + "/printable.css": ".maze { width: 140mm; display: block; margin: 0 auto; }\n.page[data-role=key] .maze { width: 80mm; }\n",
-		printable.ListingFile:            "# Listing: Maze Pack\n\n## Title\nPrintable Maze Pack for Kids, A4 and Letter\n\n## Description\n" + strings.Repeat("Two calm mazes for a rainy afternoon, with solutions. ", 5) + "\n\n## Tags\n- maze printable\n\n## Price\n3.00 EUR\n\n## AI\nText: none\nImages: none\n",
-	}
-	for rel, content := range files {
-		full := filepath.Join(dir, filepath.FromSlash(rel))
-		os.MkdirAll(filepath.Dir(full), 0o755)
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-}
 
 func TestPrintableIsPublishedBehindItsPath(t *testing.T) {
 	t.Parallel()
@@ -154,8 +99,6 @@ func rulesOf(r Result) string {
 	return strings.Join(out, " ")
 }
 
-const bundlePath = "b7m2x9q4w8e3r6t5y1u0"
-
 func findings(r Result, prefix string) []string {
 	var out []string
 	if r.Validation != nil {
@@ -170,16 +113,8 @@ func findings(r Result, prefix string) []string {
 
 func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
 	t.Parallel()
-	dir := bookProject(t)
+	dir := testproject.BookPrintableBundle(t)
 	t.Cleanup(func() { strictArchives(t, dir) })
-	writePrintable(t, dir)
-	configure(t, dir, func(c map[string]any) {
-		d := c["deliverables"].(map[string]any)
-		d["printable"] = map[string]any{"sell": "bundle"}
-		d["bundle"] = map[string]any{"name": "Starter Kit", "path": bundlePath}
-	})
-	os.MkdirAll(filepath.Join(dir, "deliverables", "bundle"), 0o755)
-	os.WriteFile(filepath.Join(dir, "deliverables", "bundle", "listing.md"), []byte("# Listing: Starter Kit\n\n## Title\nSourdough Starter Kit: ebook and maze pack\n\n## Description\n"+strings.Repeat("The book and the pack for a rainy weekend with a starter. ", 5)+"\n\n## Tags\n- sourdough kit\n\n## Price\n9.00 EUR\n\n## AI\nText: none\nImages: none\n"), 0o644)
 	// A flat distribution/ from an earlier lfm is cleared away.
 	os.MkdirAll(filepath.Join(dir, "distribution", "stores"), 0o755)
 	os.WriteFile(filepath.Join(dir, "distribution", "README.md"), []byte("old"), 0o644)

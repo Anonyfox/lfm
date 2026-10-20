@@ -3,7 +3,6 @@ package compile
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,81 +13,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/scaffold"
 )
-
-const bookPath = "q7w2k9m4x8c3v6b1n5zt"
-
-const bookConcept = `# Book: Starter rescue
-
-## Reader
-Home bakers whose starter died twice.
-Not for: professional bakers.
-
-## Promise
-After three weekends the reader keeps a starter alive.
-Won't cover: enriched doughs.
-
-## Big idea
-Feed the schedule, not the jar.
-
-## Hooks
-- Title: "The Weekend Starter"
-- Subtitle: "Keep sourdough alive on a working week"
-- Opening: the jar that smelled like nail polish.
-
-## Voice
-- Use: "nail polish"
-- Avoid: "journey"
-
-## Devices
-- A fridge calendar after every chapter.
-
-## Chapters
-| # | Title | Job | Beats | Words | File |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Why starters die | Diagnose why the last starter died | hook | 300 | [01](chapters/01.md) |
-| 2 | A week that feeds itself | Plan feedings around a working week | calendar | 300 | [02](chapters/02.md) |
-| 3 | The first loaf | Bake one loaf and judge its crumb | crumb | 300 | [03](chapters/03.md) |
-
-## Imagery
-| Image | Chapter | Job | Art direction | File |
-| --- | --- | --- | --- | --- |
-| Cover | cover | cover | the jar on a shelf | Open: the owner sends the cover |
-
-## Look
-Trim: 5x8in
-Body: Georgia, serif
-Headings: Georgia, serif
-Accent: #8a3b12
-`
-
-func bookProject(t testing.TB) string {
-	t.Helper()
-	dir := t.TempDir()
-	if _, err := scaffold.Create(dir); err != nil {
-		t.Fatal(err)
-	}
-	raw, _ := os.ReadFile(filepath.Join(dir, "lfm.json"))
-	var c map[string]any
-	_ = json.Unmarshal(raw, &c)
-	c["deliverables"] = map[string]any{"book": map[string]any{"author": "Ada Baker", "path": bookPath}}
-	raw, _ = json.MarshalIndent(c, "", "  ")
-	write := func(rel, content string) {
-		full := filepath.Join(dir, filepath.FromSlash(rel))
-		os.MkdirAll(filepath.Dir(full), 0o755)
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
-	write("lfm.json", string(raw))
-	write(book.ConceptFile, bookConcept)
-	text := strings.Repeat("The jar sat on the shelf overnight. It rose by morning when the kitchen stayed warm and quiet. Feed it twice. ", 15)
-	for i, title := range []string{"Why starters die", "A week that feeds itself", "The first loaf"} {
-		write(book.Dir+"/chapters/0"+string(rune('1'+i))+".md", "# "+title+"\n\n"+text+"\n")
-	}
-	return dir
-}
 
 func TestBookIsPublishedBehindItsPath(t *testing.T) {
 	t.Parallel()

@@ -9,38 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Anonyfox/lfm/internal/deck"
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/scaffold"
+	"github.com/Anonyfox/lfm/internal/testproject"
 )
-
-const deckPath = "q7w2e9r4t1y8u3i6o5"
-
-func deckProject(t testing.TB) string {
-	t.Helper()
-	dir := t.TempDir()
-	if _, err := scaffold.Create(dir); err != nil {
-		t.Fatal(err)
-	}
-	configure(t, dir, func(c map[string]any) {
-		c["deliverables"] = map[string]any{"deck": map[string]any{"path": deckPath, "version": "2027.1"}}
-		c["seller"] = map[string]any{"name": "Riverside Press"}
-	})
-	dst := filepath.Join(dir, filepath.FromSlash(deck.Dir))
-	for src, under := range map[string]string{filepath.Join("..", "deck", "testdata", "briefing"): "", filepath.Join("..", "document", "testdata", "club", "fonts"): "fonts"} {
-		filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
-			if err != nil || d.IsDir() {
-				return err
-			}
-			rel, _ := filepath.Rel(src, path)
-			os.MkdirAll(filepath.Join(dst, under, filepath.Dir(rel)), 0o755)
-			data, _ := os.ReadFile(path)
-			return os.WriteFile(filepath.Join(dst, under, rel), data, 0o644)
-		})
-	}
-	os.WriteFile(filepath.Join(dst, "listing.md"), []byte("# Listing: Fire Safety Briefing\n\n## Title\nFire Safety Briefing for Bakeries, Editable PowerPoint and Google Slides Training with Quiz\n\n## Description\n"+strings.Repeat("Brief your staff on fire safety tonight: the slides, the speaker notes and a quiz with its answer key, in English and German. ", 3)+"\n\n## Tags\n- fire safety training\n\n## Price\n19.00 USD\n\n## AI\nText: assisted\nImages: none\nTools: Claude\nStatement: Texts drafted with Claude and reviewed; layout and checks by software.\n"), 0o644)
-	return dir
-}
 
 func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 	t.Parallel()
@@ -93,29 +64,9 @@ func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 
 func TestBundleSellsDeckAndDocumentsTogether(t *testing.T) {
 	t.Parallel()
-	dir := deckProject(t)
-	t.Cleanup(func() { strictArchives(t, dir) })
 	// The kit's handouts: the club's documents stand in for them.
-	src := filepath.Join("..", "document", "testdata", "club")
-	dst := filepath.Join(dir, "deliverables", "document")
-	filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		rel, _ := filepath.Rel(src, path)
-		os.MkdirAll(filepath.Join(dst, filepath.Dir(rel)), 0o755)
-		data, _ := os.ReadFile(path)
-		return os.WriteFile(filepath.Join(dst, rel), data, 0o644)
-	})
-	configure(t, dir, func(c map[string]any) {
-		c["deliverables"] = map[string]any{
-			"deck":     map[string]any{"sell": "bundle", "version": "2027.1"},
-			"document": map[string]any{"sell": "bundle"},
-			"bundle":   map[string]any{"name": "Fire Safety Kit", "path": bundlePath, "units": []string{"deck", "document"}},
-		}
-	})
-	os.MkdirAll(filepath.Join(dir, "deliverables", "bundle"), 0o755)
-	os.Rename(filepath.Join(dir, "deliverables", "deck", "listing.md"), filepath.Join(dir, "deliverables", "bundle", "listing.md"))
+	dir := testproject.DeckDocumentBundle(t)
+	t.Cleanup(func() { strictArchives(t, dir) })
 	result, err := Compile(context.Background(), dir, Options{Publish: true})
 	if err != nil {
 		t.Fatalf("%v %v", err, findings(result, ""))

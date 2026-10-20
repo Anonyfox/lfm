@@ -9,36 +9,8 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/scaffold"
 	"github.com/Anonyfox/lfm/internal/spreadsheet"
 )
-
-const sheetPath = "x7m2x9q4w8e3r6t5y1u0"
-
-func spreadsheetProject(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	if _, err := scaffold.Create(dir); err != nil {
-		t.Fatal(err)
-	}
-	configure(t, dir, func(c map[string]any) {
-		c["deliverables"] = map[string]any{"spreadsheet": map[string]any{"path": sheetPath, "version": "2027.1",
-			"sheets": map[string]any{"en": "https://docs.google.com/spreadsheets/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit"}}}
-		c["seller"] = map[string]any{"name": "Calm Money"}
-	})
-	src := filepath.Join("..", "spreadsheet", "testdata", "budget")
-	dst := filepath.Join(dir, filepath.FromSlash(spreadsheet.Dir))
-	os.MkdirAll(dst, 0o755)
-	for _, name := range []string{"concept.md", "workbook.json"} {
-		data, err := os.ReadFile(filepath.Join(src, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		os.WriteFile(filepath.Join(dst, name), data, 0o644)
-	}
-	os.WriteFile(filepath.Join(dst, "listing.md"), []byte("# Listing: Paycheck Budget\n\n## Title\nPaycheck Budget Spreadsheet for Google Sheets and Excel\n\n## Description\n"+strings.Repeat("Know what is safe to spend until payday, every evening, in one simple list. ", 4)+"\n\n## Tags\n- budget spreadsheet\n\n## Price\n7.90 USD\n\n## AI\nText: assisted\nImages: none\nTools: Claude\nStatement: Texts edited with Claude; formulas computed and checked by software.\n"), 0o644)
-	return dir
-}
 
 func TestSpreadsheetIsBuiltCheckedAndDelivered(t *testing.T) {
 	t.Parallel()
