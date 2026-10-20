@@ -23,6 +23,7 @@ warning  spreadsheet.sheets  lfm.json:3:5
   spreadsheet  Paycheck Budget · 2 editions · 6 tabs · 696 formulas
                computed with empty and example data · 4 files · the start PDFs and images render with --release · 1 Google Sheets linked · https://example.com/001/x7m2x9q4w8e3r6t5y1u0/
   stores       distribution/spreadsheet/ · 4 channels
+               etsy, gumroad, payhip, ko-fi
 'lfm rules <id>' explains any rule above.
 Next (research): collect real buyer voices and competitor pages into research/.
                  Follow 'lfm skills research', or install them all with 'lfm skills install'.

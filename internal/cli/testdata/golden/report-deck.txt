@@ -4,5 +4,6 @@
   decks        Fire Safety Briefing · 1 deck, 11 slides, 15 minutes, 2 quiz questions · warm theme · 2 languages
                de, en · 2 ZIPs · the slide and notes PDFs, quiz sheets, guides and images print with --release · https://example.com/001/q7w2e9r4t1y8u3i6o5/
   stores       distribution/deck/ · 4 channels
+               etsy, gumroad, payhip, ko-fi
 Next (research): collect real buyer voices and competitor pages into research/.
                  Follow 'lfm skills research', or install them all with 'lfm skills install'.

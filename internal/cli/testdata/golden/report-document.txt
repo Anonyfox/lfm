@@ -4,5 +4,6 @@
   documents    Allotment Society Kit · 3 documents · warm theme · 2 editions
                en-letter, en-a4 · 15 fields to fill · 2 ZIPs · the PDFs, guides and images print with --release · https://example.com/001/k3n8q2w7x5r9t4m6p1/
   stores       distribution/document/ · 4 channels
+               etsy, gumroad, payhip, ko-fi
 Next (research): collect real buyer voices and competitor pages into research/.
                  Follow 'lfm skills research', or install them all with 'lfm skills install'.

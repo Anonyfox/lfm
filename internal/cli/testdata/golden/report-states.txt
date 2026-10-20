@@ -21,24 +21,28 @@
   spreadsheet  Budget · 1 edition · 1 tab · 1 formula · sold in the bundle
                computed with example data · 1 file · recalculated in LibreOffice · 1 Google Sheets linked
   stores       distribution/spreadsheet/ · 1 channel · 3 listing images
+               etsy
 ## document
   documents    no deliverables/document/concept.md yet
   documents    Club · no documents yet
   documents    Club · 1 document · plain theme · 1 edition · sold in shops
                en-a4 · 1 field to fill · 1 ZIP · 1 document prints as planned · 2 Google Docs linked
   stores       distribution/document/ · 1 channel · 2 listing images
+               etsy
 ## deck
   decks        no deliverables/deck/concept.md yet
   decks        Briefing · no decks yet
   decks        Briefing · 2 decks, 1 slide, 1 minute, 1 quiz question · bold theme · 1 language
                en · 1 ZIP · 2 decks print as planned · 1 Google Slides linked
   stores       distribution/deck/ · 1 channel · 1 listing image
+               etsy
 ## bundle
   bundle       Kit · no deliverables · sold in shops
                waits until every unit is built
   bundle       Kit · book, printable and deck
                1 file · https://x.test/k/
   stores       distribution/bundle/ · 1 channel · 1 listing image
+               etsy
 ## research
   research     0 voices · 0 platforms · 2 peers
   research     40 voices · 4 platforms · 1 peer · latest batch 2026-10-02
@@ -63,12 +67,12 @@
                LCP 0.9 s · TBT 0 ms · CLS 0 · 1 open audit
                set on your host, not the page: use HTTP/2; énable text compression
                full report: .lfm/lighthouse.html
-  browser      Chrome 141, 0 runtime problems in 0 ms
+  browser      Chrome 141, 0 runtime problems in <1 ms
   frames       1 screenshot, none changed since the last run
                .lfm/frames
   lighthouse   performance – · accessibility – · best practices – · SEO –
                LCP – · TBT – · CLS – · 0 open audits
-  browser      Chrome 141, 0 runtime problems in 0 ms
+  browser      Chrome 141, 0 runtime problems in <1 ms
   frames       40 screenshots, 9 changed since the last run
   frames       2 screenshots
 ## result

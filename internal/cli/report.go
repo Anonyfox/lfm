@@ -202,7 +202,7 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 		return
 	}
 	if rt := r.Audit.Runtime; rt != nil && rt.Status == "ok" {
-		fmt.Fprintf(w, "  %s %s, %s in %s\n", term.Pad("browser", 12), rt.Chrome, term.Plural(len(rt.Problems), "runtime problem"), fmt.Sprintf("%d ms", rt.DurationMS))
+		fmt.Fprintf(w, "  %s %s, %s in %s\n", term.Pad("browser", 12), rt.Chrome, term.Plural(len(rt.Problems), "runtime problem"), term.Duration(time.Duration(rt.DurationMS)*time.Millisecond))
 	}
 	if rt := r.Audit.Runtime; rt != nil && rt.Layout != nil && rt.Layout.Count > 0 {
 		l := rt.Layout
@@ -372,10 +372,7 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 		detail += " · " + b.URL
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
-	if len(b.Channels) > 0 {
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), "distribution/book/ · "+term.Plural(len(b.Channels), "channel"))
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(b.Channels, ", ")))
-	}
+	renderStores(w, s, "book", b.Channels, 0)
 }
 
 // renderPrintable summarizes the printable deliverable: what is planned and
@@ -412,14 +409,7 @@ func renderPrintable(w io.Writer, s term.Style, pr *printable.Summary) {
 		detail += " · " + pr.URL
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
-	if len(pr.Channels) > 0 {
-		stores := "distribution/printable/ · " + term.Plural(len(pr.Channels), "channel")
-		if pr.Images > 0 {
-			stores += " · " + term.Plural(pr.Images, "listing image")
-		}
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(pr.Channels, ", ")))
-	}
+	renderStores(w, s, "printable", pr.Channels, pr.Images)
 }
 
 // sellNote marks a unit that does not sell through the page's checkout.
@@ -461,13 +451,7 @@ func renderSpreadsheet(w io.Writer, s term.Style, sp *spreadsheet.Summary) {
 		detail += " · " + sp.URL
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
-	if len(sp.Channels) > 0 {
-		stores := "distribution/spreadsheet/ · " + term.Plural(len(sp.Channels), "channel")
-		if sp.Images > 0 {
-			stores += " · " + term.Plural(sp.Images, "listing image")
-		}
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
-	}
+	renderStores(w, s, "spreadsheet", sp.Channels, sp.Images)
 }
 
 // renderDocument summarizes the document set: what is built and printed,
@@ -500,13 +484,7 @@ func renderDocument(w io.Writer, s term.Style, d *document.Summary) {
 		detail += " · " + d.URL
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
-	if len(d.Channels) > 0 {
-		stores := "distribution/document/ · " + term.Plural(len(d.Channels), "channel")
-		if d.Images > 0 {
-			stores += " · " + term.Plural(d.Images, "listing image")
-		}
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
-	}
+	renderStores(w, s, "document", d.Channels, d.Images)
 }
 
 // renderBundle summarizes the bundle and the deliverables it holds.
@@ -524,13 +502,7 @@ func renderBundle(w io.Writer, s term.Style, b *bundle.Summary) {
 		detail += " · " + b.URL
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
-	if len(b.Channels) > 0 {
-		stores := "distribution/bundle/ · " + term.Plural(len(b.Channels), "channel")
-		if b.Images > 0 {
-			stores += " · " + term.Plural(b.Images, "listing image")
-		}
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
-	}
+	renderStores(w, s, "bundle", b.Channels, b.Images)
 }
 
 // groupDigits writes 12345 as "12,345".
@@ -581,13 +553,7 @@ func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
 		detail += " · " + d.URL
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
-	if len(d.Channels) > 0 {
-		stores := "distribution/deck/ · " + term.Plural(len(d.Channels), "channel")
-		if d.Images > 0 {
-			stores += " · " + term.Plural(d.Images, "listing image")
-		}
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
-	}
+	renderStores(w, s, "deck", d.Channels, d.Images)
 }
 
 // listed joins names as prose: "deck", "deck and document", "a, b and c".
@@ -599,4 +565,18 @@ func listed(names []string) string {
 		return names[0]
 	}
 	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+}
+
+// renderStores names a unit's shop package: its folder, how many channels
+// and listing images it holds, and which channels.
+func renderStores(w io.Writer, s term.Style, unit string, channels []string, images int) {
+	if len(channels) == 0 {
+		return
+	}
+	stores := "distribution/" + unit + "/ · " + term.Plural(len(channels), "channel")
+	if images > 0 {
+		stores += " · " + term.Plural(images, "listing image")
+	}
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
+	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(channels, ", ")))
 }
