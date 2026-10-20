@@ -182,7 +182,7 @@ func measure(p prose, language string) quality {
 		if lang == "en" && trailingParticiple.MatchString(s.text) {
 			q.participles = append(q.participles, line)
 		}
-		for _, w := range wordPattern.FindAllString(s.text, -1) {
+		for _, w := range aitext.Runs(s.text, -1, '\'') {
 			n := syllablesOf(w, bl, lang)
 			letters += utf8.RuneCountInString(w)
 			if n >= 4 {
@@ -259,7 +259,7 @@ func measure(p prose, language string) quality {
 			q.allBold = append(q.allBold, b.line)
 		}
 		q.specifics += specifics(b.text, bl)
-		for _, w := range wordPattern.FindAllString(b.text, -1) {
+		for _, w := range aitext.Runs(b.text, -1, '\'') {
 			lw := w
 			if bl.properNouns {
 				lw = strings.ToLower(w)
@@ -492,7 +492,7 @@ func syllablesOf(w string, bl bookLang, lang string) int {
 
 // negated reports whether a sentence contains a negation word.
 func negated(sentence string, bl bookLang) bool {
-	for _, w := range wordPattern.FindAllString(sentence, -1) {
+	for _, w := range aitext.Runs(sentence, -1, '\'') {
 		if bl.negation[strings.ToLower(w)] {
 			return true
 		}

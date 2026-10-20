@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -63,10 +65,36 @@ var FeatureNames = []string{
 
 var (
 	sentenceEnd = regexp.MustCompile(`[.!?…]+["”’»)]*(\s+|$)`)
-	wordRE      = regexp.MustCompile(`[\p{L}\p{N}’']+`)
 )
 
-func words(s string) []string { return wordRE.FindAllString(s, -1) }
+func words(s string) []string { return Runs(s, -1, '\'', '’') }
+
+// Runs are the first n (every one when n < 0) maximal runs of letters,
+// digits and marks in s: what [\p{L}\p{N}<marks>]+ matches, without
+// the regexp machinery a book's worth of words pays for.
+func Runs(s string, n int, marks ...rune) []string {
+	if n == 0 {
+		return nil
+	}
+	var out []string
+	start := -1
+	for i, r := range s {
+		in := unicode.IsLetter(r) || unicode.IsNumber(r) || slices.Contains(marks, r)
+		switch {
+		case in && start < 0:
+			start = i
+		case !in && start >= 0:
+			if out = append(out, s[start:i]); len(out) == n {
+				return out
+			}
+			start = -1
+		}
+	}
+	if start >= 0 && len(out) != n {
+		out = append(out, s[start:])
+	}
+	return out
+}
 
 func sentences(paragraph string) []string {
 	var out []string

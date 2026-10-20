@@ -15,6 +15,7 @@ import (
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/text"
 
+	"github.com/Anonyfox/lfm/internal/aitext"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 )
@@ -305,8 +306,6 @@ const (
 	minOpenerRepeats      = 4
 )
 
-var wordPattern = regexp.MustCompile(`[\p{L}\p{N}']+`)
-
 // bookTells are the habits of generated nonfiction beyond the copy tells:
 // announcing the chapter, travel metaphors, and claims of unnamed studies.
 var bookTells = []*regexp.Regexp{
@@ -326,7 +325,7 @@ var bookTells = []*regexp.Regexp{
 var unsourced = regexp.MustCompile(`(?i)\b(?:studies|research|experts|surveys?) (?:show|shows|have shown|has shown|suggest|suggests|agree|say|found)\b|\b(?:studien|untersuchungen|umfragen|experten|forscher) (?:zeigen|belegen|haben gezeigt|sind sich einig|sagen|fanden)\b|\blaut (?:einer |neuen |aktuellen )?(?:studie|umfrage|untersuchung)\b|\baccording to (?:a |one |recent )?(?:study|survey|research)\b|\b\d+(?:[.,]\d+)?\s?(?:%|percent|prozent) (?:of|aller|der|von den)\b`)
 
 func opener(s string) string {
-	words := wordPattern.FindAllString(strings.ToLower(s), 2)
+	words := aitext.Runs(strings.ToLower(s), 2, '\'')
 	if len(words) < 2 {
 		return ""
 	}
