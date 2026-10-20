@@ -13,7 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"text/template/parse"
+	"time"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -178,6 +180,10 @@ const (
 	rendered = 64 << 20
 )
 
+// renderTime is how long one edition's render may take; real ones take
+// milliseconds.
+var renderTime = 10 * time.Second
+
 func bounded(name string, n int) (int, error) {
 	if n > numbers || n < -numbers {
 		return 0, fmt.Errorf("%s: %d is beyond ±%d", name, n, numbers)
@@ -229,13 +235,18 @@ func parseTemplate(src []byte, language string) (*template.Template, error) {
 	return t, nil
 }
 
-// limited stops a render that writes more than its limit.
+// limited stops a render that writes more than its limit, or that was
+// given up on.
 type limited struct {
 	bytes.Buffer
-	left int
+	left    int
+	stopped atomic.Bool
 }
 
 func (c *limited) Write(p []byte) (int, error) {
+	if c.stopped.Load() {
+		return 0, errors.New("the render was given up on")
+	}
 	if len(p) > c.left {
 		return 0, fmt.Errorf("the template writes more than %d MB", rendered>>20)
 	}
@@ -295,8 +306,18 @@ var cssURL = regexp.MustCompile(`url\(\s*(['"]?)([^'")]+)(['"]?)\s*\)`)
 // page numbers filled in, and the pages described for the checks.
 func render(t *template.Template, view View, plan Plan, style string) (Rendered, error) {
 	body := &limited{left: rendered}
-	if err := t.Execute(body, view); err != nil {
-		return Rendered{}, err
+	// A template cannot be stopped from outside; one that runs past
+	// renderTime is given up on, and stops at its next write.
+	done := make(chan error, 1)
+	go func() { done <- t.Execute(body, view) }()
+	select {
+	case err := <-done:
+		if err != nil {
+			return Rendered{}, err
+		}
+	case <-time.After(renderTime):
+		body.stopped.Store(true)
+		return Rendered{}, fmt.Errorf("the template did not finish within %s; check its loops", renderTime)
 	}
 	nodes, err := html.ParseFragment(&body.Buffer, &html.Node{Type: html.ElementNode, Data: "body", DataAtom: atom.Body})
 	if err != nil {
