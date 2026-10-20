@@ -37,9 +37,13 @@ one package per responsibility, each testable on its own.
 | `fontcheck`, `imaging` | Bounded inspection of font containers and image headers, without decoding. |
 | `htmlcompact` | Syntax-only HTML compaction, proven by comparing parsed trees. |
 | `dataurl` | Data URL encoding and decoding. |
+| `zipx` | The one ZIP writer behind every EPUB, Office file and download: sizes in every header, no data descriptors or extra fields, flagged UTF-8 names, a fixed time, and the input-key stamp in the comment. |
+| `paper` | The paper sizes editable files print on, and which a language prints on by default. |
+| `buildid` | The identity of the running lfm build, part of every built file's key, so an upgrade rebuilds files but keeps prints. |
 | `htmlx`, `jsonsrc`, `diagnostic` | Shared node helpers, JSON source locations, and the finding format. |
 | `release` | Headless Chrome for critical CSS, the runtime probe and the frame-by-frame layout audit, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
+| `golden`, `testtmp` | For tests only: manifests of whole outputs held to `testdata/golden` (`LFM_UPDATE_GOLDEN=1` rewrites them), and a temp directory of their own for browser-backed tests. |
 
 Dependencies point one way, in layers: `cli` drives `serve`, `compile`, `scaffold` and `skills`; `compile`
 drives the checkers, `research`, `concept` and `release`; everything may use the shared base (`project`, `diagnostic`,
@@ -73,4 +77,6 @@ favicons, resource hints) belong in the assemble stage, where they are visible i
 
 `go test ./...` runs everything; browser-backed tests skip when Chrome is missing, and `-short` skips them
 explicitly. Parsers and analyzers that read untrusted input have fuzz targets (`go test -list Fuzz ./...`).
-`BenchmarkCompile` in `compile` tracks compile speed, optionally on any project via `LFM_BENCH_DIR`.
+Golden manifests pin every deliverable's output byte for byte, and an allocation budget in `compile` holds
+an ordinary compile to its memory. `BenchmarkCompile` in `compile` tracks compile speed, optionally on any
+project via `LFM_BENCH_DIR`.
