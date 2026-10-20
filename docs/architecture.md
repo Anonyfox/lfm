@@ -43,7 +43,7 @@ one package per responsibility, each testable on its own.
 | `htmlx`, `jsonsrc`, `diagnostic` | Shared node helpers, JSON source locations, and the finding format. |
 | `release` | Headless Chrome for critical CSS, the runtime probe and the frame-by-frame layout audit, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
-| `golden`, `testtmp` | For tests only: manifests of whole outputs held to `testdata/golden` (`LFM_UPDATE_GOLDEN=1` rewrites them), and a temp directory of their own for browser-backed tests. |
+| `golden`, `testtmp`, `testproject` | For tests only: manifests of whole outputs held to `testdata/golden` (`LFM_UPDATE_GOLDEN=1` rewrites them), a temp directory of their own for browser-backed tests, and a project per deliverable for the compile and report tests. |
 
 Dependencies point one way, in layers: `cli` drives `serve`, `compile`, `scaffold` and `skills`; `compile`
 drives the checkers, `research`, `concept` and `release`; everything may use the shared base (`project`, `diagnostic`,
