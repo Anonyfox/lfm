@@ -12,6 +12,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/concept"
@@ -160,8 +162,15 @@ func ParseLook(s *concept.Section, add func(line int, message, hint string)) Loo
 			l.Accent = ""
 		}
 	}
-	l.TextFont, _ = s.Field("Text font")
-	l.HeadFont, _ = s.Field("Heading font")
+	font := func(label string) string {
+		v, _ := s.Field(label)
+		if !utf8.ValidString(v) || strings.IndexFunc(v, unicode.IsControl) >= 0 {
+			add(s.Line, fmt.Sprintf("Look's \"%s:\" %q is not a font family name.", label, v), "Name the family as the font calls itself, such as Source Serif 4.")
+			return ""
+		}
+		return v
+	}
+	l.TextFont, l.HeadFont = font("Text font"), font("Heading font")
 	return l
 }
 
