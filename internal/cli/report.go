@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/bundle"
@@ -218,23 +220,42 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 			line += " (the page threw errors on load; frames may show a broken state)"
 		}
 		fmt.Fprintf(w, "  %s %s\n", term.Pad("frames", 12), line)
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(l.Frames))
+		if l.Frames != "" {
+			fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(l.Frames))
+		}
 	}
 	if lh := r.Audit.Lighthouse; lh != nil && lh.Status == "ok" {
 		fmt.Fprintf(w, "  %s performance %s · accessibility %s · best practices %s · SEO %s\n", term.Pad("lighthouse", 12),
 			score(lh.Scores["performance"]), score(lh.Scores["accessibility"]), score(lh.Scores["best-practices"]), score(lh.Scores["seo"]))
-		fmt.Fprintf(w, "  %s LCP %s · TBT %s · CLS %s · %s\n", term.Pad("", 12), lh.Metrics["largest-contentful-paint"], lh.Metrics["total-blocking-time"], lh.Metrics["cumulative-layout-shift"], term.Plural(len(lh.Findings), "open audit"))
-		if len(lh.Host) > 0 {
-			var titles []string
-			for _, f := range lh.Host {
-				titles = append(titles, strings.ToLower(f.Title[:1])+f.Title[1:])
+		fmt.Fprintf(w, "  %s LCP %s · TBT %s · CLS %s · %s\n", term.Pad("", 12), metric(lh.Metrics["largest-contentful-paint"]), metric(lh.Metrics["total-blocking-time"]), metric(lh.Metrics["cumulative-layout-shift"]), term.Plural(len(lh.Findings), "open audit"))
+		var titles []string
+		for _, f := range lh.Host {
+			if f.Title != "" {
+				titles = append(titles, lowerFirst(f.Title))
 			}
+		}
+		if len(titles) > 0 {
 			fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(term.Wrap("set on your host, not the page: "+strings.Join(titles, "; "), term.Width-15, strings.Repeat(" ", 15))))
 		}
 		if lh.Report != "" {
 			fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim("full report: "+lh.Report))
 		}
 	}
+}
+
+// metric is a Lighthouse metric's display value, or a dash for one the run
+// could not measure, such as LCP on a page without a contentful paint.
+func metric(value string) string {
+	if value == "" {
+		return "–"
+	}
+	return value
+}
+
+// lowerFirst lowers a title's first letter to continue a sentence with it.
+func lowerFirst(title string) string {
+	r, size := utf8.DecodeRuneInString(title)
+	return string(unicode.ToLower(r)) + title[size:]
 }
 
 func score(n *int) string {
@@ -352,7 +373,7 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(b.Channels) > 0 {
-		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), fmt.Sprintf("distribution/book/ · %d channels", len(b.Channels)))
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), "distribution/book/ · "+term.Plural(len(b.Channels), "channel"))
 		fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(b.Channels, ", ")))
 	}
 }
@@ -392,7 +413,7 @@ func renderPrintable(w io.Writer, s term.Style, pr *printable.Summary) {
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(pr.Channels) > 0 {
-		stores := fmt.Sprintf("distribution/printable/ · %d channels", len(pr.Channels))
+		stores := "distribution/printable/ · " + term.Plural(len(pr.Channels), "channel")
 		if pr.Images > 0 {
 			stores += " · " + term.Plural(pr.Images, "listing image")
 		}
@@ -441,7 +462,7 @@ func renderSpreadsheet(w io.Writer, s term.Style, sp *spreadsheet.Summary) {
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(sp.Channels) > 0 {
-		stores := fmt.Sprintf("distribution/spreadsheet/ · %d channels", len(sp.Channels))
+		stores := "distribution/spreadsheet/ · " + term.Plural(len(sp.Channels), "channel")
 		if sp.Images > 0 {
 			stores += " · " + term.Plural(sp.Images, "listing image")
 		}
@@ -480,7 +501,7 @@ func renderDocument(w io.Writer, s term.Style, d *document.Summary) {
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(d.Channels) > 0 {
-		stores := fmt.Sprintf("distribution/document/ · %d channels", len(d.Channels))
+		stores := "distribution/document/ · " + term.Plural(len(d.Channels), "channel")
 		if d.Images > 0 {
 			stores += " · " + term.Plural(d.Images, "listing image")
 		}
@@ -504,7 +525,7 @@ func renderBundle(w io.Writer, s term.Style, b *bundle.Summary) {
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(b.Channels) > 0 {
-		stores := fmt.Sprintf("distribution/bundle/ · %d channels", len(b.Channels))
+		stores := "distribution/bundle/ · " + term.Plural(len(b.Channels), "channel")
 		if b.Images > 0 {
 			stores += " · " + term.Plural(b.Images, "listing image")
 		}
@@ -512,12 +533,17 @@ func renderBundle(w io.Writer, s term.Style, b *bundle.Summary) {
 	}
 }
 
+// groupDigits writes 12345 as "12,345".
 func groupDigits(n int) string {
 	s := fmt.Sprint(n)
+	sign := ""
+	if n < 0 {
+		sign, s = "-", s[1:]
+	}
 	for i := len(s) - 3; i > 0; i -= 3 {
 		s = s[:i] + "," + s[i:]
 	}
-	return s
+	return sign + s
 }
 
 func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
@@ -534,7 +560,7 @@ func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
 	}
 	line := fmt.Sprintf("%s · %s, %s", d.Name, term.Plural(d.Decks, "deck"), term.Plural(d.Slides, "slide"))
 	if d.Minutes > 0 {
-		line += fmt.Sprintf(", %d minutes", d.Minutes)
+		line += ", " + term.Plural(d.Minutes, "minute")
 	}
 	if d.Quizzes > 0 {
 		line += ", " + term.Plural(d.Quizzes, "quiz question")
@@ -556,7 +582,7 @@ func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(detail))
 	if len(d.Channels) > 0 {
-		stores := fmt.Sprintf("distribution/deck/ · %d channels", len(d.Channels))
+		stores := "distribution/deck/ · " + term.Plural(len(d.Channels), "channel")
 		if d.Images > 0 {
 			stores += " · " + term.Plural(d.Images, "listing image")
 		}

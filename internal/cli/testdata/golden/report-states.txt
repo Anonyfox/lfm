@@ -1,0 +1,80 @@
+## book
+  book         no deliverables/book/concept.md yet
+  book         untitled · 1 of 12 chapters · 2,400 of 36,000 words
+               presale: the download page says the copy is being written · https://x.test/p/
+  book         Rye · 0 of 2 chapters · 0 of 1,200 words · sold in shops
+               not built until every chapter is written
+  book         Rye · 2 of 2 chapters · 1,250 of 1,200 words · sold in the bundle
+               EPUB 50.8 KiB, PDF 1.00 MiB · fits
+  stores       distribution/book/ · 1 channel
+               kdp
+## printable
+  printable    no deliverables/printable/concept.md yet
+  printable    Mazes · no printable.html.tmpl yet
+  printable    Mazes · 1 edition · 1 page · 1 link · sold in shops
+               1 PDF · fits
+  stores       distribution/printable/ · 1 channel · 1 listing image
+               etsy
+## spreadsheet
+  spreadsheet  no deliverables/spreadsheet/concept.md yet
+  spreadsheet  Budget · no workbook.json yet
+  spreadsheet  Budget · 1 edition · 1 tab · 1 formula · sold in the bundle
+               computed with example data · 1 file · recalculated in LibreOffice · 1 Google Sheets linked
+  stores       distribution/spreadsheet/ · 1 channel · 3 listing images
+## document
+  documents    no deliverables/document/concept.md yet
+  documents    Club · no documents yet
+  documents    Club · 1 document · plain theme · 1 edition · sold in shops
+               en-a4 · 1 field to fill · 1 ZIP · 1 document prints as planned · 2 Google Docs linked
+  stores       distribution/document/ · 1 channel · 2 listing images
+## deck
+  decks        no deliverables/deck/concept.md yet
+  decks        Briefing · no decks yet
+  decks        Briefing · 2 decks, 1 slide, 1 minute, 1 quiz question · bold theme · 1 language
+               en · 1 ZIP · 2 decks print as planned · 1 Google Slides linked
+  stores       distribution/deck/ · 1 channel · 1 listing image
+## bundle
+  bundle       Kit · no deliverables · sold in shops
+               waits until every unit is built
+  bundle       Kit · book, printable and deck
+               1 file · https://x.test/k/
+  stores       distribution/bundle/ · 1 channel · 1 listing image
+## research
+  research     0 voices · 0 platforms · 2 peers
+  research     40 voices · 4 platforms · 1 peer · latest batch 2026-10-02
+               reddit 50% · amazon 25% · forum 15% · +1 more · posted 2021 to 2026, 40% within a year
+  research     1 voice · 1 platform · 0 peers
+               reddit 100% · posted 2026, 100% within a year
+## concept
+  concept      no direction chosen yet
+               cites 0 voices from 0 platforms and 0 peers · 0 colors · 0 typefaces · 0 planned images
+  concept      Warm kitchen · 1 open question
+               cites 1 voice from 1 platform and 1 peer · 1 color · 1 typeface · 1 planned image
+## release
+  release      no Chrome found
+  release      critical CSS 1.8 KiB of 8.8 KiB blocks rendering; the rest loads after
+  images       1 image below the first screen loads lazily; hero.webp is fetched first
+  release      critical CSS 1.8 KiB of 8.8 KiB blocks rendering; the rest loads after
+  images       3 images below the first screen load lazily
+  browser      Chrome 141, 1 runtime problem in 812 ms
+  frames       12 screenshots, 2 changed since the last run: phone-01 desktop-03 (the page threw errors on load; frames may show a broken state)
+               .lfm/frames
+  lighthouse   performance 98 · accessibility 100 · best practices – · SEO 92
+               LCP 0.9 s · TBT 0 ms · CLS 0 · 1 open audit
+               set on your host, not the page: use HTTP/2; énable text compression
+               full report: .lfm/lighthouse.html
+  browser      Chrome 141, 0 runtime problems in 0 ms
+  frames       1 screenshot, none changed since the last run
+               .lfm/frames
+  lighthouse   performance – · accessibility – · best practices – · SEO –
+               LCP – · TBT – · CLS – · 0 open audits
+  browser      Chrome 141, 0 runtime problems in 0 ms
+  frames       40 screenshots, 9 changed since the last run
+  frames       2 screenshots
+## result
+✗ shop failed: it could not finish; output/ unchanged
+✓ shop compiled in <1 ms
+  index.html   900 B       
+  4 assets     10 B        d.png, c.png, b.js, +1 more
+  external     https://cdn.test/x.js
+  optional     not installed, and not needed: lighthouse: npm i -g lighthouse
