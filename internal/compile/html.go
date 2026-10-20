@@ -107,16 +107,11 @@ func (b *builder) processHTML(doc *html.Node, data, jsonld []byte) error {
 				htmlx.SetAttr(node, "href", b.config.URL)
 			}
 			if htmlx.Rel(node, "discord:component-embed") {
-				ref, err := b.resource(htmlx.Attr(node, "href"), b.root, true)
+				u, err := b.publicURL(htmlx.Attr(node, "href"))
 				if err != nil {
 					return err
 				}
-				base, _ := url.Parse(b.config.URL)
-				u, err := url.Parse(ref)
-				if err != nil {
-					return err
-				}
-				htmlx.SetAttr(node, "href", base.ResolveReference(u).String())
+				htmlx.SetAttr(node, "href", u.String())
 			}
 			if stylesheetRel(rel) {
 				if err := plan(node).stylesheet(node); err != nil {
@@ -134,61 +129,22 @@ func (b *builder) processHTML(doc *html.Node, data, jsonld []byte) error {
 				key = htmlx.Attr(node, "name")
 			}
 			key = strings.ToLower(strings.TrimSpace(key))
-			if key == "og:image" || key == "og:image:url" || key == "og:image:secure_url" || key == "twitter:image" || key == "twitter:image:src" || key == "snapchat:sticker" || key == "twitter:player:stream" || key == "og:video" || key == "og:video:url" || key == "og:video:secure_url" || key == "og:audio" || key == "og:audio:url" || key == "og:audio:secure_url" {
+			if sharedMedia[key] {
 				if htmlx.Attr(node, "content") == "" {
 					return fmt.Errorf("%s needs a media source", key)
 				}
-				ref, err := b.resource(htmlx.Attr(node, "content"), b.root, true)
+				u, err := b.publicURL(htmlx.Attr(node, "content"))
 				if err != nil {
 					return err
 				}
-				base, _ := url.Parse(b.config.URL)
-				u, err := url.Parse(ref)
-				if err != nil {
-					return err
-				}
-				u = base.ResolveReference(u)
 				if u.Scheme != "https" && u.Scheme != "http" {
 					return fmt.Errorf("%s needs a public HTTP(S) media URL", key)
 				}
 				htmlx.SetAttr(node, "content", u.String())
 			}
 		}
-		for i := range node.Attr {
-			item := &node.Attr[i]
-			var err error
-			switch item.Key {
-			case "src", "poster":
-				item.Val, err = b.resource(item.Val, b.root, false)
-			case "data":
-				if node.Data == "object" {
-					item.Val, err = b.resource(item.Val, b.root, false)
-				}
-			case "srcset", "imagesrcset":
-				item.Val, err = b.srcset(item.Val)
-			case "href":
-				icon := node.Data == "link" && (htmlx.Rel(node, "icon") || htmlx.Rel(node, "apple-touch-icon") || htmlx.Rel(node, "mask-icon"))
-				if icon || htmlx.HasAttr(node, "download") || strings.HasPrefix(item.Val, "assets/") || strings.HasPrefix(item.Val, "./assets/") {
-					fileIcon := icon
-					if htmlx.Rel(node, "icon") {
-						if path, _, pathErr := b.assetPath(item.Val, b.root); pathErr == nil {
-							relative, _ := filepath.Rel(b.root, path)
-							if b.config.Build.Assets.Overrides[filepath.ToSlash(relative)] == "inline" {
-								fileIcon = false
-							}
-						}
-					}
-					// Navigation, feeds and manifests need real URLs even when tiny;
-					// browsers/crawlers cannot reliably navigate to inline data URLs.
-					nativeLink := !icon && (node.Data == "a" || node.Data == "area" || node.Data == "link")
-					item.Val, err = b.resource(item.Val, b.root, htmlx.HasAttr(node, "download") || fileIcon || nativeLink)
-				}
-			case "style":
-				item.Val, err = b.inlineStyle(item.Val)
-			}
-			if err != nil {
-				return fmt.Errorf("<%s %s>: %w", node.Data, item.Key, err)
-			}
+		if err := b.rewriteAttributes(node); err != nil {
+			return err
 		}
 	}
 	for id, entry := range b.helpers {
@@ -254,4 +210,68 @@ func (b *builder) inlineStyle(value string) (string, error) {
 		code = result.Code
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(string(code)), "x{"), "}"), nil
+}
+
+// rewriteAttributes points an element's resource attributes at the files
+// the build emits, inlines small ones and rewrites inline styles.
+func (b *builder) rewriteAttributes(node *html.Node) error {
+	for i := range node.Attr {
+		item := &node.Attr[i]
+		var err error
+		switch item.Key {
+		case "src", "poster":
+			item.Val, err = b.resource(item.Val, b.root, false)
+		case "data":
+			if node.Data == "object" {
+				item.Val, err = b.resource(item.Val, b.root, false)
+			}
+		case "srcset", "imagesrcset":
+			item.Val, err = b.srcset(item.Val)
+		case "href":
+			icon := node.Data == "link" && (htmlx.Rel(node, "icon") || htmlx.Rel(node, "apple-touch-icon") || htmlx.Rel(node, "mask-icon"))
+			if icon || htmlx.HasAttr(node, "download") || strings.HasPrefix(item.Val, "assets/") || strings.HasPrefix(item.Val, "./assets/") {
+				fileIcon := icon
+				if htmlx.Rel(node, "icon") {
+					if path, _, pathErr := b.assetPath(item.Val, b.root); pathErr == nil {
+						relative, _ := filepath.Rel(b.root, path)
+						if b.config.Build.Assets.Overrides[filepath.ToSlash(relative)] == "inline" {
+							fileIcon = false
+						}
+					}
+				}
+				// Navigation, feeds and manifests need real URLs even when tiny;
+				// browsers/crawlers cannot reliably navigate to inline data URLs.
+				nativeLink := !icon && (node.Data == "a" || node.Data == "area" || node.Data == "link")
+				item.Val, err = b.resource(item.Val, b.root, htmlx.HasAttr(node, "download") || fileIcon || nativeLink)
+			}
+		case "style":
+			item.Val, err = b.inlineStyle(item.Val)
+		}
+		if err != nil {
+			return fmt.Errorf("<%s %s>: %w", node.Data, item.Key, err)
+		}
+	}
+	return nil
+}
+
+// sharedMedia are the meta tags whose content platforms fetch as media.
+var sharedMedia = map[string]bool{
+	"og:image": true, "og:image:url": true, "og:image:secure_url": true, "twitter:image": true, "twitter:image:src": true,
+	"snapchat:sticker": true, "twitter:player:stream": true, "og:video": true, "og:video:url": true, "og:video:secure_url": true,
+	"og:audio": true, "og:audio:url": true, "og:audio:secure_url": true,
+}
+
+// publicURL emits a local asset as a file and returns its absolute address
+// below the page's URL, as platforms that fetch it need.
+func (b *builder) publicURL(value string) (*url.URL, error) {
+	ref, err := b.resource(value, b.root, true)
+	if err != nil {
+		return nil, err
+	}
+	u, err := url.Parse(ref)
+	if err != nil {
+		return nil, err
+	}
+	base, _ := url.Parse(b.config.URL)
+	return base.ResolveReference(u), nil
 }

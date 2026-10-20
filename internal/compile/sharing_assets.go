@@ -46,16 +46,11 @@ func (b *builder) sharingAssets(n *html.Node) error {
 		if err != nil || remote {
 			return nil // platform URL errors belong in the final aggregate report
 		}
-		ref, err := b.resource(value, b.root, true)
+		u, err := b.publicURL(value)
 		if err != nil {
 			return err
 		}
-		base, _ := url.Parse(b.config.URL)
-		u, err := url.Parse(ref)
-		if err != nil {
-			return err
-		}
-		object[key] = base.ResolveReference(u).String()
+		object[key] = u.String()
 		changed = true
 		return nil
 	}
