@@ -3,6 +3,7 @@ package compile
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -37,6 +38,7 @@ const printFormat = "lfm-book-print-1"
 // a browser; a changed one keeps everything else current and waits for the
 // next release for its prints.
 type stock struct {
+	ctx     context.Context
 	root    string
 	release bool
 
@@ -51,8 +53,8 @@ type stock struct {
 	startErr error
 }
 
-func newStock(p project.Project, isRelease bool) *stock {
-	return &stock{root: p.Root, release: isRelease, files: map[string]string{}, zipped: map[string]zipRef{}, previous: map[string][]byte{}}
+func newStock(ctx context.Context, p project.Project, isRelease bool) *stock {
+	return &stock{ctx: ctx, root: p.Root, release: isRelease, files: map[string]string{}, zipped: map[string]zipRef{}, previous: map[string][]byte{}}
 }
 
 // press is one deliverable's view of the stock: pending when a print it
@@ -245,7 +247,7 @@ func (st *stock) printerFor() (*release.Printer, error) {
 	defer st.mu.Unlock()
 	if !st.started {
 		st.started = true
-		st.printer, st.startErr = release.NewPrinter()
+		st.printer, st.startErr = release.NewPrinter(st.ctx)
 	}
 	return st.printer, st.startErr
 }

@@ -80,7 +80,7 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 	for _, file := range b.files {
 		assets[file.name] = file.contents
 	}
-	observed, err := release.Analyze(preview.Bytes(), assets)
+	observed, err := release.Analyze(b.ctx, preview.Bytes(), assets)
 	if err != nil {
 		return report, optionalReleaseError{fmt.Errorf("release CSS analysis: %w", err)}
 	}
@@ -163,7 +163,7 @@ func (b *builder) imageHints(doc *html.Node, report *release.Result) {
 	if err := html.Render(&preview, doc); err != nil {
 		return
 	}
-	placements, err := release.ImagePlacement(preview.Bytes(), b.sidecars())
+	placements, err := release.ImagePlacement(b.ctx, preview.Bytes(), b.sidecars())
 	if err != nil || len(placements) != len(images) {
 		return
 	}

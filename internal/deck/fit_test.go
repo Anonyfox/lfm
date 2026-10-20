@@ -1,6 +1,7 @@
 package deck
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 // it must flag every slide Chrome cuts off, and at most one step before.
 func TestFitAgreesWithChrome(t *testing.T) {
 	t.Parallel()
-	printer, err := release.NewPrinter()
+	printer, err := release.NewPrinter(context.Background())
 	if err != nil || testing.Short() {
 		t.Skip(err)
 	}

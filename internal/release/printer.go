@@ -33,7 +33,7 @@ type Printer struct {
 var tabs = min(max(2, runtime.NumCPU()), 8)
 
 // NewPrinter starts Chrome. Close it when the release is done.
-func NewPrinter() (*Printer, error) {
+func NewPrinter(ctx context.Context) (*Printer, error) {
 	path, err := BrowserPath()
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func NewPrinter() (*Printer, error) {
 	}))
 	// No deadline on the browser itself: a large release prints for longer
 	// than any fixed limit; each tab has its own.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)

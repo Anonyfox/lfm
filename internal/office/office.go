@@ -3,6 +3,7 @@
 package office
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -42,7 +43,7 @@ func Missing(err error) bool { return errors.Is(err, errNotFound) }
 // to the filter (such as "pdf" or a csv filter with options) and returns
 // every file LibreOffice wrote, by name. A private profile keeps parallel
 // runs and the user's own LibreOffice apart.
-func Convert(soffice string, files map[string][]byte, filter string) (map[string][]byte, error) {
+func Convert(ctx context.Context, soffice string, files map[string][]byte, filter string) (map[string][]byte, error) {
 	dir, err := os.MkdirTemp("", "lfm-office-")
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func Convert(soffice string, files map[string][]byte, filter string) (map[string
 		}
 		args = append(args, path)
 	}
-	cmd := exec.Command(soffice, args...)
+	cmd := exec.CommandContext(ctx, soffice, args...)
 	cmd.Env = append(os.Environ(), "LC_ALL=en_US.UTF-8")
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start LibreOffice: %w", err)

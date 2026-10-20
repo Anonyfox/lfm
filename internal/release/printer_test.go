@@ -2,6 +2,7 @@ package release
 
 import (
 	"bytes"
+	"context"
 	"image/color"
 	"image/png"
 	"os"
@@ -24,7 +25,7 @@ func printer(t *testing.T) *Printer {
 	if _, err := BrowserPath(); err != nil {
 		t.Skip(err)
 	}
-	p, err := NewPrinter()
+	p, err := NewPrinter(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +297,7 @@ func TestImagePlacementFindsTheFirstScreen(t *testing.T) {
 <img src="hero.png"><div style="height:3000px"></div><img src="late.png"><img src="hidden.png" style="display:none"></body></html>`)
 	dot := pngOf(t, 2, 2, func(x, y int) color.Color { return color.White })
 	got, err := within(t, func() ([]Placement, error) {
-		return ImagePlacement(page, map[string][]byte{"hero.png": dot, "late.png": dot, "hidden.png": dot})
+		return ImagePlacement(context.Background(), page, map[string][]byte{"hero.png": dot, "late.png": dot, "hidden.png": dot})
 	})
 	if err != nil {
 		t.Fatal(err)

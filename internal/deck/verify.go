@@ -1,6 +1,7 @@
 package deck
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"math"
@@ -107,12 +108,12 @@ func (r Report) inspect(b Built, p Print, pdf []byte, app string) []Finding {
 
 // Verify opens every built deck in LibreOffice, one run for all, and holds
 // its print to the plan: another app's view of the real .pptx.
-func (r Report) Verify(soffice string, built []Built) ([]Finding, error) {
+func (r Report) Verify(ctx context.Context, soffice string, built []Built) ([]Finding, error) {
 	files := map[string][]byte{}
 	for _, b := range built {
 		files[b.Key+".pptx"] = b.Data
 	}
-	pdfs, err := office.Convert(soffice, files, "pdf")
+	pdfs, err := office.Convert(ctx, soffice, files, "pdf")
 	if err != nil {
 		return nil, err
 	}

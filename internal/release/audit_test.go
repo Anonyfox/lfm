@@ -103,7 +103,7 @@ func TestAuditHandlerNeverForwardsOrMutates(t *testing.T) {
 func TestMissingCapabilitiesReportAllSetupRequirements(t *testing.T) {
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
 	t.Setenv("LFM_LIGHTHOUSE", "/does-not-exist/lighthouse")
-	r := Audit([]byte("page"), nil, t.TempDir())
+	r := Audit(context.Background(), []byte("page"), nil, t.TempDir())
 	// Only the missing browser warns; Lighthouse is optional, but the skip
 	// still names how to set up both.
 	if len(r.Diagnostics) != 1 || !strings.Contains(r.Lighthouse.Hint, "LFM_CHROME") || !strings.Contains(r.Lighthouse.Hint, "npm install") {
@@ -124,7 +124,7 @@ func TestRuntimeAuditExecutesJSAndBlocksOutsideTraffic(t *testing.T) {
 	outside := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1) }))
 	defer outside.Close()
 	page := `<!doctype html><html><head><link rel="icon" href="data:image/png;base64,aA=="></head><body><script>fetch('` + outside.URL + `/',{method:'POST'}).catch(()=>{});console.error('probe failure');throw new Error('deliberate exception')</script></body></html>`
-	r := AuditRuntime([]byte(page), nil, path, "")
+	r := AuditRuntime(context.Background(), []byte(page), nil, path, "")
 	if r.Status != "ok" {
 		t.Fatal(r)
 	}

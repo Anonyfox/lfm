@@ -19,14 +19,14 @@ type Placement struct {
 // ImagePlacement renders the page with scripts blocked at the critical-CSS
 // sizes and reports for every image whether it shows before scrolling. The
 // compiler uses it to fill missing loading and fetch-priority hints.
-func ImagePlacement(page []byte, assets map[string][]byte) ([]Placement, error) {
+func ImagePlacement(ctx context.Context, page []byte, assets map[string][]byte) ([]Placement, error) {
 	path, err := BrowserPath()
 	if err != nil {
 		return nil, err
 	}
 	server := httptest.NewServer(Handler(page, assets))
 	defer server.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))

@@ -1,6 +1,7 @@
 package office
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -80,7 +81,7 @@ done
 `
 
 func TestConvertReturnsEveryWrittenFile(t *testing.T) {
-	got, err := Convert(fakeSoffice(t, converts), map[string][]byte{"a.docx": []byte("one"), "b.pptx": []byte("two")}, "pdf")
+	got, err := Convert(context.Background(), fakeSoffice(t, converts), map[string][]byte{"a.docx": []byte("one"), "b.pptx": []byte("two")}, "pdf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,16 +91,16 @@ func TestConvertReturnsEveryWrittenFile(t *testing.T) {
 }
 
 func TestConvertReportsFailures(t *testing.T) {
-	if _, err := Convert(fakeSoffice(t, "exit 3\n"), map[string][]byte{"a.docx": nil}, "pdf"); err == nil || !strings.Contains(err.Error(), "LibreOffice: exit status 3") {
+	if _, err := Convert(context.Background(), fakeSoffice(t, "exit 3\n"), map[string][]byte{"a.docx": nil}, "pdf"); err == nil || !strings.Contains(err.Error(), "LibreOffice: exit status 3") {
 		t.Errorf("failing run: %v", err)
 	}
-	if _, err := Convert(filepath.Join(t.TempDir(), "absent"), nil, "pdf"); err == nil || !strings.Contains(err.Error(), "start LibreOffice") {
+	if _, err := Convert(context.Background(), filepath.Join(t.TempDir(), "absent"), nil, "pdf"); err == nil || !strings.Contains(err.Error(), "start LibreOffice") {
 		t.Errorf("absent binary: %v", err)
 	}
 }
 
 func TestConvertWithoutOutputIsEmpty(t *testing.T) {
-	got, err := Convert(fakeSoffice(t, "exit 0\n"), map[string][]byte{"a.docx": nil}, "pdf")
+	got, err := Convert(context.Background(), fakeSoffice(t, "exit 0\n"), map[string][]byte{"a.docx": nil}, "pdf")
 	if err != nil || len(got) != 0 {
 		t.Fatalf("got %v, %v", got, err)
 	}

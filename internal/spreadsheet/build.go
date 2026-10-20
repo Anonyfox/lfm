@@ -1,6 +1,7 @@
 package spreadsheet
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -95,12 +96,12 @@ func (r Report) Preview(key string) []byte {
 
 // Compat recalculates the built files in LibreOffice and returns where its
 // values differ from lfm's.
-func (r Report) Compat(office string, files []Built) ([]string, error) {
+func (r Report) Compat(ctx context.Context, office string, files []Built) ([]string, error) {
 	data := map[string][]byte{}
 	for _, f := range files {
 		data[f.Name] = f.Data
 	}
-	got, err := Recalculate(office, data)
+	got, err := Recalculate(ctx, office, data)
 	if err != nil {
 		return nil, err
 	}

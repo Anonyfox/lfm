@@ -2,6 +2,7 @@ package release
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"image"
 	"image/color"
@@ -403,7 +404,7 @@ func TestLighthouseDiagnosticsMarkUnscoredFindings(t *testing.T) {
 
 func TestMissingLighthouseIsNotAFailure(t *testing.T) {
 	t.Setenv("LFM_LIGHTHOUSE", filepath.Join(t.TempDir(), "missing"))
-	r := runLighthouse([]byte("page"), nil, "/no/chrome", t.TempDir())
+	r := runLighthouse(context.Background(), []byte("page"), nil, "/no/chrome", t.TempDir())
 	if r.Status != "skipped" || !r.Missing || r.Hint != LighthouseSetup || r.Scope != auditScope {
 		t.Fatalf("%+v", r)
 	}
@@ -419,7 +420,7 @@ func TestMissingBrowserWithLighthouseInstalledNamesOnlyTheBrowser(t *testing.T) 
 	}
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
 	t.Setenv("LFM_LIGHTHOUSE", tool)
-	r := Audit([]byte("page"), nil, t.TempDir())
+	r := Audit(context.Background(), []byte("page"), nil, t.TempDir())
 	if r.Runtime.Status != "skipped" || r.Lighthouse.Status != "skipped" || r.Lighthouse.Hint != BrowserSetup || r.Lighthouse.Reason != "browser unavailable" {
 		t.Fatalf("%+v %+v", r.Runtime, r.Lighthouse)
 	}
@@ -430,13 +431,13 @@ func TestMissingBrowserWithLighthouseInstalledNamesOnlyTheBrowser(t *testing.T) 
 
 func TestBrowserlessFeaturesFailWithoutChrome(t *testing.T) {
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
-	if _, err := NewPrinter(); err == nil || !strings.Contains(err.Error(), "LFM_CHROME") {
+	if _, err := NewPrinter(context.Background()); err == nil || !strings.Contains(err.Error(), "LFM_CHROME") {
 		t.Fatal("printer without Chrome:", err)
 	}
-	if _, err := Analyze([]byte("page"), nil); err == nil {
+	if _, err := Analyze(context.Background(), []byte("page"), nil); err == nil {
 		t.Fatal("critical CSS without Chrome")
 	}
-	if _, err := ImagePlacement([]byte("page"), nil); err == nil {
+	if _, err := ImagePlacement(context.Background(), []byte("page"), nil); err == nil {
 		t.Fatal("image placement without Chrome")
 	}
 }

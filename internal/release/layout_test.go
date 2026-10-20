@@ -1,6 +1,7 @@
 package release
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,7 +34,7 @@ header{position:fixed;top:0;left:0;right:0;height:40px;background:#eee}
 <div class=wide></div>
 <p>The end.</p></main></body></html>`
 	dir := t.TempDir()
-	r := AuditRuntime([]byte(page), nil, path, dir)
+	r := AuditRuntime(context.Background(), []byte(page), nil, path, dir)
 	if r.Status != "ok" || r.Layout == nil {
 		t.Fatalf("%+v", r)
 	}
@@ -83,7 +84,7 @@ p{position:relative;z-index:1;margin:0 1rem 2rem}
 		b.WriteString(`<p>Text that scrolls under the pinned stage and disappears behind it.</p>`)
 	}
 	b.WriteString(`</section></main></body></html>`)
-	r := AuditRuntime([]byte(b.String()), nil, path, "")
+	r := AuditRuntime(context.Background(), []byte(b.String()), nil, path, "")
 	found := false
 	for _, f := range r.Layout.Findings {
 		if f.Kind == "covered" && strings.Contains(f.Message, "div.stage covers the text of p") {
@@ -97,7 +98,7 @@ p{position:relative;z-index:1;margin:0 1rem 2rem}
 		t.Fatalf("%+v", r.Layout.Findings)
 	}
 	over := strings.Replace(b.String(), "<section>", "<section class=over>", 1)
-	for _, f := range AuditRuntime([]byte(over), nil, path, "").Layout.Findings {
+	for _, f := range AuditRuntime(context.Background(), []byte(over), nil, path, "").Layout.Findings {
 		if f.Kind == "covered" {
 			t.Errorf("text above the stage is not covered: %s", f.Message)
 		}
@@ -119,7 +120,7 @@ func TestLayoutAuditKeepsCleanPagesQuiet(t *testing.T) {
 		b.WriteString(`<p>A paragraph of ordinary prose that keeps every frame legible, with a price of <span class=v>12 €</span> and 3 days of delivery.</p>`)
 	}
 	b.WriteString(`</main></body></html>`)
-	r := AuditRuntime([]byte(b.String()), nil, path, "")
+	r := AuditRuntime(context.Background(), []byte(b.String()), nil, path, "")
 	if r.Layout == nil || len(r.Layout.Findings) != 0 {
 		t.Fatalf("%+v", r.Layout)
 	}
@@ -144,7 +145,7 @@ svg text{font-size:8px}
 <p class=faint>Grey text on white.</p><p class=photo>Text over an image: unknown ground.</p>
 <svg viewBox="0 0 1000 100" width="100%"><text x="10" y="50">0 m</text></svg>
 <p><a href="#x">Act</a></p></main></body></html>`
-	r := AuditRuntime([]byte(page), nil, path, "")
+	r := AuditRuntime(context.Background(), []byte(page), nil, path, "")
 	var all []string
 	for _, f := range r.Layout.Findings {
 		all = append(all, f.Kind+": "+f.Message)
@@ -179,7 +180,7 @@ REDUCE</style></head><body><main><h1>Motion</h1><p><a href="#x">Act</a></p><div 
 	loop := `const el=document.getElementById("js");let t=0;(function f(){t+=4;el.style.left=(t%200)+"px";requestAnimationFrame(f)})()`
 	page := strings.NewReplacer("REDUCE", "", "JS", loop).Replace(base)
 	var motion string
-	for _, f := range AuditRuntime([]byte(page), nil, path, "").Layout.Findings {
+	for _, f := range AuditRuntime(context.Background(), []byte(page), nil, path, "").Layout.Findings {
 		if f.Kind == "motion" {
 			motion = f.Message
 		}
@@ -188,7 +189,7 @@ REDUCE</style></head><body><main><h1>Motion</h1><p><a href="#x">Act</a></p><div 
 		t.Fatalf("motion finding: %q", motion)
 	}
 	quiet := strings.NewReplacer("REDUCE", "@media (prefers-reduced-motion:reduce){.bob{animation:none}}", "JS", "if(!matchMedia('(prefers-reduced-motion: reduce)').matches){"+loop+"}").Replace(base)
-	for _, f := range AuditRuntime([]byte(quiet), nil, path, "").Layout.Findings {
+	for _, f := range AuditRuntime(context.Background(), []byte(quiet), nil, path, "").Layout.Findings {
 		if f.Kind == "motion" {
 			t.Fatalf("reduced page still reported: %s", f.Message)
 		}
@@ -207,7 +208,7 @@ func TestLayoutAuditComparesThePageWithoutScripts(t *testing.T) {
 	head := `<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="></head><body><main>`
 	scripted := head + `<h1 id=h style="opacity:0">Heading</h1><p><a href="#x">Act</a></p><div id=c></div></main><script>document.getElementById("h").style.opacity=1;document.getElementById("c").textContent="word ".repeat(200)</script></body></html>`
 	var kinds []string
-	for _, f := range AuditRuntime([]byte(scripted), nil, path, "").Layout.Findings {
+	for _, f := range AuditRuntime(context.Background(), []byte(scripted), nil, path, "").Layout.Findings {
 		if f.Kind == "no-script" {
 			kinds = append(kinds, f.Message)
 		}
@@ -217,7 +218,7 @@ func TestLayoutAuditComparesThePageWithoutScripts(t *testing.T) {
 		t.Fatalf("scripted page: %q", joined)
 	}
 	static := head + `<style>@keyframes in{from{opacity:0}to{opacity:1}}h1{animation:in 3s both}</style><h1>Heading</h1><p><a href="#x">Act</a></p><p>` + strings.Repeat("word ", 200) + `</p></main><script>document.title="x"</script></body></html>`
-	for _, f := range AuditRuntime([]byte(static), nil, path, "").Layout.Findings {
+	for _, f := range AuditRuntime(context.Background(), []byte(static), nil, path, "").Layout.Findings {
 		if f.Kind == "no-script" {
 			t.Fatalf("static page: %s", f.Message)
 		}
@@ -243,7 +244,7 @@ func TestLayoutAuditFindsFallbackFonts(t *testing.T) {
 body{font:18px/1.5 "Go Test",sans-serif}.gone{font-family:"Gone",serif}
 </style></head><body><main><h1>Fonts</h1><p><a href="#x">Act</a></p>
 <p class=ok>Plain Latin text, Grüße and €.</p><p class=hebrew>שלום עולם</p><p class=emoji>Party 🎉</p><p class=gone>Lost face</p></main></body></html>`
-	r := AuditRuntime([]byte(page), map[string][]byte{"go.woff2": font}, path, "")
+	r := AuditRuntime(context.Background(), []byte(page), map[string][]byte{"go.woff2": font}, path, "")
 	var fonts []string
 	for _, f := range r.Layout.Findings {
 		if f.Kind == "font" || f.Kind == "incomplete" {

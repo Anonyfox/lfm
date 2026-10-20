@@ -1,6 +1,7 @@
 package release
 
 import (
+	"context"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -42,7 +43,7 @@ func TestInstalledBrowserCriticalExtraction(t *testing.T) {
 		t.Skip(err)
 	}
 	page := []byte(`<!doctype html><html><head><meta name="viewport" content="width=device-width"><style data-lfm-critical-source>body{margin:0}h1{color:rgb(10,20,30)}.below{color:red}@media(min-width:1000px){h1{font-size:45px}.below{color:blue}}.dynamic:hover{color:green}</style></head><body><h1>Visible</h1><div style="height:2400px"></div><p class="below">Below</p><script>document.body.textContent='MUST NOT EXECUTE'</script></body></html>`)
-	result, err := Analyze(page, nil)
+	result, err := Analyze(context.Background(), page, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +61,7 @@ func TestInstalledBrowserPromotesOffscreenLayoutRules(t *testing.T) {
 		t.Skip(err)
 	}
 	page := []byte(`<!doctype html><html><head><style data-lfm-critical-source>body{margin:0}.below{padding:50px}</style></head><body><h1>Visible</h1><div style="height:2400px"></div><p class="below">Below</p></body></html>`)
-	result, err := Analyze(page, nil)
+	result, err := Analyze(context.Background(), page, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

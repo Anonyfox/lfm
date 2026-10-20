@@ -133,6 +133,7 @@ type emitted struct {
 // builder carries the state of the assemble stage. esbuild plugin callbacks
 // run concurrently, so shared maps are guarded by mu.
 type builder struct {
+	ctx             context.Context // a cancelled compile stops its browsers
 	project         project.Project
 	root            string
 	outDir          string // virtual esbuild output directory; nothing is written there
@@ -221,7 +222,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	}
 
 	// 3. assemble
-	b := &builder{project: p, root: p.Root, outDir: p.Output(), config: c, files: map[string]emitted{}, external: map[string]bool{}, inlineSources: map[[32]byte][]string{}, helpers: prepared.Helpers}
+	b := &builder{ctx: ctx, project: p, root: p.Root, outDir: p.Output(), config: c, files: map[string]emitted{}, external: map[string]bool{}, inlineSources: map[[32]byte][]string{}, helpers: prepared.Helpers}
 	defer func() { result.Inputs = b.inputList() }()
 	doc, err := html.Parse(bytes.NewReader(prepared.HTML))
 	if err != nil {
@@ -283,14 +284,14 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if options.Release && ctx.Err() == nil {
 		go func() {
 			defer close(auditDone)
-			audit = release.Audit(page, b.sidecars(), p.Root)
+			audit = release.Audit(ctx, page, b.sidecars(), p.Root)
 		}()
 	} else {
 		close(auditDone)
 	}
 	defer func() { <-auditDone }() // never leave the browser running behind a return
 	// One stock for every deliverable: the last publish indexed once, one Chrome.
-	st := newStock(p, options.Release)
+	st := newStock(ctx, p, options.Release)
 	defer st.close()
 	if !deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result) {
 		return result, &Failure{Errors: result.Errors()}
@@ -374,6 +375,9 @@ func checkDeliverables(in checking, result *Result) ([]unit, *bundle.Report, []d
 // it holds, and stops at the first that leaves errors.
 func deliverAll(p project.Project, page []byte, units []unit, pack *bundle.Report, st *stock, rules map[string]diagnostic.Severity, result *Result) bool {
 	for _, u := range units {
+		if st.ctx.Err() != nil {
+			return true // cancelled: the compile ends without publishing
+		}
 		if !result.revalidate(result.Validation.Stage, u.deliver(p, page, st, result), rules) {
 			return false
 		}

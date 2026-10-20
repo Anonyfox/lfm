@@ -95,7 +95,7 @@ func browserCandidates() []string {
 // Analyze observes static first paint at several widths, unions visible rules,
 // then verifies both critical-only and critical+full rendering at every width.
 // The original full CSS is never purged. Ambiguous/unstable pages retain it inline.
-func Analyze(page []byte, assets map[string][]byte) (Result, error) {
+func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result, error) {
 	var result Result
 	path, err := BrowserPath()
 	if err != nil {
@@ -103,7 +103,7 @@ func Analyze(page []byte, assets map[string][]byte) (Result, error) {
 	}
 	server := httptest.NewServer(Handler(page, assets))
 	defer server.Close()
-	ctx, timeout := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, timeout := context.WithTimeout(ctx, 45*time.Second)
 	defer timeout()
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))

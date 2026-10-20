@@ -32,7 +32,7 @@ type RuntimeResult struct {
 // It never guesses which business controls to click or submits forms/orders.
 // The same tab then walks the page frame by frame at every review screen
 // (auditLayout); frames is the screenshot folder, "" for none.
-func AuditRuntime(page []byte, assets map[string][]byte, path, frames string) *RuntimeResult {
+func AuditRuntime(ctx context.Context, page []byte, assets map[string][]byte, path, frames string) *RuntimeResult {
 	start := time.Now()
 	r := &RuntimeResult{Status: "skipped", Scope: "390x844 initial navigation with application JS; 250 ms settle; no user journeys or simulated mobile performance scores; external traffic/mutations blocked."}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
@@ -41,7 +41,7 @@ func AuditRuntime(page []byte, assets map[string][]byte, path, frames string) *R
 	server.Config.Handler = AuditHandler(page, assets, origin)
 	server.Start()
 	defer server.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 	fail := func(err error) *RuntimeResult {
 		r.Reason = compact(err.Error(), 500)

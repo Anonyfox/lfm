@@ -1,6 +1,7 @@
 package release
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,7 +44,7 @@ func TestLighthouseRunAttachesToOwnChromeAndKeepsTheReport(t *testing.T) {
 	args := filepath.Join(t.TempDir(), "args")
 	root := fakeLighthouse(t, `echo "$@" > "`+args+`"; cat "`+report+`"`)
 	browser, _ := BrowserPath()
-	r := runLighthouse([]byte("<!doctype html><title>x</title>"), nil, browser, root)
+	r := runLighthouse(context.Background(), []byte("<!doctype html><title>x</title>"), nil, browser, root)
 	if r.Status != "ok" || r.Reason != "" || *r.Scores["performance"] != 90 || len(r.Findings) != 1 {
 		t.Fatalf("%+v", r)
 	}
@@ -70,7 +71,7 @@ func TestLighthouseRunReportsFailures(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			root := fakeLighthouse(t, tc.script)
 			browser, _ := BrowserPath()
-			r := runLighthouse([]byte("<!doctype html>"), nil, browser, root)
+			r := runLighthouse(context.Background(), []byte("<!doctype html>"), nil, browser, root)
 			if r.Status == "ok" || r.Missing || !strings.Contains(r.Reason, tc.reason) || !strings.Contains(r.Hint, LighthouseSetup) {
 				t.Fatalf("%+v", r)
 			}
@@ -82,7 +83,7 @@ func TestAuditTurnsFindingsIntoDiagnostics(t *testing.T) {
 	report := writeReport(t)
 	root := fakeLighthouse(t, `cat "`+report+`"`)
 	page := `<!doctype html><html lang=en><head><meta name=viewport content="width=device-width,initial-scale=1"><link rel="icon" href="data:image/png;base64,aA=="></head><body><main><h1>Title</h1><p><a href="#x">Act</a></p><script>throw new Error("audit probe")</script></main></body></html>`
-	r := Audit([]byte(page), nil, root)
+	r := Audit(context.Background(), []byte(page), nil, root)
 	if r.Runtime.Status != "ok" || r.Lighthouse.Status != "ok" {
 		t.Fatalf("%+v %+v", r.Runtime, r.Lighthouse)
 	}

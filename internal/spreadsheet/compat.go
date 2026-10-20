@@ -3,6 +3,7 @@ package spreadsheet
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -22,8 +23,8 @@ func Office() (string, error) { return office.Find() }
 // Recalculate opens every file in LibreOffice, recalculates it and returns
 // each sheet's cells as LibreOffice computes them: file name -> sheet name
 // -> rows of raw values. One soffice run serves all files.
-func Recalculate(soffice string, files map[string][]byte) (map[string]map[string][][]string, error) {
-	written, err := office.Convert(soffice, files, "csv:Text - txt - csv (StarCalc):44,34,UTF8,1,,0,false,false,false,false,false,-1")
+func Recalculate(ctx context.Context, soffice string, files map[string][]byte) (map[string]map[string][][]string, error) {
+	written, err := office.Convert(ctx, soffice, files, "csv:Text - txt - csv (StarCalc):44,34,UTF8,1,,0,false,false,false,false,false,-1")
 	if err != nil {
 		return nil, err
 	}

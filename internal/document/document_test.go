@@ -3,6 +3,7 @@ package document
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"image"
 	"image/color"
 	pngenc "image/png"
@@ -130,7 +131,7 @@ func TestDocumentsPrintAsPlannedInLibreOffice(t *testing.T) {
 	}
 	r := Check(fixture(t, "club", nil), testConfig, true, nil, "")
 	built, _ := r.Build(func(string) []byte { return nil })
-	findings, err := r.Verify(soffice, built)
+	findings, err := r.Verify(context.Background(), soffice, built)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +145,7 @@ func TestDocumentsPrintAsPlannedInLibreOffice(t *testing.T) {
 // without any office suite installed.
 func TestChromePrintsAsPlanned(t *testing.T) {
 	t.Parallel()
-	printer, err := release.NewPrinter()
+	printer, err := release.NewPrinter(context.Background())
 	if err != nil || testing.Short() {
 		t.Skip(err)
 	}
@@ -338,7 +339,7 @@ func TestEveryFeatureInEveryTheme(t *testing.T) {
 		}
 	}
 	if soffice, err := office.Find(); err == nil && !testing.Short() {
-		findings, err := last.Verify(soffice, all)
+		findings, err := last.Verify(context.Background(), soffice, all)
 		if err != nil {
 			t.Fatal(err)
 		}

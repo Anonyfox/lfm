@@ -1,6 +1,7 @@
 package spreadsheet
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -96,7 +97,7 @@ func TestLibreOfficeAgrees(t *testing.T) {
 			files[ed.Key+"-"+ds+".xlsx"] = data
 		}
 	}
-	got, err := Recalculate(office, files)
+	got, err := Recalculate(context.Background(), office, files)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +132,7 @@ func TestEngineMatchesLibreOfficeOnEdgeCases(t *testing.T) {
 	if err != nil || Stamp(data) != "0123456789abcdef" || Stamp(data[len(data)-300:]) != "0123456789abcdef" {
 		t.Fatalf("%v, stamp %q", err, Stamp(data))
 	}
-	got, err := Recalculate(office, map[string][]byte{"t.xlsx": data})
+	got, err := Recalculate(context.Background(), office, map[string][]byte{"t.xlsx": data})
 	if err != nil {
 		t.Fatal(err)
 	}

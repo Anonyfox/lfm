@@ -73,7 +73,7 @@ type AuditFinding struct {
 	Items      int      `json:"detailItems,omitempty"`
 }
 
-func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
+func Audit(ctx context.Context, page []byte, assets map[string][]byte, root string) *AuditResult {
 	r := &AuditResult{}
 	warn := func(rule, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
@@ -90,7 +90,7 @@ func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
 		}
 		return r
 	}
-	r.Runtime = AuditRuntime(page, assets, browser, FramesPath(root))
+	r.Runtime = AuditRuntime(ctx, page, assets, browser, FramesPath(root))
 	if r.Runtime.Status != "ok" {
 		warn("release.browser", "Runtime navigation check skipped: "+r.Runtime.Reason, r.Runtime.Hint)
 	}
@@ -113,7 +113,7 @@ func Audit(page []byte, assets map[string][]byte, root string) *AuditResult {
 		}
 		return r
 	}
-	r.Lighthouse = runLighthouse(page, assets, browser, root)
+	r.Lighthouse = runLighthouse(ctx, page, assets, browser, root)
 	// Lighthouse is optional: when it is not installed the report says so
 	// and nothing warns; a run that fails does.
 	if r.Lighthouse.Status != "ok" && !r.Lighthouse.Missing {
@@ -171,7 +171,7 @@ func lighthousePath(root string) (string, error) {
 	return "", fmt.Errorf("installed Lighthouse executable not found")
 }
 
-func runLighthouse(page []byte, assets map[string][]byte, browser, root string) *LighthouseResult {
+func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, browser, root string) *LighthouseResult {
 	start := time.Now()
 	r := &LighthouseResult{Status: "skipped", Scope: auditScope}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
@@ -188,7 +188,7 @@ func runLighthouse(page []byte, assets map[string][]byte, browser, root string) 
 	server.Config.Handler = AuditHandler(page, assets, origin)
 	server.Start()
 	defer server.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	profile, err := os.MkdirTemp("", "lfm-lighthouse-chrome-")
 	if err != nil {

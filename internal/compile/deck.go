@@ -162,7 +162,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 		// PowerPoint on a Mac open every deck too; it opens windows, so no
 		// user gets it.
 		apps := []opinion{libreOffice(func(soffice string) ([]finding, error) {
-			f, err := r.Verify(soffice, built)
+			f, err := r.Verify(pr.ctx, soffice, built)
 			return deckFindings(f), err
 		}, "LibreOffice shows the deck differently; check the slide's text and fonts.")}
 		if os.Getenv("LFM_OFFICE") != "" && office.HasPowerPoint() {

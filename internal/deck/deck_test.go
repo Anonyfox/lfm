@@ -3,6 +3,7 @@ package deck
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -240,7 +241,7 @@ func TestStoredEntriesCarryTheirSizes(t *testing.T) {
 // sheet with the Chrome a release needs: one 16:9 page a slide in the
 // theme's fonts, nothing cut off, the notes and quiz on their paper.
 func TestChromePrintsDecksAsPlanned(t *testing.T) {
-	printer, err := release.NewPrinter()
+	printer, err := release.NewPrinter(context.Background())
 	if err != nil || testing.Short() {
 		t.Skip(err)
 	}
@@ -310,7 +311,7 @@ func TestLibreOfficeOpensEveryDeck(t *testing.T) {
 	}
 	r := briefing(t)
 	built, _ := r.Build(func(string) []byte { return nil })
-	found, err := r.Verify(soffice, built)
+	found, err := r.Verify(context.Background(), soffice, built)
 	if err != nil {
 		t.Fatal(err)
 	}

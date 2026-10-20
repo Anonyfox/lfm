@@ -137,7 +137,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 				compatErr = err
 				return
 			}
-			compat, compatErr = r.Compat(office, built)
+			compat, compatErr = r.Compat(pr.ctx, office, built)
 		})
 	}
 	wg.Wait()

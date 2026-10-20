@@ -2,6 +2,7 @@ package compile
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -204,5 +205,26 @@ func TestReleaseFillsImageLoadingHints(t *testing.T) {
 	}
 	if report.Release.LazyImages != 2 || !strings.HasSuffix(report.Release.PriorityImage, ".png") {
 		t.Fatalf("report: %+v", report.Release)
+	}
+}
+
+// TestCancelledReleaseStopsItsBrowsers cancels a release while Chrome
+// works: the compile returns at once, not when the audit's own deadline
+// ends, and publishes nothing.
+func TestCancelledReleaseStopsItsBrowsers(t *testing.T) {
+	t.Parallel()
+	if _, err := release.BrowserPath(); err != nil || testing.Short() {
+		t.Skip("no browser")
+	}
+	dir := deckProject(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(1500*time.Millisecond, cancel)
+	start := time.Now()
+	result, err := Compile(ctx, dir, Options{Publish: true, Release: true})
+	if !errors.Is(err, context.Canceled) || result.Published {
+		t.Fatalf("err %v, published %v", err, result.Published)
+	}
+	if took := time.Since(start); took > 4*time.Second {
+		t.Fatalf("a cancelled release took %s", took)
 	}
 }

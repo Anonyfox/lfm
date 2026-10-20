@@ -1,6 +1,7 @@
 package document
 
 import (
+	"context"
 	"os"
 	"sort"
 	"strconv"
@@ -21,7 +22,7 @@ func TestPrintMatchesWord(t *testing.T) {
 	if os.Getenv("LFM_WORD") == "" || !office.HasWord() {
 		t.Skip("set LFM_WORD=1 with Word for Mac installed")
 	}
-	printer, err := release.NewPrinter()
+	printer, err := release.NewPrinter(context.Background())
 	if err != nil {
 		t.Skip(err)
 	}
