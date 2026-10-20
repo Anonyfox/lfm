@@ -96,12 +96,15 @@ func funcs(language string) template.FuncMap {
 		"maze": func(width, height, seed int) (Maze, error) {
 			return remember(m, fmt.Sprint("maze", width, height, seed), func() (Maze, error) { return NewMaze(width, height, seed) })
 		},
-		"seq": func(n int) []int {
+		"seq": func(n int) ([]int, error) {
+			if n > 10000 {
+				return nil, fmt.Errorf("seq: %d; use up to 10000", n)
+			}
 			out := make([]int, max(0, n))
 			for i := range out {
 				out[i] = i + 1
 			}
-			return out
+			return out, nil
 		},
 		"chunk": func(list any, n int) ([][]any, error) {
 			v := reflect.ValueOf(list)
