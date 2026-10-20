@@ -81,7 +81,6 @@ const (
 	Day
 )
 
-
 // postedDate reads YYYY-MM-DD, YYYY-MM or YYYY.
 func postedDate(s string) (time.Time, Precision, bool) {
 	for _, f := range []struct {
