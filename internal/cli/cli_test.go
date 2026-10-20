@@ -303,11 +303,11 @@ func TestNextStepOrder(t *testing.T) {
 		}
 	}
 	clean := compile.Result{Research: research.Summary{Voices: 3}, Concept: concept.Summary{Present: true}, Release: &release.Result{}, PageURL: "https://x.test/"}
-	clean.Book = &book.Summary{Present: true}
+	clean.Book = &book.Summary{}
 	if n := nextStep(clean, nil, nil); n.Phase != "book" || !strings.Contains(n.Do, "deliverables/book/concept.md") {
 		t.Errorf("book concept: %+v", n)
 	}
-	clean.Book = &book.Summary{Present: true, Concept: true, URL: "https://x.test/k/", Chapters: []book.Chapter{{N: 1, Title: "One", File: "chapters/01.md", Words: 900, Job: "decide what to bake first", Exists: true}, {N: 2, Title: "Two", File: "chapters/02.md", Words: 1200, Job: "plan the week"}}}
+	clean.Book = &book.Summary{Concept: true, URL: "https://x.test/k/", Chapters: []book.Chapter{{N: 1, Title: "One", File: "chapters/01.md", Words: 900, Job: "decide what to bake first", Exists: true}, {N: 2, Title: "Two", File: "chapters/02.md", Words: 1200, Job: "plan the week"}}}
 	if n := nextStep(clean, nil, nil); n.Phase != "book" || !strings.Contains(n.Do, `chapters/02.md, chapter 2 of 2, "Two" (about 1200 words): plan the week`) || len(n.Notes) != 1 {
 		t.Errorf("next chapter: %+v", n)
 	}

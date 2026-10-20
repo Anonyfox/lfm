@@ -33,8 +33,8 @@ type Summary struct {
 	Listing  bool     `json:"listing"`
 	Linked   int      `json:"linked"` // Google Sheets masters linked
 	Channels []string `json:"channels,omitempty"`
-	Images   int      `json:"images,omitempty"`
-	Pending  bool     `json:"pending,omitempty"`
+	Images   int      `json:"images"`
+	Pending  bool     `json:"pending"`
 	Compat   string   `json:"compat,omitempty"`
 }
 

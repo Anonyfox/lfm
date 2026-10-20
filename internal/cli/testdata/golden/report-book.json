@@ -411,9 +411,8 @@
   },
   "starter": true,
   "book": {
-    "present": true,
     "concept": true,
-    "title": "The Weekend Starter",
+    "name": "The Weekend Starter",
     "chapters": [
       {
         "n": 1,
@@ -444,12 +443,12 @@
     "words": 945,
     "targetWords": 900,
     "complete": true,
-    "downloadURL": "https://example.com/001/q7w2k9m4x8c3v6b1n5zt/",
+    "url": "https://example.com/001/q7w2k9m4x8c3v6b1n5zt/",
     "files": [
       "the-weekend-starter.epub"
     ],
     "listing": false,
-    "printPending": true,
+    "pending": true,
     "sell": "page"
   },
   "errors": 0,

@@ -20,21 +20,20 @@ import (
 
 // Summary describes the book for the report, the next step and --json.
 type Summary struct {
-	Present  bool      `json:"present"` // deliverables/book exists
 	Concept  bool      `json:"concept"`
-	Title    string    `json:"title,omitempty"`
+	Title    string    `json:"name,omitempty"`
 	Chapters []Chapter `json:"chapters,omitempty"`
 	Written  int       `json:"written"`
 	Words    int       `json:"words"`
 	Target   int       `json:"targetWords"`
 	Complete bool      `json:"complete"`
-	URL      string    `json:"downloadURL,omitempty"`
+	URL      string    `json:"url,omitempty"`
 	Files    []string  `json:"files,omitempty"` // built formats, set by the build
 	Listing  bool      `json:"listing"`
-	Pending  bool      `json:"printPending,omitempty"` // the PDF and paperback wait for a release to print
-	Layout   string    `json:"layout,omitempty"`       // release: "fits", or the number of layout findings
-	Channels []string  `json:"channels,omitempty"`     // store packages written to distribution/
-	Sell     string    `json:"sell"`                   // page, shops or bundle
+	Pending  bool      `json:"pending"`            // the PDF and paperback wait for a release to print
+	Layout   string    `json:"layout,omitempty"`   // release: "fits", or the number of layout findings
+	Channels []string  `json:"channels,omitempty"` // store packages written to distribution/
+	Sell     string    `json:"sell"`               // page, shops or bundle
 }
 
 // Next returns the first unwritten chapter, or nil.
@@ -72,7 +71,6 @@ func Present(p project.Project) bool {
 // deliverables.book; site is the page URL the download path hangs off.
 func Check(p project.Project, cfg Config, configured bool, offers map[string]*Price, site string, voices *research.Voices, competitors *research.Competitors) Report {
 	r := Report{Config: cfg, Sources: map[string][]byte{}}
-	r.Summary.Present = true
 	// Config findings name the lfm.json key they are about; the compiler
 	// resolves it to its line.
 	errorAt := func(key string, rule, message, hint string) {

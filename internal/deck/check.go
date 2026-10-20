@@ -39,7 +39,7 @@ type Summary struct {
 	Decks     int      `json:"decks"`
 	Slides    int      `json:"slides"`  // in the decks of one language
 	Quizzes   int      `json:"quizzes"` // questions in them
-	Minutes   int      `json:"minutes,omitempty"`
+	Minutes   int      `json:"minutes"`
 	Languages []string `json:"languages,omitempty"`
 	Editions  []string `json:"editions,omitempty"`
 	Sell      string   `json:"sell"`

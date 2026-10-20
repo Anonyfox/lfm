@@ -25,13 +25,13 @@ type Summary struct {
 	Editions []string `json:"editions,omitempty"`
 	Pages    int      `json:"pages"` // per edition, as the first one renders
 	Links    int      `json:"links"`
-	Cut      int      `json:"cut,omitempty"` // pages to cut out (data-role="cut")
+	Cut      int      `json:"cut"` // pages to cut out (data-role="cut")
 	URL      string   `json:"url,omitempty"`
 	Files    []string `json:"files,omitempty"`
-	Pending  bool     `json:"pending,omitempty"` // the PDFs print with --release
+	Pending  bool     `json:"pending"` // the PDFs print with --release
 	Listing  bool     `json:"listing"`
 	Channels []string `json:"channels,omitempty"`
-	Images   int      `json:"images,omitempty"` // listing images rendered
+	Images   int      `json:"images"` // listing images rendered
 	Layout   string   `json:"layout,omitempty"`
 	Sell     string   `json:"sell"` // page, shops or bundle
 }

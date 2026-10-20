@@ -91,6 +91,7 @@
     ],
     "pages": 5,
     "links": 0,
+    "cut": 0,
     "url": "https://example.com/001/p7m2x9q4w8e3r6t5y1u0/",
     "pending": true,
     "listing": true,
@@ -100,6 +101,7 @@
       "payhip",
       "ko-fi"
     ],
+    "images": 0,
     "sell": "page"
   },
   "errors": 0,

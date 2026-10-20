@@ -55,16 +55,16 @@ var Kinds = []string{"book", "printable", "spreadsheet", "document", "deck"}
 
 // Summary is what the report and --json show about the bundle.
 type Summary struct {
-	Name     string   `json:"name"`
-	Units    []string `json:"units"`
+	Name     string   `json:"name,omitempty"`
+	Units    []string `json:"units,omitempty"`
 	Sell     string   `json:"sell"`
 	URL      string   `json:"url,omitempty"`
 	Files    []string `json:"files,omitempty"`
 	Ready    bool     `json:"ready"` // every unit has its files
 	Listing  bool     `json:"listing"`
 	Channels []string `json:"channels,omitempty"`
-	Images   int      `json:"images,omitempty"`
-	Pending  bool     `json:"pending,omitempty"`
+	Images   int      `json:"images"`
+	Pending  bool     `json:"pending"`
 }
 
 // Report is the checked bundle.

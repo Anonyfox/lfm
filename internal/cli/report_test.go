@@ -74,10 +74,10 @@ func TestReportStates(t *testing.T) {
 
 	section("book")
 	renderBook(&w, s, nil, nil)
-	renderBook(&w, s, &book.Summary{Present: true}, nil)
-	renderBook(&w, s, &book.Summary{Present: true, Concept: true, Chapters: make([]book.Chapter, 12), Written: 1, Words: 2400, Target: 36000, URL: "https://x.test/p/"}, nil)
-	renderBook(&w, s, &book.Summary{Present: true, Concept: true, Title: "Rye", Chapters: make([]book.Chapter, 2), Words: 0, Target: 1200, Sell: "shops"}, nil)
-	renderBook(&w, s, &book.Summary{Present: true, Concept: true, Title: "Rye", Chapters: make([]book.Chapter, 2), Written: 2, Words: 1250, Target: 1200, Complete: true,
+	renderBook(&w, s, &book.Summary{}, nil)
+	renderBook(&w, s, &book.Summary{Concept: true, Chapters: make([]book.Chapter, 12), Written: 1, Words: 2400, Target: 36000, URL: "https://x.test/p/"}, nil)
+	renderBook(&w, s, &book.Summary{Concept: true, Title: "Rye", Chapters: make([]book.Chapter, 2), Words: 0, Target: 1200, Sell: "shops"}, nil)
+	renderBook(&w, s, &book.Summary{Concept: true, Title: "Rye", Chapters: make([]book.Chapter, 2), Written: 2, Words: 1250, Target: 1200, Complete: true,
 		Files: []string{"rye.epub", "rye.pdf"}, Layout: "fits", Channels: []string{"kdp"}, Sell: "bundle"},
 		[]compile.File{{Name: "b1/rye.epub", Bytes: 52000}, {Name: "b1/rye.pdf", Bytes: 1 << 20}, {Name: "b2/rye.epub", Bytes: 52000}})
 

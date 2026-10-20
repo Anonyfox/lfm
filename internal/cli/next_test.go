@@ -23,7 +23,7 @@ import (
 func TestNextStepCoversEveryDeliverable(t *testing.T) {
 	base := compile.Result{Research: research.Summary{Voices: 3}, Concept: concept.Summary{Present: true}, Release: &release.Result{}, PageURL: "https://x.test/"}
 	start := map[string]func(*compile.Result){
-		"book":        func(r *compile.Result) { r.Book = &book.Summary{Present: true} },
+		"book":        func(r *compile.Result) { r.Book = &book.Summary{} },
 		"printable":   func(r *compile.Result) { r.Printable = &printable.Summary{} },
 		"spreadsheet": func(r *compile.Result) { r.Spreadsheet = &spreadsheet.Summary{} },
 		"document":    func(r *compile.Result) { r.Document = &document.Summary{} },
