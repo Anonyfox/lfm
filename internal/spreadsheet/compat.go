@@ -154,7 +154,10 @@ func (r Report) Excel(built []Built) ([]string, error) {
 	return out, nil
 }
 
-// cellValues reads a workbook's raw cell values, by sheet name.
+// cellValues reads a workbook's raw cell values, by sheet name. Only lfm's
+// own files, resaved by Excel in lfm's tests, come here: excelize's reader
+// is not hardened against hostile workbooks (GO-2026-6684, -6685, -6689),
+// so it must never open one a user hands in.
 func cellValues(xlsx []byte) (map[string][][]string, error) {
 	f, err := excelize.OpenReader(bytes.NewReader(xlsx))
 	if err != nil {
