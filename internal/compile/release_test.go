@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -226,5 +227,27 @@ func TestCancelledReleaseStopsItsBrowsers(t *testing.T) {
 	}
 	if took := time.Since(start); took > 4*time.Second {
 		t.Fatalf("a cancelled release took %s", took)
+	}
+}
+
+// TestReleaseLeavesNothingRunning releases a deck, with Chrome printing and
+// LibreOffice checking, and counts the goroutines once it has returned.
+// Not parallel: the count is the whole process's.
+func TestReleaseLeavesNothingRunning(t *testing.T) {
+	if _, err := release.BrowserPath(); err != nil || testing.Short() {
+		t.Skip("no browser")
+	}
+	dir := deckProject(t)
+	before := runtime.NumGoroutine()
+	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for runtime.NumGoroutine() > before && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if n := runtime.NumGoroutine(); n > before {
+		buf := make([]byte, 1<<20)
+		t.Fatalf("%d goroutines before the release, %d after:\n%s", before, n, buf[:runtime.Stack(buf, true)])
 	}
 }
