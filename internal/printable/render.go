@@ -3,6 +3,7 @@ package printable
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"path"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/template/parse"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -138,9 +140,9 @@ func funcs(language string) template.FuncMap {
 			}
 			return m, nil
 		},
-		"add": func(a, b int) int { return a + b },
-		"sub": func(a, b int) int { return a - b },
-		"mul": func(a, b int) int { return a * b },
+		"add": func(a, b int) (int, error) { return bounded("add", a+b) },
+		"sub": func(a, b int) (int, error) { return bounded("sub", a-b) },
+		"mul": func(a, b int) (int, error) { return bounded("mul", a*b) },
 		"mod": func(a, b int) int {
 			if b == 0 {
 				return 0
@@ -167,9 +169,78 @@ func strs(v any) []string {
 	return nil
 }
 
+// Templates cannot be stopped once they run, so what they can ask for is
+// bounded: a loop over a number takes at most loops rounds, arithmetic
+// stays within numbers, and a render writes at most rendered bytes.
+const (
+	loops    = 10000
+	numbers  = 100000
+	rendered = 64 << 20
+)
+
+func bounded(name string, n int) (int, error) {
+	if n > numbers || n < -numbers {
+		return 0, fmt.Errorf("%s: %d is beyond ±%d", name, n, numbers)
+	}
+	return n, nil
+}
+
 // parseTemplate parses the template once; it renders every edition.
 func parseTemplate(src []byte, language string) (*template.Template, error) {
-	return template.New(TemplateName).Funcs(funcs(language)).Option("missingkey=error").Parse(string(src))
+	t, err := template.New(TemplateName).Funcs(funcs(language)).Option("missingkey=error").Parse(string(src))
+	if err != nil {
+		return nil, err
+	}
+	var tree *parse.Tree
+	var check func(parse.Node) error
+	check = func(n parse.Node) error {
+		switch n := n.(type) {
+		case *parse.ListNode:
+			if n == nil {
+				return nil
+			}
+			for _, c := range n.Nodes {
+				if err := check(c); err != nil {
+					return err
+				}
+			}
+		case *parse.RangeNode:
+			if p := n.Pipe; p != nil && len(p.Cmds) == 1 && len(p.Cmds[0].Args) == 1 {
+				if num, ok := p.Cmds[0].Args[0].(*parse.NumberNode); ok && num.IsInt && num.Int64 > loops {
+					at, _ := tree.ErrorContext(n)
+					return fmt.Errorf("%s: range over %d; use up to %d", at, num.Int64, loops)
+				}
+			}
+			return errors.Join(check(n.List), check(n.ElseList))
+		case *parse.IfNode:
+			return errors.Join(check(n.List), check(n.ElseList))
+		case *parse.WithNode:
+			return errors.Join(check(n.List), check(n.ElseList))
+		}
+		return nil
+	}
+	for _, d := range t.Templates() {
+		if tree = d.Tree; tree != nil {
+			if err := check(tree.Root); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return t, nil
+}
+
+// limited stops a render that writes more than its limit.
+type limited struct {
+	bytes.Buffer
+	left int
+}
+
+func (c *limited) Write(p []byte) (int, error) {
+	if len(p) > c.left {
+		return 0, fmt.Errorf("the template writes more than %d MB", rendered>>20)
+	}
+	c.left -= len(p)
+	return c.Buffer.Write(p)
 }
 
 var templateLine = regexp.MustCompile(`printable\.html\.tmpl:(\d+)`)
@@ -223,11 +294,11 @@ var cssURL = regexp.MustCompile(`url\(\s*(['"]?)([^'")]+)(['"]?)\s*\)`)
 // print document: lfm's page CSS, the product's CSS with flat asset names,
 // page numbers filled in, and the pages described for the checks.
 func render(t *template.Template, view View, plan Plan, style string) (Rendered, error) {
-	var body bytes.Buffer
-	if err := t.Execute(&body, view); err != nil {
+	body := &limited{left: rendered}
+	if err := t.Execute(body, view); err != nil {
 		return Rendered{}, err
 	}
-	nodes, err := html.ParseFragment(&body, &html.Node{Type: html.ElementNode, Data: "body", DataAtom: atom.Body})
+	nodes, err := html.ParseFragment(&body.Buffer, &html.Node{Type: html.ElementNode, Data: "body", DataAtom: atom.Body})
 	if err != nil {
 		return Rendered{}, err
 	}
