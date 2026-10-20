@@ -1,6 +1,6 @@
 module github.com/Anonyfox/lfm
 
-go 1.26.1
+go 1.26.9
 
 require (
 	github.com/andybalholm/cascadia v1.3.5
