@@ -75,7 +75,7 @@ func TestReleaseReport(t *testing.T) {
 	out = normalize(out, dir)
 	for _, want := range []*regexp.Regexp{
 		regexp.MustCompile(`(?m)^  release      (critical CSS \S+ \S+ of \S+ \S+ blocks rendering; the rest loads after|\S.*)$`),
-		regexp.MustCompile(`(?m)^  browser      \S.*, \d+ runtime problems? in \d+ ms$`),
+		regexp.MustCompile(`(?m)^  browser      \S.*, \d+ runtime problems? in (<1 ms|\d+ ms|\d+\.\d s)$`),
 		regexp.MustCompile(`(?m)^  frames       \d+ screenshots?`),
 		regexp.MustCompile(`(?m)^  decks        Fire Safety Briefing · 1 deck, 11 slides`),
 	} {
