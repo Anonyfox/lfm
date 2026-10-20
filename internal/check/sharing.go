@@ -82,7 +82,8 @@ func sharingImage(d *Document, n *html.Node, value, label string, check func(ima
 	return nil
 }
 
-// Known schemas need shallow objects. Reject ambiguous duplicate keys instead of
+// DecodeSharingJSON decodes a sharing payload. Known schemas need shallow
+// objects. Reject ambiguous duplicate keys instead of
 // silently applying encoding/json's last-key-wins behavior. The depth bound is
 // above every supported schema and keeps malformed payload work bounded.
 // DecodeSharingJSON also lets asset packing inspect a platform payload without

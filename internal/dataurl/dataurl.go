@@ -49,7 +49,7 @@ func Encode(contents []byte, kind string) (uri, encoding string) {
 	return base64URI, "base64"
 }
 
-// Encode bytes, not XML: decoding must recover the original file byte-for-byte,
+// SVG encodes bytes, not XML: decoding must recover the original file byte-for-byte,
 // including Unicode/encoding declarations, whitespace, IDs and fragment refs.
 // This alphabet survives HTML attributes, srcset, either JS/CSS string delimiter
 // and unquoted CSS url(). In particular %, #, comma, &, quotes and backslashes

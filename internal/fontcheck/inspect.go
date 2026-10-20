@@ -128,7 +128,7 @@ func Inspect(b []byte) Info {
 		if 44+20*n > len(b) {
 			return bad("WOFF table directory exceeds asset bounds")
 		}
-		var total uint64 = uint64(12 + 16*n)
+		total := uint64(12 + 16*n)
 		for j := 0; j < n; j++ {
 			r := b[44+20*j:]
 			off, compressed, original := binary.BigEndian.Uint32(r[4:]), binary.BigEndian.Uint32(r[8:]), binary.BigEndian.Uint32(r[12:])

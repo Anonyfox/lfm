@@ -54,7 +54,8 @@ type Result struct {
 	lang      string
 }
 
-// Features are computed in this order; the weights follow it.
+// FeatureNames name the features in the order they are computed; the weights
+// follow it.
 var FeatureNames = []string{
 	"sentence-burstiness", "paragraph-burstiness", "mean-sentence", "commas", "semicolons", "parentheses",
 	"colons", "questions", "dashes", "lexical-diversity", "word-length-spread", "compression",

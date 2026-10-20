@@ -757,9 +757,9 @@ const Bleed = 0.125
 // and front side by side with bleed on every edge. The spine carries title
 // and author when spineText is set; the back carries the listing's back cover
 // text and, with a paperback ISBN, its barcode.
-func (bk Built) CoverDocument(spine float64, spineText bool) []byte {
-	plan, cfg := bk.plan, bk.cfg
-	tw, th := bk.TrimInches[0], bk.TrimInches[1]
+func (b Built) CoverDocument(spine float64, spineText bool) []byte {
+	plan, cfg := b.plan, b.cfg
+	tw, th := b.TrimInches[0], b.TrimInches[1]
 	width, height := 2*Bleed+2*tw+spine, th+2*Bleed
 	accent := plan.Accent
 	if accent == "" {
@@ -786,26 +786,26 @@ body { width: %.4fin; height: %.4fin; position: relative; overflow: hidden; back
 		tw+Bleed, height, Bleed+0.5, Bleed+0.5,
 		Bleed+tw-0.25-1.8, Bleed+th-0.25-1.1,
 		Bleed+tw, spine, height, min(14, spine*72*0.5),
-		Bleed+tw+spine, tw+Bleed, height) + "\n" + bk.bookCSS()
-	var b strings.Builder
-	fmt.Fprintf(&b, "<!doctype html>\n<html lang=\"%s\"><head><meta charset=\"utf-8\"><title>%s</title><style>%s</style></head><body>\n<section class=\"back\"><h2>%s</h2>", esc(bk.language), esc(plan.Title), css, esc(plan.Title))
-	for _, p := range paragraphs(PlainText(bk.listing.BackCover)) {
-		fmt.Fprintf(&b, "<p>%s</p>", esc(p))
+		Bleed+tw+spine, tw+Bleed, height) + "\n" + b.bookCSS()
+	var out strings.Builder
+	fmt.Fprintf(&out, "<!doctype html>\n<html lang=\"%s\"><head><meta charset=\"utf-8\"><title>%s</title><style>%s</style></head><body>\n<section class=\"back\"><h2>%s</h2>", esc(b.language), esc(plan.Title), css, esc(plan.Title))
+	for _, p := range paragraphs(PlainText(b.listing.BackCover)) {
+		fmt.Fprintf(&out, "<p>%s</p>", esc(p))
 	}
-	fmt.Fprintf(&b, "<p class=\"author\">%s</p></section>\n", esc(cfg.Author))
+	fmt.Fprintf(&out, "<p class=\"author\">%s</p></section>\n", esc(cfg.Author))
 	if svg := barcodeSVG(cfg.ISBNPaperback); svg != "" {
-		fmt.Fprintf(&b, "<div class=\"barcode\">%s</div>\n", svg)
+		fmt.Fprintf(&out, "<div class=\"barcode\">%s</div>\n", svg)
 	}
-	b.WriteString("<section class=\"spine\">")
+	out.WriteString("<section class=\"spine\">")
 	if spineText {
-		fmt.Fprintf(&b, "<span>%s · %s</span>", esc(plan.Title), esc(cfg.Author))
+		fmt.Fprintf(&out, "<span>%s · %s</span>", esc(plan.Title), esc(cfg.Author))
 	}
-	b.WriteString("</section>\n<section class=\"front\">")
-	if bk.PrintCover != "" {
-		fmt.Fprintf(&b, "<img src=\"%s\" alt=\"\">", bk.PrintCover)
+	out.WriteString("</section>\n<section class=\"front\">")
+	if b.PrintCover != "" {
+		fmt.Fprintf(&out, "<img src=\"%s\" alt=\"\">", b.PrintCover)
 	}
-	b.WriteString("</section>\n</body></html>\n")
-	return []byte(b.String())
+	out.WriteString("</section>\n</body></html>\n")
+	return []byte(out.String())
 }
 
 // luminance is the relative luminance of a #rrggbb color.

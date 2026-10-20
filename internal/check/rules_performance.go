@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// Decimal bytes deliberately form a conservative policy below any binary 2 MiB
-// interpretation. The warning leaves headroom for HTTP headers and future edits.
+// HTMLLimit is the page size the HTML check allows. Decimal bytes deliberately
+// form a conservative policy below any binary 2 MiB interpretation. The warning leaves headroom for HTTP headers and future edits.
 const HTMLLimit = 2_000_000
 const HTMLWarning = 1_800_000
 const LargeEmbed = 32 * 1024
@@ -36,7 +36,7 @@ type Stats struct {
 	Embeds           []Embed `json:"embeds"`
 }
 
-// Inspect final byte occurrences, not build callbacks: repeated references and
+// InspectEmbeds inspects final byte occurrences, not build callbacks: repeated references and
 // CSS/JS-embedded URLs must count exactly as they occur in the emitted document.
 func InspectEmbeds(raw []byte, sources map[[32]byte][]string) []Embed {
 	byHash := map[[32]byte]*Embed{}

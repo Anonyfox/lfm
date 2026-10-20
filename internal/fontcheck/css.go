@@ -31,7 +31,8 @@ type Stylesheet struct {
 
 func Faces(raw []byte) ([]Face, error) { s, err := ReadCSS(raw); return s.Faces, err }
 
-// Faces uses the shared CSS grammar/tokenizer. It observes every src declaration
+// ReadCSS reads the font faces of a stylesheet with the shared CSS
+// grammar/tokenizer. It observes every src declaration
 // (fallback declarations can intentionally target different browser support),
 // preserving order and nested media/supports/layer conditions. It never purges.
 func ReadCSS(raw []byte) (Stylesheet, error) {

@@ -148,7 +148,7 @@ func (b Built) Prints() []Print {
 	return out
 }
 
-// Key is the key of one print of a built deck.
+// PrintKey is the key of one print of a built deck.
 func (b Built) PrintKey(p Print) string { return b.Key + "/" + p.Kind + "/" + p.Paper }
 
 // PrintDoc is the HTML Chrome prints for one PDF of a built deck.

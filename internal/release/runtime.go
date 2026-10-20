@@ -28,7 +28,7 @@ type RuntimeResult struct {
 	DurationMS int64         `json:"durationMs"`
 }
 
-// A cheap real-JS navigation probe also runs when Lighthouse isn't installed.
+// AuditRuntime is a cheap real-JS navigation probe that also runs when Lighthouse isn't installed.
 // It never guesses which business controls to click or submits forms/orders.
 // The same tab then walks the page frame by frame at every review screen
 // (auditLayout); frames is the screenshot folder, "" for none.

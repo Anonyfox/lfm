@@ -162,7 +162,7 @@ func copyTellsRule(d *Document) []Diagnostic {
 	return issues
 }
 
-// proseDashes counts em dashes used as sentence breaks; ranges between
+// ProseDashes counts em dashes used as sentence breaks; ranges between
 // numbers ("13—14 Nov") are not counted.
 func ProseDashes(s string) int {
 	n := 0

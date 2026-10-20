@@ -1,4 +1,4 @@
-// Package validate analyzes generated HTML without modifying it or fetching URLs.
+// Package check analyzes generated HTML without modifying it or fetching URLs.
 // Parsing/tokenization are delegated to x/net/html; selectors use Cascadia.
 package check
 

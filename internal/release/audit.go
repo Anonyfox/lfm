@@ -271,7 +271,7 @@ func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, b
 	return r
 }
 
-// Only immutable in-memory artifact bytes are served, without invented delivery
+// AuditHandler serves only immutable in-memory artifact bytes, without invented delivery
 // compression/cache/TLS advantages. Also suitable as Chrome's non-forwarding proxy.
 func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Handler {
 	want, _ := url.Parse(origin)

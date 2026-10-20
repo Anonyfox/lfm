@@ -31,9 +31,13 @@ type Value struct {
 	cells *Run // an Array's values row by row, shared by every read of the area
 }
 
-// Constructors.
+// NumberValue is f as a value.
 func NumberValue(f float64) Value { return Value{Kind: Number, Num: f} }
-func TextValue(s string) Value    { return Value{Kind: Text, Str: s} }
+
+// TextValue is s as a value.
+func TextValue(s string) Value { return Value{Kind: Text, Str: s} }
+
+// BoolValue is b as a logical value.
 func BoolValue(b bool) Value {
 	if b {
 		return Value{Kind: Logical, Num: 1}
