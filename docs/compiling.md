@@ -146,9 +146,11 @@ second opinion.
 
 Compiles of the same project are serialized across processes by locking the project directory; no lock
 file is created, and a second compile waits and says so. Nothing is written into the project except
-`output/`, `distribution/` for a book with a listing, and, only while publishing, sibling `*.next-*`
+`output/`, `distribution/` for deliverables with a listing, and, only while publishing, sibling `*.next-*`
 folders that the swap removes again.
-Ctrl-C stops a compile between stages; a stopped compile never publishes.
+Ctrl-C stops a compile at once, Chrome and LibreOffice included; a stopped compile never publishes.
+LibreOffice's verdict on files it already opened is kept in the system temp directory, so a release of
+unchanged documents, decks or workbooks does not open them again.
 
 ## Release
 
