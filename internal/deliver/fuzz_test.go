@@ -50,7 +50,7 @@ func FuzzSlug(f *testing.F) {
 func FuzzJPEGStamp(f *testing.F) {
 	f.Add([]byte{0xff, 0xd8, 0xff, 0xe0, 0, 2}, "0123456789abcdef")
 	f.Add([]byte{0xff, 0xd8, 0xff, 0xfe, 0, 12, 'l', 'f', 'm'}, "")
-	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 70000)) // longer than a segment holds: the length wrapped
+	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 70000))                      // longer than a segment holds: the length wrapped
 	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 0xffff-2-len("lfm-build "))) // the longest key a segment holds
 	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 0xffff-1-len("lfm-build "))) // one more
 	f.Fuzz(func(t *testing.T, jpg []byte, key string) {
