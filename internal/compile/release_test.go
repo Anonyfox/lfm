@@ -83,11 +83,12 @@ func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
 			hasPrintLoader = true
 		}
 	}
-	if !strings.Contains(page, "<noscript>") || !hasPrintLoader || !strings.Contains(page, ".dynamic:hover") || strings.Contains(page, ".unseen-899") {
+	// Nothing is hovered at first paint: the hover rule waits in the full sheet.
+	if !strings.Contains(page, "<noscript>") || !hasPrintLoader || strings.Contains(page, ".dynamic:hover") || strings.Contains(page, ".unseen-899") {
 		t.Fatal(page)
 	}
 	full := read(t, root, "output/"+report.Release.Stylesheet)
-	if !strings.Contains(full, ".unseen-899") {
+	if !strings.Contains(full, ".unseen-899") || !strings.Contains(full, ".dynamic:hover") {
 		t.Fatal("deferred CSS was purged")
 	}
 	if report.Validation.Errors != 0 {

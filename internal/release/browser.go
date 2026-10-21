@@ -141,7 +141,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 		if err := load(browser, server.URL, viewport); err != nil {
 			return result, err
 		}
-		observed, err := chromedp.Run(browser, chromedp.Evaluate[observation](criticalJS))
+		observed, shot, err := observe(browser, viewport)
 		if err != nil {
 			return result, fmt.Errorf("observe critical CSS: %w", err)
 		}
@@ -153,10 +153,6 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 		collect(observed.Rules, static, true)
 		reference = observed
 		fingerprints = append(fingerprints, observed.Fingerprint)
-		shot, err := chromedp.Run(browser, chromedp.CaptureScreenshot())
-		if err != nil {
-			return result, err
-		}
 		screenshots = append(screenshots, shot)
 	}
 	// Off-screen layout rules can change ancestor geometry. If the minimal
@@ -205,18 +201,11 @@ func verify(browser context.Context, url, critical string, fingerprints []string
 					return false, err
 				}
 			}
-			if err := settle(browser); err != nil {
-				return false, err
-			}
-			observed, err := chromedp.Run(browser, chromedp.Evaluate[observation](criticalJS))
+			observed, shot, err := observe(browser, viewport)
 			if err != nil {
 				return false, err
 			}
-			shot, err := chromedp.Run(browser, chromedp.CaptureScreenshot())
-			if err != nil {
-				return false, err
-			}
-			if observed.Fingerprint != fingerprints[i] || !samePixels(shot, screenshots[i]) {
+			if observed.Reason != "" || observed.Fingerprint != fingerprints[i] || !samePixels(shot, screenshots[i]) {
 				return false, nil
 			}
 		}
@@ -255,15 +244,58 @@ func load(ctx context.Context, url string, viewport Viewport) error {
 	if _, err := chromedp.Run(ctx, chromedp.Navigate(url)); err != nil {
 		return fmt.Errorf("release preview: %w", err)
 	}
-	if err := settle(ctx); err != nil {
-		return fmt.Errorf("settle release preview: %w", err)
-	}
 	return nil
 }
-func settle(ctx context.Context) error {
-	_, err := chromedp.Run(ctx, chromedp.Evaluate[bool](`(async()=>{await document.fonts.ready;let freeze=document.querySelector('[data-lfm-freeze]');if(!freeze){freeze=document.createElement('style');freeze.setAttribute('data-lfm-freeze','');freeze.textContent='*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';document.head.append(freeze)}await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true})()`, chromedp.EvalAwaitPromise))
+
+// unsettled is the reason for a first screen that never holds still.
+const unsettled = "The first screen keeps changing after it loads; kept the complete blocking stylesheet."
+
+// observe measures the first screen the same way for the reference and
+// every check: settled, and twice alike, so a difference it reports is one
+// a visitor would see. It returns the screen's pixels with it.
+func observe(ctx context.Context, viewport Viewport) (observation, []byte, error) {
+	var last string
+	for range 6 {
+		if err := settle(ctx, viewport); err != nil {
+			return observation{}, nil, fmt.Errorf("settle release preview: %w", err)
+		}
+		observed, err := chromedp.Run(ctx, chromedp.Evaluate[observation](criticalJS))
+		if err != nil || observed.Reason != "" {
+			return observed, nil, err
+		}
+		if observed.Fingerprint == last {
+			shot, err := chromedp.Run(ctx, chromedp.CaptureScreenshot())
+			return observed, shot, err
+		}
+		last = observed.Fingerprint
+	}
+	return observation{Reason: unsettled}, nil, nil
+}
+
+// settle waits for the fonts and the first screen's images, freezes motion
+// and lays the page out afresh: right after a load or a resize, Chrome can
+// report a used value, such as an auto margin, from an earlier layout.
+func settle(ctx context.Context, viewport Viewport) error {
+	if _, err := chromedp.Run(ctx, chromedp.Evaluate[bool](settleScript, chromedp.EvalAwaitPromise)); err != nil {
+		return err
+	}
+	for _, w := range []int64{viewport.Width + 1, viewport.Width} {
+		if _, err := chromedp.Run(ctx, chromedp.EmulateViewport(w, viewport.Height)); err != nil {
+			return err
+		}
+	}
+	_, err := chromedp.Run(ctx, chromedp.Evaluate[bool](`(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true})()`, chromedp.EvalAwaitPromise))
 	return err
 }
+
+const settleScript = `(async()=>{
+await document.fonts.ready;
+let freeze=document.querySelector('[data-lfm-freeze]');
+if(!freeze){freeze=document.createElement('style');freeze.setAttribute('data-lfm-freeze','');freeze.textContent='*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';document.head.append(freeze)}
+const near=i=>{const r=i.getBoundingClientRect();return r.top<=innerHeight&&r.left<=innerWidth&&r.bottom>=0&&r.right>=0};
+const pending=[...document.images].filter(i=>!i.complete&&(i.loading!=='lazy'||near(i)));
+await Promise.race([Promise.all(pending.map(i=>i.decode().catch(()=>{}))),new Promise(r=>setTimeout(r,5000))]);
+return true})()`
 
 // Handler exposes only the in-memory artifact, never project sources.
 func Handler(page []byte, assets map[string][]byte) http.Handler {

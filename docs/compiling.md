@@ -157,7 +157,12 @@ unchanged documents, decks or workbooks does not open them again.
 `lfm compile --release` adds three bounded stages that need installed tools:
 
 1. **Critical CSS** (45 s limit): the first screen is rendered at 390×844, 768×1024 and 1440×900; the rules it
-   uses stay in the head and the complete stylesheet loads after. The split is verified pixel by pixel and
+   uses stay in the head and the complete stylesheet loads after. A rule counts by the elements it styles:
+   pseudo-elements by their element, states such as `:hover` as they hold on a first visit, and rules that hide
+   or move an element away (a closed menu, a skip link) where that element would otherwise appear. Every
+   measurement waits for fonts and first-screen images, lays the page out afresh and repeats until two
+   readings agree; the first screen with the critical rules alone, and with both, must match the full page in
+   every computed style, box and pixel at every size, or the complete stylesheet stays blocking. The split is
    applied only when it removes at least 2 KiB and 20% of render-blocking CSS.
 2. **Runtime probe and layout audit** (90 s): the page runs with its scripts in a fresh Chrome profile;
    exceptions and missing files are reported. Then the page is scrolled by half a screen at a time at 390×844,
