@@ -142,7 +142,29 @@ type Build struct {
 }
 
 type Validation struct {
-	Rules map[string]diagnostic.Severity `json:"rules"`
+	Rules   map[string]diagnostic.Severity `json:"rules"`
+	Budgets Budgets                        `json:"budgets"`
+}
+
+// Budgets are a page's advisory sizes, which perf.budgets warns past; a
+// field left out keeps lfm's default.
+type Budgets struct {
+	CSSKiB   int `json:"cssKiB"`
+	JSKiB    int `json:"jsKiB"`
+	Elements int `json:"elements"`
+	Depth    int `json:"depth"`
+}
+
+// budgetRanges bound what a page may raise its budgets to.
+var budgetRanges = []struct {
+	field string
+	value func(Budgets) int
+	max   int
+}{
+	{"cssKiB", func(b Budgets) int { return b.CSSKiB }, 10240},
+	{"jsKiB", func(b Budgets) int { return b.JSKiB }, 10240},
+	{"elements", func(b Budgets) int { return b.Elements }, 1000000},
+	{"depth", func(b Budgets) int { return b.Depth }, 1024},
 }
 
 // Assets controls packing. Default "auto" lets the compiler decide per
@@ -265,6 +287,11 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 		}
 		if err := rules(id, c.Build.Validation.Rules[id]); err != nil {
 			add(ConfigFile, jsonsrc.Child("build.validation.rules", id), err)
+		}
+	}
+	for _, r := range budgetRanges {
+		if v := r.value(c.Build.Validation.Budgets); v < 0 || v > r.max {
+			add(ConfigFile, "build.validation.budgets."+r.field, fmt.Errorf("build.validation.budgets.%s must be between 1 and %d; leave it out for lfm's default", r.field, r.max))
 		}
 	}
 	if c.Build.Assets.Default == "" {

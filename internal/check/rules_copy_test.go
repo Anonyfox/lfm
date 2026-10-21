@@ -267,3 +267,22 @@ func TestCopyTellsReadEitherApostrophe(t *testing.T) {
 		}
 	}
 }
+
+// A page raises its own budget instead of turning perf.budgets off.
+func TestBudgetsFollowThePage(t *testing.T) {
+	css := "<style>" + strings.Repeat(".a{color:red}", 2000) + "</style>"
+	got := runOn(t, budgetsRule, css, "<p>x</p>", Options{})
+	if len(got) != 1 || !strings.Contains(got[0].Message, "over this page's budget of 20.0 KiB") || !strings.Contains(got[0].Hint, "build.validation.budgets.cssKiB") {
+		t.Fatalf("default budget: %+v", got)
+	}
+	if got := runOn(t, budgetsRule, css, "<p>x</p>", Options{Budgets: Budgets{CSSKiB: 40}}); len(got) != 0 {
+		t.Fatalf("raised budget still warns: %+v", got)
+	}
+	if got := runOn(t, budgetsRule, css, "<p>x</p>", Options{Budgets: Budgets{CSSKiB: 10}}); len(got) != 1 {
+		t.Fatalf("lowered budget: %+v", got)
+	}
+	// A release's inline copy of the first-screen rules is counted once.
+	if got := runOn(t, budgetsRule, css, "<p>x</p>", Options{ExternalCSSBytes: 20 << 10, CriticalCSSBytes: 20 << 10, Budgets: Budgets{CSSKiB: 40}}); len(got) != 0 {
+		t.Fatalf("the critical copy counted twice: %+v", got)
+	}
+}

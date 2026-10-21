@@ -267,7 +267,9 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		URL: c.URL, RenderedSource: prepared.HTML, InlineSources: b.inlineSources,
 		ExternalCSSBytes: result.Cost.ExternalCSSBytes, ExternalJSBytes: result.Cost.ExternalJSBytes,
 		Rules: c.Build.Validation.Rules, Images: result.Images, FontAssets: b.fonts,
-		Stylesheets: b.cssAssets(), Commerce: prepared.Commerce, Concept: facts,
+		Budgets:          check.Budgets(c.Build.Validation.Budgets),
+		CriticalCSSBytes: criticalCopy(result.Release),
+		Stylesheets:      b.cssAssets(), Commerce: prepared.Commerce, Concept: facts,
 		StarterTexts: starterTexts, StarterImages: starterImages,
 	})
 	result.Validation = summarize("html", append(append(preliminary.Diagnostics, analysis.Diagnostics...), diagnostic.Apply(b.notices, c.Build.Validation.Rules)...))
@@ -598,4 +600,13 @@ func optionalHelpers(kinds []string, audit *release.AuditResult) []string {
 		out = append(out, "Lighthouse, scores for performance, accessibility, best practices and SEO")
 	}
 	return out
+}
+
+// criticalCopy is the size of the first-screen rules a release inlined in
+// front of the full stylesheet, which holds them too.
+func criticalCopy(r *release.Result) int {
+	if r == nil || !r.Applied {
+		return 0
+	}
+	return r.CriticalBytes
 }

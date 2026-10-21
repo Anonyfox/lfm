@@ -44,17 +44,25 @@ type Options struct {
 	InlineSources                     map[[32]byte][]string
 	ExternalCSSBytes, ExternalJSBytes int
 	Rules                             map[string]Severity
-	Images                            []imaging.Decision
-	FontAssets                        map[string]fontcheck.Info
-	Stylesheets                       map[string][]byte // exact emitted CSS keyed by final URL
-	Assets                            map[string][]byte // exact sidecar bytes keyed by emitted filename; no filesystem/network reads
-	Commerce                          commercecheck.Facts
-	Concept                           *ConceptFacts // decisions of concept.md, when the project has one
+	Budgets                           Budgets
+	// CriticalCSSBytes are the inline copy of the stylesheet's first-screen
+	// rules a release adds; a budget counts the stylesheet once.
+	CriticalCSSBytes int
+	Images           []imaging.Decision
+	FontAssets       map[string]fontcheck.Info
+	Stylesheets      map[string][]byte // exact emitted CSS keyed by final URL
+	Assets           map[string][]byte // exact sidecar bytes keyed by emitted filename; no filesystem/network reads
+	Commerce         commercecheck.Facts
+	Concept          *ConceptFacts // decisions of concept.md, when the project has one
 	// Starter texts and images (SHA-256) of lfm init a built page must have
 	// replaced; empty while the page is still the starter page.
 	StarterTexts  []string
 	StarterImages [][32]byte
 }
+
+// Budgets are a page's advisory sizes for perf.budgets; zero keeps the
+// default.
+type Budgets struct{ CSSKiB, JSKiB, Elements, Depth int }
 
 type Report struct {
 	Stage       string       `json:"stage,omitempty"`

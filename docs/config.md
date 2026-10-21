@@ -36,9 +36,14 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.assets.overrides` | map |  | Packing for single source paths; always wins over default. Example: `{"assets/images/hero.webp": "file"}`. |
 | `build.assets.overrides.*` | inline | file |  | How this source path is packed. Example: `"file"`. |
 | `build.browserData` | list of strings |  | Dot paths copied into <script type="application/json" id="product-data"> for scripts, keeping their nesting. Example: `["data.offer"]`. |
-| `build.validation` | object |  | Rule levels. |
+| `build.validation` | object |  | Rule levels and size budgets. |
 | `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Example: `{"design.mono": "off"}`. |
 | `build.validation.rules.*` | off | warn | error |  | The level of this rule. Example: `"warn"`. |
+| `build.validation.budgets` | object |  | This page's advisory sizes, which perf.budgets warns past; raise one where the page has a reason to be larger instead of turning the rule off. Example: `{"cssKiB": 80}`. Checked by `perf.budgets`. |
+| `build.validation.budgets.cssKiB` | integer | 20 | Total CSS in KiB, inline and in files. Example: `80`. Checked by `perf.budgets`. |
+| `build.validation.budgets.jsKiB` | integer | 50 | Total JavaScript in KiB, inline and in files. Example: `120`. Checked by `perf.budgets`. |
+| `build.validation.budgets.elements` | integer | 1500 | Elements in the page's DOM. Example: `3000`. Checked by `perf.budgets`. |
+| `build.validation.budgets.depth` | integer | 32 | How deep the DOM nests. Example: `40`. Checked by `perf.budgets`. |
 | `deliverables` | object |  | What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, slide decks, and two or more of them together as a bundle. |
 | `deliverables.book` | object |  | A book in deliverables/book, written with `lfm skills book`. |
 | `deliverables.book.author` | string | required | The name on the cover. Example: `"Lena Brot"`. |

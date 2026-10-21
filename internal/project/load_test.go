@@ -101,3 +101,33 @@ func TestAssetsMode(t *testing.T) {
 		t.Fatal("mode")
 	}
 }
+
+func TestLoadBudgets(t *testing.T) {
+	p := newProject(t)
+	write(t, p.Root, ConfigFile, strings.Replace(validConfig, `"data"`, `"build":{"validation":{"budgets":{"cssKiB":80,"elements":3000}}},"data"`, 1))
+	l := Load(p, nil)
+	if b := l.Config.Build.Validation.Budgets; len(l.Problems) != 0 || b.CSSKiB != 80 || b.Elements != 3000 || b.JSKiB != 0 {
+		t.Fatalf("%+v %+v", l.Problems, b)
+	}
+	problems := func(budgets string) string {
+		write(t, p.Root, ConfigFile, strings.Replace(validConfig, `"data"`, `"build":{"validation":{"budgets":`+budgets+`}},"data"`, 1))
+		var paths []string
+		for _, problem := range Load(p, nil).Problems {
+			paths = append(paths, problem.Path)
+		}
+		return " " + strings.Join(paths, " ") + " "
+	}
+	// The shape first, then the ranges a page may raise its budgets to.
+	for budgets, want := range map[string][]string{
+		`{"jsKiB":"big","fonts":3}`:       {"build.validation.budgets.jsKiB", "build.validation.budgets.fonts"},
+		`{"cssKiB":-1,"depth":99999}`:     {"build.validation.budgets.cssKiB", "build.validation.budgets.depth"},
+		`{"cssKiB":10240,"elements":1e6}`: {"build.validation.budgets.elements"},
+	} {
+		got := problems(budgets)
+		for _, path := range want {
+			if !strings.Contains(got, " "+path+" ") {
+				t.Errorf("%s: missing problem at %s; got%s", budgets, path, got)
+			}
+		}
+	}
+}

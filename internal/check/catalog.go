@@ -180,7 +180,7 @@ func DefaultRules() []Rule {
 			"Warns for a missing or duplicate viewport meta tag and for user-scalable=no or user-scalable=0, which blocks pinch zoom. Without it phones render a shrunken desktop page; without zoom, visitors with low vision cannot read it. Use <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">.",
 			viewportRule),
 		rule("perf.budgets", "CSS, JavaScript and DOM size stay within advisory budgets",
-			"Warns when total CSS exceeds 20 KiB, JavaScript exceeds 50 KiB, the DOM has more than 1,500 elements or nests deeper than 32 levels. Each costs download, parse and layout time on the low-end phones many visitors use. Remove unused styles, dependencies and wrapper elements; moving code to a file changes caching, not its cost. These are authoring defaults, so tune the level if a page has a reason to exceed them.",
+			"Warns when total CSS exceeds 20 KiB, JavaScript exceeds 50 KiB, the DOM has more than 1,500 elements or nests deeper than 32 levels. Each costs download, parse and layout time on the low-end phones many visitors use. Remove unused styles, dependencies and wrapper elements; moving code to a file changes caching, not its cost. These are authoring defaults: a page with a reason to be larger raises its own in build.validation.budgets (cssKiB, jsKiB, elements, depth) instead of turning the rule off.",
 			budgetsRule),
 
 		// design

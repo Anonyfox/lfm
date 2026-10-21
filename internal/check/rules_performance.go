@@ -211,19 +211,31 @@ func viewportRule(d *Document) []Diagnostic {
 }
 
 func budgetsRule(d *Document) []Diagnostic {
+	or := func(set, fallback int) int {
+		if set > 0 {
+			return set
+		}
+		return fallback
+	}
+	b := d.Options.Budgets
+	kib := func(n int) string { return fmt.Sprintf("%.1f KiB", float64(n)/1024) }
+	plain := func(n int) string { return fmt.Sprint(n) }
 	var issues []Diagnostic
 	for _, budget := range []struct {
-		name         string
+		name, field  string
 		value, limit int
+		unit         int // the limit's unit in the value's
+		show         func(int) string
 		hint         string
 	}{
-		{"CSS (inline + files)", d.Stats.CSSBytes + d.Stats.ExternalCSSBytes, 20 * 1024, "Inspect dependencies/unused styles. File packing changes scheduling, not total CSS bytes."},
-		{"JavaScript (inline + files)", d.Stats.JSBytes + d.Stats.ExternalJSBytes, 50 * 1024, "Inspect dependencies and startup work; moving code to a file does not remove its CPU cost."},
-		{"DOM elements", d.Stats.Elements, 1500, "Reduce repeated markup or inspect rendering costs on a representative phone."},
-		{"DOM depth", d.Stats.MaxDepth, 32, "Flatten unnecessary wrappers; this is an advisory budget, not an HTML validity limit."},
+		{"CSS (inline + files)", "cssKiB", d.Stats.CSSBytes + d.Stats.ExternalCSSBytes - d.Options.CriticalCSSBytes, or(b.CSSKiB, 20), 1024, kib, "Remove unused styles and dependencies; file packing changes scheduling, not total CSS bytes."},
+		{"JavaScript (inline + files)", "jsKiB", d.Stats.JSBytes + d.Stats.ExternalJSBytes, or(b.JSKiB, 50), 1024, kib, "Inspect dependencies and startup work; moving code to a file does not remove its CPU cost."},
+		{"DOM elements", "elements", d.Stats.Elements, or(b.Elements, 1500), 1, plain, "Reduce repeated markup or inspect rendering costs on a representative phone."},
+		{"DOM depth", "depth", d.Stats.MaxDepth, or(b.Depth, 32), 1, plain, "Flatten unnecessary wrappers; this is an advisory budget, not an HTML validity limit."},
 	} {
-		if budget.value > budget.limit {
-			issues = append(issues, d.Whole(Warning, fmt.Sprintf("%s exceeds the advisory budget: %d > %d.", budget.name, budget.value, budget.limit), budget.hint))
+		if limit := budget.limit * budget.unit; budget.value > limit {
+			issues = append(issues, d.Whole(Warning, fmt.Sprintf("%s is %s, over this page's budget of %s.", budget.name, budget.show(budget.value), budget.show(limit)),
+				budget.hint+" When the page needs more, raise build.validation.budgets."+budget.field+" in lfm.json for it."))
 		}
 	}
 	return issues
