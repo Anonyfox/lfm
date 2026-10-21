@@ -51,13 +51,16 @@ func FuzzJPEGStamp(f *testing.F) {
 	f.Add([]byte{0xff, 0xd8, 0xff, 0xe0, 0, 2}, "0123456789abcdef")
 	f.Add([]byte{0xff, 0xd8, 0xff, 0xfe, 0, 12, 'l', 'f', 'm'}, "")
 	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 70000)) // longer than a segment holds: the length wrapped
+	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 0xffff-2-len("lfm-build "))) // the longest key a segment holds
+	f.Add([]byte{0xff, 0xd8}, strings.Repeat("k", 0xffff-1-len("lfm-build "))) // one more
 	f.Fuzz(func(t *testing.T, jpg []byte, key string) {
 		JPEGStamp(jpg)
 		if len(jpg) < 2 || jpg[0] != 0xff || jpg[1] != 0xd8 {
 			return
 		}
 		stamped := StampJPEG(jpg, key)
-		if len(key) > 65000 {
+		// A segment's length counts its two length bytes and stops at 0xffff.
+		if len("lfm-build ")+len(key)+2 > 0xffff {
 			if string(stamped) != string(jpg) {
 				t.Fatal("a key longer than a comment segment was written")
 			}
