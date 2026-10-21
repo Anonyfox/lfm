@@ -18,7 +18,8 @@
     "proofReport": "https://github.com/Anonyfox/lfm/blob/main/site/proof/default-agent-page.report.txt",
     "license": "https://github.com/Anonyfox/lfm/blob/main/LICENSE",
     "mit": "https://opensource.org/licenses/MIT",
-    "grokBot": "https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf"
+    "grokBot": "https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf",
+    "analytics": "https://static.cloudflareinsights.com/beacon.min.js"
   },
   "data": {
     "prompt": {
