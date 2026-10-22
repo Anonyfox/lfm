@@ -475,7 +475,7 @@ func renderDocument(w io.Writer, s term.Style, d *document.Summary) {
 		fmt.Fprintf(w, "  %s %s\n", term.Pad("documents", 12), s.Dim(d.Name+" · no documents yet"))
 		return
 	}
-	line := fmt.Sprintf("%s · %s · %s theme · %s", d.Name, term.Plural(d.Documents, "document"), d.Theme, term.Plural(len(d.Editions), "edition"))
+	line := fmt.Sprintf("%s · %s · %s · %s", d.Name, term.Plural(d.Documents, "document"), fontsNote(d.Fonts), term.Plural(len(d.Editions), "edition"))
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("documents", 12), line+sellNote(d.Sell))
 	detail := fmt.Sprintf("%s · %s to fill · %s", strings.Join(d.Editions, ", "), term.Plural(d.Fields, "field"), term.Plural(len(d.Files), "ZIP"))
 	if d.Layout != "" {
@@ -544,7 +544,7 @@ func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
 	if d.Quizzes > 0 {
 		line += ", " + term.Plural(d.Quizzes, "quiz question")
 	}
-	line += fmt.Sprintf(" · %s theme · %s", d.Theme, term.Plural(len(d.Editions), "language"))
+	line += fmt.Sprintf(" · %s · %s", fontsNote(d.Fonts), term.Plural(len(d.Editions), "language"))
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("decks", 12), line+sellNote(d.Sell))
 	detail := fmt.Sprintf("%s · %s", strings.Join(d.Editions, ", "), term.Plural(len(d.Files), "ZIP"))
 	if d.Layout != "" {
@@ -586,4 +586,12 @@ func renderStores(w io.Writer, s term.Style, unit string, channels []string, ima
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("stores", 12), stores)
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("", 12), s.Dim(strings.Join(channels, ", ")))
+}
+
+// fontsNote names the families a set is in.
+func fontsNote(fonts []string) string {
+	if len(fonts) == 0 {
+		return "no fonts named yet"
+	}
+	return "in " + strings.Join(fonts, " and ")
 }

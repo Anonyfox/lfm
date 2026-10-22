@@ -14,6 +14,5 @@ Every block renders the same in Word, LibreOffice, Pages and Google Docs.
 | ceremony | Prove centered, ceremonial layouts and ornaments |
 
 ## Look
-Theme: editorial
 Text font: Lora
 Heading font: Lora

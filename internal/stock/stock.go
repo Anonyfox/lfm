@@ -5,6 +5,7 @@
 package stock
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/color"
@@ -91,6 +92,19 @@ func set(names ...string) map[string]bool {
 		m[n] = true
 	}
 	return m
+}
+
+// Families are every family name lfm knows as a generator's default, in
+// its normalized form.
+func Families() []string {
+	var out []string
+	for _, set := range []map[string]bool{genericSans, display, mono} {
+		for name := range set {
+			out = append(out, name)
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 // Family normalizes a font-family name: lowercase, without quotes.

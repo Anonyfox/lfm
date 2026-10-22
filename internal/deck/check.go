@@ -35,7 +35,7 @@ type Edition struct {
 type Summary struct {
 	Name      string   `json:"name,omitempty"`
 	Concept   bool     `json:"concept"`
-	Theme     string   `json:"theme,omitempty"`
+	Fonts     []string `json:"fonts,omitempty"` // the families the concept names
 	Decks     int      `json:"decks"`
 	Slides    int      `json:"slides"`  // in the decks of one language
 	Quizzes   int      `json:"quizzes"` // questions in them
@@ -137,7 +137,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*de
 		r.Summary.Name = r.Plan.Name
 	}
 	r.Theme = r.Plan.theme()
-	r.Summary.Theme = r.Theme.Name
+	r.Summary.Fonts = families(r.Theme)
 
 	// Until the concept is written there is nothing to hold to it: its Look
 	// names the fonts, and the decks follow it.
@@ -423,3 +423,6 @@ func (r Report) Showcase() Edition {
 	}
 	return Edition{}
 }
+
+// families are the font families a theme sets, each once.
+func families(t theme.Theme) []string { return theme.Families(t) }

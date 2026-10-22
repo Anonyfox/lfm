@@ -21,11 +21,11 @@
     },
     {
       "name": "k3n8q2w7x5r9t4m6p1/allotment-society-kit-en-letter.zip",
-      "bytes": 1471734
+      "bytes": 1471718
     },
     {
       "name": "k3n8q2w7x5r9t4m6p1/allotment-society-kit-en-a4.zip",
-      "bytes": 1471729
+      "bytes": 1471711
     }
   ],
   "validation": {
@@ -92,7 +92,9 @@
   "document": {
     "name": "Allotment Society Kit",
     "concept": true,
-    "theme": "warm",
+    "fonts": [
+      "Lora"
+    ],
     "documents": 3,
     "languages": [
       "en"

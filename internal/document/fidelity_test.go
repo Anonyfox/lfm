@@ -2,7 +2,9 @@ package document
 
 import (
 	"context"
+	"maps"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"testing"
@@ -10,6 +12,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/theme"
 )
 
 // TestPrintMatchesWord prints every document of the fixtures with Chrome,
@@ -40,8 +43,8 @@ func TestPrintMatchesWord(t *testing.T) {
 		}
 	}
 	add("club", Check(fixture(t, "club", nil), testConfig, true, nil, ""))
-	for _, th := range ThemeNames() {
-		add(th, Check(features(t, th), testConfig, true, nil, ""))
+	for _, variant := range slices.Sorted(maps.Keys(theme.Variants)) {
+		add(variant, Check(features(t, variant), testConfig, true, nil, ""))
 	}
 	chrome := map[string]int{}
 	files := map[string][]byte{}

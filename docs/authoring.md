@@ -228,24 +228,25 @@ Word, Google Docs, Pages or LibreOffice. `lfm skills document` prints the proces
 
 ```text
 deliverables/document/
-  concept.md            buyer, promise, Documents (file name, job), Look (theme, accent, fonts)
+  concept.md            buyer, promise, Documents (file name, job), Look (fonts, accent, typesetting)
   en/invoice.md         one Markdown file per document and language
-  fonts/                the theme's Google Fonts families as static .ttf files, with OFL.txt
+  fonts/                the Look's Google Fonts families as static .ttf files, with OFL.txt
   images/               logos and pictures the documents place
   listing.md            store texts: title, description, tags, price, AI use
 ```
 
 `lfm.json` holds `"deliverables": {"document": {"path": "…", "version": "…"}}`; `papers` overrides the
 paper sizes (US Letter and A4 for `en`, A4 elsewhere) and `docs` names optional Google Docs masters.
-The concept's Look picks one of the themes (classic, editorial, minimal, modern, technical, warm), which
-the compiler turns into Word's built-in styles: sizes on a modular scale, leading, spacing, margins from
-the line length, table rules and the accent. Documents are Markdown with front matter (`title`, `pages`,
+The concept's Look names the fonts and the accent the product decided and, where the set needs it, the
+typesetting (paragraphs, tables, headings, sizes, ornament); the compiler turns it into Word's built-in
+styles: sizes on a modular scale, leading, spacing, margins from the line length, table rules and the
+accent. Documents are Markdown with front matter (`title`, `pages`,
 `kind`, `cover`, `header`, `footer`) and a few directives: `::: title`, `::: columns` (separated by
 `+++`), `::: form`, `::: signature` and `::: center`. `==text==` marks a field the buyer replaces;
 quotes, dashes and non-breaking spaces follow the language.
 
 Every compile checks the fonts (static, embeddable, licensed, drawing every character), every document
-against the format, the theme's contrast and line length on every paper, and the sample content for
+against the format, the Look's contrast and line length on every paper, and the sample content for
 filler and emoji. `lfm serve` shows every edition at `/<path>/preview/<edition>.html`.
 
 ## Deliverables: slide decks
@@ -255,16 +256,16 @@ Keynote or Google Slides. `lfm skills deck` prints the process.
 
 ```text
 deliverables/deck/
-  concept.md            buyer, promise, Decks (file name, job), Look (theme, accent, fonts)
+  concept.md            buyer, promise, Decks (file name, job), Look (fonts, accent, typesetting)
   en/briefing.md        one Markdown file per deck and language
-  fonts/                the theme's Google Fonts families as static .ttf files, with OFL.txt
+  fonts/                the Look's Google Fonts families as static .ttf files, with OFL.txt
   images/               pictures the slides show
   listing.md            store texts: title, description, tags, price, AI use
 ```
 
 `lfm.json` holds `"deliverables": {"deck": {"path": "…", "version": "…"}}`; `papers` sets the paper the
 speaker notes and quiz sheets print on (US Letter and A4 for `en`, A4 elsewhere) and `slides` names
-optional Google Slides masters. The Look picks the same themes documents use, so a deck and its handouts
+optional Google Slides masters. The Look reads as it does for documents, so a deck and its handouts
 match. A deck is Markdown with front matter (`title`, `minutes`, `slides`); `---` starts a slide, the first
 `#` heading is the cover, later `#` headings open sections and `##` titles a slide. `::: columns`, `:::
 notes` and `::: title` are its directives; a checklist with `- [x]` answers is a quiz question.

@@ -380,7 +380,7 @@ func (c conceptChecker) look(d concept.Document, plan *Plan) {
 	if _, ok := Trims[plan.Trim]; !ok {
 		c.add(RuleConcept, s.Line, "Look has no valid \"Trim:\" (5x8in, 5.5x8.5in, 6x9in, A5, A4 or letter).", "Pick the printed page size of the PDF.")
 	}
-	c.need(s, plan.Body != "", "Look has no \"Body:\" font stack.", "Name the body typeface as a stack, e.g. Body: Literata, Georgia, serif.")
+	c.need(s, plan.Body != "", "Look has no \"Body:\" font stack.", "Name the body typeface as a stack: Body: <family>, <fallback families>, <generic family>.")
 	c.need(s, plan.Headings != "", "Look has no \"Headings:\" font stack.", "Name the heading typeface as a stack.")
 	if !hexColor.MatchString(plan.Accent) {
 		c.add(RuleConcept, s.Line, fmt.Sprintf("Look has no valid \"Accent:\" color (got %q).", plan.Accent), "Give the one accent color as #rrggbb.")

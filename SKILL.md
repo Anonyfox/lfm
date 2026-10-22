@@ -27,7 +27,7 @@ works, tell the user what failed and stop: a page made without lfm is not this s
 ## 2. Have a project
 
 - A folder with `lfm.json` is a project: work there.
-- Otherwise create one in a new folder named after the offer, such as `lfm init sourdough-course`, then
+- Otherwise create one in a new folder named after the offer, `lfm init <offer-name>`, then
   `cd` into it. Inside an unrelated repository, ask where the page should live; without anyone to ask,
   use a new subfolder of the current folder. Never initialize into a folder holding other work.
 - Set `language` in `lfm.json` to the language the buyers speak (`de` for buyers in Germany).

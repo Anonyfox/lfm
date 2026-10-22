@@ -7,18 +7,22 @@ import (
 	"image"
 	"image/color"
 	pngenc "image/png"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/markup"
 	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/ooxml"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/theme"
 	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
@@ -155,7 +159,7 @@ func TestChromePrintsAsPlanned(t *testing.T) {
 		if name == "club" {
 			r = Check(fixture(t, name, nil), testConfig, true, nil, "")
 		} else {
-			r = Check(features(t, "warm"), testConfig, true, nil, "")
+			r = Check(features(t, "accent-headings"), testConfig, true, nil, "")
 		}
 		built, _ := r.Build(func(string) []byte { return nil })
 		for _, b := range built {
@@ -196,9 +200,9 @@ func TestSourcesAreHeldToTheFormat(t *testing.T) {
 func TestThemesReadWell(t *testing.T) {
 	t.Parallel()
 	fam := &family{Name: "X", Faces: map[string]*Face{"Regular": {AvgChar: 0.48, Natural: 1.2}}}
-	for _, name := range ThemeNames() {
+	for _, name := range slices.Sorted(maps.Keys(theme.Variants)) {
 		for _, paper := range []string{"a4", "letter"} {
-			if probs := themeProblems(layoutTheme(Themes[name], Papers[paper], fam, fam)); len(probs) > 0 {
+			if probs := themeProblems(layoutTheme(variantTheme(t, name), Papers[paper], fam, fam)); len(probs) > 0 {
 				t.Errorf("%s on %s: %v", name, paper, probs)
 			}
 		}
@@ -285,9 +289,16 @@ func TestWordOpensEveryDocument(t *testing.T) {
 	}
 }
 
+// variantTheme resolves one of theme.Variants as a concept's Look would.
+func variantTheme(t testing.TB, name string) Theme {
+	t.Helper()
+	d, _ := concept.ParseFormat("# Documents: T\n\n## Look\n\n"+theme.Variants[name]+"\n", "# Documents: ", "<name>", []concept.SectionSpec{{Name: "Look"}})
+	return theme.ParseLook(d.Sections["Look"], func(_ int, message, _ string) { t.Fatalf("%s: %s", name, message) }).Resolve()
+}
+
 // features is the feature fixture with the club's fonts, a test image and
-// the given theme.
-func features(t testing.TB, theme string) project.Project {
+// the given typesetting variant.
+func features(t testing.TB, variant string) project.Project {
 	t.Helper()
 	edit := map[string]string{}
 	fonts, _ := filepath.Glob("testdata/club/fonts/*")
@@ -305,7 +316,7 @@ func features(t testing.TB, theme string) project.Project {
 	pngenc.Encode(&png, img)
 	edit[ImagesDir+"/pattern.png"] = png.String()
 	concept, _ := os.ReadFile("testdata/features/concept.md")
-	edit[ConceptFile] = strings.Replace(string(concept), "Theme: editorial", "Theme: "+theme, 1)
+	edit[ConceptFile] = strings.Replace(string(concept), "Text font: Lora\nHeading font: Lora", theme.Variants[variant], 1)
 	return fixture(t, "features", edit)
 }
 
@@ -317,11 +328,11 @@ func TestEveryFeatureInEveryTheme(t *testing.T) {
 	files := map[string][]byte{}
 	var all []Built
 	var last Report
-	for _, theme := range ThemeNames() {
-		r := Check(features(t, theme), testConfig, true, nil, "")
+	for _, variant := range slices.Sorted(maps.Keys(theme.Variants)) {
+		r := Check(features(t, variant), testConfig, true, nil, "")
 		for _, d := range r.Diagnostics {
 			if d.Severity == diagnostic.Error {
-				t.Fatalf("%s: %s %s", theme, d.Rule, d.Message)
+				t.Fatalf("%s: %s %s", variant, d.Rule, d.Message)
 			}
 		}
 		built, err := r.Build(func(string) []byte { return nil })
@@ -329,7 +340,7 @@ func TestEveryFeatureInEveryTheme(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, b := range built {
-			files[theme+"-"+b.Edition.Key+"-"+b.Doc.Key+".docx"] = b.Data
+			files[variant+"-"+b.Edition.Key+"-"+b.Doc.Key+".docx"] = b.Data
 		}
 		all, last = append(all, built...), r
 	}

@@ -72,7 +72,7 @@ Make the core loop work with real content before any polish.
    the Type table and the Form rules (corners, edges, elevation) once; components use the tokens only.
    Body text meets 4.5:1 against its actual ground, including over images (the release audit measures it
    on flat grounds; over images, check it yourself). Font files are WOFF2 in the
-   project (from the foundry or an open font host such as Fontsource, with the licence), a small set of
+   project (from the foundry or an open font host, with the licence), a small set of
    weights, the variable file when the concept uses an axis such as width, a subset that covers the page's
    language (quotes, umlauts, €). Reference images and fonts from HTML and CSS like any page; lfm packs
    and names them.

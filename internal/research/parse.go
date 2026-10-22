@@ -289,7 +289,7 @@ func parseVoice(ls []string, i int, format string) (Voice, int, []Problem) {
 		v.Platform, v.Place = platform(fields[1])
 		switch {
 		case v.Platform == "":
-			add(n, "Voice has no platform.", "Name the service it was posted on, e.g. Reddit (r/nursing).")
+			add(n, "Voice has no platform.", "Name the service it was posted on and, where it has one, the community: <platform> (<community>).")
 		case strings.ContainsAny(v.Platform, "\"“”()") || len([]rune(v.Platform)) > 32:
 			add(n, "Platform "+quote(v.Platform)+" reads like a place.", "Name the service only and put the thread, channel or page in parentheses: YouTube (\"Tips for nights\"). Otherwise platform counts break.")
 		}

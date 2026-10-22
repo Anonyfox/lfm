@@ -108,7 +108,7 @@ every edition and wraps it in the page CSS. What it sees:
 - `.Name`, `.Promise`, `.Parts` (`.Name`, `.Pages`, `.Job`), `.Shop`, `.Version`, `.Language`, `.Data.<file>`.
 - `.Edition.Size` (`.Key` such as a4, `.Label`, `.Width` and `.Height` in mm, `.Digital`),
   `.Edition.Is "ink-saver"`, `.Edition.Option "Start"`. The `<html>` element carries the size key and
-  variant values as classes: style `.ink-saver h1 { color: #000 }`, hide with `.tablet .paper-only`.
+  variant values as classes: style `.ink-saver h1 { color: <ink colour> }`, hide with `.tablet .paper-only`.
 - `calendar "2027" "monday"` or `calendar "2026-08" "sunday" 12` (months, default 12):
   - `.Weekdays`: the seven `.Name` and `.Short` from the start day.
   - `.Months`: `.ID` (m2027-01), `.Num`, `.Year`, `.Name`, `.Short`, `.Days`, and `.Rows`: the weeks of

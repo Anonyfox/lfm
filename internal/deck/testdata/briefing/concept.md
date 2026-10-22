@@ -13,7 +13,12 @@ A complete yearly fire safety briefing in one evening: present the slides from t
 | briefing | Present the 15 minute fire safety briefing with speaker notes and a quiz |
 
 ## Look
-Theme: warm
+Text font: Lora
+Headings: regular
+Heading color: accent
+Text size: 11
+Line height: 1.45
+Ornament: ❦
 Accent: #9C3B22
 
 ## Changelog

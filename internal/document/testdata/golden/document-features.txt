@@ -1,177 +1,129 @@
-download.html 1165 960bbf5684453dfc
-en-a4.zip/Ceremony Proof.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
+download.html 1165 2e6c24c40168a4b8
+en-a4.zip/Ceremony Proof.docx/[Content_Types].xml 1408 b0e2e7a4ff030686
 en-a4.zip/Ceremony Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-a4.zip/Ceremony Proof.docx/docProps/core.xml 678 1162429dcd842592
-en-a4.zip/Ceremony Proof.docx/word/document.xml 2521 a95ca387a89f1bd5
+en-a4.zip/Ceremony Proof.docx/word/document.xml 2521 61e882ff76870363
 en-a4.zip/Ceremony Proof.docx/word/_rels/document.xml.rels 812 5ca7621d5ad46d1c
 en-a4.zip/Ceremony Proof.docx/docProps/app.xml 287 88cca64693522744
-en-a4.zip/Ceremony Proof.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-a4.zip/Ceremony Proof.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-a4.zip/Ceremony Proof.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-a4.zip/Ceremony Proof.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-a4.zip/Ceremony Proof.docx/word/fontTable.xml 653 18ce12f53834b613
-en-a4.zip/Ceremony Proof.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
-en-a4.zip/Ceremony Proof.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-a4.zip/Ceremony Proof.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-a4.zip/Ceremony Proof.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-a4.zip/Ceremony Proof.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4.zip/Everything Proof.docx/[Content_Types].xml 2023 64f30b1703718c0d
+en-a4.zip/Ceremony Proof.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-a4.zip/Ceremony Proof.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-a4.zip/Ceremony Proof.docx/word/settings.xml 816 1975624ec4792288
+en-a4.zip/Ceremony Proof.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-a4.zip/Ceremony Proof.docx/word/fontTable.xml 224 8a3095449ba03804
+en-a4.zip/Everything Proof.docx/[Content_Types].xml 1920 025cff4c01255127
 en-a4.zip/Everything Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-a4.zip/Everything Proof.docx/docProps/core.xml 680 23b02fedd19a538c
-en-a4.zip/Everything Proof.docx/word/document.xml 19433 527d669cae5374de
+en-a4.zip/Everything Proof.docx/word/document.xml 19461 615c25a1c8777a4e
 en-a4.zip/Everything Proof.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-a4.zip/Everything Proof.docx/docProps/app.xml 287 88cca64693522744
-en-a4.zip/Everything Proof.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-a4.zip/Everything Proof.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-a4.zip/Everything Proof.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-a4.zip/Everything Proof.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-a4.zip/Everything Proof.docx/word/fontTable.xml 653 18ce12f53834b613
-en-a4.zip/Everything Proof.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
+en-a4.zip/Everything Proof.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-a4.zip/Everything Proof.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-a4.zip/Everything Proof.docx/word/settings.xml 816 1975624ec4792288
+en-a4.zip/Everything Proof.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-a4.zip/Everything Proof.docx/word/fontTable.xml 224 8a3095449ba03804
 en-a4.zip/Everything Proof.docx/word/footer1.xml 819 62ffac1d24f61ba1
 en-a4.zip/Everything Proof.docx/word/footer2.xml 316 6a99b07db54808e8
 en-a4.zip/Everything Proof.docx/word/header1.xml 434 4fb490887b997772
 en-a4.zip/Everything Proof.docx/word/header2.xml 316 27ea6d628f622c72
 en-a4.zip/Everything Proof.docx/word/media/image1.png 1529 ecb0a46cae06cd13
-en-a4.zip/Everything Proof.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-a4.zip/Everything Proof.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-a4.zip/Everything Proof.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-a4.zip/Everything Proof.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4.zip/Fonts/Lora-Bold.ttf 132124 ac3145cd8846b6ab
-en-a4.zip/Fonts/Lora-BoldItalic.ttf 138352 467b540c3c722fc6
-en-a4.zip/Fonts/Lora-Italic.ttf 137328 26243fda8cd938cc
-en-a4.zip/Fonts/Lora-Regular.ttf 132188 1d37d1e34c77be80
 en-a4.zip/Fonts/OFL.txt 4423 1d9a970809ac804b
 en-a4.zip/Start here.pdf 10 7733a407748ec84a
-en-a4/ceremony.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
+en-a4/ceremony.docx/[Content_Types].xml 1408 b0e2e7a4ff030686
 en-a4/ceremony.docx/_rels/.rels 589 d6f21829c0081670
 en-a4/ceremony.docx/docProps/core.xml 678 1162429dcd842592
-en-a4/ceremony.docx/word/document.xml 2521 a95ca387a89f1bd5
+en-a4/ceremony.docx/word/document.xml 2521 61e882ff76870363
 en-a4/ceremony.docx/word/_rels/document.xml.rels 812 5ca7621d5ad46d1c
 en-a4/ceremony.docx/docProps/app.xml 287 88cca64693522744
-en-a4/ceremony.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-a4/ceremony.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-a4/ceremony.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-a4/ceremony.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-a4/ceremony.docx/word/fontTable.xml 653 18ce12f53834b613
-en-a4/ceremony.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
-en-a4/ceremony.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-a4/ceremony.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-a4/ceremony.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-a4/ceremony.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/ceremony.print.html 3828 19dc0bc6ead7de93
-en-a4/ceremony.shot.html 4003 750c91c14019fc8b
-en-a4/everything.docx/[Content_Types].xml 2023 64f30b1703718c0d
+en-a4/ceremony.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-a4/ceremony.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-a4/ceremony.docx/word/settings.xml 816 1975624ec4792288
+en-a4/ceremony.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-a4/ceremony.docx/word/fontTable.xml 224 8a3095449ba03804
+en-a4/ceremony.print.html 3445 96eec02fca62d8d7
+en-a4/ceremony.shot.html 3620 bfe83911fce6a431
+en-a4/everything.docx/[Content_Types].xml 1920 025cff4c01255127
 en-a4/everything.docx/_rels/.rels 589 d6f21829c0081670
 en-a4/everything.docx/docProps/core.xml 680 23b02fedd19a538c
-en-a4/everything.docx/word/document.xml 19433 527d669cae5374de
+en-a4/everything.docx/word/document.xml 19461 615c25a1c8777a4e
 en-a4/everything.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-a4/everything.docx/docProps/app.xml 287 88cca64693522744
-en-a4/everything.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-a4/everything.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-a4/everything.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-a4/everything.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-a4/everything.docx/word/fontTable.xml 653 18ce12f53834b613
-en-a4/everything.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
+en-a4/everything.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-a4/everything.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-a4/everything.docx/word/settings.xml 816 1975624ec4792288
+en-a4/everything.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-a4/everything.docx/word/fontTable.xml 224 8a3095449ba03804
 en-a4/everything.docx/word/footer1.xml 819 62ffac1d24f61ba1
 en-a4/everything.docx/word/footer2.xml 316 6a99b07db54808e8
 en-a4/everything.docx/word/header1.xml 434 4fb490887b997772
 en-a4/everything.docx/word/header2.xml 316 27ea6d628f622c72
 en-a4/everything.docx/word/media/image1.png 1529 ecb0a46cae06cd13
-en-a4/everything.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-a4/everything.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-a4/everything.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-a4/everything.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-a4/everything.print.html 12192 0c7de5b970ae50d8
-en-a4/everything.shot.html 12023 41a13c9e9d9f50bc
-en-a4/guide.html 2500 5e1526943d35407a
-en-a4/preview.html 9604 fef8779a296a1e4f
-en-letter.zip/Ceremony Proof.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
+en-a4/everything.print.html 11790 aaadedfdd6e95f80
+en-a4/everything.shot.html 11629 50c95d475dea8a0c
+en-a4/guide.html 2117 de4098248b3d63c3
+en-a4/preview.html 9186 8266d4e8a65310a4
+en-letter.zip/Ceremony Proof.docx/[Content_Types].xml 1408 b0e2e7a4ff030686
 en-letter.zip/Ceremony Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-letter.zip/Ceremony Proof.docx/docProps/core.xml 678 1162429dcd842592
-en-letter.zip/Ceremony Proof.docx/word/document.xml 2521 be81f219957628a4
+en-letter.zip/Ceremony Proof.docx/word/document.xml 2521 b6b1e0c3cf79a235
 en-letter.zip/Ceremony Proof.docx/word/_rels/document.xml.rels 812 5ca7621d5ad46d1c
 en-letter.zip/Ceremony Proof.docx/docProps/app.xml 287 88cca64693522744
-en-letter.zip/Ceremony Proof.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-letter.zip/Ceremony Proof.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-letter.zip/Ceremony Proof.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-letter.zip/Ceremony Proof.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-letter.zip/Ceremony Proof.docx/word/fontTable.xml 653 18ce12f53834b613
-en-letter.zip/Ceremony Proof.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
-en-letter.zip/Ceremony Proof.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-letter.zip/Ceremony Proof.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-letter.zip/Ceremony Proof.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-letter.zip/Ceremony Proof.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter.zip/Everything Proof.docx/[Content_Types].xml 2023 64f30b1703718c0d
+en-letter.zip/Ceremony Proof.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-letter.zip/Ceremony Proof.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-letter.zip/Ceremony Proof.docx/word/settings.xml 816 1975624ec4792288
+en-letter.zip/Ceremony Proof.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-letter.zip/Ceremony Proof.docx/word/fontTable.xml 224 8a3095449ba03804
+en-letter.zip/Everything Proof.docx/[Content_Types].xml 1920 025cff4c01255127
 en-letter.zip/Everything Proof.docx/_rels/.rels 589 d6f21829c0081670
 en-letter.zip/Everything Proof.docx/docProps/core.xml 680 23b02fedd19a538c
-en-letter.zip/Everything Proof.docx/word/document.xml 19433 a54df028340063aa
+en-letter.zip/Everything Proof.docx/word/document.xml 19461 becf63b054e3327a
 en-letter.zip/Everything Proof.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-letter.zip/Everything Proof.docx/docProps/app.xml 287 88cca64693522744
-en-letter.zip/Everything Proof.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-letter.zip/Everything Proof.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-letter.zip/Everything Proof.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-letter.zip/Everything Proof.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-letter.zip/Everything Proof.docx/word/fontTable.xml 653 18ce12f53834b613
-en-letter.zip/Everything Proof.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
+en-letter.zip/Everything Proof.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-letter.zip/Everything Proof.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-letter.zip/Everything Proof.docx/word/settings.xml 816 1975624ec4792288
+en-letter.zip/Everything Proof.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-letter.zip/Everything Proof.docx/word/fontTable.xml 224 8a3095449ba03804
 en-letter.zip/Everything Proof.docx/word/footer1.xml 819 62ffac1d24f61ba1
 en-letter.zip/Everything Proof.docx/word/footer2.xml 316 6a99b07db54808e8
 en-letter.zip/Everything Proof.docx/word/header1.xml 434 4fb490887b997772
 en-letter.zip/Everything Proof.docx/word/header2.xml 316 27ea6d628f622c72
 en-letter.zip/Everything Proof.docx/word/media/image1.png 1529 ecb0a46cae06cd13
-en-letter.zip/Everything Proof.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-letter.zip/Everything Proof.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-letter.zip/Everything Proof.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-letter.zip/Everything Proof.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter.zip/Fonts/Lora-Bold.ttf 132124 ac3145cd8846b6ab
-en-letter.zip/Fonts/Lora-BoldItalic.ttf 138352 467b540c3c722fc6
-en-letter.zip/Fonts/Lora-Italic.ttf 137328 26243fda8cd938cc
-en-letter.zip/Fonts/Lora-Regular.ttf 132188 1d37d1e34c77be80
 en-letter.zip/Fonts/OFL.txt 4423 1d9a970809ac804b
 en-letter.zip/Start here.pdf 10 7733a407748ec84a
-en-letter/ceremony.docx/[Content_Types].xml 1511 9b5ce84d7ab54de4
+en-letter/ceremony.docx/[Content_Types].xml 1408 b0e2e7a4ff030686
 en-letter/ceremony.docx/_rels/.rels 589 d6f21829c0081670
 en-letter/ceremony.docx/docProps/core.xml 678 1162429dcd842592
-en-letter/ceremony.docx/word/document.xml 2521 be81f219957628a4
+en-letter/ceremony.docx/word/document.xml 2521 b6b1e0c3cf79a235
 en-letter/ceremony.docx/word/_rels/document.xml.rels 812 5ca7621d5ad46d1c
 en-letter/ceremony.docx/docProps/app.xml 287 88cca64693522744
-en-letter/ceremony.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-letter/ceremony.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-letter/ceremony.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-letter/ceremony.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-letter/ceremony.docx/word/fontTable.xml 653 18ce12f53834b613
-en-letter/ceremony.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
-en-letter/ceremony.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-letter/ceremony.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-letter/ceremony.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-letter/ceremony.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/ceremony.print.html 3828 638200f5e7fe1ed7
-en-letter/ceremony.shot.html 4003 899e9b7b7418d13b
-en-letter/everything.docx/[Content_Types].xml 2023 64f30b1703718c0d
+en-letter/ceremony.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-letter/ceremony.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-letter/ceremony.docx/word/settings.xml 816 1975624ec4792288
+en-letter/ceremony.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-letter/ceremony.docx/word/fontTable.xml 224 8a3095449ba03804
+en-letter/ceremony.print.html 3445 c32f0992c5bf3795
+en-letter/ceremony.shot.html 3620 4faebd5db9933b9f
+en-letter/everything.docx/[Content_Types].xml 1920 025cff4c01255127
 en-letter/everything.docx/_rels/.rels 589 d6f21829c0081670
 en-letter/everything.docx/docProps/core.xml 680 23b02fedd19a538c
-en-letter/everything.docx/word/document.xml 19433 a54df028340063aa
+en-letter/everything.docx/word/document.xml 19461 becf63b054e3327a
 en-letter/everything.docx/word/_rels/document.xml.rels 1623 a4832e9269046ed5
 en-letter/everything.docx/docProps/app.xml 287 88cca64693522744
-en-letter/everything.docx/word/styles.xml 7667 12675e2235a4a7a2
-en-letter/everything.docx/word/numbering.xml 4175 c28a921f2703dfcb
-en-letter/everything.docx/word/settings.xml 839 fc522f96fc2be5ef
-en-letter/everything.docx/word/theme/theme1.xml 2125 a13c7a4cc4a38897
-en-letter/everything.docx/word/fontTable.xml 653 18ce12f53834b613
-en-letter/everything.docx/word/_rels/fontTable.xml.rels 688 bec1f656e03ef06a
+en-letter/everything.docx/word/styles.xml 7617 70ba7fd7fe829c84
+en-letter/everything.docx/word/numbering.xml 4098 74c38a0fdff62d81
+en-letter/everything.docx/word/settings.xml 816 1975624ec4792288
+en-letter/everything.docx/word/theme/theme1.xml 2117 4f0e44e374f634ea
+en-letter/everything.docx/word/fontTable.xml 224 8a3095449ba03804
 en-letter/everything.docx/word/footer1.xml 819 62ffac1d24f61ba1
 en-letter/everything.docx/word/footer2.xml 316 6a99b07db54808e8
 en-letter/everything.docx/word/header1.xml 434 4fb490887b997772
 en-letter/everything.docx/word/header2.xml 316 27ea6d628f622c72
 en-letter/everything.docx/word/media/image1.png 1529 ecb0a46cae06cd13
-en-letter/everything.docx/word/fonts/font1.odttf 132188 aec6bd3837a871ed
-en-letter/everything.docx/word/fonts/font2.odttf 132124 bb22831c27757649
-en-letter/everything.docx/word/fonts/font3.odttf 137328 168a1bdc51826ca4
-en-letter/everything.docx/word/fonts/font4.odttf 138352 2ecd8610ab669cd3
-en-letter/everything.print.html 12192 d746d8d39b7c494c
-en-letter/everything.shot.html 12023 89d96d09fbdc7514
-en-letter/guide.html 2507 ee0f9cf9d88e56b3
-en-letter/preview.html 9612 ee268c3eda1f7a1d
-images/01-everything-proof.jpg.html 1277 9d985e57fe61594a
-images/02-documents.jpg.html 1544 9da913c225207e4e
-images/03-ceremony-proof.jpg.html 1336 582cae034cb0f951
-images/04-works-with.jpg.html 1436 0623a0a85acfa7df
+en-letter/everything.print.html 11790 ef3976d8e2e2ba12
+en-letter/everything.shot.html 11629 0ace948f5dc1dcea
+en-letter/guide.html 2124 a8d3bb9c198c570e
+en-letter/preview.html 9194 ba0936ad39de0e0b
+images/01-everything-proof.jpg.html 906 42d73a3ea9a11f4a
+images/02-documents.jpg.html 1173 3d0ea1d8ddec47ef
+images/03-ceremony-proof.jpg.html 965 884e9ca098b8d463
+images/04-works-with.jpg.html 1065 db099f3c2c5052a9

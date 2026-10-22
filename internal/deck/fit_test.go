@@ -3,8 +3,10 @@ package deck
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -53,9 +55,9 @@ func TestFitAgreesWithChrome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range theme.Names() {
+	for _, name := range slices.Sorted(maps.Keys(theme.Variants)) {
 		t.Run(name, func(t *testing.T) {
-			look := strings.Replace(string(concept), "Theme: warm", "Theme: "+name+"\nText font: Lora\nHeading font: Lora", 1)
+			look := regexp.MustCompile(`(?s)## Look\n.*?\n\n`).ReplaceAllString(string(concept), "## Look\n"+theme.Variants[name]+"\n\n")
 			r := Check(fixture(t, "briefing", map[string]string{Dir + "/concept.md": look, Dir + "/en/briefing.md": md.String(), Dir + "/de/briefing.md": ""}), testConfig, true, nil, "")
 			built, _ := r.Build(func(string) []byte { return nil })
 			k := r.design()

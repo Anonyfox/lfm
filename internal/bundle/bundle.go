@@ -102,7 +102,7 @@ func Check(p project.Project, cfg Config, configured bool, units map[string]Unit
 	ok := true
 	if strings.TrimSpace(cfg.Name) == "" {
 		ok = false
-		fail("deliverables.bundle has no name.", "Name it as buyers see it, such as \"Fire Safety Kit: briefing and handouts\".")
+		fail("deliverables.bundle has no name.", "Name it as buyers see it: <what it is>: <what it holds>.")
 	}
 	chosen := cfg.Units
 	if len(chosen) == 0 {

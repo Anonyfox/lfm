@@ -21,11 +21,11 @@
     },
     {
       "name": "q7w2e9r4t1y8u3i6o5/fire-safety-briefing-de.zip",
-      "bytes": 897725
+      "bytes": 897714
     },
     {
       "name": "q7w2e9r4t1y8u3i6o5/fire-safety-briefing-en.zip",
-      "bytes": 897064
+      "bytes": 897052
     }
   ],
   "validation": {
@@ -92,7 +92,9 @@
   "deck": {
     "name": "Fire Safety Briefing",
     "concept": true,
-    "theme": "warm",
+    "fonts": [
+      "Lora"
+    ],
     "decks": 1,
     "slides": 11,
     "quizzes": 2,

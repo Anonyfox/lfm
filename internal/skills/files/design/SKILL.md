@@ -69,8 +69,8 @@ Work through the sections in order; each builds on the one before.
 5. **Offer.** What the buyer pays for, the price and how it arrives, from the owner, `lfm.json` or the user.
    Research tells you the hesitations around it, not the facts.
 6. **Facts.** At least [[.Design.MinFacts]] checked facts true of this subject and hardly any other: numbers, units
-   and timings, textures, sounds and light, tools and vocabulary, failure modes and rituals, places. Genre
-   words such as modern, premium or clean are not facts. Each fact cites its source.
+   and timings, textures, sounds and light, tools and vocabulary, failure modes and rituals, places. Words
+   that only rate or label a style are not facts; a fact can be checked against the subject. Each fact cites its source.
 7. **Axes.** At least [[.Design.MinAxes]] design axes on which the data separates. Per axis: the market
    position with the peers that hold it, the voice position with the voices that hold it, and your chosen
    position: break from the market where it clusters, match the voices; where both agree, the axis is free,
@@ -166,7 +166,7 @@ Delivery: <how and when it arrives …>
 ## Type
 | Role | Family | Source |
 | --- | --- | --- |
-| <role …> | <font stack only, e.g. Family, system-ui, serif …> | <why this face …> |
+| <role …> | <family>, <fallback families>, <generic family> | <why this face …> |
 
 ## Form
 <shape, corners, edges, elevation and the layout idea …>

@@ -9,18 +9,24 @@ import (
 
 var themeColor = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
-// Property: any Look section parses, findings land on its heading, and the
+// Property: any Look section parses, findings land inside it, and the
 // theme it resolves to writes well-formed DrawingML naming its fonts.
 func FuzzParseLook(f *testing.F) {
 	f.Add("- Theme: Warm\n- Accent: #1F4FD1\nText font: Merriweather\n- Heading font: Montserrat")
 	f.Add("- Theme: baroque\n- Accent: blue")
 	f.Add("Text font: Fira & \"Sans\"\nHeading font: A<B")
+	f.Add("Text font: Lora\nParagraphs: indented\nTables: grid\nHeadings: regular\nHeading color: accent\nText size: 11pt\nLine height: 1.5\nHeading scale: 1.2\nOrnament: ❦")
+	f.Add("Text size: -1\nLine height: NaN\nHeading scale: 1e9\nOrnament: \nTables: ")
 	f.Fuzz(func(t *testing.T, body string) {
 		d, _ := concept.ParseFormat("# Documents: Test\n\n## Look\n\n"+body+"\n", "# Documents: ", "<name>", []concept.SectionSpec{{Name: "Look"}})
 		s := d.Sections["Look"]
 		l := ParseLook(s, func(line int, message, hint string) {
-			if line != s.Line {
-				t.Fatalf("finding on line %d, the Look heading is %d", line, s.Line)
+			last := s.Line
+			for _, l := range s.Lines {
+				last = max(last, l.N)
+			}
+			if line < s.Line || line > last {
+				t.Fatalf("finding on line %d, outside the Look section at %d to %d", line, s.Line, last)
 			}
 		})
 		m := l.Resolve()

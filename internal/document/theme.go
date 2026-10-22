@@ -16,11 +16,8 @@ type (
 	family = typeface.Family
 )
 
-// Themes are the presets a concept names in Look: Theme.
-var Themes = theme.Presets
-
-// ThemeNames lists the presets in a stable order.
-func ThemeNames() []string { return theme.Names() }
+// families are the font families a theme sets, each once.
+func families(t Theme) []string { return theme.Families(t) }
 
 // Paper is a page size in millimetres.
 type Paper = paper.Size

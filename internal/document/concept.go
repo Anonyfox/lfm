@@ -22,7 +22,6 @@ var DocumentColumns = []string{"Document", "Job"}
 type Plan struct {
 	Name, Buyer, Promise string
 	Documents            []Planned
-	Theme                string // the preset's name
 	Look                 theme.Look
 	Lines                map[string]int
 }
@@ -92,7 +91,6 @@ func checkConcept(text string, add func(line int, message, hint string)) Plan {
 		}
 	}
 	plan.Look = theme.ParseLook(d.Sections["Look"], add)
-	plan.Theme = plan.Look.Theme
 	return plan
 }
 

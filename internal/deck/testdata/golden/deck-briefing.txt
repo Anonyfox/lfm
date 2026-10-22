@@ -62,12 +62,12 @@ de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide3.xml 1164 9911a69510b50d19
 de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide4.xml 3401 21529eb37602616c
 de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide5.xml 2669 1b99e4bd12b00e53
 de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide6.xml 1711 359b0b30b3e700e0
-de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide7.xml 10709 6bb37f5f400fe5c3
+de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide7.xml 10709 c4ecf0e8dbe8479d
 de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide8.xml 1691 870c6a9e31d955af
 de.zip/Brandschutzunterweisung.pptx/ppt/slides/slide9.xml 2411 5574ddbada0a7132
 de.zip/Brandschutzunterweisung.pptx/ppt/tableStyles.xml 181 725acba2a910ac79
-de.zip/Brandschutzunterweisung.pptx/ppt/theme/theme1.xml 2125 9ee1e2ae042dd652
-de.zip/Brandschutzunterweisung.pptx/ppt/theme/theme2.xml 2125 9ee1e2ae042dd652
+de.zip/Brandschutzunterweisung.pptx/ppt/theme/theme1.xml 2125 a80e588a97e91932
+de.zip/Brandschutzunterweisung.pptx/ppt/theme/theme2.xml 2125 a80e588a97e91932
 de.zip/Brandschutzunterweisung.pptx/ppt/viewProps.xml 414 06e15b4473f99aa3
 de.zip/Brandschutzunterweisung.pptx/ppt/media/image1.png 9612 9e7e4654d222acf3
 de.zip/Brandschutzunterweisung.pptx/ppt/fonts/font1.fntdata 132360 4a258925afccdcfb
@@ -80,8 +80,8 @@ de.zip/Schriften/Lora-BoldItalic.ttf 138352 467b540c3c722fc6
 de.zip/Schriften/Lora-Italic.ttf 137328 26243fda8cd938cc
 de.zip/Schriften/Lora-Regular.ttf 132188 1d37d1e34c77be80
 de.zip/Schriften/OFL.txt 4423 1d9a970809ac804b
-de/briefing.notes-shot.html 4052 1e67eaaf9cea7ca1
-de/briefing.notesa4.html 32333 c7dd1b4cc9f833ce
+de/briefing.notes-shot.html 4052 b8d178fa08a6d913
+de/briefing.notesa4.html 32333 c76e5d3c1bfa9923
 de/briefing.pptx/[Content_Types].xml 5676 2363628efff85c95
 de/briefing.pptx/_rels/.rels 592 b565c9400b93135b
 de/briefing.pptx/docProps/app.xml 314 e31c135da63a5216
@@ -146,34 +146,34 @@ de/briefing.pptx/ppt/slides/slide3.xml 1164 9911a69510b50d19
 de/briefing.pptx/ppt/slides/slide4.xml 3401 21529eb37602616c
 de/briefing.pptx/ppt/slides/slide5.xml 2669 1b99e4bd12b00e53
 de/briefing.pptx/ppt/slides/slide6.xml 1711 359b0b30b3e700e0
-de/briefing.pptx/ppt/slides/slide7.xml 10709 6bb37f5f400fe5c3
+de/briefing.pptx/ppt/slides/slide7.xml 10709 c4ecf0e8dbe8479d
 de/briefing.pptx/ppt/slides/slide8.xml 1691 870c6a9e31d955af
 de/briefing.pptx/ppt/slides/slide9.xml 2411 5574ddbada0a7132
 de/briefing.pptx/ppt/tableStyles.xml 181 725acba2a910ac79
-de/briefing.pptx/ppt/theme/theme1.xml 2125 9ee1e2ae042dd652
-de/briefing.pptx/ppt/theme/theme2.xml 2125 9ee1e2ae042dd652
+de/briefing.pptx/ppt/theme/theme1.xml 2125 a80e588a97e91932
+de/briefing.pptx/ppt/theme/theme2.xml 2125 a80e588a97e91932
 de/briefing.pptx/ppt/viewProps.xml 414 06e15b4473f99aa3
 de/briefing.pptx/ppt/media/image1.png 9612 9e7e4654d222acf3
 de/briefing.pptx/ppt/fonts/font1.fntdata 132360 4a258925afccdcfb
 de/briefing.pptx/ppt/fonts/font2.fntdata 132284 a06d517cd6358972
 de/briefing.pptx/ppt/fonts/font3.fntdata 137496 16e18819c4f1a720
 de/briefing.pptx/ppt/fonts/font4.fntdata 138540 1ae0c51c533f464b
-de/briefing.quiz-shot.html 2093 c524efd098fb2902
-de/briefing.quiza4.html 2093 c524efd098fb2902
-de/briefing.slide01.html 2256 a92f41de08484fc5
-de/briefing.slide02.html 2836 40db54b2b6bfebdf
-de/briefing.slide03.html 2178 788b033cbbc1a5b0
-de/briefing.slide04.html 3492 ff6025d0c26f7693
-de/briefing.slide05.html 2970 5a6a97eeb06808ea
-de/briefing.slide06.html 15093 ff40247c23b4cf13
-de/briefing.slide07.html 4964 e888b8e76beea611
-de/briefing.slide08.html 2376 88f1c49cc0ca824d
-de/briefing.slide09.html 2830 1ff2d093fb6d084a
-de/briefing.slide10.html 2888 1836c1724116f9bf
-de/briefing.slide11.html 2730 c38bb2edfe9d8673
-de/briefing.slides.html 26967 c323439a60483edd
-de/guide.html 3132 f6aae7814f7aeeea
-de/preview.html 19245 282968228ac4fab5
+de/briefing.quiz-shot.html 2093 23181627aafa3bb6
+de/briefing.quiza4.html 2093 23181627aafa3bb6
+de/briefing.slide01.html 2256 822524b7adf92e01
+de/briefing.slide02.html 2836 8672bce8446f59ab
+de/briefing.slide03.html 2178 00ec6f6a9a3fb06d
+de/briefing.slide04.html 3492 8bd1e19e0941abda
+de/briefing.slide05.html 2970 e2818470f1c06809
+de/briefing.slide06.html 15093 bf6c85dc3ad79c61
+de/briefing.slide07.html 4964 96971dc597251e3f
+de/briefing.slide08.html 2376 7a6259f0483e6809
+de/briefing.slide09.html 2830 c578a83fc0abf83a
+de/briefing.slide10.html 2888 df81ee49ee4a963c
+de/briefing.slide11.html 2730 1ad8d1178c0c307b
+de/briefing.slides.html 26967 549d8afd49831a5e
+de/guide.html 3132 7b2340d1b4a6124f
+de/preview.html 19245 3ff488562fed37b7
 download.html 1179 c061344d0b53ffd1
 en.zip/Fire Safety Briefing.pptx/[Content_Types].xml 5676 2363628efff85c95
 en.zip/Fire Safety Briefing.pptx/_rels/.rels 592 b565c9400b93135b
@@ -239,12 +239,12 @@ en.zip/Fire Safety Briefing.pptx/ppt/slides/slide3.xml 1160 97e1026c16d613c4
 en.zip/Fire Safety Briefing.pptx/ppt/slides/slide4.xml 3355 d8a9fb94490539dc
 en.zip/Fire Safety Briefing.pptx/ppt/slides/slide5.xml 2639 79adedc9e7af9809
 en.zip/Fire Safety Briefing.pptx/ppt/slides/slide6.xml 1716 df641bacf6666340
-en.zip/Fire Safety Briefing.pptx/ppt/slides/slide7.xml 10687 d13991ec04ea3e5f
+en.zip/Fire Safety Briefing.pptx/ppt/slides/slide7.xml 10687 0323f7301b2a147c
 en.zip/Fire Safety Briefing.pptx/ppt/slides/slide8.xml 1685 074e43f321af0b74
 en.zip/Fire Safety Briefing.pptx/ppt/slides/slide9.xml 2405 95b5e247784b58af
 en.zip/Fire Safety Briefing.pptx/ppt/tableStyles.xml 181 725acba2a910ac79
-en.zip/Fire Safety Briefing.pptx/ppt/theme/theme1.xml 2125 9ee1e2ae042dd652
-en.zip/Fire Safety Briefing.pptx/ppt/theme/theme2.xml 2125 9ee1e2ae042dd652
+en.zip/Fire Safety Briefing.pptx/ppt/theme/theme1.xml 2125 a80e588a97e91932
+en.zip/Fire Safety Briefing.pptx/ppt/theme/theme2.xml 2125 a80e588a97e91932
 en.zip/Fire Safety Briefing.pptx/ppt/viewProps.xml 414 06e15b4473f99aa3
 en.zip/Fire Safety Briefing.pptx/ppt/media/image1.png 9612 9e7e4654d222acf3
 en.zip/Fire Safety Briefing.pptx/ppt/fonts/font1.fntdata 132360 4a258925afccdcfb
@@ -257,9 +257,9 @@ en.zip/Fonts/Lora-Italic.ttf 137328 26243fda8cd938cc
 en.zip/Fonts/Lora-Regular.ttf 132188 1d37d1e34c77be80
 en.zip/Fonts/OFL.txt 4423 1d9a970809ac804b
 en.zip/Start here.pdf 10 7733a407748ec84a
-en/briefing.notes-shot.html 4000 115b3089296bee8e
-en/briefing.notesa4.html 31889 95ec5654d2a3c77d
-en/briefing.notesletter.html 31889 85cd96e3f9db34c0
+en/briefing.notes-shot.html 4000 ab58d0232b43a758
+en/briefing.notesa4.html 31889 7cc52b6a06a177a6
+en/briefing.notesletter.html 31889 a5590a98f5b7b044
 en/briefing.pptx/[Content_Types].xml 5676 2363628efff85c95
 en/briefing.pptx/_rels/.rels 592 b565c9400b93135b
 en/briefing.pptx/docProps/app.xml 314 e31c135da63a5216
@@ -324,36 +324,36 @@ en/briefing.pptx/ppt/slides/slide3.xml 1160 97e1026c16d613c4
 en/briefing.pptx/ppt/slides/slide4.xml 3355 d8a9fb94490539dc
 en/briefing.pptx/ppt/slides/slide5.xml 2639 79adedc9e7af9809
 en/briefing.pptx/ppt/slides/slide6.xml 1716 df641bacf6666340
-en/briefing.pptx/ppt/slides/slide7.xml 10687 d13991ec04ea3e5f
+en/briefing.pptx/ppt/slides/slide7.xml 10687 0323f7301b2a147c
 en/briefing.pptx/ppt/slides/slide8.xml 1685 074e43f321af0b74
 en/briefing.pptx/ppt/slides/slide9.xml 2405 95b5e247784b58af
 en/briefing.pptx/ppt/tableStyles.xml 181 725acba2a910ac79
-en/briefing.pptx/ppt/theme/theme1.xml 2125 9ee1e2ae042dd652
-en/briefing.pptx/ppt/theme/theme2.xml 2125 9ee1e2ae042dd652
+en/briefing.pptx/ppt/theme/theme1.xml 2125 a80e588a97e91932
+en/briefing.pptx/ppt/theme/theme2.xml 2125 a80e588a97e91932
 en/briefing.pptx/ppt/viewProps.xml 414 06e15b4473f99aa3
 en/briefing.pptx/ppt/media/image1.png 9612 9e7e4654d222acf3
 en/briefing.pptx/ppt/fonts/font1.fntdata 132360 4a258925afccdcfb
 en/briefing.pptx/ppt/fonts/font2.fntdata 132284 a06d517cd6358972
 en/briefing.pptx/ppt/fonts/font3.fntdata 137496 16e18819c4f1a720
 en/briefing.pptx/ppt/fonts/font4.fntdata 138540 1ae0c51c533f464b
-en/briefing.quiz-shot.html 2082 9d452450d7e69408
-en/briefing.quiza4.html 2082 2144a49c4d8c6aad
-en/briefing.quizletter.html 2082 9d452450d7e69408
-en/briefing.slide01.html 2248 8451b086a639ec3e
-en/briefing.slide02.html 2797 bad3f0dc770a75e9
-en/briefing.slide03.html 2174 57cf71ff02e5110a
-en/briefing.slide04.html 3446 1c968a0964f207cf
-en/briefing.slide05.html 2940 dd2c8242d0348506
-en/briefing.slide06.html 15098 8c295571d0c1058d
-en/briefing.slide07.html 4942 5c71aad7b6d7d1f8
-en/briefing.slide08.html 2370 5b9131469fea706f
-en/briefing.slide09.html 2824 485f46ac7a2f569f
-en/briefing.slide10.html 2893 fc98ab8b9de9772b
-en/briefing.slide11.html 2733 f3d22402d225d6be
-en/briefing.slides.html 26816 0a1faa38a6610a70
-en/guide.html 2903 c0cb34ba5c394777
-en/preview.html 18833 b635039d0ff30c75
-images/01-fire-safety-briefing.jpg.html 1400 de6e0f6fd04e43a6
-images/02-fire-safety-briefing-slides.jpg.html 1547 c0d0edb657c9177b
-images/03-fire-safety-briefing-notes.jpg.html 1588 e14453e0f1827ae2
-images/04-works-with.jpg.html 1556 929026bbfbc31fb4
+en/briefing.quiz-shot.html 2082 46ea0818663622c5
+en/briefing.quiza4.html 2082 b0c935119775269f
+en/briefing.quizletter.html 2082 46ea0818663622c5
+en/briefing.slide01.html 2248 ce16682e982da5d1
+en/briefing.slide02.html 2797 274792df9b75a9d6
+en/briefing.slide03.html 2174 19f631904d57a420
+en/briefing.slide04.html 3446 af2608fbec79b577
+en/briefing.slide05.html 2940 8ce0c42bbdd3f3d8
+en/briefing.slide06.html 15098 a79fd9aa15daf4e1
+en/briefing.slide07.html 4942 92ebc56359f524b4
+en/briefing.slide08.html 2370 585619e7d682d932
+en/briefing.slide09.html 2824 f24c2468a1470791
+en/briefing.slide10.html 2893 a11b525860838870
+en/briefing.slide11.html 2733 baca3597d82a1095
+en/briefing.slides.html 26816 b5f73257494b8360
+en/guide.html 2903 e3259cb0bb31b50e
+en/preview.html 18833 f3a190a3b64b7e18
+images/01-fire-safety-briefing.jpg.html 1400 e95b9db215ae3759
+images/02-fire-safety-briefing-slides.jpg.html 1547 5f7afe7500b462d2
+images/03-fire-safety-briefing-notes.jpg.html 1588 403760793cea0fe2
+images/04-works-with.jpg.html 1556 1630fcfd9a9eaa73

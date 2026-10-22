@@ -136,7 +136,7 @@ shop.
 
 A deck set builds one `.pptx` per deck and language on every compile: a 16:9 slide master with six layouts
 (title, title and content, section, two content, picture, statement) whose placeholders every slide fills,
-the theme's fonts embedded, and speaker notes from `::: notes` on notes pages. Every compile measures each
+the Look's fonts embedded, and speaker notes from `::: notes` on notes pages. Every compile measures each
 slide's text with the fonts and warns where it would not fit (`deck.design`). It ships one ZIP per language
 (`<slug>-<language>.zip`); `--release` adds `PDF/` with the slides, the speaker notes beside every slide on
 each of the language's papers and, when the deck asks questions, a quiz sheet with its answer key, holds

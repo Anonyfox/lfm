@@ -85,7 +85,7 @@ func Rules() []diagnostic.RuleInfo {
 		{ID: RuleBuild, Required: true, Summary: "The EPUB and the download page build",
 			Help: "Errors when a chapter cannot be converted into valid XHTML, a referenced font or image cannot be read, or the EPUB package cannot be written. Fix the named file."},
 		{ID: RuleFonts, Summary: "The typefaces the concept names are embedded",
-			Help: "Warns when the first face of the concept's Body or Headings stack is neither declared with @font-face in deliverables/book/book.css nor a common system face (Georgia, Palatino, Times New Roman, Helvetica, Arial or a generic family). The PDF would silently print in a fallback face and e-readers would ignore the choice. Add the licensed font files under deliverables/book/fonts and an @font-face rule for each style used."},
+			Help: "Warns when the first face of the concept's Body or Headings stack is neither declared with @font-face in deliverables/book/book.css nor a system face every reader and PDF viewer has, nor a generic family. The PDF would silently print in a fallback face and e-readers would ignore the choice. Add the licensed font files under deliverables/book/fonts and an @font-face rule for each style used."},
 		{ID: RuleLayout, Summary: "The book's pages hold together on a phone and in print",
 			Help: "Release only: warns when an image, table or code block runs wider than the text column at phone width or on the printed page, or when book text renders below 9 pixels. Readers cannot scroll sideways in most ebook readers. Let wide elements wrap, scale or split."},
 		{ID: RuleListing, Summary: "deliverables/book/listing.md holds store texts every channel accepts",

@@ -61,20 +61,28 @@ for it.
 | --- | --- |
 | <file name> | <what the buyer does with it> |
 ## Look
-Theme: <one of [[.Deck.Themes]]>
-Accent: #rrggbb
+Text font: <family>
+Heading font: <family, when headings take a second one>
+Accent: <#rrggbb>
 ## Changelog
 ```
 
-The themes are the ones documents use, so a deck and its handouts match; `Accent:` recolors any theme,
-`Text font:` and `Heading font:` swap families, Google Fonts only. The cover sets the title in white on
-the accent, so the accent stays dark.
+Take the faces and the accent from the product's own decisions: the page's concept.md Type and Palette
+when the decks belong to the page's product. Look reads as it does for documents, so a deck and its
+handouts match: Google Fonts families under the OFL, an accent with 4.5:1 on white, since the cover sets
+the title in white on it.
+Typesetting, where the set needs it: `Paragraphs:` spaced or indented (indent for running text read in
+order, space for forms and short blocks that are scanned), `Tables:` booktabs, hairline or grid (grid when
+cells are filled in by hand), `Headings:` bold or regular, `Heading color:` ink or accent, `Text size:`
+<pt>, `Line height:` <times the text size>, `Heading scale:` <times the level below>, `Ornament:` <one
+glyph for a section break>. What Look leaves out stays at lfm's base.
 
 ## Phase 2: fonts
 
-Put the static TrueType files of every family the theme uses in [[.Deck.Fonts]]/, with the family's
-`OFL.txt`. The Google Fonts API lists them: `curl -s "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700"`
-prints one `.ttf` link per face. lfm embeds them in every .pptx (PowerPoint), Google Slides knows the
+Put the static TrueType files of every family Look names in [[.Deck.Fonts]]/, with the family's
+`OFL.txt`. The Google Fonts API lists them: `curl -s "https://fonts.googleapis.com/css2?family=<Family>:ital,wght@0,400;0,700;1,400;1,700"`
+(spaces in the family as `+`) prints one `.ttf` link per face; download each as `<Family>-Regular.ttf`, `<Family>-Bold.ttf`,
+`<Family>-Italic.ttf`, `<Family>-BoldItalic.ttf`. lfm embeds them in every .pptx (PowerPoint), Google Slides knows the
 family by name, and the ZIP ships the files for Keynote users.
 
 ## Phase 3: the decks

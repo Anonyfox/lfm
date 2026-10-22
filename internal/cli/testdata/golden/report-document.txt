@@ -1,7 +1,7 @@
 ✓ <project> compiled → output/ in <duration>
   index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
   2 assets     572 B       favicon.png, share-3f93c132da0c.png
-  documents    Allotment Society Kit · 3 documents · warm theme · 2 editions
+  documents    Allotment Society Kit · 3 documents · in Lora · 2 editions
                en-letter, en-a4 · 15 fields to fill · 2 ZIPs · the PDFs, guides and images print with --release · https://example.com/001/k3n8q2w7x5r9t4m6p1/
   stores       distribution/document/ · 4 channels
                etsy, gumroad, payhip, ko-fi

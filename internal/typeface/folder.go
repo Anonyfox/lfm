@@ -50,7 +50,7 @@ func Load(p project.Project, dir string, report Report) Folder {
 				continue
 			}
 			if face.Variable {
-				report(file, 1, true, fmt.Sprintf("%s is a variable font.", name), "Office apps need the static files: one per weight and style, such as Lora-Regular.ttf and Lora-Bold.ttf.")
+				report(file, 1, true, fmt.Sprintf("%s is a variable font.", name), fmt.Sprintf("Office apps need the static files: one per weight and style, %s-Regular.ttf, %s-Bold.ttf and so on.", fileFamily(face.Family), fileFamily(face.Family)))
 				continue
 			}
 			if !face.Embeddable {
@@ -97,4 +97,13 @@ func (f Folder) Want(name, role, file string, line int, report Report) *Family {
 		report(file, line, false, fmt.Sprintf("%s has no italic face.", name), hint)
 	}
 	return fam
+}
+
+// fileFamily is a family as static font files name it, or a slot when the
+// file names none.
+func fileFamily(family string) string {
+	if family = strings.ReplaceAll(strings.TrimSpace(family), " ", ""); family == "" {
+		return "<Family>"
+	}
+	return family
 }

@@ -87,9 +87,9 @@ After: <what they do or have after the book, observable> V006
 | Cover | cover | cover | <what the cover shows, readable at thumbnail size> | [cover](images/cover.jpg) |
 ## Look
 Trim: <5x8in | 5.5x8.5in | 6x9in | A5 | A4 | letter>
-Body: <font stack, e.g. Literata, Georgia, serif>
-Headings: <font stack>
-Accent: #rrggbb
+Body: <family>, <fallback families>, <generic family>
+Headings: <family>, <fallback families>, <generic family>
+Accent: <#rrggbb>
 <cover idea, interior details>
 ## Qualities
 ## Changelog

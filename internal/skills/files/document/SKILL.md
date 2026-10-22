@@ -61,22 +61,28 @@ matching suites carry the price; a lone simple page caps out at a few euros.
 | --- | --- |
 | <file name> | <what the buyer does with it> |
 ## Look
-Theme: <one of [[.Document.Themes]]>
-Accent: #rrggbb
+Text font: <family>
+Heading font: <family, when headings take a second one>
+Accent: <#rrggbb>
 ## Changelog
 ```
 
-Themes: classic (EB Garamond, indented paragraphs), modern (Inter), editorial (Source Serif 4 with Source
-Sans 3 headings), minimal (IBM Plex Sans), warm (Lora), technical (Source Sans 3, grid tables). `Accent:`
-recolors any theme; `Text font:` and `Heading font:` swap families, Google Fonts only. One theme serves
-the whole set, so the documents match.
+Take the faces and the accent from the product's own decisions: the page's concept.md Type and Palette
+when the documents belong to the page's product, so the set reads as part of it. Families are Google
+Fonts under the OFL with static regular, bold, italic and bold italic files; the accent keeps 4.5:1 on
+white, which lfm checks. One Look serves the whole set, so the documents match.
+Typesetting, where the set needs it: `Paragraphs:` spaced or indented (indent for running text read in
+order, space for forms and short blocks that are scanned), `Tables:` booktabs, hairline or grid (grid when
+cells are filled in by hand), `Headings:` bold or regular, `Heading color:` ink or accent, `Text size:`
+<pt>, `Line height:` <times the text size>, `Heading scale:` <times the level below>, `Ornament:` <one
+glyph for a section break>. What Look leaves out stays at lfm's base.
 
 ## Phase 2: fonts
 
-Put the static TrueType files of every family the theme uses in [[.Document.Fonts]]/, with the family's
-`OFL.txt`. The Google Fonts API lists them: `curl -s "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400;1,700"`
-prints one `.ttf` link per face; download each as `Lora-Regular.ttf`, `Lora-Bold.ttf`, `Lora-Italic.ttf`,
-`Lora-BoldItalic.ttf`. lfm embeds them in every .docx (Word, LibreOffice), Google Docs knows the family
+Put the static TrueType files of every family Look names in [[.Document.Fonts]]/, with the family's
+`OFL.txt`. The Google Fonts API lists them: `curl -s "https://fonts.googleapis.com/css2?family=<Family>:ital,wght@0,400;0,700;1,400;1,700"`
+(spaces in the family as `+`) prints one `.ttf` link per face; download each as `<Family>-Regular.ttf`, `<Family>-Bold.ttf`,
+`<Family>-Italic.ttf`, `<Family>-BoldItalic.ttf`. lfm embeds them in every .docx (Word, LibreOffice), Google Docs knows the family
 by name, and the ZIP ships the files for Pages users.
 
 ## Phase 3: the documents

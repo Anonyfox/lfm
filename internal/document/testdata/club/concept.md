@@ -15,7 +15,12 @@ Every document the committee needs, ready the same evening: type the names, prin
 | program | Announce the harvest fair: schedule, competitions, thanks |
 
 ## Look
-Theme: warm
+Text font: Lora
+Headings: regular
+Heading color: accent
+Text size: 11
+Line height: 1.45
+Ornament: ❦
 Accent: #8A4B2D
 
 ## Changelog

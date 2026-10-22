@@ -21,19 +21,19 @@
     },
     {
       "name": "b7m2x9q4w8e3r6t5y1u0/fire-safety-briefing-de.zip",
-      "bytes": 897725
+      "bytes": 897714
     },
     {
       "name": "b7m2x9q4w8e3r6t5y1u0/fire-safety-briefing-en.zip",
-      "bytes": 897064
+      "bytes": 897052
     },
     {
       "name": "b7m2x9q4w8e3r6t5y1u0/allotment-society-kit-en-letter.zip",
-      "bytes": 1471734
+      "bytes": 1471718
     },
     {
       "name": "b7m2x9q4w8e3r6t5y1u0/allotment-society-kit-en-a4.zip",
-      "bytes": 1471729
+      "bytes": 1471711
     }
   ],
   "validation": {
@@ -125,7 +125,9 @@
   "document": {
     "name": "Allotment Society Kit",
     "concept": true,
-    "theme": "warm",
+    "fonts": [
+      "Lora"
+    ],
     "documents": 3,
     "languages": [
       "en"
@@ -148,7 +150,9 @@
   "deck": {
     "name": "Fire Safety Briefing",
     "concept": true,
-    "theme": "warm",
+    "fonts": [
+      "Lora"
+    ],
     "decks": 1,
     "slides": 11,
     "quizzes": 2,

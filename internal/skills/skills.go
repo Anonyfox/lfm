@@ -19,7 +19,6 @@ import (
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/term"
-	"github.com/Anonyfox/lfm/internal/theme"
 
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/bundle"
@@ -90,14 +89,14 @@ type Spreadsheet struct {
 
 // Document holds the layout and vocabulary of the document deliverable.
 type Document struct {
-	Dir, Concept, Fonts, Listing, Distribution, Themes string
-	MinPath                                            int
+	Dir, Concept, Fonts, Listing, Distribution string
+	MinPath                                    int
 }
 
 // Deck holds the layout and vocabulary of the deck deliverable.
 type Deck struct {
-	Dir, Concept, Fonts, Listing, Distribution, Themes string
-	MinPath                                            int
+	Dir, Concept, Fonts, Listing, Distribution string
+	MinPath                                    int
 }
 
 // Design holds the minimums the compiler checks in concept.md.
@@ -143,11 +142,11 @@ func NewData(version string) Data {
 		},
 		Document: Document{
 			Dir: document.Dir, Concept: document.ConceptFile, Fonts: document.FontsDir, Listing: document.ListingFile,
-			Distribution: project.DistributionDir + "/document", Themes: strings.Join(document.ThemeNames(), ", "), MinPath: deliver.MinPathLength,
+			Distribution: project.DistributionDir + "/document", MinPath: deliver.MinPathLength,
 		},
 		Deck: Deck{
 			Dir: deck.Dir, Concept: deck.ConceptFile, Fonts: deck.FontsDir, Listing: deck.ListingFile,
-			Distribution: project.DistributionDir + "/deck", Themes: strings.Join(theme.Names(), ", "), MinPath: deliver.MinPathLength,
+			Distribution: project.DistributionDir + "/deck", MinPath: deliver.MinPathLength,
 		},
 		Design: Design{
 			MinVoiceNotes: concept.MinVoiceNotes, MinPathSteps: concept.MinPathSteps, MinRejected: concept.MinRejected,

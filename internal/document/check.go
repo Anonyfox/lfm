@@ -31,7 +31,7 @@ type Edition struct {
 type Summary struct {
 	Name      string   `json:"name,omitempty"`
 	Concept   bool     `json:"concept"`
-	Theme     string   `json:"theme,omitempty"`
+	Fonts     []string `json:"fonts,omitempty"` // the families the concept names
 	Documents int      `json:"documents"`
 	Languages []string `json:"languages,omitempty"`
 	Editions  []string `json:"editions,omitempty"`
@@ -117,7 +117,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*de
 		r.Summary.Name = r.Plan.Name
 	}
 	r.Theme = r.Plan.theme()
-	r.Summary.Theme = r.Theme.Name
+	r.Summary.Fonts = families(r.Theme)
 	// Until the concept is written there is nothing to hold to it: its Look
 	// names the fonts, and the documents follow it.
 	if !r.Summary.Concept {

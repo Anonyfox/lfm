@@ -227,7 +227,7 @@ Observer note: phone screen recording of a code editor, white caption box at the
 - Mechanism: taste quiz leading to a subscription
 - Proof: star rating and press logos
 - Price: first bag free, then per bag
-- Tone: confident, friendly
+- Tone: second person, short sentences, no exclamation marks
 - Takeaway: none
 </example>
 

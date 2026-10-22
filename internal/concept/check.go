@@ -354,7 +354,7 @@ func (c checker) sections(d Document) Summary {
 				continue
 			}
 			if bad := prose(row.Cells[1]); bad != "" {
-				c.add(RuleFormat, row.N, "Family "+quote(bad)+" is prose, not a font name.", "Write only the stack, e.g. Recursive, system-ui, sans-serif; reasons go in the Source column.")
+				c.add(RuleFormat, row.N, "Family "+quote(bad)+" is prose, not a font name.", "Write only the stack: <family>, <fallback families>, <generic family>; reasons go in the Source column.")
 				continue
 			}
 			sum.Families = append(sum.Families, row.Cells[1])

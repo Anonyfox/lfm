@@ -197,7 +197,7 @@ func DefaultRules() []Rule {
 			"Warns for a short uppercase, tracked or small label placed right before an h1 to h3 when it carries no information of its own. It restates the heading and is a generator default. Delete it or merge it into the heading; labels for time, step, price or status are fine."+designException,
 			designRule("design.eyebrows")),
 		rule("design.type", "One stock sans for headline and body, and styled accent words in headlines",
-			"Warns when one stock sans such as Inter, Roboto, Arial or the system font sets both the h1 and the body, and when one word inside a headline is set apart in italic serif or a gradient. Both are the default typography of generated pages. Choose a display face for this subject and keep a readable text face, and set each headline in one face and color."+designException,
+			"Warns when one of the stock sans families generators default to, or the system font, sets both the h1 and the body, and when one word inside a headline is set apart in italic serif or a gradient. Both are the default typography of generated pages. Choose a display face for this subject and keep a readable text face, and set each headline in one face and color."+designException,
 			designRule("design.type")),
 		rule("design.emoji", "Emoji used as headings, buttons, labels or list bullets",
 			"Warns for emoji in headings, buttons, short links, summaries, labels, legends, table headers or as list bullets. Emoji as interface decoration reads as generated and is announced verbatim by screen readers. Remove it or use a purpose-made glyph or typographic bullet; emoji in body copy and check marks or stars are fine."+designException,

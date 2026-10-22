@@ -25,14 +25,14 @@
 ## document
   documents    no deliverables/document/concept.md yet
   documents    Club · no documents yet
-  documents    Club · 1 document · plain theme · 1 edition · sold in shops
+  documents    Club · 1 document · in Plain Serif · 1 edition · sold in shops
                en-a4 · 1 field to fill · 1 ZIP · 1 document prints as planned · 2 Google Docs linked
   stores       distribution/document/ · 1 channel · 2 listing images
                etsy
 ## deck
   decks        no deliverables/deck/concept.md yet
   decks        Briefing · no decks yet
-  decks        Briefing · 2 decks, 1 slide, 1 minute, 1 quiz question · bold theme · 1 language
+  decks        Briefing · 2 decks, 1 slide, 1 minute, 1 quiz question · in Text Face and Heading Face · 1 language
                en · 1 ZIP · 2 decks print as planned · 1 Google Slides linked
   stores       distribution/deck/ · 1 channel · 1 listing image
                etsy

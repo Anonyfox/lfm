@@ -3,6 +3,7 @@ package theme
 import (
 	"encoding/xml"
 	"io"
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -11,28 +12,37 @@ import (
 	"github.com/Anonyfox/lfm/internal/concept"
 )
 
-func TestPresetsReadOnWhiteAndTint(t *testing.T) {
-	for _, name := range Names() {
-		m := Presets[name]
-		if m.Name != name {
-			t.Errorf("preset %s is named %q", name, m.Name)
-		}
+// variant resolves one of the test variants.
+func variant(t *testing.T, name string) Theme {
+	t.Helper()
+	l, found := look(t, Variants[name])
+	if len(found) > 0 {
+		t.Fatalf("%s: %v", name, found)
+	}
+	return l.Resolve()
+}
+
+func TestVariantsReadOnWhiteAndTint(t *testing.T) {
+	tables := map[string]bool{}
+	for _, name := range slices.Sorted(maps.Keys(Variants)) {
+		m := variant(t, name)
 		if p := m.ColorProblems(); len(p) > 0 {
 			t.Errorf("%s: %v", name, p)
 		}
 		if m.Text == "" || m.Heading == "" || m.Base <= 0 || m.Leading <= 1 || m.Ratio <= 1 || m.Ornament == "" {
 			t.Errorf("%s is incomplete: %+v", name, m)
 		}
-		if !slices.Contains([]string{"booktabs", "hairline", "grid"}, m.Table) {
-			t.Errorf("%s table %q", name, m.Table)
-		}
+		tables[m.Table] = true
+	}
+	// Together the variants use every mechanism, so the tests that build each reach all of them.
+	if len(tables) != 3 {
+		t.Errorf("tables %v", tables)
 	}
 }
 
-func TestNamesAreSortedAndComplete(t *testing.T) {
-	names := Names()
-	if len(names) != len(Presets) || !slices.IsSorted(names) {
-		t.Fatalf("names %v", names)
+func TestBaseHoldsNoFaces(t *testing.T) {
+	if Base.Text != "" || Base.Heading != "" || Base.Accent != Base.Ink {
+		t.Fatalf("base %+v", Base)
 	}
 }
 
@@ -92,7 +102,7 @@ func TestHexAndHalf(t *testing.T) {
 }
 
 func TestColorProblemsNameEachWeakColor(t *testing.T) {
-	m := Presets["modern"]
+	m := Base
 	m.Ink, m.Muted, m.Accent, m.Tint = "#999999", "#BBBBBB", "#FFCC00", "#999999"
 	p := m.ColorProblems()
 	if len(p) != 4 {
@@ -114,39 +124,69 @@ func look(t *testing.T, body string) (Look, []string) {
 	}
 	var found []string
 	l := ParseLook(d.Sections["Look"], func(line int, message, hint string) {
-		if line != 3 {
-			t.Errorf("finding at line %d, want the Look heading", line)
+		if line < 3 {
+			t.Errorf("finding at line %d, before the Look section", line)
 		}
 		found = append(found, message)
 	})
 	return l, found
 }
 
-func TestParseLookReadsThemeAccentAndFonts(t *testing.T) {
-	l, found := look(t, "- Theme: Warm\n- Accent: #1F4FD1\nText font: Merriweather\n- Heading font: Montserrat")
+func TestParseLookReadsEveryDecision(t *testing.T) {
+	l, found := look(t, "- Text font: Merriweather\n- Heading font: Montserrat\n- Accent: #1F4FD1\nParagraphs: Indented\nTables: grid\nHeadings: regular\nHeading color: accent\nText size: 11pt\nLine height: 1.5\nHeading scale: 1.2\nOrnament: ❦")
 	if len(found) > 0 {
 		t.Fatal(found)
 	}
-	if l != (Look{Theme: "warm", Accent: "#1F4FD1", TextFont: "Merriweather", HeadFont: "Montserrat"}) {
+	want := Look{TextFont: "Merriweather", HeadFont: "Montserrat", Accent: "#1F4FD1", Paragraphs: "indented", Tables: "grid", Headings: "regular", Color: "accent", TextSize: 11, LineHeight: 1.5, HeadingScale: 1.2, Ornament: "❦"}
+	if l != want {
 		t.Fatalf("look %+v", l)
 	}
-}
-
-func TestParseLookRejectsUnknownTheme(t *testing.T) {
-	l, found := look(t, "- Theme: baroque")
-	if l.Theme != "" || len(found) != 1 || !strings.Contains(found[0], `(got "baroque")`) {
-		t.Fatalf("look %+v, found %v", l, found)
-	}
-	if _, found := look(t, "- Accent: #123456"); len(found) != 1 {
-		t.Errorf("a Look without a theme: %v", found)
+	got := l.Resolve()
+	if got.Text != "Merriweather" || got.Heading != "Montserrat" || !got.Indent || got.Table != "grid" || got.HeadingBold || !got.HeadingAccent || got.Base != 11 || got.Leading != 1.5 || got.Ratio != 1.2 || got.Ornament != "❦" || got.Tint != Tint("#1F4FD1", 0.9) {
+		t.Fatalf("resolved %+v", got)
 	}
 }
 
-func TestParseLookRejectsBadAccent(t *testing.T) {
-	for _, accent := range []string{"blue", "#12345", "#1234567", "123456", "#GGGGGG"} {
-		l, found := look(t, "- Theme: modern\n- Accent: "+accent)
-		if l.Accent != "" || len(found) != 1 || !strings.Contains(found[0], "not a #rrggbb color") {
-			t.Errorf("%s: look %+v, found %v", accent, l, found)
+func TestParseLookNeedsTheConceptsFaces(t *testing.T) {
+	for _, body := range []string{"- Accent: #123456", "- Text font: \n- Accent: #123456"} {
+		if _, found := look(t, body); len(found) != 1 || !strings.Contains(found[0], `no "Text font:"`) {
+			t.Fatalf("%q: found %v", body, found)
+		}
+	}
+	l, found := look(t, "- Text font: Lora")
+	if len(found) > 0 || l.Resolve().Heading != "Lora" || l.Resolve().Accent != Base.Ink {
+		t.Fatalf("one family, no accent: %+v %v", l.Resolve(), found)
+	}
+}
+
+func TestParseLookTurnsAThemeIntoDecisions(t *testing.T) {
+	_, found := look(t, "- Theme: warm\n- Text font: Lora")
+	if len(found) != 1 || !strings.Contains(found[0], `"Theme:" is gone`) {
+		t.Fatalf("found %v", found)
+	}
+}
+
+func TestParseLookRejectsWhatIsNotADecision(t *testing.T) {
+	for line, want := range map[string]string{
+		"Accent: blue":        "not a #rrggbb color",
+		"Accent: #12345":      "not a #rrggbb color",
+		"Paragraphs: wavy":    "not one of spaced, indented",
+		"Tables: zebra":       "not one of booktabs, hairline, grid",
+		"Headings: italic":    "not one of bold, regular",
+		"Heading color: blue": "not one of ink, accent",
+		"Text size: 30":       "not between 8 and 14",
+		"Line height: tall":   "not between 1.15 and 1.9",
+		"Heading scale: 2":    "not between 1.05 and 1.6",
+		"Ornament: * * *":     "not one glyph",
+		"Text font: A\u0000B": "not a font family name",
+	} {
+		body := "- Text font: Lora\n- " + line
+		if strings.HasPrefix(line, "Text font:") {
+			body = "- " + line
+		}
+		l, found := look(t, body)
+		if len(found) != 1 || !strings.Contains(found[0], want) {
+			t.Errorf("%s: look %+v, found %v", line, l, found)
 		}
 	}
 }
@@ -158,57 +198,11 @@ func TestParseLookWithoutSection(t *testing.T) {
 	}
 }
 
-func TestResolveDefaultsToEditorial(t *testing.T) {
-	if got := (Look{}).Resolve(); got != Presets["editorial"] {
-		t.Fatalf("resolved %+v", got)
-	}
-	if got := (Look{Theme: "nope"}).Resolve(); got.Name != "editorial" {
-		t.Fatalf("unknown theme resolved to %s", got.Name)
-	}
-}
-
-func TestResolveAccentChangesTint(t *testing.T) {
-	got := Look{Theme: "modern", Accent: "#336699"}.Resolve()
-	if got.Accent != "#336699" || got.Tint != Tint("#336699", 0.9) || got.Tint == Presets["modern"].Tint {
-		t.Fatalf("resolved %+v", got)
-	}
-	if got.Ink != Presets["modern"].Ink || got.Text != "Inter" {
-		t.Errorf("accent changed more than the accent: %+v", got)
-	}
-}
-
-func TestResolveTextFontReplacesHeadingOfOneFamilyPreset(t *testing.T) {
-	got := Look{Theme: "warm", TextFont: "Merriweather"}.Resolve()
-	if got.Text != "Merriweather" || got.Heading != "Merriweather" {
-		t.Fatalf("one-family preset: %s / %s", got.Text, got.Heading)
-	}
-	got = Look{Theme: "editorial", TextFont: "Merriweather"}.Resolve()
-	if got.Text != "Merriweather" || got.Heading != "Source Sans 3" {
-		t.Fatalf("two-family preset: %s / %s", got.Text, got.Heading)
-	}
-	got = Look{Theme: "warm", TextFont: "Merriweather", HeadFont: "Montserrat"}.Resolve()
-	if got.Heading != "Montserrat" {
-		t.Fatalf("heading font ignored: %s", got.Heading)
-	}
-	got = Look{Theme: "warm", HeadFont: "Montserrat"}.Resolve()
-	if got.Text != "Lora" || got.Heading != "Montserrat" {
-		t.Fatalf("heading font alone: %s / %s", got.Text, got.Heading)
-	}
-}
-
-func TestResolveTextFontKeepsHeadingOfDefaultTheme(t *testing.T) {
-	got := Look{TextFont: "Merriweather"}.Resolve()
-	if got.Heading != Presets["editorial"].Heading {
-		t.Fatalf("heading %s, want %s", got.Heading, Presets["editorial"].Heading)
-	}
-}
-
 func TestDrawingMLIsWellFormedAndNamesFonts(t *testing.T) {
-	for _, name := range Names() {
-		m := Presets[name]
-		checkDrawingML(t, m)
+	for _, name := range slices.Sorted(maps.Keys(Variants)) {
+		checkDrawingML(t, variant(t, name))
 	}
-	m := Presets["editorial"]
+	m := Base
 	m.Text, m.Heading = `Fira & "Sans"`, "A<B"
 	checkDrawingML(t, m)
 }
@@ -226,7 +220,7 @@ func checkDrawingML(t *testing.T, m Theme) {
 			break
 		}
 		if err != nil {
-			t.Fatalf("%s: %v\n%s", m.Name, err, x)
+			t.Fatalf("%s: %v\n%s", m.Text, err, x)
 		}
 		el, ok := tok.(xml.StartElement)
 		if !ok {
@@ -258,19 +252,19 @@ func checkDrawingML(t *testing.T, m Theme) {
 			accents++
 		}
 		if el.Name.Space != "http://schemas.openxmlformats.org/drawingml/2006/main" {
-			t.Errorf("%s: element %s outside the DrawingML namespace", m.Name, el.Name.Local)
+			t.Errorf("%s: element %s outside the DrawingML namespace", m.Text, el.Name.Local)
 		}
 	}
 	if major != m.Heading || minor != m.Text {
-		t.Errorf("%s: fonts %q / %q, want %q / %q", m.Name, major, minor, m.Heading, m.Text)
+		t.Errorf("%s: fonts %q / %q, want %q / %q", m.Text, major, minor, m.Heading, m.Text)
 	}
 	if ink != Hex(m.Ink) {
-		t.Errorf("%s: dk1 %q, want %q", m.Name, ink, Hex(m.Ink))
+		t.Errorf("%s: dk1 %q, want %q", m.Text, ink, Hex(m.Ink))
 	}
 	if accents != 6 {
-		t.Errorf("%s: %d accents", m.Name, accents)
+		t.Errorf("%s: %d accents", m.Text, accents)
 	}
 	if !strings.Contains(x, `<a:accent1><a:srgbClr val="`+Hex(m.Accent)+`"/>`) {
-		t.Errorf("%s: accent1 is not the accent", m.Name)
+		t.Errorf("%s: accent1 is not the accent", m.Text)
 	}
 }

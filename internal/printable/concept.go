@@ -140,7 +140,7 @@ func checkConcept(text string, add func(line int, message, hint string)) Plan {
 		plan.Headings, _ = s.Field("Headings")
 		plan.Accent, _ = s.Field("Accent")
 		if plan.Body == "" || plan.Headings == "" {
-			add(s.Line, "Look needs \"Body:\" and \"Headings:\" font stacks.", "Name the typefaces as stacks, e.g. Body: Nunito, system-ui, sans-serif.")
+			add(s.Line, "Look needs \"Body:\" and \"Headings:\" font stacks.", "Name the typefaces as stacks: Body: <family>, <fallback families>, <generic family>.")
 		}
 		if !hexColor.MatchString(plan.Accent) {
 			add(s.Line, fmt.Sprintf("Look has no valid \"Accent:\" color (got %q).", plan.Accent), "Give the accent color as #rrggbb.")

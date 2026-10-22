@@ -99,14 +99,14 @@ func TestReportStates(t *testing.T) {
 	renderDocument(&w, s, nil)
 	renderDocument(&w, s, &document.Summary{})
 	renderDocument(&w, s, &document.Summary{Concept: true, Name: "Club"})
-	renderDocument(&w, s, &document.Summary{Concept: true, Name: "Club", Documents: 1, Theme: "plain", Editions: []string{"en-a4"}, Fields: 1,
+	renderDocument(&w, s, &document.Summary{Concept: true, Name: "Club", Documents: 1, Fonts: []string{"Plain Serif"}, Editions: []string{"en-a4"}, Fields: 1,
 		Files: []string{"club.zip"}, Layout: "1 document prints as planned", Linked: 2, Channels: []string{"etsy"}, Images: 2, Sell: "shops"})
 
 	section("deck")
 	renderDeck(&w, s, nil)
 	renderDeck(&w, s, &deck.Summary{})
 	renderDeck(&w, s, &deck.Summary{Concept: true, Name: "Briefing"})
-	renderDeck(&w, s, &deck.Summary{Concept: true, Name: "Briefing", Decks: 2, Slides: 1, Minutes: 1, Quizzes: 1, Theme: "bold", Editions: []string{"en"},
+	renderDeck(&w, s, &deck.Summary{Concept: true, Name: "Briefing", Decks: 2, Slides: 1, Minutes: 1, Quizzes: 1, Fonts: []string{"Text Face", "Heading Face"}, Editions: []string{"en"},
 		Files: []string{"briefing.zip"}, Layout: "2 decks print as planned", Linked: 1, Channels: []string{"etsy"}, Images: 1})
 
 	section("bundle")
