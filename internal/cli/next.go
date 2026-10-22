@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/compile"
@@ -141,6 +142,15 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 			where = r.PageURL
 		}
 		n.Phase, n.Do = "deploy", "upload output/ as is to "+where+"."
+		if a := r.Release; a != nil && a.Audit != nil && a.Audit.Delivery.UncompressedMS >= 100 {
+			d := a.Audit.Delivery
+			check := "curl -sI --compressed " + where
+			if r.PageURL == "" {
+				check = "curl -sI --compressed <the page's URL>"
+			}
+			n.Notes = append(n.Notes, fmt.Sprintf("The release measured the page as hosts send it, with text compressed: %s instead of %s. Check that yours does: %s shows content-encoding: gzip or br. Uncompressed, the page takes about %s longer on a phone.",
+				term.Bytes(d.CompressedBytes), term.Bytes(d.TextBytes), check, term.Duration(time.Duration(d.UncompressedMS)*time.Millisecond)))
+		}
 		for _, u := range sold(r) {
 			if u.url != "" {
 				n.Notes = append(n.Notes, "In Stripe, set the "+u.name+"'s Payment Link to redirect after payment to "+u.url+" and add that address to the invoice footer, so buyers also get it by email.")

@@ -201,6 +201,13 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 	if r.Audit == nil {
 		return
 	}
+	if d := r.Audit.Delivery; d.TextBytes > 0 {
+		line := fmt.Sprintf("measured as hosts send it, text compressed: %s instead of %s", term.Bytes(d.CompressedBytes), term.Bytes(d.TextBytes))
+		if d.UncompressedMS >= 100 {
+			line += fmt.Sprintf("; uncompressed adds about %s on a phone", term.Duration(time.Duration(d.UncompressedMS)*time.Millisecond))
+		}
+		fmt.Fprintf(w, "  %s %s\n", term.Pad("host", 12), line)
+	}
 	if rt := r.Audit.Runtime; rt != nil && rt.Status == "ok" {
 		fmt.Fprintf(w, "  %s %s, %s in %s\n", term.Pad("browser", 12), rt.Chrome, term.Plural(len(rt.Problems), "runtime problem"), term.Duration(time.Duration(rt.DurationMS)*time.Millisecond))
 	}

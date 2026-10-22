@@ -54,3 +54,18 @@ func TestNextStepCoversEveryDeliverable(t *testing.T) {
 		t.Errorf("bundler warning: %+v, %d page warnings", n, pageWarnings(kit))
 	}
 }
+
+// The deploy step asks for the compression the release measured with, when
+// leaving it off would cost a phone visible time.
+func TestDeployAsksForTheCompressionTheReleaseMeasured(t *testing.T) {
+	r := compile.Result{Research: research.Summary{Voices: 3}, Concept: concept.Summary{Present: true}, PageURL: "https://x.test/",
+		Release: &release.Result{Audit: &release.AuditResult{Delivery: release.Delivery{TextBytes: 190000, CompressedBytes: 55000, UncompressedMS: 646}}}}
+	n := nextStep(r, nil, nil)
+	if n.Phase != "deploy" || len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "curl -sI --compressed https://x.test/") || !strings.Contains(n.Notes[0], "646 ms") {
+		t.Fatalf("%+v", n)
+	}
+	r.Release.Audit.Delivery = release.Delivery{TextBytes: 3000, CompressedBytes: 1200, UncompressedMS: 8}
+	if n := nextStep(r, nil, nil); len(n.Notes) != 0 {
+		t.Fatalf("a note for a page compression barely changes: %+v", n.Notes)
+	}
+}

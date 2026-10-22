@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -25,6 +26,7 @@ const LighthouseSetup = "Install Node >=22.19 and run npm install -g lighthouse@
 const BrowserSetup = "Install Chrome/Chromium or a Chromium headless shell in PATH (Debian: apt install chromium), or set LFM_CHROME to its executable; retry --release."
 
 type AuditResult struct {
+	Delivery    Delivery                `json:"delivery"`
 	Runtime     *RuntimeResult          `json:"runtime,omitempty"`
 	Lighthouse  *LighthouseResult       `json:"lighthouse"`
 	Diagnostics []diagnostic.Diagnostic `json:"-"`
@@ -48,9 +50,9 @@ type LighthouseResult struct {
 }
 
 // hostAudits judge delivery that the static host configures: cache lifetimes,
-// compression and server latency. The audit server serves the artifact plainly
-// on purpose, so these always fire; they are reported as host settings, never
-// as page findings an agent could fix.
+// compression and server latency. The audit server compresses text as hosts
+// do but sets no cache lifetimes and adds no CDN; these are reported as host
+// settings, never as page findings an agent could fix.
 var hostAudits = map[string]bool{
 	"cache-insight":            true,
 	"uses-long-cache-ttl":      true,
@@ -74,7 +76,8 @@ type AuditFinding struct {
 }
 
 func Audit(ctx context.Context, page []byte, assets map[string][]byte, root string) *AuditResult {
-	r := &AuditResult{}
+	var t texts
+	r := &AuditResult{Delivery: t.delivery(page, assets)}
 	warn := func(rule, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
@@ -275,6 +278,25 @@ func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, b
 // compression/cache/TLS advantages. Also suitable as Chrome's non-forwarding proxy.
 func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Handler {
 	want, _ := url.Parse(origin)
+	var t texts
+	// Text goes out gzip-compressed, as every common static host sends it,
+	// so Lighthouse times the page visitors get; the release report says
+	// what a host that does not compress would add.
+	compressed := func(w http.ResponseWriter, r *http.Request, name string, content []byte, kind string) bool {
+		if !compressible(name) || !acceptsGzip(r) {
+			return false
+		}
+		z := t.gzipped(name, content)
+		if z == nil {
+			return false
+		}
+		w.Header().Set("Content-Type", kind)
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Length", strconv.Itoa(len(z)))
+		w.Header().Set("Vary", "Accept-Encoding")
+		_, _ = w.Write(z)
+		return true
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet || r.Host != want.Host || r.URL.IsAbs() && (r.URL.Scheme != "http" || r.URL.Host != want.Host) || r.Header.Get("Upgrade") != "" {
 			http.Error(w, "audit permits only GETs to the generated artifact", http.StatusForbidden)
@@ -283,6 +305,9 @@ func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Han
 		// Fresh profiles/Lighthouse reset provide cold runs. A synthetic no-store
 		// header here would itself disable bfcache and create misleading findings.
 		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+			if compressed(w, r, "index.html", page, "text/html; charset=utf-8") {
+				return
+			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			_, _ = w.Write(page)
 			return
@@ -290,6 +315,13 @@ func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Han
 		name := strings.TrimPrefix(r.URL.Path, "/")
 		if name == filepath.Base(name) && !strings.ContainsAny(name, `/\`) {
 			if content, ok := assets[name]; ok {
+				kind := mime.TypeByExtension(filepath.Ext(name))
+				if kind == "" {
+					kind = http.DetectContentType(content)
+				}
+				if compressed(w, r, name, content, kind) {
+					return
+				}
 				http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(content))
 				return
 			}

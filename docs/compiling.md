@@ -178,8 +178,10 @@ unchanged documents, decks or workbooks does not open them again.
    the largest file image of the phone's first screen is fetched first; authored hints are kept.
 3. **Lighthouse** (45 s, when installed): one mobile lab run. Scores, metrics and every failing audit are
    reported; the complete JSON is saved in the system temp directory. Audits of what the static host
-   decides (cache lifetimes, compression, HTTPS) are listed as host settings instead of warnings, because
-   the audit serves the artifact plainly on purpose.
+   decides (cache lifetimes, HTTPS, latency) are listed as host settings instead of warnings. Text goes out
+   gzip-compressed, as every common static host sends it, so the metrics describe the page visitors get;
+   the report's host line gives the text as sent and as built, and about how much later a phone gets it
+   from a host that does not compress, and the deploy step names the check for it.
 
 Chrome or Chromium is found on `PATH` and in standard locations, or set `LFM_CHROME`. Lighthouse is found on
 `PATH`, in `node_modules/.bin`, or via `LFM_LIGHTHOUSE` (`npm install -g lighthouse`). A missing tool is a
