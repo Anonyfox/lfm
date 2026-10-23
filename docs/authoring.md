@@ -9,6 +9,7 @@ my-page/
   partials/           optional template pieces
   data/               optional JSON files, merged into .data
   assets/             styles, scripts, images, fonts (a convention, not a rule)
+  public/             optional fixed-URL files, copied unchanged into output/
   research/           human-voices.md, competitor-analysis.md (never compiled)
   concept.md          the design decisions the page is built from (never compiled)
   deliverables/book/  optional: a book the page sells (concept.md, chapters/, images/, fonts/, book.css)
@@ -22,6 +23,13 @@ my-page/
 ```
 
 Sources may live anywhere inside the folder, except `output/` and `distribution/`. Symlinks may not leave it.
+
+Put verification keys, `ads.txt`, `favicon.ico` or `.well-known/security.txt` in `public/` to
+deploy them at the same relative paths without referencing them from the template. Regular files are
+copied verbatim, without checks, rewriting, hashing names or inlining. Dotfiles and dot-directories are
+skipped except `.well-known/`. `public/robots.txt` and `public/sitemap.xml` override discovery generation;
+other collisions with emitted files or deliverable download folders are errors. A public `favicon.ico`
+does not change the generated `favicon.png` linked from the page.
 
 ## lfm.json
 

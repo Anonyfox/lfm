@@ -27,6 +27,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
       - name: the binary reports the tag
         run: |
           bin=$(find dist -type f -name lfm -path '*linux_amd64*' | head -1)

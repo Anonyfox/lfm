@@ -44,8 +44,12 @@ stay exactly as written. Each compacted result is parsed and compared with the o
 
 ## Output
 
-`output/` contains `index.html` plus the emitted files, flat, ready to upload to any static host at the
-configured `url`. It is replaced as a whole; there are no stale files, sources or reports in it.
+`output/` contains `index.html`, emitted assets and any public files or deliverable folders, ready to
+upload to any static host at the configured `url`. It is replaced as a whole; there are no stale files,
+sources or reports in it. Every regular file under `public/` is copied unchanged at the same relative
+path, including `.well-known/`; other dotfiles and dot-directories are skipped. Public files receive no
+checks, rewriting, hashed names or inlining. Other than the discovery overrides below, a collision with
+an emitted name or deliverable download folder is an error.
 
 For an indexable page, `sitemap.xml` lists only the configured canonical `url`, with no timestamps.
 It never lists unlisted deliverable download folders. At a host's root (`url` has path `/`), `robots.txt`
@@ -53,8 +57,8 @@ allows all crawling and points to that sitemap. Subfolder deployments get only t
 read `robots.txt` at the host root, so a subfolder's file would have no effect.
 If the final page requests `noindex` or `none` in robots or supported crawler meta tags, lfm omits the
 sitemap and the robots `Sitemap` line; crawling stays allowed so crawlers can read the restriction.
-Neither generated file names private download paths. An authored asset emitted as `robots.txt` or
-`sitemap.xml` takes precedence over generation of that file.
+Neither generated file names private download paths. Put an authored `robots.txt` or `sitemap.xml`
+in `public/` to override generation of that file, including for noindex or subfolder deployments.
 
 `lfm compile --json` includes every deployed file in `files`, including emitted CSS and deliverable
 folders. Each entry has its output-relative `name`, `bytes` and lowercase hex `sha256` of the exact

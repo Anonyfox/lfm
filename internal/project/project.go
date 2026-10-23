@@ -18,6 +18,7 @@ const (
 	TemplateFile = "index.html.tmpl"
 	PartialsDir  = "partials"
 	DataDir      = "data"
+	PublicDir    = "public"
 	OutputDir    = "output"
 	// DistributionDir holds the store packages of deliverables: never deployed,
 	// because its files are what buyers pay for.

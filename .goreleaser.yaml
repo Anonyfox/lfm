@@ -22,6 +22,30 @@ archives:
 checksum:
   name_template: checksums.txt
 
+homebrew_casks:
+  - name: lfm
+    binaries: [lfm]
+    description: "Sell before you build: your coding agent researches buyers and ships one checked landing page"
+    homepage: https://lfm.cash
+    license: MIT
+    repository:
+      owner: Anonyfox
+      name: homebrew-tap
+      git:
+        url: 'git@github.com:Anonyfox/homebrew-tap.git'
+        private_key: '{{ .Env.HOMEBREW_TAP_DEPLOY_KEY }}'
+    commit_author:
+      name: Maximilian Stroh
+      email: Fox56@gmx.de
+    directory: Casks
+    skip_upload: auto
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/lfm"]
+          end
+
 changelog:
   sort: asc
   filters:

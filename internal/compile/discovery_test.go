@@ -73,7 +73,39 @@ func TestDiscoveryFiles(t *testing.T) {
 	}
 }
 
-func TestAuthoredDiscoveryFilesWin(t *testing.T) {
+func TestPublicDiscoveryFilesWin(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"robots.txt", "sitemap.xml"} {
+		for _, mode := range []string{"root", "subfolder", "noindex"} {
+			t.Run(name+"/"+mode, func(t *testing.T) {
+				root := fixture(t)
+				changeConfig(t, root, func(c map[string]any) {
+					if mode != "subfolder" {
+						c["url"] = "https://example.com/"
+					}
+					if mode == "noindex" {
+						c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"seo.indexability": "off"}}
+					}
+				})
+				if mode == "noindex" {
+					write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</head>", `<meta name="robots" content="noindex"></head>`, 1))
+				}
+				const authored = "author controls this file\n"
+				write(t, root, "public/"+name, authored)
+				r, err := Compile(context.Background(), root, Options{Publish: true})
+				if err != nil {
+					t.Fatal(err, r.Validation)
+				}
+				if got := read(t, root, "output/"+name); got != authored {
+					t.Fatalf("authored %s replaced: %q", name, got)
+				}
+				assertManifest(t, r)
+			})
+		}
+	}
+}
+
+func TestEmittedAssetsDoNotOverrideDiscovery(t *testing.T) {
 	t.Parallel()
 	for _, name := range []string{"robots.txt", "sitemap.xml"} {
 		t.Run(name, func(t *testing.T) {
@@ -82,15 +114,11 @@ func TestAuthoredDiscoveryFilesWin(t *testing.T) {
 				c["url"] = "https://example.com/"
 				c["build"].(map[string]any)["assets"].(map[string]any)["overrides"] = map[string]any{"assets/" + name: "file"}
 			})
-			const authored = "author controls this file\n"
-			write(t, root, "assets/"+name, authored)
+			write(t, root, "assets/"+name, "old override")
 			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="assets/`+name+`" download>Download</a></body>`, 1))
-			r, err := Compile(context.Background(), root, Options{Publish: true})
-			if err != nil {
-				t.Fatal(err, r.Validation)
-			}
-			if got := read(t, root, "output/"+name); got != authored {
-				t.Fatalf("authored %s replaced: %q", name, got)
+			r, err := Compile(context.Background(), root, Options{})
+			if err == nil || !strings.Contains(err.Error(), "collision") || !strings.Contains(err.Error(), name) || r.Errors() == 0 {
+				t.Fatal("emitted discovery asset still overrides generation", err, r.Validation)
 			}
 		})
 	}

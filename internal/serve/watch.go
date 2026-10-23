@@ -71,7 +71,8 @@ func (m *monitor) snapshot() map[string]stamp {
 		}
 		relative, _ := filepath.Rel(m.root, path)
 		if entry.IsDir() {
-			if path != m.root && (strings.HasPrefix(entry.Name(), ".") || entry.Name() == "node_modules" || relative == project.OutputDir || strings.HasPrefix(relative, project.OutputDir+".next-") ||
+			publicWellKnown := entry.Name() == ".well-known" && strings.HasPrefix(filepath.ToSlash(relative), project.PublicDir+"/")
+			if path != m.root && ((strings.HasPrefix(entry.Name(), ".") && !publicWellKnown) || entry.Name() == "node_modules" || relative == project.OutputDir || strings.HasPrefix(relative, project.OutputDir+".next-") ||
 				relative == project.DistributionDir || strings.HasPrefix(relative, project.DistributionDir+".next-")) {
 				return filepath.SkipDir
 			}
@@ -125,22 +126,21 @@ func (m *monitor) snapshot() map[string]stamp {
 	return current
 }
 
-// include watches resolved package files and returns the ones that are new.
+// include watches resolved inputs and returns the ones that are new.
 func (m *monitor) include(inputs []string) (added []string) {
 	for _, path := range inputs {
 		rel, err := filepath.Rel(m.root, path)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 			continue
 		}
-		if !strings.Contains(filepath.ToSlash(rel), "node_modules/") {
-			continue
-		}
 		watch := []string{path}
 		// Resolution can change through package.json, even when source bytes don't.
-		for parent := filepath.Dir(path); parent != m.root; parent = filepath.Dir(parent) {
-			watch = append(watch, filepath.Join(parent, "package.json"))
-			if parent == filepath.Dir(parent) {
-				break
+		if strings.Contains(filepath.ToSlash(rel), "node_modules/") {
+			for parent := filepath.Dir(path); parent != m.root; parent = filepath.Dir(parent) {
+				watch = append(watch, filepath.Join(parent, "package.json"))
+				if parent == filepath.Dir(parent) {
+					break
+				}
 			}
 		}
 		for _, p := range watch {

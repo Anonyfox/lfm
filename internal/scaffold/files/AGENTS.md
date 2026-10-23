@@ -27,6 +27,7 @@ review or deploy) and the skill that covers it. Follow that line until it says d
 | `lfm.json` | Page facts: url, language, title, description, social image, named urls, data |
 | `index.html.tmpl` | The page, in Go `html/template` syntax; optional `partials/` |
 | `assets/` | Styles, scripts, images and fonts referenced from the template |
+| `public/` | Optional fixed-URL files copied unchanged into output; robots.txt and sitemap.xml override generation |
 | `data/` | Optional JSON files, available as `.data.<file name>` |
 | `research/` | `human-voices.md` and `competitor-analysis.md`: real sources, verbatim |
 | `concept.md` | The design decisions, written by the design skill and cited to research |

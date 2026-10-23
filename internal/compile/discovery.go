@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-// discoveryFiles runs after all authored assets have their output names. Only
+// discoveryFiles runs after public files have been read. Only
 // the configured canonical is listed; deliverable paths are never inputs here.
 func (b *builder) discoveryFiles(doc *html.Node) error {
 	noIndex := false
@@ -19,7 +19,7 @@ func (b *builder) discoveryFiles(doc *html.Node) error {
 		noIndex = noIndex || blocked
 	})
 	if !noIndex {
-		if _, authored := b.files["sitemap.xml"]; !authored {
+		if _, authored := b.public["sitemap.xml"]; !authored {
 			var sitemap bytes.Buffer
 			sitemap.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"><url><loc>")
 			if err := xml.EscapeText(&sitemap, []byte(b.config.URL)); err != nil {
@@ -36,7 +36,7 @@ func (b *builder) discoveryFiles(doc *html.Node) error {
 		return err
 	}
 	if u.Path == "/" {
-		if _, authored := b.files["robots.txt"]; !authored {
+		if _, authored := b.public["robots.txt"]; !authored {
 			robots := "User-agent: *\nAllow: /\n"
 			if !noIndex {
 				robots += "Sitemap: " + b.config.URL + "sitemap.xml\n"

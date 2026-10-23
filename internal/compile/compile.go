@@ -144,6 +144,7 @@ type builder struct {
 	config          project.Config
 	mu              sync.Mutex
 	files           map[string]emitted
+	public          map[string][]byte // fixed URLs, copied verbatim after delivery
 	external        map[string]bool
 	warnings        []string
 	inlineSources   map[[32]byte][]string
@@ -249,6 +250,9 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	}
 
 	// 5. finalize
+	if b.public, err = b.publicFiles(); err != nil {
+		return result, err
+	}
 	var serialized bytes.Buffer
 	serialized.Grow(b.renderHint)
 	if err := html.Render(&serialized, doc); err != nil {
@@ -305,6 +309,9 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	defer st.close()
 	if !deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result) {
 		return result, &Failure{Errors: result.Errors()}
+	}
+	if err := b.addPublic(&result); err != nil {
+		return result, err
 	}
 
 	// 7. audit
@@ -504,6 +511,9 @@ func (b *builder) sidecars() map[string][]byte {
 	assets := map[string][]byte{}
 	for _, file := range b.files {
 		assets[file.name] = file.contents
+	}
+	for name, contents := range b.public {
+		assets[name] = contents
 	}
 	return assets
 }
