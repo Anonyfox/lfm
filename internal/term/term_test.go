@@ -2,6 +2,7 @@ package term
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -34,6 +35,40 @@ func TestForDisablesColorForNonTerminals(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	if For(&bytes.Buffer{}).Color {
 		t.Fatal("NO_COLOR ignored")
+	}
+}
+
+func TestForEnvironment(t *testing.T) {
+	// For detects character devices, so use the null device without needing a TTY.
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	for _, tc := range []struct {
+		name, force, noColor, term string
+		want                       bool
+	}{
+		{name: "default", want: true},
+		{name: "zero", force: "0"},
+		{name: "false", force: "false"},
+		{name: "uppercase false", force: "FALSE"},
+		{name: "mixed case false", force: "FaLsE"},
+		{name: "no color", noColor: "1"},
+		{name: "dumb terminal", term: "dumb"},
+		{name: "zero with opt outs", force: "0", noColor: "1", term: "dumb"},
+		{name: "false with opt outs", force: "FALSE", noColor: "1", term: "dumb"},
+		{name: "force overrides opt outs", force: "1", noColor: "1", term: "dumb", want: true},
+		{name: "other nonempty value", force: "2", want: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("FORCE_COLOR", tc.force)
+			t.Setenv("NO_COLOR", tc.noColor)
+			t.Setenv("TERM", tc.term)
+			if got := For(f).Color; got != tc.want {
+				t.Errorf("For(character device).Color = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

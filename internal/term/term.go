@@ -16,10 +16,11 @@ import (
 type Style struct{ Color bool }
 
 // For picks colors for w: on for terminals, off for pipes and files, NO_COLOR
-// and TERM=dumb; FORCE_COLOR turns it on regardless.
+// and TERM=dumb. FORCE_COLOR=0 or false (case-insensitive) disables color;
+// any other non-empty FORCE_COLOR value turns it on regardless.
 func For(w io.Writer) Style {
-	if os.Getenv("FORCE_COLOR") != "" {
-		return Style{Color: true}
+	if force := os.Getenv("FORCE_COLOR"); force != "" {
+		return Style{Color: force != "0" && !strings.EqualFold(force, "false")}
 	}
 	if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
 		return Style{}

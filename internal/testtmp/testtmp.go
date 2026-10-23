@@ -9,9 +9,11 @@ import (
 	"testing"
 )
 
-// Main runs the tests with TMPDIR inside a fresh directory and removes it
-// afterwards. Use it as a package's TestMain.
+// Main runs the tests with color disabled and TMPDIR inside a fresh directory,
+// then removes it afterwards. Use it as a package's TestMain.
 func Main(m *testing.M) {
+	os.Unsetenv("FORCE_COLOR")
+	os.Setenv("NO_COLOR", "1")
 	// /tmp before the system temp directory: esbuild reads every directory
 	// above a project on each build, and a macOS user temp directory can
 	// hold a hundred thousand entries that slow every compile tenfold.
