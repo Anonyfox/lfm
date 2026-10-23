@@ -124,6 +124,12 @@ td {
   min-width: 8rem;
 }
 @media (max-width: 500px) {
+  td {
+    min-width: 0;
+  }
+  th,td {
+    padding: .6rem .35rem;
+  }
   main {
     padding: 2rem 1.5rem;
   }
