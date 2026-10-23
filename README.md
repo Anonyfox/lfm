@@ -44,7 +44,13 @@ process, asking you only what you decide. Its setup is in [docs/grok-bot.md](doc
 
 The script at the top downloads the [release](https://github.com/Anonyfox/lfm/releases) for macOS or Linux (amd64
 or arm64), checks it against the release checksums and puts `lfm` in `~/.local/bin`, without sudo.
-`LFM_VERSION=v0.0.2` pins a release and `LFM_INSTALL_DIR` changes the folder. With Go 1.26 or newer:
+`LFM_VERSION=v0.0.2` pins a release and `LFM_INSTALL_DIR` changes the folder. With Homebrew:
+
+```sh
+brew install anonyfox/tap/lfm
+```
+
+With Go 1.26 or newer:
 
 ```sh
 go install github.com/Anonyfox/lfm/cmd/lfm@latest
