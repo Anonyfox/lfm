@@ -1,5 +1,9 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.8 (unreleased)
+
+- Release critical-CSS analysis bounds each browser step with a precise error, without a shared deadline that rejects progressing builds on loaded machines.
+
 ## 0.1.7 (2026-10-23)
 
 - Generate sitemap.xml and root robots.txt, respecting noindex and public/ overrides.

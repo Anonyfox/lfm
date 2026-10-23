@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
@@ -103,8 +104,8 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	}
 	server := httptest.NewServer(Handler(page, assets))
 	defer server.Close()
-	ctx, timeout := context.WithTimeout(ctx, 45*time.Second)
-	defer timeout()
+	ctx, abort := context.WithCancelCause(ctx)
+	defer abort(nil)
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
@@ -113,23 +114,40 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	defer cancelBrowser()
 	// The preview CSP blocks application scripts. Keep the engine enabled for
 	// DevTools promises, loaded-font checks and rendering-frame synchronization.
-	if _, err = chromedp.Run(browser, chromedp.Evaluate[bool]("true")); err != nil {
-		return result, fmt.Errorf("start release browser: %w", err)
+	// The first Run owns Chrome's lifetime. Bound startup without giving that
+	// lifetime a deadline (or canceling it when a successful step returns).
+	if _, err = browserStep(browser, "start release browser", browserStepTimeout, func(step context.Context) (bool, error) {
+		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
+		defer stop()
+		return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
+	}); err != nil {
+		return result, err
 	}
 	events := chromedp.Events(browser, fetch.RequestPaused)
 	go func() {
 		for ev, err := range events {
 			if err != nil {
+				abort(fmt.Errorf("receive release preview request: %w", err))
 				return
 			}
-			if strings.HasPrefix(ev.Request.URL, server.URL+"/") && ev.Request.Method == "GET" {
-				_, _ = chromedp.Call(browser, fetch.ContinueRequest, fetch.ContinueRequestParams{RequestID: ev.RequestID})
-			} else {
-				_, _ = chromedp.Call(browser, fetch.FailRequest, fetch.FailRequestParams{RequestID: ev.RequestID, ErrorReason: network.ErrorReasonBlockedByClient})
+			_, err = browserAction(browser, "handle release preview request "+ev.Request.URL, chromedp.Func(func(step context.Context, target *chromedp.Target) error {
+				if strings.HasPrefix(ev.Request.URL, server.URL+"/") && ev.Request.Method == "GET" {
+					_, err := cdp.Call(step, target, fetch.ContinueRequest, fetch.ContinueRequestParams{RequestID: ev.RequestID})
+					return err
+				}
+				_, err := cdp.Call(step, target, fetch.FailRequest, fetch.FailRequestParams{RequestID: ev.RequestID, ErrorReason: network.ErrorReasonBlockedByClient})
+				return err
+			}))
+			if err != nil {
+				abort(err)
+				return
 			}
 		}
 	}()
-	if _, err = chromedp.Call(browser, fetch.Enable, fetch.EnableParams{}); err != nil {
+	if _, err = browserAction(browser, "enable release preview request isolation", chromedp.Func(func(step context.Context, target *chromedp.Target) error {
+		_, err := cdp.Call(step, target, fetch.Enable, fetch.EnableParams{})
+		return err
+	})); err != nil {
 		return result, err
 	}
 	selected := map[string]bool{}
@@ -143,7 +161,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 		}
 		observed, shot, err := observe(browser, viewport)
 		if err != nil {
-			return result, fmt.Errorf("observe critical CSS: %w", err)
+			return result, fmt.Errorf("observe critical CSS at %dx%d: %w", viewport.Width, viewport.Height, err)
 		}
 		if observed.Reason != "" {
 			result.Reason = observed.Reason
@@ -192,18 +210,18 @@ func verify(browser context.Context, url, critical string, fingerprints []string
 			return false, err
 		}
 		// Insert critical rules immediately before their complete original sheet.
-		if _, err := chromedp.Run(browser, chromedp.Evaluate[bool](`(()=>{const original=document.querySelector('[data-lfm-critical-source]');const style=document.createElement('style');style.textContent=`+string(encoded)+`;original.before(style);return true})()`)); err != nil {
+		if _, err := browserAction(browser, "insert critical CSS", chromedp.Evaluate[bool](`(()=>{const original=document.querySelector('[data-lfm-critical-source]');const style=document.createElement('style');style.textContent=`+string(encoded)+`;original.before(style);return true})()`)); err != nil {
 			return false, err
 		}
 		for _, criticalOnly := range []bool{false, true} {
 			if criticalOnly {
-				if _, err := chromedp.Run(browser, chromedp.Evaluate[bool](`(()=>{document.querySelector('[data-lfm-critical-source]').sheet.disabled=true;return true})()`)); err != nil {
+				if _, err := browserAction(browser, "disable full CSS", chromedp.Evaluate[bool](`(()=>{document.querySelector('[data-lfm-critical-source]').sheet.disabled=true;return true})()`)); err != nil {
 					return false, err
 				}
 			}
 			observed, shot, err := observe(browser, viewport)
 			if err != nil {
-				return false, err
+				return false, fmt.Errorf("verify critical CSS at %dx%d (critical only: %t): %w", viewport.Width, viewport.Height, criticalOnly, err)
 			}
 			if observed.Reason != "" || observed.Fingerprint != fingerprints[i] || !samePixels(shot, screenshots[i]) {
 				return false, nil
@@ -238,11 +256,11 @@ func render(rules []rule, selected map[string]bool) string {
 }
 
 func load(ctx context.Context, url string, viewport Viewport) error {
-	if _, err := chromedp.Run(ctx, chromedp.EmulateViewport(viewport.Width, viewport.Height)); err != nil {
+	if _, err := browserAction(ctx, "resize release preview", chromedp.EmulateViewport(viewport.Width, viewport.Height)); err != nil {
 		return err
 	}
-	if _, err := chromedp.Run(ctx, chromedp.Navigate(url)); err != nil {
-		return fmt.Errorf("release preview: %w", err)
+	if _, err := browserAction(ctx, fmt.Sprintf("load release preview at %dx%d", viewport.Width, viewport.Height), chromedp.Navigate(url)); err != nil {
+		return err
 	}
 	return nil
 }
@@ -259,12 +277,12 @@ func observe(ctx context.Context, viewport Viewport) (observation, []byte, error
 		if err := settle(ctx, viewport); err != nil {
 			return observation{}, nil, fmt.Errorf("settle release preview: %w", err)
 		}
-		observed, err := chromedp.Run(ctx, chromedp.Evaluate[observation](criticalJS))
+		observed, err := browserAction(ctx, "measure release preview styles and layout", chromedp.Evaluate[observation](criticalJS))
 		if err != nil || observed.Reason != "" {
 			return observed, nil, err
 		}
 		if observed.Fingerprint == last {
-			shot, err := chromedp.Run(ctx, chromedp.CaptureScreenshot())
+			shot, err := browserAction(ctx, "capture release preview pixels", chromedp.CaptureScreenshot())
 			return observed, shot, err
 		}
 		last = observed.Fingerprint
@@ -276,26 +294,62 @@ func observe(ctx context.Context, viewport Viewport) (observation, []byte, error
 // and lays the page out afresh: right after a load or a resize, Chrome can
 // report a used value, such as an auto margin, from an earlier layout.
 func settle(ctx context.Context, viewport Viewport) error {
-	if _, err := chromedp.Run(ctx, chromedp.Evaluate[bool](settleScript, chromedp.EvalAwaitPromise)); err != nil {
+	if err := waitForFonts(ctx); err != nil {
+		return err
+	}
+	if _, err := browserAction(ctx, "decode release preview images", chromedp.Evaluate[bool](settleImagesScript, chromedp.EvalAwaitPromise)); err != nil {
 		return err
 	}
 	for _, w := range []int64{viewport.Width + 1, viewport.Width} {
-		if _, err := chromedp.Run(ctx, chromedp.EmulateViewport(w, viewport.Height)); err != nil {
+		if _, err := browserAction(ctx, "refresh release preview layout", chromedp.EmulateViewport(w, viewport.Height)); err != nil {
 			return err
 		}
 	}
-	_, err := chromedp.Run(ctx, chromedp.Evaluate[bool](`(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true})()`, chromedp.EvalAwaitPromise))
+	if err := waitForFonts(ctx); err != nil {
+		return err
+	}
+	_, err := browserAction(ctx, "wait for release preview animation frames", chromedp.Evaluate[bool](settleFramesScript, chromedp.EvalAwaitPromise))
 	return err
 }
 
-const settleScript = `(async()=>{
-await document.fonts.ready;
+func waitForFonts(ctx context.Context) error {
+	_, err := browserAction(ctx, "wait for release preview fonts", chromedp.Evaluate[bool](settleFontsScript, chromedp.EvalAwaitPromise))
+	return err
+}
+
+const settleFontsScript = `document.fonts.ready.then(()=>true)`
+const settleFramesScript = `new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))))`
+const settleImagesScript = `(async()=>{
 let freeze=document.querySelector('[data-lfm-freeze]');
 if(!freeze){freeze=document.createElement('style');freeze.setAttribute('data-lfm-freeze','');freeze.textContent='*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';document.head.append(freeze)}
 const near=i=>{const r=i.getBoundingClientRect();return r.top<=innerHeight&&r.left<=innerWidth&&r.bottom>=0&&r.right>=0};
 const pending=[...document.images].filter(i=>!i.complete&&(i.loading!=='lazy'||near(i)));
-await Promise.race([Promise.all(pending.map(i=>i.decode().catch(()=>{}))),new Promise(r=>setTimeout(r,5000))]);
+await Promise.all(pending.map(i=>i.decode().catch(()=>{})));
 return true})()`
+
+// Each blocking browser operation gets a fresh budget. There is no deadline
+// for the whole analysis: a loaded machine can keep making progress through
+// all viewports and verification attempts. The caller can still cancel it.
+const browserStepTimeout = 45 * time.Second
+
+func browserAction[T any](ctx context.Context, name string, action chromedp.Action[T]) (T, error) {
+	return browserStep(ctx, name, browserStepTimeout, func(step context.Context) (T, error) {
+		return chromedp.Run(step, action)
+	})
+}
+
+func browserStep[T any](ctx context.Context, name string, limit time.Duration, run func(context.Context) (T, error)) (T, error) {
+	step, cancel := context.WithTimeoutCause(ctx, limit, fmt.Errorf("no completion within %s: %w", limit, context.DeadlineExceeded))
+	defer cancel()
+	value, err := run(step)
+	if cause := context.Cause(step); cause != nil {
+		return value, fmt.Errorf("%s: %w", name, cause)
+	}
+	if err != nil {
+		return value, fmt.Errorf("%s: %w", name, err)
+	}
+	return value, nil
+}
 
 // Handler exposes only the in-memory artifact, never project sources.
 func Handler(page []byte, assets map[string][]byte) http.Handler {

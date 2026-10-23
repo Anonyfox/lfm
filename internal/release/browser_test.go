@@ -3,12 +3,17 @@ package release
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"image/png"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/chromedp/chromedp"
 )
 
 func TestRuleUnionPreservesOrderGroupsAndGlobals(t *testing.T) {
@@ -143,10 +148,12 @@ func TestInstalledBrowserVerdictIsTheSameEveryTime(t *testing.T) {
 	b.WriteString(`</div><div style="height:3000px"></div><p class="below">Below</p></body></html>`)
 	var first Result
 	for run := range 4 {
+		started := time.Now()
 		result, err := Analyze(context.Background(), []byte(b.String()), assets)
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("run %d after %s: %v", run, time.Since(started), err)
 		}
+		t.Logf("run %d completed in %s", run, time.Since(started))
 		if result.Reason != "" || result.Selection != "viewport" {
 			t.Fatalf("run %d: %+v", run, result)
 		}
@@ -156,6 +163,98 @@ func TestInstalledBrowserVerdictIsTheSameEveryTime(t *testing.T) {
 			t.Fatalf("run %d chose other rules:\n%s\n%s", run, first.CSS, result.CSS)
 		}
 	}
+}
+
+func TestBrowserStepReportsStallsAndCancellationCause(t *testing.T) {
+	t.Parallel()
+	_, err := browserStep(context.Background(), "stalled command", time.Millisecond, func(ctx context.Context) (bool, error) {
+		<-ctx.Done()
+		return false, ctx.Err()
+	})
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "stalled command: no completion within 1ms") {
+		t.Fatal(err)
+	}
+	// A failure in the request handler must reach the foreground operation,
+	// rather than becoming an unexplained cancellation or navigation timeout.
+	cause := errors.New("handle release preview request: protocol failure")
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(cause)
+	_, err = browserStep(ctx, "load release preview", time.Second, func(ctx context.Context) (bool, error) {
+		return false, ctx.Err()
+	})
+	if !errors.Is(err, cause) || !strings.Contains(err.Error(), "load release preview: handle release preview request") {
+		t.Fatal(err)
+	}
+}
+
+// Exercise actual navigation and DevTools promises, including image decode,
+// which used to silently time out and allow measuring an unfinished screen.
+// A stuck operation must fail by name without consuming the next operation's
+// budget or killing Chrome when its step context ends.
+func TestInstalledBrowserBoundsStalledOperations(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	path, err := BrowserPath()
+	if err != nil {
+		t.Skip(err)
+	}
+	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
+	opts = append(opts, chromedp.ExecPath(path))
+	alloc, cancelAlloc := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancelAlloc()
+	browser, cancelBrowser := chromedp.NewContext(alloc)
+	defer cancelBrowser()
+	// Initialize with a lifetime context before using individual step contexts.
+	if _, err := chromedp.Run(browser, chromedp.Evaluate[bool]("true")); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ name, setup, script string }{
+		{"fonts", `Object.defineProperty(document.fonts,'ready',{value:new Promise(()=>{})});`, settleFontsScript},
+		{"images", `const i=document.createElement('img');Object.defineProperty(i,'complete',{value:false});i.decode=()=>new Promise(()=>{});document.body.append(i);`, settleImagesScript},
+		{"animation frames", `window.requestAnimationFrame=()=>{};`, settleFramesScript},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := browserAction(browser, "reset test page", chromedp.Navigate("about:blank")); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := browserAction(browser, "install stalled promise", chromedp.Evaluate[bool](`(()=>{`+tc.setup+`return true})()`)); err != nil {
+				t.Fatal(err)
+			}
+			_, err := browserStep(browser, tc.name, time.Second, func(ctx context.Context) (bool, error) {
+				return chromedp.Run(ctx, chromedp.Evaluate[bool](tc.script, chromedp.EvalAwaitPromise))
+			})
+			if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), tc.name+": no completion within 1s") {
+				t.Fatal(err)
+			}
+			if _, err := browserAction(browser, "check browser still responds", chromedp.Evaluate[bool]("true")); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	t.Run("navigation", func(t *testing.T) {
+		release := make(chan struct{})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/pending.png" {
+				<-release
+				return
+			}
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, `<!doctype html><img src="/pending.png">`)
+		}))
+		defer server.Close()
+		defer close(release)
+		_, err := browserStep(browser, "load release preview", time.Second, func(ctx context.Context) (chromedp.Void, error) {
+			return chromedp.Run(ctx, chromedp.Navigate(server.URL))
+		})
+		if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "load release preview: no completion within 1s") {
+			t.Fatal(err)
+		}
+		if _, err := browserAction(browser, "check browser still responds", chromedp.Evaluate[bool]("true")); err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func tile(seed int) []byte {
