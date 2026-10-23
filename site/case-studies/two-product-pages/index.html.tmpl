@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="{{.language}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.title}}</title>
+<meta name="description" content="{{.description}}">
+<link rel="canonical" href="{{.url}}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{.url}}">
+<meta property="og:title" content="{{.title}}">
+<meta property="og:description" content="{{.description}}">
+<meta property="og:image" content="{{.socialImage.src}}">
+<meta property="og:image:alt" content="{{.socialImage.alt}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/martian-mono.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin>
+{{style "assets/styles/main.css"}}
+</head><body>
+<nav aria-label="Site"><a href="{{.urls.home}}">lfm.cash</a> · <a href="{{.urls.repository}}">Repository</a></nav>
+<main><article><h1>Two product pages in under an hour</h1>
+<p>The maintainer of lfm runs an autonomous coding agent that builds and sells small digital products. On 23
+October 2026 it used lfm 0.1.7 for two sales pages, from <code>lfm init</code> to live. This page shows what
+lfm checked and what it caught, with numbers from the build logs and from the live pages.</p>
+<h2>What it shipped</h2>
+<ul>
+<li><a href="{{.urls.sansSlop}}">Sans Slop</a> (€29 launch price, €39 from 1 December 2026). A pack that
+steers coding agents away from UI and copy that reads as generated: project rules for Cursor, Claude Code and
+Codex, worked before/after examples and a local checker that runs after a draft. Its word and phrase lists are
+extracted from lfm&#x27;s own copy and design checks, under lfm&#x27;s MIT license. The pack has 43 files, 526
+hard-list entries plus 54 watch words, and a 763-byte always-on core file. Its build runs 23 tests.</li>
+<li><a href="{{.urls.squadKit}}">Grok Bot Squad Kit</a> (€59 download, €249 with a written custom plan).
+Templates for running several Grok Bot bots with clear handoffs and approval stops: 12 bot blueprints, 16
+routine specs and 8 operating guides, plus an eight-question ban-risk check that runs in the browser.</li>
+</ul>
+<figure><img src="assets/images/sans-slop-live-640.webp" srcset="assets/images/sans-slop-live-640.webp 640w, assets/images/sans-slop-live-1280.webp 1280w" sizes="(max-width: 800px) calc(100vw - 64px), 736px" width="1280" height="800" loading="lazy" alt="Sans Slop live page: a copy editor’s proof with marked-up text and a red purchase button."><figcaption>Sans Slop. Live page, captured 23 October 2026.</figcaption></figure>
+<figure><img src="assets/images/grok-bot-templates-live-640.webp" srcset="assets/images/grok-bot-templates-live-640.webp 640w, assets/images/grok-bot-templates-live-1280.webp 1280w" sizes="(max-width: 800px) calc(100vw - 64px), 736px" width="1280" height="800" loading="lazy" alt="Grok Bot Squad Kit live page: a dispatch room layout with bot handoffs and a purchase offer."><figcaption>Grok Bot Squad Kit. Live page, captured 23 October 2026.</figcaption></figure>
+<h2>Timeline</h2>
+<p>23 October 2026, CEST; from the git log and lfm’s compile logs.</p>
+<ul>
+<li>22:44 <code>lfm init</code> for Sans Slop</li>
+<li>22:45 <code>lfm init</code> for the Squad Kit</li>
+<li>22:58 first Sans Slop release compile: 4 warnings</li>
+<li>23:04 first Squad Kit release compile: 4 warnings</li>
+<li>23:05 Squad Kit release compile: 0 errors, 0 warnings</li>
+<li>23:13 Squad Kit live (commit time)</li>
+<li>23:21 Sans Slop release compile: 0 errors, 0 warnings</li>
+<li>about 23:25 Sans Slop live; 23:28 the commit that records it</li>
+</ul>
+<p>44 minutes from the first <code>lfm init</code> to the commit that recorded both pages live. The agent
+handed the long writing and coding jobs to Codex CLI and reviewed the results; every page change went through
+<code>lfm compile</code> again.</p>
+<h2>What lfm did</h2>
+<p>Research. lfm&#x27;s research skill has the agent collect dated buyer posts and competing pages first; the
+<code>research.balance</code> check holds them to minimums (60 posts, 5 platforms, 12 competing pages) and
+every compile report counts them. Each page&#x27;s research ended at 70 dated buyer posts on 5 platforms and
+12 competing pages. For Sans Slop the posts came mostly from Hacker News (40%), Reddit (40%) and GitHub (14%);
+for the Squad Kit from Reddit (40%), X (40%) and the Cursor Forum (17%). The concepts built on them,
+&quot;Copy editor&#x27;s proof&quot; and &quot;Dispatch room&quot;, cite 37 and 30 of those posts.</p>
+<h3>Checks that caught real problems</h3>
+<ul>
+<li><code>commerce.checkout</code> (Sans Slop): the buy button still pointed at a placeholder payment link.
+lfm flagged lfm.json line 26 on every compile until the real link went in.</li>
+<li><code>copy.machine</code> (Sans Slop, first compile): &quot;AI-text detectors would likely flag the
+page&#x27;s copy as generated (262 words) … 88% of paragraphs have two to four sentences&quot;. The copy was
+rewritten; the next compile at 22:59 was clean of it.</li>
+<li><code>release.layout</code> (Squad Kit): the release build rendered the page in Chrome and found that the
+heading font Chivo had no glyph for the right and down arrows, and the mono font had none for the box-drawing corner, horizontal line and Roman numeral two, so a fallback font drew
+them. The agent set the arrows in a face that has them, replaced the box-drawing line with a CSS border and
+wrote II.</li>
+<li><code>lighthouse.network-dependency-tree-insight</code> (Squad Kit): a second font loaded late in a
+request chain; the fix was a preload. Both fixes landed in one commit and the next release compile had 0
+warnings.</li>
+<li>Other Sans Slop builds that evening also flagged a home link whose accessible name did not match its
+visible text (<code>lighthouse.label-content-name-mismatch</code>) and text smaller than 12px on about half
+the page (<code>lighthouse.font-size</code>: 51.56% legible).</li>
+</ul>
+<h3>Release review</h3>
+<p>Each release compile rendered the page in Chrome and saved screenshots at phone and desktop widths (55 for
+Sans Slop, 65 for the Squad Kit). The Sans Slop frames were reviewed at 390, 1280 and 1440 pixels wide before
+deploying.</p>
+<h2>Results, measured live</h2>
+<p>Measured from our build machine on 23 October 2026 at 23:31 CEST: 5 curl requests per page for server
+response, one Lighthouse 12.8.2 run per page with the mobile and the desktop preset. One run from one machine;
+your numbers will differ.</p>
+<div class="measurements" role="region" aria-label="Live measurements" tabindex="0"><table><caption>Live page measurements; Lighthouse scores are performance, accessibility, best practices and SEO.</caption><thead><tr><th scope="col">Measurement</th><th scope="col">Sans Slop</th><th scope="col">Grok Bot Squad Kit</th></tr></thead><tbody><tr><th scope="row">HTML, as sent (brotli)</th><td>8.6 KB</td><td>11.5 KB</td></tr><tr><th scope="row">HTML, uncompressed</th><td>24.9 KB</td><td>35.6 KB</td></tr><tr><th scope="row">Everything the first view loads</th><td>64.5 KB in 6 requests</td><td>60.4 KB in 6 requests</td></tr><tr><th scope="row">Time to first byte, median of 5</th><td>0.20 s</td><td>0.19 s</td></tr><tr><th scope="row">Lighthouse mobile</th><td>100 / 100 / 100 / 100</td><td>100 / 100 / 100 / 100</td></tr><tr><th scope="row">Largest Contentful Paint, mobile</th><td>1.3 s</td><td>1.2 s</td></tr><tr><th scope="row">Largest Contentful Paint, desktop</th><td>0.3 s</td><td>0.3 s</td></tr><tr><th scope="row">Total Blocking Time, mobile</th><td>0 ms</td><td>80 ms</td></tr><tr><th scope="row">Cumulative Layout Shift, mobile</th><td>0.006</td><td>0.001</td></tr></tbody></table></div>
+<p>The first-view totals include a 1 KB script the CDN injects into both pages. Both pages compile today with
+lfm 0.1.7 at 0 errors and 0 warnings.</p>
+<h2>What we&#x27;d improve in lfm</h2>
+<ul>
+<li>The Squad Kit page was first built inside a sandbox that blocked local ports. There <code>lfm compile
+--release</code> crashed with a Go panic (&quot;httptest: failed to listen on a port&quot;) instead of
+reporting a finding. It should say that the release check needs a local port and Chrome, and how to fix that.
+Outside the sandbox the same release check passed.</li>
+<li><code>lighthouse.max-potential-fid</code>, a diagnostic, appeared in 11 of 39 release builds that evening
+across the five pages the agent built, while performance stayed at 100. A strict &quot;0 warnings&quot; rule then fails at random.
+Diagnostics that do not move the score should be reported apart from findings, or measured twice before they
+warn.</li>
+</ul></article></main>
+<footer><a href="{{.urls.home}}">lfm.cash</a> · <a href="{{.urls.repository}}">GitHub</a> · <a href="{{.urls.license}}">MIT license</a> · <a href="{{.urls.impressum}}" lang="de">Impressum</a> · <a href="{{.urls.privacy}}" lang="de">Datenschutz</a></footer>
+<!-- Cloudflare Web Analytics --><script defer src="{{.urls.analytics}}" data-cf-beacon='{"token": "81afba9a77be4013b2a34b34a8eb1189"}'></script><!-- End Cloudflare Web Analytics -->
+</body></html>

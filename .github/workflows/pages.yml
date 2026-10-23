@@ -32,6 +32,15 @@ jobs:
         run: |
           go build -o "$RUNNER_TEMP/lfm" ./cmd/lfm
           "$RUNNER_TEMP/lfm" compile site
+          for project in site/case-studies/*/; do
+            [ -f "$project/lfm.json" ] || continue
+            "$RUNNER_TEMP/lfm" compile "$project" || exit 1
+            slug=$(basename "$project")
+            dest="site/output/case-studies/$slug"
+            mkdir -p "$dest"
+            cp -R "$project/output/." "$dest/"
+            rm -f "$dest/sitemap.xml" "$dest/robots.txt"
+          done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -42,7 +51,12 @@ jobs:
       - name: lfm.cash serves this commit
         run: |
           url="${{ steps.deployment.outputs.page_url }}"
-          for file in index.html SKILL.md install.sh llms.txt robots.txt sitemap.xml; do
+          files=(index.html SKILL.md install.sh llms.txt robots.txt sitemap.xml)
+          for project in site/case-studies/*/; do
+            [ -f "$project/lfm.json" ] || continue
+            files+=("case-studies/$(basename "$project")/index.html")
+          done
+          for file in "${files[@]}"; do
             for try in 1 2 3 4 5 6 7 8 9 10; do
               if curl -fsS "${url%/}/$file" -o "$RUNNER_TEMP/served" && cmp -s "$RUNNER_TEMP/served" "site/output/$file"; then
                 continue 2

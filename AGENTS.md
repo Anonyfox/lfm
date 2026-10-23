@@ -36,7 +36,8 @@ template `lfm init` writes into user projects.
 - **Parsers and analyzers of author or LLM input** need a native fuzz target; see
   [CONTRIBUTING.md](CONTRIBUTING.md).
 - **The website** is an lfm project in `site/`; `.github/workflows/pages.yml` compiles it with the lfm
-  built from the same commit and deploys lfm.cash.
+  built from the same commit and deploys lfm.cash. Case studies live in
+  `site/case-studies/<slug>/` as their own lfm projects; add each URL to `site/public/sitemap.xml`.
 - **User-visible changes** get a line in [CHANGELOG.md](CHANGELOG.md).
 
 ## Verify before you say done

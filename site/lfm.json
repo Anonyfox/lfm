@@ -22,7 +22,8 @@
     "license": "https://github.com/Anonyfox/lfm/blob/main/LICENSE",
     "mit": "https://opensource.org/licenses/MIT",
     "grokBot": "https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf",
-    "analytics": "https://static.cloudflareinsights.com/beacon.min.js"
+    "analytics": "https://static.cloudflareinsights.com/beacon.min.js",
+    "caseStudy": "https://lfm.cash/case-studies/two-product-pages/"
   },
   "data": {
     "prompt": {

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "url": "https://lfm.cash/case-studies/two-product-pages/",
+  "language": "en",
+  "title": "Case study: two product pages in under an hour with lfm",
+  "description": "Our own coding agent used lfm to research, write, check and ship two paid product pages on 23 October 2026. The timeline, the findings lfm caught and live measurements.",
+  "socialImage": {
+    "src": "assets/images/share.png",
+    "alt": "A paper receipt headed Two product pages in under an hour, with Sans Slop and Grok Bot Squad Kit, dated 23 October 2026."
+  },
+  "urls": {
+    "repository": "https://github.com/Anonyfox/lfm",
+    "license": "https://github.com/Anonyfox/lfm/blob/main/LICENSE",
+    "impressum": "https://lab.anonyfox.com/impressum/",
+    "privacy": "https://lab.anonyfox.com/datenschutz/",
+    "analytics": "https://static.cloudflareinsights.com/beacon.min.js",
+    "home": "https://lfm.cash/",
+    "sansSlop": "https://lab.anonyfox.com/sans-slop/",
+    "squadKit": "https://lab.anonyfox.com/grok-bot-templates/"
+  }
+}
