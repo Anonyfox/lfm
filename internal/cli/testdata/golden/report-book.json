@@ -5,23 +5,33 @@
   "files": [
     {
       "name": "favicon.png",
-      "bytes": 332
+      "bytes": 332,
+      "sha256": "27bc5407edb196cbbe22e01f12c783817f6451721e44bb550c4f7546e7127cd9"
     },
     {
       "name": "index.html",
-      "bytes": 1231
-    },
-    {
-      "name": "share-3f93c132da0c.png",
-      "bytes": 240
+      "bytes": 1231,
+      "sha256": "1bf31aaac9014ea86fb91ba46c08244602488b996823668c5ffa7a8d4d4fc8dc"
     },
     {
       "name": "q7w2k9m4x8c3v6b1n5zt/index.html",
-      "bytes": 1415
+      "bytes": 1415,
+      "sha256": "f5333841e953c317054da964430bdb42012596d352b5ec3dcf9f2841d5dfd41b"
     },
     {
       "name": "q7w2k9m4x8c3v6b1n5zt/the-weekend-starter.epub",
-      "bytes": 5283
+      "bytes": 5283,
+      "sha256": "2a44e1afc4623cd89f152864f4836e1dfc279b8ecbfbaa5d0bb43b8c0c7d9afd"
+    },
+    {
+      "name": "share-3f93c132da0c.png",
+      "bytes": 240,
+      "sha256": "afaa0f6197b94bfed87b9deffb2fd6b5860d8fd548246bdfc229487dc6638cd2"
+    },
+    {
+      "name": "sitemap.xml",
+      "bytes": 155,
+      "sha256": "aa84b5fa931dcbd0df074e99f8b4d112b3a36353f5266041ee80a46ad6381559"
     }
   ],
   "validation": {
@@ -380,8 +390,8 @@
   "cost": {
     "htmlBytes": 1231,
     "htmlGzipLevel1Bytes": 604,
-    "sidecarBytes": 572,
-    "totalRawBytes": 1803,
+    "sidecarBytes": 727,
+    "totalRawBytes": 1958,
     "totalCSSBytes": 98,
     "totalJSBytes": 46,
     "externalCSSBytes": 0,

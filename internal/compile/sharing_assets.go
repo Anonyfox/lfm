@@ -162,3 +162,37 @@ func (b *builder) socialImageSizes(doc *html.Node) {
 		}
 	}
 }
+
+// socialHandles fills optional X attribution without replacing authored tags.
+func (b *builder) socialHandles(doc *html.Node) []string {
+	if b.config.Social.X == "" {
+		return nil
+	}
+	var head *html.Node
+	present := map[string]bool{}
+	htmlx.Walk(doc, func(n *html.Node) {
+		if n.Namespace != "" || htmlx.Dormant(n) {
+			return
+		}
+		if n.Data == "head" {
+			head = n
+		}
+		if n.Data == "meta" {
+			for _, attr := range []string{"name", "property"} {
+				present[strings.ToLower(strings.TrimSpace(htmlx.Attr(n, attr)))] = true
+			}
+		}
+	})
+	var added []string
+	for _, key := range []string{"twitter:site", "twitter:creator"} {
+		if present[key] {
+			continue
+		}
+		meta := htmlx.Element("meta", "")
+		htmlx.SetAttr(meta, "name", key)
+		htmlx.SetAttr(meta, "content", b.config.Social.X)
+		head.AppendChild(meta)
+		added = append(added, key)
+	}
+	return added
+}

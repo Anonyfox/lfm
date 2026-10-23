@@ -46,6 +46,8 @@ var Spec = []Field{
 	{Path: "socialImage", Kind: Object, Doc: "The share preview image."},
 	{Path: "socialImage.src", Kind: String, Doc: "Project path of the image, 1200×630 pixels.", Example: `"assets/images/share.jpg"`},
 	{Path: "socialImage.alt", Kind: String, Doc: "What the image shows, for people who cannot see it.", Example: `"A jar of starter on a kitchen shelf"`},
+	{Path: "social", Kind: Object, Doc: "Optional social account attribution."},
+	{Path: "social.x", Kind: String, Doc: "The page's X (Twitter) handle: 1–15 ASCII letters, digits or underscores, with or without @; normalized to @handle and available as {{.social.x}}. Leave out or empty when unused. The compiler fills missing twitter:site and twitter:creator tags; authored tags are kept.", Example: `"@example"`},
 	{Path: "seller", Kind: Object, Doc: "Who sells: printed on the book's copyright page and in every other deliverable's guide, files and download page."},
 	{Path: "seller.name", Kind: String, Doc: "The seller or publisher as buyers see it.", Example: `"Brot & Glas Verlag"`},
 	{Path: "seller.imprint", Kind: String, Doc: "The lines of the legal notice (Impressum): address, register, VAT ID; printed on the book's copyright page.", Example: `"Brot & Glas Verlag, Musterstraße 1, 12345 Berlin"`},

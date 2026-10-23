@@ -111,7 +111,7 @@ warning  book.open  deliverables/book/concept.md:36:1
 
 ✓ <project> compiled → output/ in <duration>, 27 warnings
   index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
-  2 assets     572 B       favicon.png, share-3f93c132da0c.png
+  3 assets     727 B       favicon.png, share-3f93c132da0c.png, sitemap.xml
   book         The Weekend Starter · 3 of 3 chapters · 945 of 900 words
                EPUB 5.2 KiB · the PDF and paperback print with --release · https://example.com/001/q7w2k9m4x8c3v6b1n5zt/
 'lfm rules <id>' explains any rule above.

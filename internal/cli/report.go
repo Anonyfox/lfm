@@ -112,6 +112,9 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	}
 	fmt.Fprintln(w, line)
 	renderFiles(w, s, r)
+	if len(r.SocialMeta) > 0 {
+		fmt.Fprintf(w, "  %s added %s from social.x\n", term.Pad("sharing", 12), strings.Join(r.SocialMeta, ", "))
+	}
 	renderBook(w, s, r.Book, r.Files)
 	renderPrintable(w, s, r.Printable)
 	renderBundle(w, s, r.Bundle)

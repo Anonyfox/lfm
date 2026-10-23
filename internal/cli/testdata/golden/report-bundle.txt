@@ -1,6 +1,6 @@
 ✓ <project> compiled → output/ in <duration>
   index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
-  2 assets     572 B       favicon.png, share-3f93c132da0c.png
+  3 assets     727 B       favicon.png, share-3f93c132da0c.png, sitemap.xml
   bundle       Fire Safety Kit · deck and document
                4 files · https://example.com/001/b7m2x9q4w8e3r6t5y1u0/
   stores       distribution/bundle/ · 4 channels

@@ -27,6 +27,7 @@ type Config struct {
 	Title         string            `json:"title"`
 	Description   string            `json:"description"`
 	SocialImage   SocialImage       `json:"socialImage"`
+	Social        Social            `json:"social"`
 	Seller        Seller            `json:"seller"`
 	Links         map[string]any    `json:"links"`
 	URLs          map[string]string `json:"urls"`
@@ -128,6 +129,11 @@ type BookISBN struct {
 type Seller struct {
 	Name    string `json:"name"`
 	Imprint string `json:"imprint"` // the legal notice lines: address, register, VAT ID
+}
+
+// Social holds optional social account attribution.
+type Social struct {
+	X string `json:"x"`
 }
 
 type SocialImage struct {
@@ -280,6 +286,14 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 	c := &l.Config
 	if c.URL != "" && !directoryURL(c.URL) {
 		add(ConfigFile, "url", fmt.Errorf("url must be an absolute HTTPS directory URL ending in /, without query or fragment; it becomes the page canonical"))
+	}
+	if c.Social.X != "" {
+		handle := strings.TrimPrefix(c.Social.X, "@")
+		if !validXHandle(handle) {
+			add(ConfigFile, "social.x", fmt.Errorf("social.x must contain 1–15 ASCII letters, digits or underscores, with an optional leading @; use a handle such as @example"))
+		} else {
+			c.Social.X = "@" + handle
+		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(c.Build.Validation.Rules)) {
 		if rules == nil {
@@ -475,6 +489,19 @@ func checkValue(v any, path, pattern string, f Field, report func(string, Field,
 			report(path, f, "%s must be an object", path)
 		}
 	}
+}
+
+func validXHandle(handle string) bool {
+	if len(handle) < 1 || len(handle) > 15 {
+		return false
+	}
+	for i := range len(handle) {
+		c := handle[i]
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_') {
+			return false
+		}
+	}
+	return true
 }
 
 func directoryURL(raw string) bool {

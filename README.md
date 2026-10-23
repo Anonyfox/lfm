@@ -12,8 +12,8 @@ ship one checked, fast landing page with a payment link.**
 curl -fsSL https://lfm.cash/install.sh | sh
 ```
 
-`lfm` makes landing pages with AI agents. The agent researches real buyers, writes a design concept from
-what they say, and builds one HTML template with its config and assets. `lfm` compiles that into a
+`lfm` is an agent-first page compiler. Your coding agent researches real buyers, writes a design
+concept from what they say, and builds one HTML template with its config and assets. `lfm` compiles that into a
 standalone static folder and refuses to ship a page that is broken, slow, inaccessible, invisible to
 search or full of generic AI design defaults. Every finding says how to fix it.
 
@@ -116,7 +116,7 @@ there too.
 - **Fast:** CSS and JS are bundled and minified, small assets inlined, large ones emitted as content-named
   files, images sized against layout shift, HTML compacted without touching text.
 - **Findable and shareable:** canonical URL, metadata, headings, structured data and social previews are
-  checked; preview image sizes are filled in from the real files.
+  checked; sitemap and root robots files are generated; preview image sizes come from the real files.
 - **Usable:** controls have names, labels and focus order work, forms and disclosures behave, text keeps
   its contrast.
 - **Distinct:** typical generated-design defaults (stock palettes, eyebrow labels, emoji bullets, icon-card

@@ -86,10 +86,8 @@ func leaks(page []byte, path, rule, what string) []diagnostic.Diagnostic {
 // downloadPage publishes a download page and its files under path.
 func downloadPage(result *Result, path string, page []byte, s shipped) {
 	result.Artifact[path+"/index.html"] = page
-	result.Files = append(result.Files, File{path + "/index.html", len(page)})
 	for _, f := range s.Files {
 		result.Artifact[path+"/"+f.Name] = s.Data[f.Name]
-		result.Files = append(result.Files, File{path + "/" + f.Name, f.Size})
 	}
 }
 

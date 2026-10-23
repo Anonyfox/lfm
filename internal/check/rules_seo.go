@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 	"golang.org/x/net/html"
 	"golang.org/x/text/language"
@@ -112,15 +113,32 @@ func containsWord(value, word string) bool {
 	return false
 }
 
+// RobotsDirectives reads the indexing and link-following opt-outs on a live
+// crawler meta tag. Both output generation and SEO checks use this policy.
+// Unknown crawlers and directives, foreign markup and template content are inert.
+func RobotsDirectives(n *html.Node) (noIndex, noFollow bool) {
+	if n.Namespace != "" || n.Data != "meta" || htmlx.Dormant(n) {
+		return false, false
+	}
+	switch strings.ToLower(strings.TrimSpace(Attr(n, "name"))) {
+	case "robots", "googlebot", "googlebot-news", "bingbot":
+		for _, token := range strings.Fields(strings.ReplaceAll(strings.ToLower(Attr(n, "content")), ",", " ")) {
+			noIndex = noIndex || token == "noindex" || token == "none"
+			noFollow = noFollow || token == "nofollow" || token == "none"
+		}
+	}
+	return noIndex, noFollow
+}
+
 func indexabilityRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	for _, key := range []string{"robots", "googlebot", "googlebot-news", "bingbot"} {
 		for _, n := range metaNodes(d, "name", key) {
-			value := strings.ReplaceAll(strings.ToLower(Attr(n, "content")), ",", " ")
-			if containsWord(value, "noindex") || containsWord(value, "none") {
+			noIndex, noFollow := RobotsDirectives(n)
+			if noIndex {
 				issues = append(issues, d.At(n, Warning, "Page explicitly requests no indexing.", "Remove noindex/none for public searchable products; keep it for intentional private or test pages."))
 			}
-			if containsWord(value, "nofollow") || containsWord(value, "none") {
+			if noFollow {
 				issues = append(issues, d.At(n, Warning, "Page requests that crawlers not follow its links.", "Remove page-wide nofollow/none when linked products and supporting pages should be discoverable; retain deliberate restrictions."))
 			}
 		}

@@ -116,7 +116,7 @@ func TestInlineBuild(t *testing.T) {
 	for _, file := range report.Files {
 		names = append(names, file.Name)
 	}
-	if !reflect.DeepEqual(names, []string{"favicon.png", "index.html", "picture.svg"}) {
+	if !reflect.DeepEqual(names, []string{"favicon.png", "index.html", "picture.svg", "sitemap.xml"}) {
 		t.Fatalf("files: %v", names)
 	}
 	page := read(t, root, "output/index.html")
@@ -201,7 +201,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"app.js", "bundle.css", "demo.woff2", "favicon.png", "index.html", "picture.svg"}
+	want := []string{"app.js", "bundle.css", "demo.woff2", "favicon.png", "index.html", "picture.svg", "sitemap.xml"}
 	var got []string
 	for _, file := range report.Files {
 		got = append(got, file.Name)
@@ -431,7 +431,7 @@ func TestExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(report.Files) != 3 {
+	if len(report.Files) != 4 {
 		t.Fatalf("example files: %v", report.Files)
 	}
 	page := read(t, root, "output/index.html")

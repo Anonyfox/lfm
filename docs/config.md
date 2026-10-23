@@ -12,6 +12,8 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `socialImage` | object |  | The share preview image. |
 | `socialImage.src` | string |  | Project path of the image, 1200×630 pixels. Example: `"assets/images/share.jpg"`. |
 | `socialImage.alt` | string |  | What the image shows, for people who cannot see it. Example: `"A jar of starter on a kitchen shelf"`. |
+| `social` | object |  | Optional social account attribution. |
+| `social.x` | string |  | The page's X (Twitter) handle: 1–15 ASCII letters, digits or underscores, with or without @; normalized to @handle and available as {{.social.x}}. Leave out or empty when unused. The compiler fills missing twitter:site and twitter:creator tags; authored tags are kept. Example: `"@example"`. |
 | `seller` | object |  | Who sells: printed on the book's copyright page and in every other deliverable's guide, files and download page. |
 | `seller.name` | string |  | The seller or publisher as buyers see it. Example: `"Brot & Glas Verlag"`. |
 | `seller.imprint` | string |  | The lines of the legal notice (Impressum): address, register, VAT ID; printed on the book's copyright page. Example: `"Brot & Glas Verlag, Musterstraße 1, 12345 Berlin"`. |

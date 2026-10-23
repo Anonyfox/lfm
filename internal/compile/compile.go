@@ -20,6 +20,8 @@ package compile
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"slices"
@@ -58,8 +60,9 @@ type Options struct {
 
 // File is one emitted output file.
 type File struct {
-	Name  string `json:"name"`
-	Bytes int    `json:"bytes"`
+	Name   string `json:"name"`
+	Bytes  int    `json:"bytes"`
+	SHA256 string `json:"sha256"`
 }
 
 // Result describes a compile, filled as far as the lifecycle got.
@@ -88,6 +91,7 @@ type Result struct {
 	Fonts       []fontcheck.Info     `json:"fonts,omitempty"`
 	Research    research.Summary     `json:"research"`
 	Concept     concept.Summary      `json:"concept"`
+	SocialMeta  []string             `json:"socialMetaRepairs,omitempty"`
 	FontHints   int                  `json:"fontHintRepairs,omitempty"`
 	Starter     bool                 `json:"starter"` // the template is still the starter page of lfm init
 	Book        *book.Summary        `json:"book,omitempty"`
@@ -178,6 +182,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	defer unlock()
 	start := time.Now()
 	defer func() {
+		result.listFiles()
 		result.Duration = time.Since(start)
 		if err != nil && !errors.Is(err, context.Canceled) && result.Errors() == 0 {
 			// Operational failures (unreadable files, bundler errors) join the
@@ -256,6 +261,9 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	}
 	for _, warning := range b.warnings {
 		b.notice("bundle.warning", strings.TrimSpace(warning), "Review the bundler warning in the named source.")
+	}
+	if err := b.discoveryFiles(doc); err != nil {
+		return result, err
 	}
 	result.Cost = measureCost(page, doc, b.files)
 	b.describe(&result, page)
@@ -416,6 +424,7 @@ func (b *builder) assemble(doc *html.Node, values map[string]any, prepared prepa
 		return err
 	}
 	b.socialImageSizes(doc)
+	result.SocialMeta = b.socialHandles(doc)
 	result.Images = b.prepareImages(doc, images)
 	if result.Packing, err = b.planAssets(doc); err != nil {
 		return err
@@ -457,19 +466,30 @@ func (b *builder) optimize(doc *html.Node, result *Result) error {
 	return nil
 }
 
-// describe fills the output listing from the assembled files plus the page.
+// describe collects the assembled bytes plus the page and external names.
 func (b *builder) describe(result *Result, page []byte) {
 	result.Artifact = map[string][]byte{"index.html": page}
-	result.Files = []File{{"index.html", len(page)}}
 	for _, file := range b.files {
 		result.Artifact[file.name] = file.contents
-		result.Files = append(result.Files, File{file.name, len(file.contents)})
 	}
-	sort.Slice(result.Files, func(i, j int) bool { return result.Files[i].Name < result.Files[j].Name })
 	for name := range b.external {
 		result.External = append(result.External, name)
 	}
 	sort.Strings(result.External)
+}
+
+// listFiles derives the deployment manifest once, after every stage has had its
+// chance to emit files. The artifact is the single source of paths and bytes.
+func (r *Result) listFiles() {
+	if r.Artifact == nil {
+		return
+	}
+	r.Files = make([]File, 0, len(r.Artifact))
+	for name, data := range r.Artifact {
+		sum := sha256.Sum256(data)
+		r.Files = append(r.Files, File{Name: name, Bytes: len(data), SHA256: hex.EncodeToString(sum[:])})
+	}
+	sort.Slice(r.Files, func(i, j int) bool { return r.Files[i].Name < r.Files[j].Name })
 }
 
 func (b *builder) generatedNames() map[string]bool {

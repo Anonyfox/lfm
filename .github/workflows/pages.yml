@@ -42,7 +42,7 @@ jobs:
       - name: lfm.cash serves this commit
         run: |
           url="${{ steps.deployment.outputs.page_url }}"
-          for file in index.html SKILL.md install.sh llms.txt; do
+          for file in index.html SKILL.md install.sh llms.txt robots.txt sitemap.xml; do
             for try in 1 2 3 4 5 6 7 8 9 10; do
               if curl -fsS "${url%/}/$file" -o "$RUNNER_TEMP/served" && cmp -s "$RUNNER_TEMP/served" "site/output/$file"; then
                 continue 2

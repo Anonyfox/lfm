@@ -93,6 +93,7 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 		resolved, consumed, bindings := templatecheck.ResolveJSONLD(options)
 		issues = append(issues, bindings.Diagnostics...)
 		options.Consumed = append(consumed, prepared.Commerce.Consumed...)
+		options.Consumed = append(options.Consumed, "social.x")
 		if resolved != nil && bindings.Errors == 0 {
 			var err error
 			prepared.JSONLD, err = json.Marshal(resolved)

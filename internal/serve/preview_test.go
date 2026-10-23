@@ -339,3 +339,34 @@ func TestPreviewBusyPortPolicy(t *testing.T) {
 		t.Fatal("preview did not stop")
 	}
 }
+
+func TestServeDiscoveryFiles(t *testing.T) {
+	for _, base := range []string{"https://example.com/", "https://example.com/product/"} {
+		t.Run(base, func(t *testing.T) {
+			root := testProject(t)
+			raw, err := os.ReadFile(filepath.Join(root, "lfm.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			write(t, root, "lfm.json", strings.Replace(string(raw), "https://example.com/product/", base, 1))
+			address, built := start(t, root)
+			initial := nextBuild(t, built)
+			if initial.err != nil {
+				t.Fatal(initial.err)
+			}
+			for _, name := range []string{"robots.txt", "sitemap.xml"} {
+				code, body := fetch(t, address+name)
+				data, emitted := initial.report.Artifact[name]
+				if !emitted {
+					if code != 404 {
+						t.Fatalf("unemitted %s served with status %d", name, code)
+					}
+					continue
+				}
+				if code != 200 || body != string(data) {
+					t.Fatalf("%s differs from compiled bytes: status %d, %q", name, code, body)
+				}
+			}
+		})
+	}
+}

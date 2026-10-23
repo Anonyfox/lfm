@@ -131,7 +131,8 @@ shows the concept's reduced state. Anything moving by itself for more than five 
 previews what the page delivers. The answer, offer, evidence and links are in the initial HTML, readable
 without clicks or scripts. Each passage stays true when quoted alone: subject, numbers with units, dates,
 conditions. Cite primary sources beside checkable claims. Structured data goes in `jsonld` in `lfm.json`,
-with values matching the visible page; the compiler emits and checks the block.
+with values matching the visible page; the compiler emits and checks the block. It generates the
+canonical sitemap and, at the host root, robots.txt; private download paths stay unlisted.
 
 **Sharing.** Decide the shared object (a result, comparison, plan or challenge), who receives it and what
 they do next. Put only public state in the URL with `URLSearchParams`, restore it on load and handle bad
@@ -140,7 +141,8 @@ a card drawn in HTML keeps its source in the project (for example `assets/share/
 rendered again at 1200×630.
 Offer the share after value appears, show what will be shared, and never gate a promised result behind it.
 Add platform cards (X player, Discord, Farcaster, Snapchat) only when the audience is there; the compiler
-checks their metadata.
+checks their metadata. Set `social.x` to the page’s X handle when known; the compiler fills missing
+`twitter:site` and `twitter:creator` tags.
 
 **Commerce.** One Stripe Payment Link per fixed offer, opened by a native link; no Stripe.js, no backend.
 Record each offer in `lfm.json` as an object keyed by a plain name, and render its values everywhere:

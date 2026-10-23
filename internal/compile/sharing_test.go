@@ -255,3 +255,91 @@ func TestSocialImageSizesAreFilledFromTheEmittedFile(t *testing.T) {
 		t.Fatalf("got  %v\nwant %v", sequence, want)
 	}
 }
+
+func TestSocialHandles(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, handle, authored string
+		wantSite, wantCreator  string
+		added                  int
+	}{
+		{"configured", "Example_1", "", "@Example_1", "@Example_1", 2},
+		{"unconfigured", "", "", "", "", 0},
+		{"site authored", "@example", `<meta name="twitter:site" content="@publisher">`, "@publisher", "@example", 1},
+		{"creator authored", "@example", `<meta name="TWITTER:CREATOR" content="@writer">`, "@example", "@writer", 1},
+		{"both authored", "@example", `<meta name="twitter:site" content="@publisher"><meta name="twitter:creator" content="@writer">`, "@publisher", "@writer", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := fixture(t)
+			if tc.handle != "" {
+				changeConfig(t, root, func(c map[string]any) { c["social"] = map[string]any{"x": tc.handle} })
+			}
+			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</head>", tc.authored+"</head>", 1))
+			r, err := Compile(context.Background(), root, Options{})
+			if err != nil {
+				t.Fatal(err, r.Validation)
+			}
+			assertManifest(t, r)
+			seen := map[string][]string{}
+			for _, node := range parsePage(t, string(r.Artifact["index.html"])) {
+				key := strings.ToLower(htmlx.Attr(node, "name"))
+				if node.Data == "meta" && (key == "twitter:site" || key == "twitter:creator") {
+					if node.Parent.Data != "head" {
+						t.Fatal("social meta is outside head")
+					}
+					seen[key] = append(seen[key], htmlx.Attr(node, "content"))
+				}
+			}
+			for key, want := range map[string]string{"twitter:site": tc.wantSite, "twitter:creator": tc.wantCreator} {
+				if got := seen[key]; len(got) > 1 || strings.Join(got, "") != want {
+					t.Fatalf("%s: %v, want %q", key, got, want)
+				}
+			}
+			if len(r.SocialMeta) != tc.added {
+				t.Fatal("missing repair report", r.SocialMeta)
+			}
+			for _, d := range r.Validation.Diagnostics {
+				if d.Rule == "template.unused" && d.Path == "social.x" {
+					t.Fatal("compiler-consumed handle reported unused", d)
+				}
+			}
+		})
+	}
+}
+
+func TestSocialHandleAvailableToTemplates(t *testing.T) {
+	t.Parallel()
+	for _, handle := range []string{"Example_1", ""} {
+		t.Run(handle, func(t *testing.T) {
+			root := fixture(t)
+			if handle != "" {
+				changeConfig(t, root, func(c map[string]any) { c["social"] = map[string]any{"x": handle} })
+			}
+			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", "<p>{{if .social.x}}{{.social.x}}{{else}}No handle{{end}}</p></body>", 1))
+			r, err := Compile(context.Background(), root, Options{})
+			want := "@Example_1"
+			if handle == "" {
+				want = "No handle"
+			}
+			if err != nil || !strings.Contains(string(r.Artifact["index.html"]), "<p>"+want+"</p>") {
+				t.Fatal("template did not get normalized handle or empty default", err, r.Validation)
+			}
+		})
+	}
+}
+
+func TestInvalidSocialHandleFinding(t *testing.T) {
+	t.Parallel()
+	root := fixture(t)
+	changeConfig(t, root, func(c map[string]any) { c["social"] = map[string]any{"x": "@bad-handle"} })
+	r, err := Compile(context.Background(), root, Options{Publish: true})
+	if err == nil || r.Published {
+		t.Fatal("invalid handle compiled")
+	}
+	for _, d := range r.Validation.Diagnostics {
+		if d.Rule == "config.invalid" && d.Path == "social.x" && d.Location.File == "lfm.json" && d.Location.Line > 0 && strings.Contains(d.Message, "1–15") && strings.Contains(d.Hint, "@handle") {
+			return
+		}
+	}
+	t.Fatal("missing located finding with concrete fix", r.Validation)
+}

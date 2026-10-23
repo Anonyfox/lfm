@@ -5,15 +5,23 @@
   "files": [
     {
       "name": "favicon.png",
-      "bytes": 321
+      "bytes": 321,
+      "sha256": "f66d49857038b8115c8410a291bcea0b907daff23d73645a1bb9d824ae44261a"
     },
     {
       "name": "index.html",
-      "bytes": 10535
+      "bytes": 10535,
+      "sha256": "fdce2c377123eab440b1b2ee7c713b6282336166fb3def8acce9ae8e72d43d81"
     },
     {
       "name": "share-4c2fc583eba1.webp",
-      "bytes": 26682
+      "bytes": 26682,
+      "sha256": "2ab86c6b242848606fec7f0a77ca6ca7688591812725f31d39e8b83bd589b152"
+    },
+    {
+      "name": "sitemap.xml",
+      "bytes": 165,
+      "sha256": "8a59e40b148b27f882974ff7bbcbbf2be32154ee6c3cbfb1c9d0d78eec4b706b"
     }
   ],
   "validation": {
@@ -109,8 +117,8 @@
   "cost": {
     "htmlBytes": 10535,
     "htmlGzipLevel1Bytes": 4132,
-    "sidecarBytes": 27003,
-    "totalRawBytes": 37538,
+    "sidecarBytes": 27168,
+    "totalRawBytes": 37703,
     "totalCSSBytes": 2182,
     "totalJSBytes": 767,
     "externalCSSBytes": 0,

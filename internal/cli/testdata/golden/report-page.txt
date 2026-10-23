@@ -17,7 +17,7 @@ warning  design.type  page <h1>
 
 ✓ <project> compiled → output/ in <duration>, 3 warnings
   index.html   10.3 KiB    4.0 KiB gzip · CSS 2.1 KiB · JS 767 B
-  2 assets     26.4 KiB    share-4c2fc583eba1.webp, favicon.png
+  3 assets     26.5 KiB    share-4c2fc583eba1.webp, favicon.png, sitemap.xml
 'lfm rules <id>' explains any rule above.
 Next (research): collect real buyer voices and competitor pages into research/.
                  Follow 'lfm skills research', or install them all with 'lfm skills install'.

@@ -5,35 +5,48 @@
   "files": [
     {
       "name": "favicon.png",
-      "bytes": 332
+      "bytes": 332,
+      "sha256": "27bc5407edb196cbbe22e01f12c783817f6451721e44bb550c4f7546e7127cd9"
     },
     {
       "name": "index.html",
-      "bytes": 1231
+      "bytes": 1231,
+      "sha256": "1bf31aaac9014ea86fb91ba46c08244602488b996823668c5ffa7a8d4d4fc8dc"
     },
     {
       "name": "share-3f93c132da0c.png",
-      "bytes": 240
+      "bytes": 240,
+      "sha256": "afaa0f6197b94bfed87b9deffb2fd6b5860d8fd548246bdfc229487dc6638cd2"
+    },
+    {
+      "name": "sitemap.xml",
+      "bytes": 155,
+      "sha256": "aa84b5fa931dcbd0df074e99f8b4d112b3a36353f5266041ee80a46ad6381559"
     },
     {
       "name": "x7m2x9q4w8e3r6t5y1u0/index.html",
-      "bytes": 2017
-    },
-    {
-      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-en.xlsx",
-      "bytes": 41704
-    },
-    {
-      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-en-example.xlsx",
-      "bytes": 42555
-    },
-    {
-      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-de.xlsx",
-      "bytes": 41962
+      "bytes": 2017,
+      "sha256": "a9473e5e0e1aa808d358763d13a7536e7a1063fc6baea2b1299039417c63f4ff"
     },
     {
       "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-de-example.xlsx",
-      "bytes": 42851
+      "bytes": 42851,
+      "sha256": "24d1a79f3f29e2ad04eb43cad263ddbc24633c7c7cce91456ed0fa01833b99ff"
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-de.xlsx",
+      "bytes": 41962,
+      "sha256": "3607c24048981563c85b26e23f8e017ffd6b63d1512736f4e6a2f4ac4eff70e8"
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-en-example.xlsx",
+      "bytes": 42555,
+      "sha256": "1a54484a870501bb1d117de0ef4b2c3833731e713dd4a5ed88005e3962bba878"
+    },
+    {
+      "name": "x7m2x9q4w8e3r6t5y1u0/paycheck-budget-en.xlsx",
+      "bytes": 41704,
+      "sha256": "5571580b3418ab77669505c10a440e9f98b390712cdcbff0346359d8933b3d9f"
     }
   ],
   "validation": {
@@ -104,8 +117,8 @@
   "cost": {
     "htmlBytes": 1231,
     "htmlGzipLevel1Bytes": 604,
-    "sidecarBytes": 572,
-    "totalRawBytes": 1803,
+    "sidecarBytes": 727,
+    "totalRawBytes": 1958,
     "totalCSSBytes": 98,
     "totalJSBytes": 46,
     "externalCSSBytes": 0,
