@@ -1,13 +1,24 @@
 # lfm
 
-**Looking for more. Looking for money.**
+[![CI](https://github.com/Anonyfox/lfm/actions/workflows/ci.yml/badge.svg)](https://github.com/Anonyfox/lfm/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Anonyfox/lfm)](https://github.com/Anonyfox/lfm/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Anonyfox/lfm.svg)](https://pkg.go.dev/github.com/Anonyfox/lfm)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+**Sell before you build: one binary and a skill that make your coding agent research real buyers and
+ship one checked, fast landing page with a payment link.**
+
+```sh
+curl -fsSL https://lfm.cash/install.sh | sh
+```
 
 `lfm` makes landing pages with AI agents. The agent researches real buyers, writes a design concept from
 what they say, and builds one HTML template with its config and assets. `lfm` compiles that into a
 standalone static folder and refuses to ship a page that is broken, slow, inaccessible, invisible to
 search or full of generic AI design defaults. Every finding says how to fix it.
 
-No framework, no platform, no runtime: one binary, one page, one folder you upload anywhere.
+No framework, no platform, no runtime: one binary, one page, one folder you upload anywhere. No MCP
+server either: a CLI with `--json` plus one SKILL.md is the whole agent interface.
 
 ## Ask your agent
 
@@ -31,11 +42,7 @@ process, asking you only what you decide. Its setup is in [docs/grok-bot.md](doc
 
 ## Install
 
-```sh
-curl -fsSL https://lfm.cash/install.sh | sh
-```
-
-The script downloads the [release](https://github.com/Anonyfox/lfm/releases) for macOS or Linux (amd64
+The script at the top downloads the [release](https://github.com/Anonyfox/lfm/releases) for macOS or Linux (amd64
 or arm64), checks it against the release checksums and puts `lfm` in `~/.local/bin`, without sudo.
 `LFM_VERSION=v0.0.2` pins a release and `LFM_INSTALL_DIR` changes the folder. With Go 1.26 or newer:
 
