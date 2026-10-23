@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: If you use lfm in your work, please cite it as below.
+type: software
+title: "lfm: landing pages your coding agent researches, builds and ships checked"
+abstract: "Agent-first landing page compiler: one Go binary plus skills that make coding agents research real buyers and ship one checked, fast static page."
+authors:
+  - family-names: Stroh
+    given-names: Maximilian
+    alias: Anonyfox
+repository-code: "https://github.com/Anonyfox/lfm"
+url: "https://lfm.cash"
+license: MIT
+version: "0.1.6"
+date-released: "2026-10-22"
