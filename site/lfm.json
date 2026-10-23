@@ -4,12 +4,15 @@
   "language": "en",
   "title": "lfm: sell it before you build it",
   "description": "A free CLI and skills that make your coding agent research real buyers, design from their words and ship one checked static page with a payment link, before you build the product.",
+  "social": {"x": "@AnonyfoxCom"},
   "socialImage": {
     "src": "assets/images/share.png",
     "alt": "A receipt from LFM.CASH: in wide print, Nobody screenshots a dead product. Sales today $0.00 in red. Below: Sell it first. Build it when someone pays."
   },
   "urls": {
     "repository": "https://github.com/Anonyfox/lfm",
+    "impressum": "https://lab.anonyfox.com/impressum/",
+    "privacy": "https://lab.anonyfox.com/datenschutz/",
     "authoring": "https://github.com/Anonyfox/lfm/blob/main/docs/authoring.md",
     "voices": "https://github.com/Anonyfox/lfm/blob/main/site/research/human-voices.md",
     "competitors": "https://github.com/Anonyfox/lfm/blob/main/site/research/competitor-analysis.md",

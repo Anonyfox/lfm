@@ -198,6 +198,7 @@ Reduced motion: the coupon updates at once and the stamp appears without movemen
 - Honesty and agent-readability: what lfm does not do, the agent block with --json and exit codes, red only for totals and errors.
 
 ## Changelog
+- 2026-10-23: add footer legal links, a plain GitHub star link beside Read it first, the @AnonyfoxCom social attribution and the fixed-URL verification file.
 - 2026-10-18: first concept from the batch of 2026-10-18.
 - 2026-10-18: after an independent review of the first build: desktop widens only the first slip; added the after-you-paste receipt (decision path step 6), the trust line at the copy button, findings in plain words, and the house-look answer rung up as a receipt. No research changed.
 - 2026-10-19: grow from the batch of 2026-10-19 (31 voices, 6 peers on the digital goods lfm now builds). Depth, not shift: one new slip (spine 8, decision path 7) for visitors who sell a file, late on the tape and without a claim on the first screen; new voice observations, buyer sentence, facts and copy rules; check count updated to 109. Axes, direction, palette, type, form, motion and qualities unchanged: the new peers lead with platform-scale promises and purple, which the chosen positions already answer, and their gap (no file shown passing a check) is the existing proof-by-checks axis.
