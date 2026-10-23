@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## 0.1.7 (unreleased)
+## 0.1.7 (2026-10-23)
 
 - Generate sitemap.xml and root robots.txt, respecting noindex and public/ overrides.
 - Copy public/ files verbatim at fixed URLs, including .well-known/ and verification keys.
