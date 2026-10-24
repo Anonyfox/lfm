@@ -111,10 +111,19 @@ photograph and film (cited in [[.ConceptFile]]), not from stock aesthetics. Then
   (SVG, canvas, CSS) when the concept allows → an `Open:` in the image's row for the owner. Never stock
   or placeholder services.
 
-**Motion.** Build the one orchestrated moment and the feedback motion of [[.ConceptFile]]; nothing else
-moves by default. Content is readable before and without any animation (no opacity-zero reveals hiding
-text). Interrupting or reversing works from the current state. A `prefers-reduced-motion: reduce` rule
-shows the concept's reduced state. Anything moving by itself for more than five seconds can be paused.
+**Motion.** Follow the concept's `Intensity` (absent means restrained): restrained builds one orchestrated
+moment plus feedback; balanced a few moments; immersive media in every section and several moments, scroll
+scenes included. Patterns, not section types:
+- Video loop: `muted loop playsinline autoplay`, a sized `poster`, no audio, WebM (AV1) plus MP4 (H.264)
+  sources, `preload="none"` below the first screen (`metadata` on it), played and paused by an
+  IntersectionObserver; reduced motion shows the poster. Captions or a text equivalent when it informs.
+- Scroll scene: `animation-timeline: view()` inside `@supports` and `prefers-reduced-motion: no-preference`,
+  or IntersectionObserver class toggles; transform and opacity only; the end state is the default.
+- Image sequence: a few WebP/AVIF frames drawn to canvas on scroll, fetched only near the viewport, over a
+  sized static frame that also serves reduced motion.
+The first screen paints a sized image or poster (never a lazy video as LCP); nothing below it loads eagerly.
+Content is readable without animation, motion reverses from its current state, and anything moving by
+itself for more than five seconds can be paused.
 
 **Copy.** Write from the Copy section and the voices it cites: the buyers' own words, the stated tone.
 `lfm compile` reports a `Use:` phrase the page never says and an `Avoid:` phrase it does.
@@ -238,7 +247,6 @@ These ship on pages that looked finished in chosen screenshots; check each in th
   [[.ConceptFile]] first, then the page.
 
 After deployment, `lfm check <url> --json` checks the published page with the same page rules.
-
 Pair a built target with `lfm check <url> --project <dir> --json` to include project-only rules.
 Use `lfm check --project <dir> --json` to check output/ against current source without publishing.
 Release checks require installed Chrome and Lighthouse plus loopback sockets. Timing findings

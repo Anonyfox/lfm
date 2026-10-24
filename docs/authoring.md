@@ -339,3 +339,67 @@ its first listing image shows every unit's cover together, followed by the units
 Each unit still sells on its own when its `sell` is `page` or `shops`; with `sell: bundle` it sells only
 inside the bundle and gets no shop package of its own.
 
+
+## Motion and media patterns
+
+The concept Motion section accepts `Intensity: restrained`, `balanced` or `immersive`.
+Omitting it preserves restrained behavior: one orchestrated moment and feedback. Balanced allows a few
+moments and media where they explain the argument. Immersive plans media in every content section,
+with several moments including scroll-linked scenes. Cite research for the choice; retain an Imagery
+table row per immersive section. List multiple moments on separate lines or separated by `;` and say
+what each shows instead in `Reduced motion:`.
+
+Video loops, scroll scenes and image sequences in the implementation skill are patterns, not section
+types. Use sized posters/images for the first paint, defer below-screen media, animate transform and
+opacity, and keep content readable without animation. Reduced motion shows posters or static end
+frames. Anything moving by itself for more than five seconds needs a pause control. Informative loops
+need captions or an equivalent text explanation.
+
+`design.media` checks outermost content sections for immersive concepts. Without sections it groups
+main content at h1/h2 headings; nav and footer are excluded. `perf.video` checks video loading and
+autoplay attributes. `perf.budgets` counts known referenced file bytes once: media includes video,
+video is also counted separately, and the first section approximates the first screen. Lazy images
+and preload=none video bytes are excluded from that first-screen total; posters still count. Unknown
+remote sizes are skipped. See [budget configuration](config.md).
+
+### Short video loop
+
+No audio track; AV1/WebM plus H.264 MP4. Preload none below the first screen,
+metadata on the first. Observe to start/pause and honor the pause button. Before playback, check reduced
+motion: disable autoplay, pause and overlay the static poster; handle preference changes too.
+
+```html
+<video muted loop playsinline autoplay preload="none" poster="work.webp" width="960" height="640">
+<source src="work.webm" type='video/webm; codecs="av01.0.05M.08"'><source src="work.mp4" type="video/mp4"></video>
+<script type="module">
+const reduced = matchMedia('(prefers-reduced-motion: reduce)'); let userPaused = false; // wire the pause button
+const observer = new IntersectionObserver(es => es.forEach(({target:v,isIntersecting}) => {
+  if (isIntersecting && !reduced.matches && !userPaused) v.play().catch(() => {}); else v.pause();
+}));
+document.querySelectorAll("video").forEach(v => { v.autoplay=false; v.pause(); if (!reduced.matches) observer.observe(v) });
+</script>
+```
+
+### Scroll scene
+
+Keep content readable without animation. Use guarded CSS scroll timelines or IntersectionObserver class toggles;
+reduced motion shows the end state.
+
+```css
+.scene { transform: none; opacity: 1 }
+@supports (animation-timeline: view()) { @media (prefers-reduced-motion: no-preference) {
+.scene { animation: settle linear both; animation-timeline: view(); animation-range: entry 0% entry 100% }
+} }
+@keyframes settle { from { transform: translateY(2rem) } to { transform: none } }
+```
+
+### Image sequence
+
+Use a small sprite or short WebP/AVIF list. Default and reduced motion show a sized static image. Fetch/decode only
+near the viewport via IntersectionObserver; overlay a same-sized canvas after loading. On scroll in requestAnimationFrame draw the
+frame at clamped progress. Keep text in HTML:
+
+```js
+// frames are createImageBitmap results, loaded only near the viewport; progress is in [0, 1].
+if (!reduced.matches) ctx.drawImage(frames[Math.round(progress * (frames.length - 1))], 0, 0);
+```

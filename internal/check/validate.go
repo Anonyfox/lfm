@@ -55,6 +55,7 @@ type Options struct {
 	FontAssets       map[string]fontcheck.Info
 	Stylesheets      map[string][]byte // exact emitted CSS keyed by final URL
 	Assets           map[string][]byte // exact sidecar bytes keyed by emitted filename; no filesystem/network reads
+	AssetBytes       map[string]int    // known target resource sizes by reference; -1 means unknown
 	Commerce         commercecheck.Facts
 	Concept          *ConceptFacts // decisions of concept.md, when the project has one
 	// Starter texts and images (SHA-256) of lfm init a built page must have
@@ -65,7 +66,7 @@ type Options struct {
 
 // Budgets are a page's advisory sizes for perf.budgets; zero keeps the
 // default.
-type Budgets struct{ CSSKiB, JSKiB, Elements, Depth int }
+type Budgets struct{ MediaKiB, VideoKiB, FirstScreenKiB, CSSKiB, JSKiB, Elements, Depth int }
 
 type Report struct {
 	Stage       string       `json:"stage,omitempty"`

@@ -42,6 +42,9 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Example: `{"design.mono": "off"}`. |
 | `build.validation.rules.*` | off | warn | error |  | The level of this rule. Example: `"warn"`. |
 | `build.validation.budgets` | object |  | This page's advisory sizes, which perf.budgets warns past; raise one where the page has a reason to be larger instead of turning the rule off. Example: `{"cssKiB": 80}`. Checked by `perf.budgets`. |
+| `build.validation.budgets.mediaKiB` | integer | 3000 | Total referenced image and video file bytes in KiB; unknown sizes are skipped. Example: `6000`. Checked by `perf.budgets`. |
+| `build.validation.budgets.videoKiB` | integer | 8000 | Referenced video bytes in KiB, counted separately within media. Example: `16000`. Checked by `perf.budgets`. |
+| `build.validation.budgets.firstScreenKiB` | integer | 400 | Images and posters in the first content section in KiB; lazy images and preload=none video bytes are excluded. Example: `800`. Checked by `perf.budgets`. |
 | `build.validation.budgets.cssKiB` | integer | 20 | Total CSS in KiB, inline and in files. Example: `80`. Checked by `perf.budgets`. |
 | `build.validation.budgets.jsKiB` | integer | 50 | Total JavaScript in KiB, inline and in files. Example: `120`. Checked by `perf.budgets`. |
 | `build.validation.budgets.elements` | integer | 1500 | Elements in the page's DOM. Example: `3000`. Checked by `perf.budgets`. |

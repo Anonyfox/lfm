@@ -77,6 +77,7 @@ type Summary struct {
 	Faces          int           `json:"typefaces"`
 	DeclaredColors []color.Color `json:"-"`
 	Families       []string      `json:"families,omitempty"`
+	Intensity      string        `json:"intensity,omitempty"`
 	Imagery        int           `json:"plannedImages"`
 	Open           int           `json:"openQuestions"`
 	Use            []string      `json:"use,omitempty"` // exact phrases the Copy section requires or forbids
@@ -425,10 +426,24 @@ func (c checker) sections(d Document) Summary {
 			}
 		}
 	}
+	sum.Intensity = "restrained"
 	if s := d.Sections["Motion"]; s != nil {
+		value, line := s.Field("Intensity")
+		for _, l := range s.Lines {
+			if strings.TrimSpace(strings.TrimPrefix(l.Text, "- ")) == "Intensity:" {
+				value, line = "", l.N
+				break
+			}
+		}
+		if line != 0 {
+			sum.Intensity = value
+			if value != "restrained" && value != "balanced" && value != "immersive" {
+				c.add(RuleFormat, line, "Motion Intensity must be restrained, balanced or immersive.", "Set Intensity: restrained, balanced or immersive; omit it for restrained.")
+			}
+		}
 		for _, field := range []string{"Moment", "Feedback", "Reduced motion"} {
 			value, _ := s.Field(field)
-			c.need(s, value != "", "Motion lacks \""+field+":\".", "Decide the one orchestrated moment, the feedback motion and what remains with reduced motion.")
+			c.need(s, value != "", "Motion lacks \""+field+":\".", "Decide the motion moments, the feedback motion and what each shows with reduced motion.")
 		}
 	}
 	if s := d.Sections["Copy"]; s != nil {

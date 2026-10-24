@@ -1,5 +1,13 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.11 (2026-10-24)
+
+- Concepts support restrained, balanced and immersive motion intensity; existing concepts stay restrained.
+- Design and implementation skills plan media per immersive section and describe video loops, scroll scenes and image sequences with reduced-motion fallbacks.
+- `design.media` warns about media-less immersive sections; `perf.video` warns about eager video and incomplete autoplay attributes.
+- `perf.budgets` adds configurable total media, video and first-screen media budgets.
+- The reference example documentation includes an immersive variant.
+
 ## 0.1.10 (2026-10-24)
 
 - Reverted automatic skill updates during compile: compile, serve and check never write skill files. After an upgrade, run the printed `lfm skills install` command; untouched older copies update without `--force`.

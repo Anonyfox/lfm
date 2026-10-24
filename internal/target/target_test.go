@@ -207,6 +207,9 @@ func TestLimits(t *testing.T) {
 			t.Fatalf("%+v", f)
 		}
 	}
+	if got := r.Options.AssetBytes["image.png"]; got != 100 {
+		t.Fatalf("known truncated image bytes = %d", got)
+	}
 	lim.count = 2
 	r, err = read(context.Background(), dir, "test", lim)
 	if err != nil {

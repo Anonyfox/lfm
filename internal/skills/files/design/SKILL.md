@@ -102,8 +102,14 @@ Work through the sections in order; each builds on the one before.
     choice, so say what the face must do and pick one that does it. Declare every color the page will use;
     the compiler checks that a text and ground pair reaches 4.5:1. Plan the images by job (protagonist,
     proof, atmosphere, explanation, share preview), with art direction taken from what the buyers
-    photograph and film. Decide one orchestrated motion moment, the feedback motion, and what the page
-    shows with reduced motion.
+    photograph and film. Choose motion intensity from that research and cite a voice, peer or fact:
+    `restrained` has one orchestrated moment and nothing else moves by default; `balanced` has a few
+    motion moments and media where they carry the argument; `immersive` plans media (photo, video loop,
+    image sequence, illustration or rendered scene) in every section and several motion moments,
+    including scroll-linked scenes. Places, physical products, crafts and experiences lean immersive;
+    tools, documents and finance lean restrained. Evidence decides. Keep the Imagery table; for immersive
+    pages give each section an image or media row. Decide feedback and what each moment shows instead
+    with reduced motion.
 13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices. Write the
     exact phrases as `Use: "…"` and `Avoid: "…"` lines; `lfm compile` holds the page to them.
     Only the leading quoted list is banned on an Avoid line; explanation text or IDs
@@ -186,9 +192,11 @@ Delivery: <how and when it arrives …>
 | <image …> | <job …> | <art direction …> V008 | <generated, photographed, drawn or rendered …> |
 
 ## Motion
-Moment: <the one orchestrated moment …>
+Intensity: <restrained, balanced or immersive>
+Intensity reason: <what the research shows …> V008 or P002 or a fact
+Moment: <one moment for restrained; several on separate lines or separated by ; for balanced/immersive …>
 Feedback: <motion that answers the visitor …>
-Reduced motion: <what shows instead …>
+Reduced motion: <what each moment shows instead …>
 
 ## Copy
 - Use: "<the buyers' exact phrase …>", "<another …>" V002

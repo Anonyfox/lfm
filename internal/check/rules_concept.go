@@ -15,6 +15,7 @@ import (
 
 // ConceptFacts are the decisions of concept.md the final page must honor.
 type ConceptFacts struct {
+	Intensity  string // absent means restrained
 	Colors     []color.Color
 	Families   []string // as written: a family or a stack
 	Imagery    int      // planned images

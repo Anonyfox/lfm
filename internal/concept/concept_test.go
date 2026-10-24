@@ -393,3 +393,36 @@ func TestQuotedPhrasesStopAtExplanation(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestMotionIntensity(t *testing.T) {
+	for _, value := range []string{"", "restrained", "balanced", "immersive", "loud"} {
+		text := good
+		if value != "" {
+			text = strings.Replace(text, "## Motion\n", "## Motion\nIntensity: "+value+"\n", 1)
+		}
+		report := check(t, text)
+		want := value
+		if want == "" {
+			want = "restrained"
+		}
+		if report.Summary.Intensity != want {
+			t.Fatalf("%q: %+v", value, report.Summary)
+		}
+		found := false
+		for _, d := range report.Diagnostics {
+			if strings.Contains(d.Message, "Intensity must be restrained, balanced or immersive") {
+				found = true
+			}
+		}
+		if found != (value == "loud") {
+			t.Fatalf("%q: %+v", value, report.Diagnostics)
+		}
+	}
+}
+
+func TestEmptyMotionIntensityIsInvalid(t *testing.T) {
+	r := check(t, strings.Replace(good, "## Motion\n", "## Motion\nIntensity:\n", 1))
+	if !has(r, RuleFormat, "Intensity must be restrained, balanced or immersive") {
+		t.Fatal(messages(r))
+	}
+}

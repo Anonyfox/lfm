@@ -222,7 +222,7 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	if !r.remote && result.Canonical != "" {
 		r.origin, _ = url.Parse(result.Canonical)
 	}
-	opts := check.Options{URL: result.Identity, File: strings.TrimPrefix(base.Path, "/"), RobotsHeader: page.header.Values("X-Robots-Tag"), Stylesheets: map[string][]byte{}, FontAssets: map[string]fontcheck.Info{}, Assets: map[string][]byte{}}
+	opts := check.Options{URL: result.Identity, File: strings.TrimPrefix(base.Path, "/"), RobotsHeader: page.header.Values("X-Robots-Tag"), Stylesheets: map[string][]byte{}, FontAssets: map[string]fontcheck.Info{}, Assets: map[string][]byte{}, AssetBytes: map[string]int{}}
 	if opts.File == "" {
 		opts.File = "index.html"
 	}
@@ -442,6 +442,13 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	// Dedupe aliases while retaining their raw stylesheet/font lookup keys.
 	for _, item := range bindings {
 		f := all[item.u.String()]
+		if f.Error == "" {
+			size := f.Bytes
+			if f.Truncated && f.Bytes == len(f.body) {
+				size = -1
+			}
+			opts.AssetBytes[item.raw] = size
+		}
 		if f.Error != "" || f.Truncated {
 			continue
 		}
