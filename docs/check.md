@@ -65,7 +65,8 @@ accepts only GET requests to supplied files. Lighthouse host checks remain in
 ```
 
 The page is first in files; other files are sorted by name. Remote names are absolute
-URLs; local names are folder-relative slash paths. Local status is zero. Exit codes:
+URLs; local names are folder-relative slash paths, and a file on another origin
+keeps its absolute URL. Local status is zero. Exit codes:
 0 means no errors (warnings allowed), 1 means errors or an unreadable page, 2 means a
 usage error. An unreadable page with --json produces `{"error": "…", "next": {…}}`.
 

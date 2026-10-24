@@ -4,7 +4,6 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 - Add `lfm check` for built URLs, folders and HTML files, with optional browser checks and JSON reports.
 - Include X-Robots-Tag response directives in the indexing and snippet checks.
-
 - Resolve font preloads against stylesheet URLs when checking CSS font sources.
 - Match styles faster on pages with large stylesheets.
 - Report an unavailable local port during release checks instead of panicking.
