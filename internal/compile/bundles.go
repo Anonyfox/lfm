@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -56,6 +57,14 @@ func (p *pageBundles) helper(node *html.Node, entry helperEntry) {
 
 func (p *pageBundles) filename(group []bundleInput, index, total int, ext string) string {
 	return p.prefix + bundleName(group, index, total, ext)
+}
+
+// hashedCode names an emitted stylesheet or script after its content, so its
+// URL changes whenever its bytes do and hosts can cache it forever.
+func hashedCode(name string, code []byte) string {
+	sum := sha256.Sum256(code)
+	ext := filepath.Ext(name)
+	return fmt.Sprintf("%s-%x%s", strings.TrimSuffix(name, ext), sum[:6], ext)
 }
 
 func stylesheetRel(rel string) bool {
@@ -270,7 +279,7 @@ func (p *pageBundles) compileScripts() ([]*html.Node, error) {
 		node := first.node
 		htmlx.DelAttr(node, "integrity")
 		if first.file {
-			name := p.filename(group, i, len(all), ".js")
+			name := hashedCode(p.filename(group, i, len(all), ".js"), result.code)
 			if err := p.b.emit(name, fmt.Sprintf("%sscript-bundle:%d", p.prefix, i), result.code); err != nil {
 				return nil, err
 			}
@@ -324,7 +333,7 @@ func (p *pageBundles) compileStyles(head *html.Node) error {
 			htmlx.DelAttr(node, "media")
 		}
 		if first.file {
-			name := p.filename(group, i, len(all), ".css")
+			name := hashedCode(p.filename(group, i, len(all), ".css"), result.code)
 			if err := p.b.emit(name, fmt.Sprintf("%sstyle-bundle:%d", p.prefix, i), result.code); err != nil {
 				return err
 			}

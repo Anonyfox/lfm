@@ -50,13 +50,14 @@ func (b *builder) packCode() error {
 		if len(code) <= limit || candidate.kind == "script" && strings.Contains(string(code), "import.meta") {
 			continue
 		}
-		if err := b.emit(candidate.name, candidate.origin, code); err != nil {
+		name := hashedCode(candidate.name, code)
+		if err := b.emit(name, candidate.origin, code); err != nil {
 			return err
 		}
 		for n.FirstChild != nil {
 			n.RemoveChild(n.FirstChild)
 		}
-		ref := fileURL(candidate.name)
+		ref := fileURL(name)
 		if candidate.kind == "style" {
 			n.Data, n.DataAtom = "link", atom.Link
 			htmlx.SetAttr(n, "rel", "stylesheet")
