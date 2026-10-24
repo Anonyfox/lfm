@@ -38,7 +38,11 @@ func linksSyntaxRule(d *Document) []Diagnostic {
 		// Named values are already checked at the original config location. Validate
 		// the final value too, but avoid repeating identical config findings verbatim.
 		named := d.Options.Registry != nil && len(d.Options.Registry.Match(ref.Value)) > 0
-		for _, finding := range analyzer.Inspect(ref.Value).Findings {
+		value, local := d.previewURL(ref.Value)
+		for _, finding := range analyzer.Inspect(value).Findings {
+			if local && finding.Message == "URL points to a loopback host." {
+				continue
+			}
 			if named && d.Options.Registry.Checked() && finding.Severity != Error {
 				continue
 			}
@@ -101,8 +105,9 @@ func linksBehaviorRule(d *Document) []Diagnostic {
 	refs, analyzer := d.linkFacts()
 	var issues []Diagnostic
 	for _, ref := range refs {
-		scheme := urlcheck.Scheme(ref.Value)
-		if ref.Resource && scheme == "http" && strings.HasPrefix(strings.ToLower(d.Options.URL), "https:") {
+		value, local := d.previewURL(ref.Value)
+		scheme := urlcheck.Scheme(value)
+		if !local && ref.Resource && scheme == "http" && strings.HasPrefix(strings.ToLower(d.Options.URL), "https:") {
 			issues = append(issues, d.linkAt(ref, Warning, "HTTP resource is referenced by an HTTPS page.", "Use an HTTPS resource endpoint; browser mixed-content blocking/upgrades can break this dependency."))
 		}
 		if (ref.Tag == "a" || ref.Tag == "area") && (scheme == "javascript" || scheme == "vbscript" || strings.TrimSpace(ref.Value) == "#") {

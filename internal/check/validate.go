@@ -32,6 +32,7 @@ type Rule struct {
 
 // Options is also usable by small rule tests; no workbench/filesystem is needed.
 type Options struct {
+	ServedURL       string // Final fetched URL; enables loopback preview URL judgments.
 	File            string
 	RobotsHeader    []string
 	URL             string

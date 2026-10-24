@@ -6,7 +6,8 @@ forms, performance, design and copy. It reads without changing files or executin
 A client-rendered shell is checked as the HTML received, before JavaScript runs.
 
 Use an HTTP or HTTPS URL (including localhost and private hosts), a folder containing
-index.html, or a .html file. A source folder containing lfm.json points to `lfm compile`
+index.html, or a .html file. A folder without index.html needs a built output folder,
+an explicit .html file, or the served full URL (for example http://localhost:8080/path/). A source folder containing lfm.json points to `lfm compile`
 instead. Config, templates, research, concept and deliverables are outside this check.
 The five page rules needing project facts are listed in `skipped`: links.declared,
 jsonld.block, commerce.discovery, commerce.structured-data and concept.fidelity.
@@ -31,7 +32,11 @@ The report's `url` is the final fetched URL, or the local target argument. `cano
 is the first HTTP(S) canonical resolved against the page URL; `identity` uses that
 canonical, otherwise the final URL, or an empty string for local pages without one.
 Rules compare metadata against identity, so a localhost preview can declare its
-production URL. Diagnostic locations use the URL path without its leading slash
+production URL. For pages served from localhost, 127.0.0.0/8 or ::1, URLs on the
+served origin are judged against the declared public canonical origin. Without a
+public canonical, public-host and mixed-content findings for loopback URLs are
+deferred to the live URL. The report includes one note explaining this policy;
+other URL syntax findings remain active. Live pages retain every check. Diagnostic locations use the URL path without its leading slash
 (index.html for `/`), or the local file name. X-Robots-Tag response headers use the
 same crawler policy as robots meta tags in seo.indexability and seo.snippets.
 robots.txt and sitemap.xml are not checked.
@@ -72,3 +77,7 @@ usage error. An unreadable page with --json produces `{"error": "…", "next": {
 
 Resources are discovered in parallel waves. File-count admission follows discovery order;
 truncation at the shared byte limit may depend on response timing.
+
+Palette checks count custom-property colors only through declarations used on the page,
+including indirect var() references. Unused framework tokens do not count.
+The machine-copy estimate excludes table elements and subtrees with role=table or role=grid.

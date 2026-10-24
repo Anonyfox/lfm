@@ -61,7 +61,7 @@ Make the core loop work with real content before any polish.
    contexts to partials with `{{template "case" (dict "root" $ "case" .)}}`; read `.root.urls`
    and `.case` inside. Guard optional paths directly with `{{with .data.note}}{{.}}{{end}}`
    or `{{if .data.note}}{{.data.note}}{{end}}`; absent, null and empty values are allowed there.
-   `copy.machine` names up to three review passages with source locations and window-level signals;
+   `copy.machine` excludes table and role=table/grid content and names up to three review passages with source locations and window-level signals;
    revise the named signal (rhythm or wording) while preserving factual content. `build.browserData` lists the config paths the script needs
    (`"data.check"`); the script reads the same shape back:
    `JSON.parse(document.getElementById("product-data").textContent).data.check`. A value that

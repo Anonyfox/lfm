@@ -12,6 +12,8 @@ func rule(id, summary, help string, check func(*Document) []Diagnostic, project 
 	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help, Project: reason}, Check: check}
 }
 
+const previewPolicy = " For loopback-served checks, URLs on the served origin use the declared public canonical origin; otherwise loopback public-host and mixed-content findings are deferred to the live URL. Live pages retain every finding."
+
 const designException = " Deliberate? Keep it and add data-design-reason=\"why this subject needs it\" on the element or an ancestor."
 
 // DefaultRules is the final-HTML catalog in report order. Summary and Help are
@@ -20,13 +22,13 @@ func DefaultRules() []Rule {
 	return []Rule{
 		// links
 		rule("links.syntax", "Every URL in templates and final HTML parses the way browsers will read it",
-			"Errors for URLs browsers cannot parse, protocol typos such as htps:, javascript: URLs, unresolved placeholders and escaping that changed a configured destination; warnings for whitespace, odd percent encoding, embedded credentials, unknown schemes, a likely missing https:// and mailto/tel mistakes. A malformed link silently goes nowhere or somewhere else. Fix the value in lfm.json urls; store a raw & in JSON and let html/template escape it.",
+			"Errors for URLs browsers cannot parse, protocol typos such as htps:, javascript: URLs, unresolved placeholders and escaping that changed a configured destination; warnings for whitespace, odd percent encoding, embedded credentials, unknown schemes, a likely missing https:// and mailto/tel mistakes. A malformed link silently goes nowhere or somewhere else. Fix the value in lfm.json urls; store a raw & in JSON and let html/template escape it."+previewPolicy,
 			linksSyntaxRule),
 		rule("links.declared", "Every rendered link destination matches a named URL in lfm.json urls",
 			"After rendering, each href, src, srcset, social URL and JSON-LD URL is resolved like a browser would and compared with the declared urls; anything else is an error, except same-page #fragment links, whose targets html.references checks. This catches destinations assembled in partials or expressions that bypass the registry. Declare the complete URL, including deliberate query or fragment variants, under urls and render it; set this rule to warn only if the product deliberately builds destinations at render time.",
 			linksDeclaredRule, "needs lfm.json urls"),
 		rule("links.behavior", "Links are crawlable, resources are HTTPS and download links can work",
-			"Warns for navigation that relies on a click handler or role instead of an href, javascript: or bare # placeholder links, href on elements that are not links, HTTP resources on an HTTPS page, download attributes pointing at another origin, and full page URLs whose fragment matches no element. Crawlers and keyboard users cannot follow handler-only links, and browsers block or ignore the others. Use <a href> for navigation and <button> for actions, serve resources over HTTPS, and point fragments at existing IDs.",
+			"Warns for navigation that relies on a click handler or role instead of an href, javascript: or bare # placeholder links, href on elements that are not links, HTTP resources on an HTTPS page, download attributes pointing at another origin, and full page URLs whose fragment matches no element. Crawlers and keyboard users cannot follow handler-only links, and browsers block or ignore the others. Use <a href> for navigation and <button> for actions, serve resources over HTTPS, and point fragments at existing IDs."+previewPolicy,
 			linksBehaviorRule),
 		rule("links.fragments", "Same-page #fragment links land on content that is not explicitly hidden",
 			"A same-document link targets an element that has the hidden attribute, or sits inside one. Visitors following the link, or arriving from a shared URL, land on nothing visible. Make the target visible, or use native revealable content: a closed <details> or hidden=\"until-found\" is allowed.",
@@ -85,7 +87,7 @@ func DefaultRules() []Rule {
 			"Warns when a page with declared offers or a Stripe checkout link has no visible link to a privacy policy (privacy, Datenschutz…), and, on a German page, none to an Impressum. Selling without them is unlawful in the EU and Germany and makes a careful buyer stop. Link the owner's pages, typically in the footer; legal text comes from the owner, never from the page's author.",
 			legalRule),
 		rule("seo.metadata", "One title, description, language and exact HTTPS canonical in head",
-			"Errors for duplicate or out-of-head titles and a missing, duplicate, misplaced, non-HTTPS, query or fragment-bearing canonical, or one that differs from lfm.json url; warnings for a missing title, description or html lang, a duplicate or misplaced description and an unrecognized language tag. Search engines use these to decide which URL to index and what to show in results. Render <title>, the description meta and <link rel=\"canonical\" href=\"{{.url}}\"> once in head, and set html lang from the configured language.",
+			"Errors for duplicate or out-of-head titles and a missing, duplicate, misplaced, non-HTTPS, query or fragment-bearing canonical, or one that differs from lfm.json url; warnings for a missing title, description or html lang, a duplicate or misplaced description and an unrecognized language tag. Search engines use these to decide which URL to index and what to show in results. Render <title>, the description meta and <link rel=\"canonical\" href=\"{{.url}}\"> once in head, and set html lang from the configured language."+previewPolicy,
 			metadataRule),
 		rule("seo.indexability", "Robots meta tags that ask search engines not to index the page or follow its links",
 			"Warns for noindex, none or page-wide nofollow in robots or Googlebot meta tags, including ones placed in body. A public sales page that cannot be indexed gets no search traffic, and nofollow hides the pages it links to. Remove the directive for public pages; keep it for private or test pages and turn this rule off there.",
@@ -94,7 +96,7 @@ func DefaultRules() []Rule {
 			"Warns for nosnippet and nonnegative max-snippet limits in robots meta tags. They suppress or truncate the text preview in search results and keep the page out of AI answers, which lowers clicks. Remove unintended limits; keep a deliberate publishing restriction and turn this rule off for that page.",
 			snippetsRule),
 		rule("seo.social", "Open Graph and Twitter preview fields are present, placed in head and use public URLs",
-			"Errors for preview URLs or images that are not absolute public HTTP(S) URLs, including data: and local hosts; warnings for missing og:title, og:type, og:url or og:image, fields outside head or with the wrong attribute, empty or repeated fields, and an og:url that differs from the canonical. Shared links without these show as a bare URL, which few people click. Render the Open Graph core fields in head from config, with property= for og:* and name= for twitter:*, pointing at the canonical URL and a deployed image file.",
+			"Errors for preview URLs or images that are not absolute public HTTP(S) URLs, including data: and local hosts; warnings for missing og:title, og:type, og:url or og:image, fields outside head or with the wrong attribute, empty or repeated fields, and an og:url that differs from the canonical. Shared links without these show as a bare URL, which few people click. Render the Open Graph core fields in head from config, with property= for og:* and name= for twitter:*, pointing at the canonical URL and a deployed image file."+previewPolicy,
 			socialRule),
 		rule("seo.headings", "A visible h1 and a heading hierarchy without skipped levels or empty headings",
 			"Warns when no visible h1 exists, when levels skip (h2 to h4) or start below h1, or when a heading has no readable text or accessible name; hidden headings do not count. Screen-reader users and search engines use the outline to understand and navigate the page. Pick heading levels for structure and control size with CSS; more than one h1 is allowed.",
@@ -189,7 +191,7 @@ func DefaultRules() []Rule {
 
 		// design
 		rule("design.palette", "Stock generator accent colors, violet gradients and the assistant cream/terracotta pair",
-			"Warns for Tailwind's stock indigo, violet and purple accents, Bootstrap's default primary blue, gradients whose colored stops are all violet, blue or pink, and a cream background with a terracotta accent. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role."+designException,
+			"Warns for Tailwind's stock indigo, violet and purple accents, Bootstrap's default primary blue, gradients whose colored stops are all violet, blue or pink, and a cream background with a terracotta accent. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role; custom-property colors count only through declarations that use them on the page, including indirect var() references."+designException,
 			designRule("design.palette")),
 		rule("design.gradient-text", "Text filled with a gradient through background-clip:text",
 			"Warns for text painted with a gradient via background-clip:text, in CSS or Tailwind classes. It is one of the most recognizable generated-page tells and often loses contrast. Carry emphasis with size, weight, position or a solid color."+designException,
@@ -254,7 +256,7 @@ func DefaultRules() []Rule {
 			copyTellsRule),
 
 		rule("copy.machine", "The page's prose would not be flagged by AI-text detectors",
-			"Estimates, from at least 150 words of prose on the page, whether AI-text detectors would flag the copy as generated: the even rhythm and repeated phrasing of older models, or the polished prose of current ones that never repeats a phrase, varies its words more than people do and leaves out the asides people make. The weights come from labelled human and generated text in English, German, French, Spanish, Italian, Portuguese, Dutch and Polish and are set for about 1% false alarms on human writing; the finding names the measured habits and up to three contributing blocks with excerpts and nearest source file/line. Blocks are ranked by the score decrease when omitted from their original window; signals describe that window, including rhythm rather than only wording. Visitors and platforms increasingly distrust copy that reads generated. Rewrite the passages in one person's voice; never add errors to fool a detector.",
+			"Estimates, from at least 150 words of prose on the page outside table elements and role=table/grid subtrees, whether AI-text detectors would flag the copy as generated: the even rhythm and repeated phrasing of older models, or the polished prose of current ones that never repeats a phrase, varies its words more than people do and leaves out the asides people make. The weights come from labelled human and generated text in English, German, French, Spanish, Italian, Portuguese, Dutch and Polish and are set for about 1% false alarms on human writing; the finding names the measured habits and up to three contributing blocks with excerpts and nearest source file/line. Blocks are ranked by the score decrease when omitted from their original window; signals describe that window, including rhythm rather than only wording. Visitors and platforms increasingly distrust copy that reads generated. Rewrite the passages in one person's voice; never add errors to fool a detector.",
 			copyMachineRule),
 
 		rule("copy.placeholder", "No template filler, starter text or starter image is left in the page",

@@ -363,17 +363,37 @@ var colorProps = regexp.MustCompile(`^(color|background(-color|-image)?|border(-
 
 func (a *designAnalysis) palette() {
 	var cream, terra *cssRule
-	for _, r := range a.m.rules {
-		if r.alt || len(r.matches) == 0 && !strings.Contains(r.selector, ":root") {
+	rules := a.m.rules
+	for _, n := range a.d.Elements {
+		if decls := a.m.inline[n]; len(decls) > 0 {
+			rules = append(rules, &cssRule{selector: n.Data, decls: decls, matches: []*html.Node{n}})
+		}
+	}
+	for _, r := range rules {
+		if r.alt || len(r.matches) == 0 {
 			continue
 		}
 		for _, dcl := range r.decls {
-			if !colorProps.MatchString(dcl.prop) {
+			if strings.HasPrefix(dcl.prop, "--") || !colorProps.MatchString(dcl.prop) {
 				continue
 			}
-			cols := colorsIn(dcl.value)
+			value := dcl.value
+			if strings.Contains(value, "var(") {
+				var resolved strings.Builder
+				seen := map[string]bool{}
+				for _, n := range r.matches {
+					v := a.m.resolveVars(n, dcl.value, 0)
+					if !seen[v] {
+						seen[v] = true
+						resolved.WriteString(v)
+						resolved.WriteByte(' ')
+					}
+				}
+				value = resolved.String()
+			}
+			cols := colorsIn(value)
 			gradientHit := false
-			if strings.Contains(strings.ToLower(dcl.value), "gradient(") {
+			if strings.Contains(strings.ToLower(value), "gradient(") {
 				purple, foreign := 0, 0
 				for _, c := range cols {
 					switch {
@@ -396,7 +416,7 @@ func (a *designAnalysis) palette() {
 				if n, ok := stock.Nearest(c, stock.Accents, 0.02); ok && !gradientHit && a.once("accent "+n.Name) {
 					a.add(designSignal{rule: "design.palette", kind: "stock accent color", strong: true, css: r, message: fmt.Sprintf("%s (%s) is the stock generator accent; `%s` uses it.", n.Name, dcl.prop, r.selector), hint: "Derive the accent from the subject's own world and name its role in the brief."})
 				}
-				if _, ok := stock.Nearest(c, stock.Creams, 0.012); ok && cream == nil && (strings.HasPrefix(dcl.prop, "background") || strings.HasPrefix(dcl.prop, "--")) {
+				if _, ok := stock.Nearest(c, stock.Creams, 0.012); ok && cream == nil && strings.HasPrefix(dcl.prop, "background") {
 					cream = r
 				}
 				if _, ok := stock.Nearest(c, stock.Terracottas, 0.02); ok && terra == nil {

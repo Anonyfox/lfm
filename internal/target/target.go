@@ -138,6 +138,9 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	} else {
 		info, statErr := os.Stat(argument)
 		if statErr != nil {
+			if errors.Is(statErr, os.ErrNotExist) && strings.HasPrefix(argument, "/") {
+				return result, fmt.Errorf("read page %q: if this is a URL path, pass the full URL, e.g. http://localhost:PORT/path/: %w", argument, statErr)
+			}
 			return result, fmt.Errorf("read page: %w", statErr)
 		}
 		dir := argument
@@ -158,6 +161,11 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 			return result, err
 		}
 		defer r.root.Close()
+		if info.IsDir() {
+			if _, err := r.root.Stat("index.html"); errors.Is(err, os.ErrNotExist) {
+				return result, fmt.Errorf("%w: folder %q has no index.html; check reads a built page: pass an .html file, a built output folder, or the served URL (e.g. http://localhost:PORT/path/)", ErrUsage, argument)
+			}
+		}
 		u = &url.URL{Scheme: "https", Host: "local.invalid", Path: "/" + pageName}
 	}
 	page := r.fetch(resource{u: u, kind: "page"}, lim.page)
@@ -214,6 +222,9 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	opts := check.Options{URL: result.Identity, File: strings.TrimPrefix(base.Path, "/"), RobotsHeader: page.header.Values("X-Robots-Tag"), Stylesheets: map[string][]byte{}, FontAssets: map[string]fontcheck.Info{}, Assets: map[string][]byte{}}
 	if opts.File == "" {
 		opts.File = "index.html"
+	}
+	if r.remote {
+		opts.ServedURL = result.URL
 	}
 	result.Files = append(result.Files, page.File)
 	all := map[string]fetched{u.String(): page}

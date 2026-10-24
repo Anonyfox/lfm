@@ -64,10 +64,10 @@ func metadataRule(d *Document) []Diagnostic {
 		issues = append(issues, d.At(canonicals[1], Error, "Multiple canonical URLs.", "Keep one canonical URL in head."))
 	}
 	for _, n := range canonicals {
-		value := Attr(n, "href")
-		if !publicURL(value) || !strings.HasPrefix(value, "https://") || strings.ContainsAny(value, "?#") {
+		value, local := d.previewURL(Attr(n, "href"))
+		if !publicPreviewURL(value, local) || (!local && !strings.HasPrefix(value, "https://")) || strings.ContainsAny(value, "?#") {
 			issues = append(issues, d.metadataURLAt(n, value, Error, "Canonical URL must be a public absolute HTTPS URL without query, fragment or credentials.", "Render lfm.json url exactly, including its path/trailing slash; state/referral parameters belong only to shared links."))
-		} else if d.Options.URL != "" && value != d.Options.URL {
+		} else if !local && d.Options.URL != "" && value != d.Options.URL {
 			issues = append(issues, d.metadataURLAt(n, value, Error, fmt.Sprintf("Canonical URL differs from configured target %q.", short(d.Options.URL)), "Use href=\"{{.url}}\" exactly; each static product/result/embed document owns its configured base canonical."))
 		}
 		if n.Parent == nil || n.Parent.Data != "head" {

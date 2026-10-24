@@ -118,6 +118,9 @@ func runCheck(ctx context.Context, env Env, p parsed) error {
 		r.Next.Phase = "review"
 		r.Next.Do = "review the warnings above and check again."
 	}
+	if doc.LoopbackPreview() {
+		r.Next.Notes = append(r.Next.Notes, "Loopback URL requirements are judged on the live URL: the declared public canonical origin is used where available; otherwise public-host and mixed-content findings for loopback URLs are deferred.")
+	}
 	if !browser {
 		r.Next.Notes = append(r.Next.Notes, "run with --release for runtime, layout and Lighthouse")
 	}

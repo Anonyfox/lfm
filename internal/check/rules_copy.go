@@ -226,6 +226,10 @@ func visibleSegments(d *Document) []copySegment {
 }
 
 func segments(d *Document, quotes bool) []copySegment {
+	return textSegments(d, quotes, false)
+}
+
+func textSegments(d *Document, quotes, tables bool) []copySegment {
 	var body *html.Node
 	for _, n := range d.Elements {
 		if n.Data == "body" && n.Namespace == "" {
@@ -253,7 +257,7 @@ func segments(d *Document, quotes bool) []copySegment {
 				b.WriteString(c.Data)
 			case html.ElementNode:
 				quotation := quotes && (c.Data == "blockquote" || c.Data == "q") && !HasAttr(c, "hidden") && Attr(c, "aria-hidden") != "true"
-				if c.Namespace != "" || skipCopy(c) && !quotation {
+				if c.Namespace != "" || skipCopy(c) && !quotation || tables && (c.Data == "table" || containsWord(Attr(c, "role"), "table") || containsWord(Attr(c, "role"), "grid")) {
 					continue
 				}
 				if copyBlocks[c.Data] {
@@ -850,7 +854,7 @@ func copyMachineRule(d *Document) []Diagnostic {
 	}
 	var paragraphs []string
 	var blocks []copySegment
-	for _, s := range copySegments(d) {
+	for _, s := range textSegments(d, false, true) {
 		if len(strings.Fields(s.text)) >= minMachineParagraph {
 			blocks = append(blocks, s)
 			paragraphs = append(paragraphs, s.text)

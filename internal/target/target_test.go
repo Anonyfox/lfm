@@ -67,7 +67,7 @@ func TestURLFetch(t *testing.T) {
 	if r.URL != server.URL+"/page" || r.Identity != "https://example.org/" || r.Canonical != r.Identity || r.Lang != "en" || len(r.Redirects) != 1 || r.Redirects[0] != r.URL || len(r.Files) != 2 || methods.Load() != 1 {
 		t.Fatalf("metadata: %+v", r)
 	}
-	if len(r.Options.Stylesheets) != 1 || len(r.Options.RobotsHeader) != 1 || r.Options.File != "page" {
+	if r.Options.ServedURL != r.URL || !r.Document.LoopbackPreview() || len(r.Options.Stylesheets) != 1 || len(r.Options.RobotsHeader) != 1 || r.Options.File != "page" {
 		t.Fatalf("options: %+v", r.Options)
 	}
 }
@@ -542,5 +542,30 @@ func TestBudgetCountsReadBytes(t *testing.T) {
 		if f.Error != "" || f.Truncated {
 			t.Fatal(f)
 		}
+	}
+}
+
+func TestMissingBuiltPageGuidance(t *testing.T) {
+	dir := t.TempDir()
+	for _, tc := range []struct{ arg, want string }{{dir, "has no index.html"}, {filepath.Join(dir, "missing"), "pass the full URL"}} {
+		_, err := Read(context.Background(), tc.arg, "test")
+		if err == nil || !strings.Contains(err.Error(), tc.want) || !strings.Contains(err.Error(), "http://localhost:PORT/path/") {
+			t.Fatalf("%s: %v", tc.arg, err)
+		}
+	}
+}
+
+func TestMissingRelativeFilePreservesReadError(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	relative, err := filepath.Rel(cwd, filepath.Join(t.TempDir(), "missing.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Read(context.Background(), relative, "test")
+	if err == nil || !errors.Is(err, os.ErrNotExist) || !strings.Contains(err.Error(), "read page:") || strings.Contains(err.Error(), "full URL") {
+		t.Fatal(err)
 	}
 }

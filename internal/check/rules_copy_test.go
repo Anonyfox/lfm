@@ -329,3 +329,19 @@ func TestMachinePassagesHaveLocationsAndExcerpts(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestMachineExcludesTables(t *testing.T) {
+	raw, err := os.ReadFile("../aitext/testdata/generated/opus-01.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := "<p>" + strings.ReplaceAll(html.EscapeString(string(raw)), "\n\n", "</p><p>") + "</p>"
+	if len(runOn(t, copyMachineRule, "", body, Options{})) != 1 {
+		t.Fatal("fixture must trigger")
+	}
+	for _, wrap := range []struct{ open, close string }{{"<table><tr><td>", "</td></tr></table>"}, {`<div role="table">`, "</div>"}, {`<div role="grid">`, "</div>"}} {
+		if got := runOn(t, copyMachineRule, "", wrap.open+body+wrap.close, Options{}); len(got) != 0 {
+			t.Fatalf("%s: %+v", wrap.open, got)
+		}
+	}
+}

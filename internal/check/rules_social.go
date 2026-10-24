@@ -72,10 +72,10 @@ func socialRule(d *Document) []Diagnostic {
 	_, analyzer := d.linkFacts()
 	for _, key := range []string{"og:url", "twitter:url", "og:image", "og:image:url", "og:image:secure_url", "twitter:image", "twitter:image:src"} {
 		for _, n := range fields[key] {
-			value := Attr(n, "content")
-			if !publicURL(value) {
+			value, local := d.previewURL(Attr(n, "content"))
+			if !publicPreviewURL(value, local) {
 				issues = append(issues, d.metadataURLAt(n, value, Error, key+" must be an absolute HTTP(S) URL without credentials, fragment or a local/private host.", "Use a named public URL from lfm.json; social images must be deployed files, not data URLs. Verify live reachability after publication."))
-			} else if (key == "og:url" || key == "twitter:url") && canonical != "" {
+			} else if !local && (key == "og:url" || key == "twitter:url") && canonical != "" {
 				identity, _, _ := strings.Cut(value, "?")
 				if analyzer.Key(identity) != analyzer.Key(canonical) {
 					issues = append(issues, d.metadataURLAt(n, value, Warning, fmt.Sprintf("%s differs from page canonical %q.", key, short(canonical)), "Keep preview identity tied to this page; deliberate public-state query variants and different share wording/images are allowed."))

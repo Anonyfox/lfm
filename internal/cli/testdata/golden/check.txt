@@ -10,4 +10,7 @@ warning  seo.social  page
               public image file URL.
 Next (review): review the warnings above and check again.
 'lfm rules <id>' explains a rule
+Loopback URL requirements are judged on the live URL: the declared public canonical origin is
+used where available; otherwise public-host and mixed-content findings for loopback URLs are
+deferred.
 run with --release for runtime, layout and Lighthouse

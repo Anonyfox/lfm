@@ -80,6 +80,7 @@
     "do": "review the warnings above and check again.",
     "notes": [
       "'lfm rules \u003cid\u003e' explains a rule",
+      "Loopback URL requirements are judged on the live URL: the declared public canonical origin is used where available; otherwise public-host and mixed-content findings for loopback URLs are deferred.",
       "run with --release for runtime, layout and Lighthouse"
     ]
   }
