@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   release:
@@ -17,9 +18,17 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      # Tests are skipped only when a CI run on exactly this commit passed with every job.
+      - name: CI passed on this commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: sh scripts/ci-green.sh "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
       - name: allow Chrome's sandbox
+        if: steps.ci.outputs.green != 'true'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: test
+        if: steps.ci.outputs.green != 'true'
         run: go test -race -timeout 15m ./...
       - uses: goreleaser/goreleaser-action@v6
         with:

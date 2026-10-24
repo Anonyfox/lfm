@@ -11,9 +11,10 @@ on:
 permissions:
   contents: read
 
+# A newer push supersedes a running check of the same branch; tag runs always finish.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   lint:
@@ -34,12 +35,14 @@ jobs:
       - name: shellcheck the installer
         run: shellcheck -s sh install.sh scripts/*.sh
 
+  # The race tests run in three parallel package groups (scripts/test-group.sh);
+  # Codecov merges their coverage profiles.
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON((github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && '["ubuntu-latest","macos-latest"]' || '["ubuntu-latest"]') }}
-    runs-on: ${{ matrix.os }}
+        group: [compile, book, rest]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -49,10 +52,8 @@ jobs:
       # Ubuntu 24.04 restricts the user namespaces Chrome's sandbox needs; the runner's
       # Chrome has no AppArmor profile that would allow them.
       - name: allow Chrome's sandbox
-        if: runner.os == 'Linux'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: install epubcheck
-        if: runner.os == 'Linux'
         run: |
           curl -fsSL https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip -o "$RUNNER_TEMP/epubcheck.zip"
           unzip -q "$RUNNER_TEMP/epubcheck.zip" -d "$RUNNER_TEMP"
@@ -60,16 +61,33 @@ jobs:
           chmod +x "$RUNNER_TEMP/epubcheck"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: test
-        run: go test -race -timeout 15m -coverprofile=coverage.out -covermode=atomic ./...
+        run: sh scripts/test-group.sh ${{ matrix.group }} | xargs go test -race -timeout 15m -coverprofile=coverage.out -covermode=atomic
       - name: upload coverage
-        if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.out
+          flags: ${{ matrix.group }}
           fail_ci_if_error: false
 
+  # macOS runners bill at 10x: one job with every package, for v* tags and manual runs.
+  test-macos:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: test
+        run: go test -race -timeout 15m ./...
+
+  # Every fuzz target runs for 5s on every push, spread over eight parallel shards.
   fuzz:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,20 +95,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: fuzz every target briefly
-        run: |
-          for pkg in $(go list ./...); do
-            for target in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
-              echo "::group::$pkg $target"
-              # A short -fuzztime can end on "context deadline exceeded" while a
-              # worker minimizes a new input; only a reported failing input fails.
-              if ! out=$(go test -run '^$' -fuzz "^${target}\$" -fuzztime 5s "$pkg" 2>&1); then
-                echo "$out"
-                if echo "$out" | grep -q "Failing input" || ! echo "$out" | grep -q "context deadline exceeded"; then exit 1; fi
-                echo "::notice::$target ended on the fuzzing deadline without a failing input"
-              fi
-              echo "::endgroup::"
-            done
-          done
+        run: sh scripts/fuzz.sh 5s ${{ matrix.shard }} 8
 
   build:
     runs-on: ubuntu-latest
