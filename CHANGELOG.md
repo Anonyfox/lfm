@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.9 (2026-10-24)
 
 - Security: release archives now hold root-owned (0/0) entries instead of the build machine's uid 1001, and install.sh ignores the archive's owner, so a root install (sudo with `LFM_INSTALL_DIR`) writes a root-owned binary. CI checks both.
 - install.sh warns when another lfm of a different version comes first on PATH, with both paths and versions.
@@ -28,6 +28,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - A page whose HTML is an empty client-rendered shell gets one finding listing what is missing instead of separate title, description, h1, landmark and social findings.
 - concept.fidelity matches simple inflections of Use phrases; on Avoid lines only the leading quoted phrases are banned, so a preferred wording quoted after them is allowed.
 - `url` keys inside `build.browserData` are no longer checked as links, and copy.placeholder ignores text in code elements and file names such as TODO.md.
+- Checks stay fast on deeply nested markup: template, hidden and inert ancestry is recorded once per page.
 
 ## 0.1.8 (2026-10-24)
 
