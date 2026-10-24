@@ -76,3 +76,21 @@ func TestLighthouseFixture(t *testing.T) {
 		t.Fatal("accepted missing fixture directory")
 	}
 }
+
+func TestEPUBCheckRunsTheValidatorOnTheBook(t *testing.T) {
+	dir := t.TempDir()
+	tool := filepath.Join(dir, "epubcheck")
+	// The fake validator succeeds only when it gets the written book.
+	if err := os.WriteFile(tool, []byte("#!/bin/sh\ntest \"$(cat \"$1\")\" = book && echo 'No errors or warnings detected.'\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LFM_EPUBCHECK", tool)
+	if !EPUBCheck(t, []byte("book")) {
+		t.Fatal("validator was not run")
+	}
+	t.Setenv("LFM_EPUBCHECK", "")
+	t.Setenv("PATH", t.TempDir())
+	if EPUBCheck(t, []byte("book")) {
+		t.Fatal("reported a validation without a validator")
+	}
+}

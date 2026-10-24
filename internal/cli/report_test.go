@@ -81,6 +81,11 @@ func TestReportStates(t *testing.T) {
 	renderBook(&w, s, &book.Summary{Concept: true, Title: "Rye", Chapters: make([]book.Chapter, 2), Written: 2, Words: 1250, Target: 1200, Complete: true,
 		Files: []string{"rye.epub", "rye.pdf"}, Layout: "fits", Channels: []string{"kdp"}, Sell: "bundle"},
 		[]compile.File{{Name: "b1/rye.epub", Bytes: 52000}, {Name: "b1/rye.pdf", Bytes: 1 << 20}, {Name: "b2/rye.epub", Bytes: 52000}})
+	renderBook(&w, s, &book.Summary{Kind: "fiction", Concept: true, Title: "Signal", Chapters: make([]book.Chapter, 2), Written: 2, Words: 1250, Target: 1200, Complete: true,
+		Files: []string{"signal.epub"}, Sizes: map[string]int{"signal.epub": 52000}, Pending: true, Sell: "shops"}, nil)
+	renderBook(&w, s, &book.Summary{Kind: "fiction", Concept: true, Title: "Signal", Chapters: make([]book.Chapter, 3), Written: 1, Planned: 2, Words: 400, Target: 1800,
+		Preview: "distribution/book/preview/signal-preview.epub", Sell: "shops"}, nil)
+	renderBook(&w, s, &book.Summary{Concept: true, Title: "Rye", Chapters: make([]book.Chapter, 1), Written: 1, Words: 600, Target: 600, Blocker: "no cover yet", Sell: "page"}, nil)
 
 	section("printable")
 	renderPrintable(&w, s, nil)
@@ -159,6 +164,7 @@ func TestReportStates(t *testing.T) {
 	renderResult(&w, s, compile.Result{Root: "/x/shop", Optional: []string{"lighthouse: npm i -g lighthouse"},
 		Files:    []compile.File{{Name: "index.html", Bytes: 900}, {Name: "a.css", Bytes: 1}, {Name: "b.js", Bytes: 2}, {Name: "c.png", Bytes: 3}, {Name: "d.png", Bytes: 4}},
 		External: []string{"https://cdn.test/x.js"}}, nil)
+	renderResult(&w, s, compile.Result{Root: "/x/book", Starter: true, Files: []compile.File{{Name: "index.html", Bytes: 900}}, Book: &book.Summary{Sell: "shops"}}, nil)
 
 	golden.Text(t, "report-states.txt", w.String())
 }

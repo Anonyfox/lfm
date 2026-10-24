@@ -380,7 +380,11 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 	if b.Kind == "fiction" {
 		title += " · fiction"
 	}
-	line := fmt.Sprintf("%s · %d chapters: %d written, %d planned · %s of %s words", title, len(b.Chapters), b.Written, b.Planned, groupDigits(b.Words), groupDigits(b.Target)) + sellNote(b.Sell)
+	chapters := "chapters"
+	if len(b.Chapters) == 1 {
+		chapters = "chapter"
+	}
+	line := fmt.Sprintf("%s · %d %s: %d written, %d planned · %s of %s words", title, len(b.Chapters), chapters, b.Written, b.Planned, groupDigits(b.Words), groupDigits(b.Target)) + sellNote(b.Sell)
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("book", 12), line)
 	var built []string
 	seen := map[string]bool{} // a bundle's download folder holds the same files
