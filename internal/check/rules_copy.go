@@ -849,12 +849,10 @@ func copyMachineRule(d *Document) []Diagnostic {
 		}
 	}
 	var paragraphs []string
-	var first *html.Node
+	var blocks []copySegment
 	for _, s := range copySegments(d) {
 		if len(strings.Fields(s.text)) >= minMachineParagraph {
-			if first == nil {
-				first = s.node
-			}
+			blocks = append(blocks, s)
 			paragraphs = append(paragraphs, s.text)
 		}
 	}
@@ -862,7 +860,22 @@ func copyMachineRule(d *Document) []Diagnostic {
 	if !r.Likely {
 		return nil
 	}
-	return []Diagnostic{d.At(first, Warning, MachineMessage("the page's copy", r), MachineHint(r))}
+	issue := d.At(blocks[r.Strongest].node, Warning, MachineMessage("the page's copy", r), MachineHint(r))
+	for _, passage := range aitext.Passages(paragraphs, lang, 3) {
+		block := blocks[passage.Paragraph]
+		at := d.At(block.node, Warning, "", "").Location
+		var signals []string
+		for _, signal := range passage.Signals {
+			signals = append(signals, signal.Detail)
+		}
+		evidence := fmt.Sprintf("window score decrease on omission: %.3f", passage.Contribution)
+		if !passage.Attributed {
+			evidence = "too little prose remains for individual attribution"
+		}
+		issue.Message += fmt.Sprintf(" Review %s:%d: %q (%s; window signals: %s).", at.File, at.Line, preview(block.text), evidence, strings.Join(signals, "; "))
+		issue.Related = append(issue.Related, at)
+	}
+	return []Diagnostic{issue}
 }
 
 // MachineMessage says why detectors would flag a text.

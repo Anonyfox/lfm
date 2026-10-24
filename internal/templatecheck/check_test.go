@@ -84,7 +84,7 @@ func TestScopesAndUsage(t *testing.T) {
 }
 func TestEmptyFalseZeroAndShapes(t *testing.T) {
 	_, s, raw := fixture(t, `{{.data.blank}}/{{.data.nil}}/{{.data.off}}/{{.data.zero}}/{{range .data.rows}}{{.noSchema}}{{else}}empty{{end}}{{with .data.optional}}{{.alsoUnknown}}{{end}}`, `{"data":{"blank":"  ","nil":null,"off":false,"zero":0,"rows":[],"optional":null}}`, nil)
-	if s.Errors > 0 || count(s, "template.empty", diagnostic.Warning) != 4 || !bytes.Contains(raw, []byte("false/0/empty")) {
+	if s.Errors > 0 || count(s, "template.empty", diagnostic.Warning) != 3 || !bytes.Contains(raw, []byte("false/0/empty")) {
 		t.Fatalf("%s %s", raw, messages(s))
 	}
 }

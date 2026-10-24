@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/project"
+	"github.com/Anonyfox/lfm/internal/templatecheck"
 	"github.com/evanw/esbuild/pkg/api"
 )
 
@@ -143,4 +144,9 @@ func (h *helperRegistry) register(key, kind, origin, path string) (helperEntry, 
 	entry := helperEntry{kind: kind, path: path, origin: origin}
 	h.resolved[key] = entry
 	return entry, nil
+}
+
+// TemplateHelp describes the helper set installed by the compiler.
+func TemplateHelp() string {
+	return templatecheck.HelperHelp((&helperRegistry{}).functions(false))
 }

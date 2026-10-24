@@ -351,3 +351,18 @@ func TestHelpConfigExplainsLfmJSON(t *testing.T) {
 		t.Fatalf("%d %s", code, errs)
 	}
 }
+
+func TestTemplateHelp(t *testing.T) {
+	code, out, errs := run(t, "help", "template")
+	if code != 0 || errs != "" {
+		t.Fatalf("%d %s", code, errs)
+	}
+	for _, name := range []string{"dict", "script", "style", "eq", "ne", "lt", "le", "gt", "ge"} {
+		if !strings.Contains(out, "  "+name+" — ") {
+			t.Fatalf("missing helper %s: %s", name, out)
+		}
+	}
+	if !strings.Contains(out, ".urls") || !strings.Contains(out, "Optional paths") {
+		t.Fatal(out)
+	}
+}

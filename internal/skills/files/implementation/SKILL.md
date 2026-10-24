@@ -57,7 +57,12 @@ Make the core loop work with real content before any polish.
    FAQ answers); every destination into `urls`, except same-page `#fragment` links. The template renders
    them; it never repeats a literal. Templates are Go `html/template`: config numbers compare by value
    (`{{if ge .data.hours 6}}`) but there is no arithmetic, so store the values the first screen shows in
-   `data`, and compute the rest in the script. `build.browserData` lists the config paths the script needs
+   `data`, and compute the rest in the script. `lfm help template` lists helpers. Pass multiple
+   contexts to partials with `{{template "case" (dict "root" $ "case" .)}}`; read `.root.urls`
+   and `.case` inside. Guard optional paths directly with `{{with .data.note}}{{.}}{{end}}`
+   or `{{if .data.note}}{{.data.note}}{{end}}`; absent, null and empty values are allowed there.
+   `copy.machine` names up to three review passages with source locations and window-level signals;
+   revise the named signal (rhythm or wording) while preserving factual content. `build.browserData` lists the config paths the script needs
    (`"data.check"`); the script reads the same shape back:
    `JSON.parse(document.getElementById("product-data").textContent).data.check`. A value that
    depends on today (this month's task) renders a default that is true all year in HTML, and the script

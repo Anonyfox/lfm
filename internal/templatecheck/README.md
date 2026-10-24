@@ -21,7 +21,7 @@ adds URL registry/source checks at the same preflight moment. No second expressi
    `validation.stage` is `template` on early rejection and `html` after final analysis.
 
 Diagnostics use the shared `internal/diagnostic` format: stable rule ID, severity,
-source location, config path when known, explanation, fix and related JSON/definition
+source location, full referenced config path when known, explanation, fix and related JSON/definition
 locations. The default readable report carries every finding. Config values are not
 printed; paths, key names and types provide the evidence.
 
@@ -34,7 +34,7 @@ printed; paths, key names and types provide the evidence.
 | `template.browser-data` | Required error: invalid runtime-data selections, collected across all paths |
 | `template.render` | Required error: contextual HTML escaping or execution failure; rejected URL/value marker |
 | `template.inactive` | Warning: binding failures in dormant branches/short-circuited arguments |
-| `template.empty` | Warning: active empty strings/nulls, missing `index` keys, empty range/with |
+| `template.empty` | Warning: active empty strings/nulls, missing `index` keys, empty range or unguarded with |
 | `template.value` | Warning: direct object/array interpolation, formatting markers, definition overrides |
 | `template.unused` | Warning: unconsumed authored JSON leaves or uncalled nonempty definitions/partials |
 | `jsonld.bindings` | Required error: invalid/self/missing JSON-LD references, unsupported template programs or root shape |
@@ -47,8 +47,9 @@ rules accept only `error`; they protect execution rather than style preferences.
 ## Usage and emptiness
 
 - Explicit `false` and zero are valid; tests/branches do not produce empty-output
-  warnings merely for selecting the false case. Empty optional sections may be
-  intentional: use the advisory override if that is the product's policy.
+  warnings merely for selecting the false case. Direct `if .data.note` and
+  `with .data.note` guards allow an absent, null or empty path without a binding
+  or empty-section warning. Wrong parent types still fail. JSON-LD stays strict.
 - Inactive branches count as usage and their binding issues warn. Undefined partial
   calls remain hard even when inactive: HTML contextual escaping inspects both arms.
 - Empty collections provide no item schema. Warn once about the empty range; inspect
@@ -59,9 +60,9 @@ rules accept only `error`; they protect execution rather than style preferences.
   selections count as used, including JS-only values. Injected defaults do not create
   unused warnings; only authored config/dataset leaves do.
   Resolved `jsonld` and its referenced leaves/subtrees count as compiler consumption.
-- Field/variable/index paths retain provenance. Opaque transformations (e.g. printf,
-  slice, comparisons) conservatively consume referenced subtrees; this avoids false
-  unused warnings but can hide stale children behind those operations.
+- Field/variable/index paths and `dict` members retain provenance, including partial
+  arguments and `$` aliases. Opaque transformations (e.g. printf, slice, comparisons)
+  conservatively consume referenced subtrees; this avoids false unused warnings but can hide stale children behind those operations.
 - Reserved config keys have exact casing; arbitrary keys belong under `data`/`links`.
   JSON numbers remain `json.Number`, matching the existing renderer. `printf "%s"`
   prints their original representation; `eq`, `ne`, `lt`, `le`, `gt` and `ge` are
@@ -71,8 +72,10 @@ rules accept only `error`; they protect execution rather than style preferences.
 
 - `sources.go`: JSON token locations, duplicate keys and path utilities.
 - `template.go`: parse/merge partials, rule catalog and safe contextual rendering.
-- `assets.go`: bind script/style helper calls to their original template file;
-  dry probes and final rendering share the compiler-supplied helper functions.
+- `assets.go`: share helper registration, `dict` validation and no-argument method
+  lookup; bind script/style calls to their original file and direct optional guards
+  to safe lookups. Dry probes and final rendering share the same helpers.
+- `help.go`: enumerate the registered helpers with purposes and examples.
 - `check.go`: scope/control-flow walk and output-value checks.
 - `eval.go`, `probe.go`: reference tracing plus standard Go command evaluation.
 - `usage.go`: browserData paths, consumption accounting and unused findings.
@@ -93,3 +96,10 @@ go test ./internal/compile -run 'TestMapping|TestConfigProblems'
 go test ./internal/templatecheck -run '^$' -fuzz FuzzBindingsMatchGo -fuzztime 15s
 go test ./internal/templatecheck -run '^$' -bench Preflight -benchmem
 ```
+
+`dict "root" $ "case" .` passes multiple contexts to a partial without copying
+config values. The runtime map and checker share argument validation (string keys,
+even argument count). Missing paths show available keys at the deepest resolved
+object, ordered by spelling distance with alphabetical ties and capped at eight.
+`lfm help template` enumerates the runtime helper map, including asset helpers and
+numeric comparisons; `.urls` is a data map rather than a helper.

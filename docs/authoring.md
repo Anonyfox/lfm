@@ -63,7 +63,7 @@ Each `data/<name>.json` becomes `.data.<name>`; a name already in `lfm.json` is 
 ## The template
 
 `index.html.tmpl` is Go [`html/template`](https://pkg.go.dev/html/template): values are escaped for their
-context automatically. Every value the template uses must exist; missing or wrongly shaped values, unused
+context automatically. Every unguarded value the template uses must exist; missing or wrongly shaped values, unused
 config fields and invalid paths are reported with their source location before anything renders.
 
 ```gotemplate
@@ -72,6 +72,32 @@ config fields and invalid paths are reported with their source location before a
 {{range .data.faq}}<details><summary>{{.question}}</summary>{{.answer}}</details>{{end}}
 {{template "partials/footer.html.tmpl" .}}
 ```
+
+Run `lfm help template` for the helper list, purposes and examples. `script` and `style` bundle
+assets; `dict` builds a map from string-key/value pairs. The numeric comparison helpers `eq`, `ne`,
+`lt`, `le`, `gt` and `ge` compare JSON numbers exactly. `.urls` is data, not a function.
+
+Partials receive one context. Pass several without copying data into each record:
+
+```gotemplate
+{{range .data.cases}}{{template "case" (dict "root" $ "case" .)}}{{end}}
+{{define "case"}}<a href="{{.root.urls.checkout}}">{{.case.title}}</a>{{end}}
+```
+
+References through `dict`, `$` and variables count as usage of the original fields; unrelated fields
+remain eligible for unused warnings. `dict` requires alternating string keys and values.
+
+A direct field selection in `if` or `with` declares an optional path:
+
+```gotemplate
+{{with .data.note}}<p>{{.}}</p>{{end}}
+{{if .data.note}}<p>{{.data.note}}</p>{{end}}
+```
+
+The path (including a missing parent object) may be absent, null or empty without a binding or
+empty-section warning. A present parent with the wrong type still fails. The guard applies to that
+path; unrelated missing references still report. Keep the guard around the output; selecting the
+missing value into a variable before the guard remains an error. Optionality does not apply to JSON-LD.
 
 The compiler emits the JSON-LD block from `jsonld` itself; do not write one by hand. String values may select
 config values: `"name": "{{.title}}"`. A whole-value reference keeps numbers, booleans, arrays and objects.

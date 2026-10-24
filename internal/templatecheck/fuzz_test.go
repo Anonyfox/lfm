@@ -15,7 +15,7 @@ import (
 func FuzzTemplatePipeline(f *testing.F) {
 	config := `{"title":"T","data":{"items":[{"name":"a"},{"name":""}],"n":3,"on":true,"url":"https://example.org/","html":"<b>"}}`
 	for _, source := range []string{
-		`{{.title}}`, `{{range .data.items}}{{.name}}{{else}}none{{end}}`, `{{with .data.missing}}{{.}}{{end}}`, `{{if .data.on}}{{.data.n}}{{end}}`,
+		`{{dict "root" $ "case" .data}}`, `{{dict "odd"}}`, `{{dict 1 .}}`, `{{with $.data.absent.child}}{{.}}{{end}}`, `{{.title}}`, `{{range .data.items}}{{.name}}{{else}}none{{end}}`, `{{with .data.missing}}{{.}}{{end}}`, `{{if .data.on}}{{.data.n}}{{end}}`,
 		`{{define "card"}}{{.name}}{{end}}{{range .data.items}}{{template "card" .}}{{end}}`, `{{block "x" .}}{{.title}}{{end}}`,
 		`{{define "r"}}{{template "r" .}}{{end}}{{template "r" .}}`, `{{range 3}}{{.}}{{end}}`, `{{range 9}}{{range 9}}{{end}}{{end}}`, `{{range $i, $x := .data.items}}{{$i}}{{$x.name}}{{break}}{{end}}`,
 		`<a href="{{.data.url}}">x</a><script>var x = {{.data}};</script><style>a{color:{{.data.html}}}</style>`, `{{printf "%v %d" .data.n .title}}`,

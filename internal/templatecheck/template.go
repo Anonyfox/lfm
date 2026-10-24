@@ -40,7 +40,7 @@ func Catalog() []diagnostic.RuleInfo {
 		{
 			ID:       "template.bindings",
 			Summary:  "Active template paths exist in the config and have the shape each action expects",
-			Help:     "Raised when a reachable action reads a missing field, ranges over a non-collection, calls an undefined template, applies an invalid operation, recurses without progress or exceeds the analysis limits. Rendering this would print blanks or fail for visitors. Fix the spelling, add the value to lfm.json or data, or guard an optional value with if/with.",
+			Help:     "Raised when a reachable action reads a missing field, ranges over a non-collection, calls an undefined template, applies an invalid operation, recurses without progress or exceeds the analysis limits. Rendering this would print blanks or fail for visitors. Fix the spelling, add the value to lfm.json or data, or guard an optional path directly with if/with (for example {{with .data.note}}{{.}}{{end}}); an absent, null or empty guarded path is allowed, but wrong parent types still fail.",
 			Required: true,
 		},
 		{
@@ -62,8 +62,8 @@ func Catalog() []diagnostic.RuleInfo {
 		},
 		{
 			ID:      "template.empty",
-			Summary: "Rendered empty values, missing index keys and empty range or with sections",
-			Help:    "An action outputs an empty string or null, index selects a missing map key, or a range or with section renders nothing. Visitors see a gap, and bindings inside an empty section cannot be checked. Supply the content, or guard intentionally optional values with if/with; false and zero count as content. Turn this off only if empty sections are product policy.",
+			Summary: "Rendered empty values, missing index keys and empty range or unguarded with sections",
+			Help:    "An action outputs an empty string or null, index selects a missing map key, or a range or unguarded with section renders nothing. Direct if/with field guards allow absent, null and empty optional paths. Visitors see a gap, and bindings inside an empty section cannot be checked. Supply the content, or guard intentionally optional values with if/with; false and zero count as content. Turn this off only if empty sections are product policy.",
 		},
 		{
 			ID:      "template.value",
@@ -73,7 +73,7 @@ func Catalog() []diagnostic.RuleInfo {
 		{
 			ID:      "template.unused",
 			Summary: "Authored config and data values or template definitions that nothing uses",
-			Help:    "A config or data leaf is never read by the template, JSON-LD or browserData, or a nonempty define or partial is never called. Stale copy and prices tend to hide here and drift out of date. Remove the value or definition, reference it in the template, or list runtime-only values in build.browserData.",
+			Help:    "A config or data leaf is never read by the template, JSON-LD or browserData, or a nonempty define or partial is never called. Stale copy and prices tend to hide here and drift out of date. Remove the value or definition, reference it in the template, pass several contexts with dict (for example dict \"root\" $ \"case\" .), or list runtime-only values in build.browserData.",
 		},
 		{
 			ID:       "jsonld.bindings",

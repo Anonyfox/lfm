@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/term"
@@ -66,6 +67,10 @@ func commands() []command {
 // 2 a mistake in the command line, 130 interrupted.
 func Run(ctx context.Context, env Env, args []string) int {
 	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+		if len(args) == 2 && args[1] == "template" {
+			fmt.Fprint(env.Stdout, compile.TemplateHelp())
+			return 0
+		}
 		if len(args) > 1 && args[1] == "config" {
 			if len(args) > 3 {
 				fmt.Fprintln(env.Stderr, "lfm: help config takes at most one field")
@@ -162,7 +167,7 @@ func printHelp(w io.Writer) {
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Run 'lfm help <command>' or 'lfm <command> -h' for details,")
-	fmt.Fprintln(w, "and 'lfm help config [field]' for what lfm.json takes.")
+	fmt.Fprintln(w, "and 'lfm help config [field]' or 'lfm help template' for config and template references.")
 }
 
 func printCommandHelp(w io.Writer, c command) {

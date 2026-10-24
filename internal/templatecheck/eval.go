@@ -72,10 +72,59 @@ func (c *checker) command(command *parse.CommandNode, env *environment, previous
 	}
 	if name != "" {
 		for _, v := range traced {
-			c.consume(v, name != "len" && name != "index")
+			c.consume(v, name != "len" && name != "index" && name != "dict" && name != "__lfmOptional")
 		}
 	}
 	result := value{}
+	if name == "dict" {
+		rawArgs := make([]any, len(traced))
+		for i, v := range traced {
+			rawArgs[i] = v.raw
+		}
+		raw, err := dict(rawArgs...)
+		if err != nil {
+			c.issue("template.bindings", command, active, "", err.Error(), "Use dict followed by pairs such as dict \"root\" $ \"case\" .")
+			return value{unknown: true}
+		}
+		result.raw = raw
+		result.members = map[string]value{}
+		for i := 0; i < len(traced); i += 2 {
+			result.members[traced[i].raw.(string)] = traced[i+1]
+		}
+		return result
+	}
+	if name == "__lfmOptional" && len(traced) > 0 {
+		result = traced[0]
+		for _, field := range traced[1:] {
+			key, ok := field.raw.(string)
+			if !ok {
+				c.issue("template.bindings", command, active, result.path, "Optional path keys must be strings.", "Use a direct field selection in if/with.")
+				return value{unknown: true}
+			}
+			if result.members != nil {
+				if child, exists := result.members[key]; exists {
+					result = child
+				} else {
+					result = value{path: jsonsrc.Child(result.path, key)}
+				}
+				continue
+			}
+			c.consume(result, false)
+			object, ok := result.raw.(map[string]any)
+			if !ok && result.raw != nil && !result.unknown {
+				raw, err := optional(result.raw, key)
+				c.consume(result, true)
+				if err != nil {
+					c.issue("template.bindings", command, active, jsonsrc.Child(result.path, key), "Invalid optional path: "+safeExecutionError(err), "Check the enclosing scope and JSON shape.")
+					return value{unknown: true}
+				}
+				result = value{raw: raw}
+				continue
+			}
+			result = value{raw: object[key], path: jsonsrc.Child(result.path, key), origin: result.origin, unknown: result.unknown}
+		}
+		return result
+	}
 	if name == "" && len(traced) == 1 {
 		result = traced[0]
 	}
@@ -196,7 +245,7 @@ func (c *checker) argument(node parse.Node, env *environment, active bool) value
 }
 
 func (c *checker) fields(node parse.Node, v value, fields []string, active bool) value {
-	for _, field := range fields {
+	for i, field := range fields {
 		c.consume(v, false)
 		key := field
 		if v.origin {
@@ -206,29 +255,39 @@ func (c *checker) fields(node parse.Node, v value, fields []string, active bool)
 			v.path = key
 			continue
 		}
+		if child, ok := v.members[field]; ok {
+			v = child
+			continue
+		}
 		if object, ok := v.raw.(map[string]any); ok {
 			raw, exists := object[field]
 			if !exists {
-				c.issue("template.bindings", node, active, key, "Missing config value: "+key+".", missingHint(field, v.path, object))
+				if !active && c.guarded[fullPath(key, fields[i+1:])] > 0 {
+					return value{path: fullPath(key, fields[i+1:]), unknown: true}
+				}
+				c.issue("template.bindings", node, active, fullPath(key, fields[i+1:]), "Missing config value: "+fullPath(key, fields[i+1:])+".", missingHint(field, v.path, object))
 				return value{path: key, origin: v.origin, unknown: true}
 			}
 			v = value{raw: raw, path: key, origin: v.origin}
 			continue
 		}
-		// JSON numbers expose standard json.Number methods. The probe evaluates them
-		// using Go's own method/type rules; they are not config child fields.
-		if v.raw != nil && c.bindingPath == "" {
-			rv := reflect.ValueOf(v.raw)
-			if method := rv.MethodByName(field); method.IsValid() && method.Type().NumIn() == 0 {
+		if !active && v.raw == nil && c.guarded[fullPath(key, fields[i+1:])] > 0 {
+			return value{path: fullPath(key, fields[i+1:]), unknown: true}
+		}
+		// JSON numbers expose standard methods; they are not config child fields.
+		if c.bindingPath == "" {
+			raw, found, err := fieldMethod(v.raw, field)
+			if found {
 				c.consume(v, true)
-				results := method.Call(nil)
-				if len(results) > 0 {
-					v = value{raw: results[0].Interface()}
-					continue
+				if err != nil {
+					c.issue("template.bindings", node, active, key, "Invalid template method: "+safeExecutionError(err), "Check this value and the method's expected input.")
+					return value{unknown: true}
 				}
+				v = value{raw: raw}
+				continue
 			}
 		}
-		c.issue("template.bindings", node, active, key, "Cannot read "+key+" from "+typeName(v.raw)+".", "Check the enclosing with/range/template scope and the JSON shape; this binding needs an object.")
+		c.issue("template.bindings", node, active, fullPath(key, fields[i+1:]), "Cannot read "+fullPath(key, fields[i+1:])+" from "+typeName(v.raw)+".", "Check the enclosing with/range/template scope and the JSON shape; this binding needs an object. Available keys: (none).")
 		return value{path: key, origin: v.origin, unknown: true}
 	}
 	return v
@@ -236,7 +295,7 @@ func (c *checker) fields(node parse.Node, v value, fields []string, active bool)
 
 func (c *checker) index(node parse.Node, args []value, active bool) value {
 	v := args[0]
-	for _, index := range args[1:] {
+	for i, index := range args[1:] {
 		if v.unknown || index.unknown {
 			v.unknown = true
 			return v
@@ -247,10 +306,26 @@ func (c *checker) index(node parse.Node, args []value, active bool) value {
 			if !ok {
 				return value{}
 			}
+			if child, ok := v.members[key]; ok {
+				v = child
+				continue
+			}
 			raw, exists := container[key]
 			path := jsonsrc.Child(v.path, key)
-			if !exists && v.origin {
-				c.issue("template.empty", node, active, path, "index selects a missing map key: "+path+".", "Go's index returns null for absent map keys; check spelling or explicitly guard this optional lookup.")
+			if !exists {
+				requested := path
+			selectors:
+				for _, rest := range args[i+2:] {
+					switch key := rest.raw.(type) {
+					case string:
+						requested = jsonsrc.Child(requested, key)
+					case int:
+						requested = fmt.Sprintf("%s[%d]", requested, key)
+					default:
+						break selectors
+					}
+				}
+				c.issue("template.empty", node, active, requested, "index selects a missing map key: "+requested+".", missingHint(key, v.path, container))
 			}
 			v = value{raw: raw, path: path, origin: v.origin}
 		case []any:
@@ -275,7 +350,13 @@ func missingHint(field, parent string, object map[string]any) string {
 	for key := range object {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys)
+	sort.Slice(keys, func(i, j int) bool {
+		a, b := editDistance(strings.ToLower(field), strings.ToLower(keys[i])), editDistance(strings.ToLower(field), strings.ToLower(keys[j]))
+		if a != b {
+			return a < b
+		}
+		return keys[i] < keys[j]
+	})
 	best := ""
 	distance := 4
 	for _, key := range keys {
@@ -288,6 +369,9 @@ func missingHint(field, parent string, object map[string]any) string {
 	hint := "Add this key or fix the template path/scope."
 	if best != "" && distance <= max(1, min(3, (len(field)+2)/3)) {
 		hint += " Did you mean " + jsonsrc.Child(parent, best) + "?"
+	}
+	if len(keys) == 0 {
+		hint += " Available keys: (none)."
 	}
 	if len(keys) > 0 {
 		if len(keys) > 8 {
@@ -320,4 +404,11 @@ func editDistance(a, b string) int {
 		}
 	}
 	return row[len(bb)]
+}
+
+func fullPath(path string, fields []string) string {
+	for _, field := range fields {
+		path = jsonsrc.Child(path, field)
+	}
+	return path
 }

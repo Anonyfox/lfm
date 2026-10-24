@@ -14,6 +14,7 @@ import (
 )
 
 type value struct {
+	members         map[string]value
 	raw             any
 	path            string
 	origin, unknown bool
@@ -56,6 +57,7 @@ type checker struct {
 	commandVariables map[*parse.CommandNode]map[string]bool
 	steps            int
 	exhausted        bool
+	guarded          map[string]int
 	bindingPath      string // nonempty while evaluating a lfm.json JSON-LD leaf
 }
 
@@ -83,7 +85,7 @@ func Check(t *htmltemplate.Template, options Options) diagnostic.Summary {
 }
 
 func newChecker(options Options) *checker {
-	return &checker{locations: map[string]diagnostic.Source{}, options: options, seen: map[string]bool{}, exact: map[string]bool{}, whole: map[string]bool{}, reached: map[string]bool{}, stack: map[string]bool{}, probes: map[probeKey]*probe{}, commandVariables: map[*parse.CommandNode]map[string]bool{}}
+	return &checker{guarded: map[string]int{}, locations: map[string]diagnostic.Source{}, options: options, seen: map[string]bool{}, exact: map[string]bool{}, whole: map[string]bool{}, reached: map[string]bool{}, stack: map[string]bool{}, probes: map[probeKey]*probe{}, commandVariables: map[*parse.CommandNode]map[string]bool{}}
 }
 
 func (c *checker) add(d diagnostic.Diagnostic) {
@@ -141,6 +143,17 @@ func (c *checker) issue(rule string, node parse.Node, active bool, key, message,
 	c.add(d)
 }
 func (c *checker) consume(v value, whole bool) {
+	if v.members != nil {
+		if !c.tick(nil) {
+			return
+		}
+		if whole {
+			for _, child := range v.members {
+				c.consume(child, true)
+			}
+		}
+		return
+	}
 	if !v.origin {
 		return
 	}
@@ -213,7 +226,13 @@ func (c *checker) walk(t *htmltemplate.Template, list *parse.ListNode, env *envi
 			c.consume(v, true)
 			yes, _ := template.IsTrue(v.raw)
 			yes = yes && !v.unknown
+			if isOptional(n.Pipe) && !yes {
+				c.guarded[v.path]++
+			}
 			f := c.walk(t, n.List, scope.scope(!live || !yes), live && yes)
+			if isOptional(n.Pipe) && !yes {
+				c.guarded[v.path]--
+			}
 			other := c.walk(t, n.ElseList, scope.scope(!live || yes), live && !yes)
 			if live {
 				if yes {
@@ -233,10 +252,16 @@ func (c *checker) walk(t *htmltemplate.Template, list *parse.ListNode, env *envi
 			if !yes {
 				body.dot.unknown = true
 			}
-			if live && !yes && !v.unknown {
+			if live && !yes && !v.unknown && !isOptional(n.Pipe) {
 				c.issue("template.empty", n, true, v.path, "Empty with value skips its section.", "Confirm this section is optional; its child bindings cannot be verified without a nonempty sample.")
 			}
+			if isOptional(n.Pipe) && !yes {
+				c.guarded[v.path]++
+			}
 			f := c.walk(t, n.List, body, live && yes)
+			if isOptional(n.Pipe) && !yes {
+				c.guarded[v.path]--
+			}
 			other := c.walk(t, n.ElseList, scope.scope(!live || yes), live && !yes)
 			if live {
 				if yes {
@@ -292,7 +317,7 @@ func (c *checker) rangeNode(t *htmltemplate.Template, n *parse.RangeNode, env *e
 		}
 		sort.Strings(keys)
 		for _, key := range keys {
-			items = append(items, item{value{raw: key}, value{raw: v[key], path: jsonsrc.Child(collection.path, key), origin: collection.origin}})
+			items = append(items, item{value{raw: key}, mapItem(collection, key, v[key])})
 		}
 	default:
 		rv := reflect.ValueOf(v)
@@ -384,4 +409,19 @@ func typeName(v any) string {
 		return "null"
 	}
 	return reflect.TypeOf(v).String()
+}
+
+func isOptional(pipe *parse.PipeNode) bool {
+	if pipe == nil || len(pipe.Cmds) != 1 || len(pipe.Cmds[0].Args) == 0 {
+		return false
+	}
+	id, ok := pipe.Cmds[0].Args[0].(*parse.IdentifierNode)
+	return ok && id.Ident == "__lfmOptional"
+}
+
+func mapItem(collection value, key string, raw any) value {
+	if child, ok := collection.members[key]; ok {
+		return child
+	}
+	return value{raw: raw, path: jsonsrc.Child(collection.path, key), origin: collection.origin}
 }

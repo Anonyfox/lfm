@@ -76,3 +76,14 @@ benchmark) was left out: its register pulled the weights away from the genres lf
 Split long texts into 500-word chunks and keep sources as groups: an evaluation that mixes chunks of one
 source into training and test overstates accuracy. `TestGroups` prints feature medians per group.
 `testdata/` holds the licensed fixtures the regular tests run on; see `testdata/SOURCES.md`.
+
+## Passage reporting
+
+`Passages` ranks blocks by the decrease in their original window's score when
+omitted, with fixed window boundaries. If omission leaves fewer than 150 words,
+attribution is unavailable and its contribution is zero; ties retain source order.
+Signals belong to the window, since rhythm and vocabulary measurements depend on
+several paragraphs. This additional analysis is for reporting; `Analyze` and its
+thresholds are unchanged. The page check reports up to three excerpts with their
+nearest HTML source file and line (the compiled HTML when original source mapping
+is unavailable), plus window signals such as paragraph-length uniformity.

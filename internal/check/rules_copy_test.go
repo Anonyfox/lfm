@@ -2,6 +2,9 @@ package check
 
 import (
 	"crypto/sha256"
+	"fmt"
+	"html"
+	"os"
 	"strings"
 	"testing"
 )
@@ -284,5 +287,45 @@ func TestBudgetsFollowThePage(t *testing.T) {
 	// A release's inline copy of the first-screen rules is counted once.
 	if got := runOn(t, budgetsRule, css, "<p>x</p>", Options{ExternalCSSBytes: 20 << 10, CriticalCSSBytes: 20 << 10, Budgets: Budgets{CSSKiB: 40}}); len(got) != 0 {
 		t.Fatalf("the critical copy counted twice: %+v", got)
+	}
+}
+
+func TestMachinePassagesHaveLocationsAndExcerpts(t *testing.T) {
+	raw, err := os.ReadFile("../aitext/testdata/generated/opus-01.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var paragraphs []string
+	for _, block := range strings.Split(string(raw), "\n\n") {
+		if len(strings.Fields(block)) >= minMachineParagraph {
+			paragraphs = append(paragraphs, strings.Join(strings.Fields(block), " "))
+		}
+	}
+	var body strings.Builder
+	for _, paragraph := range paragraphs {
+		body.WriteString("\n<p>" + html.EscapeString(paragraph) + "</p>")
+	}
+	issues := runOn(t, copyMachineRule, "", body.String(), Options{File: "output/index.html"})
+	if len(issues) != 1 {
+		t.Fatalf("expected a generated fixture finding: %+v", issues)
+	}
+	issue := issues[0]
+	if len(issue.Related) == 0 || len(issue.Related) > 3 || !strings.Contains(issue.Message, "window signals:") {
+		t.Fatalf("%+v", issue)
+	}
+	for _, at := range issue.Related {
+		if at.File != "output/index.html" || at.Line < 2 || !strings.Contains(issue.Message, fmt.Sprintf("%s:%d", at.File, at.Line)) {
+			t.Fatalf("%+v", issue)
+		}
+	}
+	found := false
+	for _, paragraph := range paragraphs {
+		found = found || strings.Contains(issue.Message, preview(paragraph))
+	}
+	if !found {
+		t.Fatal("missing excerpts")
+	}
+	if got := runOn(t, copyMachineRule, "", "<p>Short factual copy.</p>", Options{}); len(got) != 0 {
+		t.Fatal(got)
 	}
 }

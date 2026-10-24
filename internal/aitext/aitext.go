@@ -669,3 +669,49 @@ func describe(i int, v, human float64) string {
 	}
 	return FeatureNames[i]
 }
+
+// Passage identifies a block's contribution within its original scoring window.
+// Signals describe that window: rhythm and vocabulary are collective measurements,
+// not proof that an individual paragraph was generated.
+type Passage struct {
+	Attributed   bool
+	Paragraph    int
+	Contribution float64
+	Signals      []Signal
+}
+
+// Passages ranks blocks by the decrease in their window's score when omitted.
+// Window boundaries stay fixed, so removing a block cannot move unrelated text.
+// If too little prose remains to score, attribution is unavailable (zero).
+// This reporting-only analysis never changes Analyze's estimate.
+func Passages(paragraphs []string, language string, limit int) []Passage {
+	if limit <= 0 {
+		return nil
+	}
+	var out []Passage
+	first := 0
+	for _, window := range windows(paragraphs) {
+		baseline := analyzeWindow(window, language)
+		if !baseline.scored {
+			first += len(window)
+			continue
+		}
+		for i := range window {
+			rest := make([]string, 0, len(window)-1)
+			rest = append(rest, window[:i]...)
+			rest = append(rest, window[i+1:]...)
+			without := analyzeWindow(rest, language)
+			contribution := 0.0
+			if without.scored {
+				contribution = baseline.Score - without.Score
+			}
+			out = append(out, Passage{Attributed: without.scored, Paragraph: first + i, Contribution: contribution, Signals: baseline.Signals})
+		}
+		first += len(window)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Contribution > out[j].Contribution })
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out
+}

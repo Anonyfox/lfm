@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
+	"github.com/Anonyfox/lfm/internal/project"
 )
 
 func helperHTML(script, style string) string {
@@ -200,5 +201,19 @@ func TestHelperConfigBindingsLoopsAndPipelines(t *testing.T) {
 	report, err := Compile(context.Background(), root, Options{Publish: true})
 	if err == nil || report.Validation == nil || report.Validation.Errors != 1 {
 		t.Fatalf("%v %+v", err, report.Validation)
+	}
+}
+
+func TestTemplateHelpDescribesRuntimeHelpers(t *testing.T) {
+	text := TemplateHelp()
+	for name := range newHelpers(project.Project{}).functions(false) {
+		if strings.HasPrefix(name, "__lfm") {
+			continue
+		}
+		prefix := "  " + name + " — "
+		start := strings.Index(text, prefix)
+		if start < 0 || strings.HasPrefix(text[start+len(prefix):], "\n") {
+			t.Fatalf("missing description for %s", name)
+		}
 	}
 }
