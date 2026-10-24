@@ -645,7 +645,7 @@ func (r *budgetReader) Read(p []byte) (int, error) {
 	allowance := min(len(p), 32<<10, r.budget.remaining)
 	r.budget.remaining -= allowance
 	if allowance > 0 {
-		r.budget.pending++
+		r.budget.pending += allowance
 	}
 	r.budget.mu.Unlock()
 	if allowance == 0 {
@@ -655,7 +655,7 @@ func (r *budgetReader) Read(p []byte) (int, error) {
 	n, err := r.Reader.Read(p[:allowance])
 	r.budget.mu.Lock()
 	r.budget.remaining += allowance - n
-	r.budget.pending--
+	r.budget.pending -= allowance
 	r.budget.ready.Broadcast()
 	r.budget.mu.Unlock()
 	return n, err
@@ -665,8 +665,7 @@ func (r *budgetReader) Read(p []byte) (int, error) {
 func (b *byteBudget) allowance(cap int) int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	for b.remaining == 0 && b.pending > 0 {
-		b.ready.Wait()
-	}
-	return min(cap, b.remaining)
+	// In-flight chunks have not been consumed yet and must not reduce a
+	// new file's allowance. Reads coordinate claims separately.
+	return min(cap, b.remaining+b.pending)
 }

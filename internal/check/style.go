@@ -130,19 +130,24 @@ func (d *Document) styles() *styleModel {
 // with the full selector, instead of every element for every rule.
 type elementIndex struct {
 	ids, classes, tags map[string][]*html.Node
+	attrs              map[string][]*html.Node
 	elements           []*html.Node
 	nodes              []*html.Node
 	keys               map[string]selectorKey
-	ancestors          map[*html.Node]uint64
+	ancestors          map[*html.Node]keySet
 }
 
 func newElementIndex(elements []*html.Node) *elementIndex {
-	x := &elementIndex{ancestors: make(map[*html.Node]uint64, len(elements)), elements: elements, keys: map[string]selectorKey{}, ids: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
+	x := &elementIndex{ancestors: make(map[*html.Node]keySet, len(elements)), elements: elements, keys: map[string]selectorKey{}, ids: map[string][]*html.Node{}, attrs: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
 	for _, n := range elements {
-		x.ancestors[n] = x.ancestors[n.Parent] | nodeKeys(n)
+		x.ancestorBits(n)
 		x.tags[n.Data] = append(x.tags[n.Data], n)
-		seenID, seenClass := map[string]bool{}, map[string]bool{}
+		seenID, seenClass, seenAttr := map[string]bool{}, map[string]bool{}, map[string]bool{}
 		for _, a := range n.Attr {
+			if name := asciiLower(a.Key); !seenAttr[name] {
+				seenAttr[name] = true
+				x.attrs[name] = append(x.attrs[name], n)
+			}
 			switch a.Key {
 			case "id":
 				if !seenID[a.Val] {
@@ -179,6 +184,8 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 		candidates = x.ids[name]
 	case '.':
 		candidates = x.classes[name]
+	case '[':
+		candidates = x.attrs[name]
 	case 't':
 		candidates = x.tags[name]
 	default:
@@ -203,7 +210,7 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 	var out []*html.Node
 	required := key.ancestors
 	for _, n := range candidates {
-		if required != 0 && x.ancestors[n.Parent]&required != required {
+		if required != (keySet{}) && !x.ancestorBits(n.Parent).has(required) {
 			continue
 		}
 		if sel.Match(n) {
@@ -214,7 +221,7 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 }
 
 type selectorKey struct {
-	ancestors uint64
+	ancestors keySet
 	kind      byte
 	name      string
 }
@@ -224,17 +231,25 @@ type selectorKey struct {
 // requirements inside functional pseudo-classes never become mandatory keys.
 func keySelector(selector string) (byte, string) {
 	lexer := css.NewLexer(parse.NewInputString(selector))
-	var id, class, tag string
+	var id, class, attr, tag string
 	depth := 0
 	var previous css.TokenType
 	namespace := false
-	reset := func() { id, class, tag = "", "", ""; previous = css.ErrorToken; namespace = false }
+	reset := func() { id, class, attr, tag = "", "", "", ""; previous = css.ErrorToken; namespace = false }
 	for {
 		typ, raw := lexer.Next()
 		if typ == css.ErrorToken {
 			break
 		}
 		if depth > 0 {
+			// The first identifier of a top-level [attribute] names the attribute.
+			if depth == 1 && previous == css.LeftBracketToken && typ == css.IdentToken && attr == "" {
+				attr = asciiLower(selectorIdent(string(raw)))
+			}
+			if typ == css.DelimToken && string(raw) == "|" && depth == 1 {
+				attr = "-" // namespaced attribute: no key
+			}
+			previous = typ
 			switch typ {
 			case css.FunctionToken, css.LeftParenthesisToken, css.LeftBracketToken:
 				depth++
@@ -288,6 +303,8 @@ func keySelector(selector string) (byte, string) {
 		return '#', id
 	case class != "":
 		return '.', class
+	case attr != "" && attr != "-":
+		return '[', attr
 	case tag != "":
 		return 't', asciiLower(tag)
 	}
@@ -713,77 +730,138 @@ type okColor = color.Color
 
 func colorsIn(v string) []okColor { return color.Parse(v) }
 
+// ancestorBits is the key filter of n and all its ancestors. Nodes outside the
+// indexed elements are computed on demand, so a partial index never drops keys.
+func (x *elementIndex) ancestorBits(n *html.Node) keySet {
+	if n == nil {
+		return keySet{}
+	}
+	if bits, ok := x.ancestors[n]; ok {
+		return bits
+	}
+	bits := x.ancestorBits(n.Parent).union(nodeKeys(n))
+	x.ancestors[n] = bits
+	return bits
+}
+
 // keyBits is a compact membership filter: collisions allow extra matches,
 // while a missing bit proves a required ancestor cannot be present.
-func keyBits(kind byte, name string) uint64 {
-	h := uint64(kind)
+type keySet [4]uint64
+
+func (k keySet) union(o keySet) keySet {
+	for i := range k {
+		k[i] |= o[i]
+	}
+	return k
+}
+
+// has reports whether every key bit of want is present in k.
+func (k keySet) has(want keySet) bool {
+	for i := range k {
+		if k[i]&want[i] != want[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func keyBits(kind byte, name string) keySet {
+	h := uint64(14695981039346656037) ^ uint64(kind)
 	for i := 0; i < len(name); i++ {
 		h = (h ^ uint64(name[i])) * 1099511628211
 	}
-	return uint64(1) << (h & 63)
+	var k keySet
+	k[h>>62] = uint64(1) << (h & 63)
+	return k
 }
-func nodeKeys(n *html.Node) uint64 {
+func nodeKeys(n *html.Node) keySet {
 	if n.Type != html.ElementNode {
-		return 0
+		return keySet{}
 	}
 	bits := keyBits('t', asciiLower(n.Data))
 	for _, a := range n.Attr {
 		if a.Key == "id" {
-			bits |= keyBits('#', a.Val)
+			bits = bits.union(keyBits('#', a.Val))
 		}
 		if a.Key == "class" {
 			for c := range strings.FieldsFuncSeq(a.Val, func(r rune) bool { return r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f' }) {
-				bits |= keyBits('.', c)
+				bits = bits.union(keyBits('.', c))
 			}
 		}
 	}
 	return bits
 }
 
-// ancestorKeys accepts only simple compounds and descendant/child combinators.
-// Unsupported syntax disables the filter for the entire selector.
-func ancestorKeys(selector string) uint64 {
-	selector = strings.TrimSpace(selector)
-	lexer := css.NewLexer(parse.NewInputString(selector))
-	var required, compound uint64
-	var dot bool
+// ancestorKeys returns the id, class and tag keys that every match must have
+// on some ancestor: the compounds left of a descendant or child combinator.
+// The subject compound and compounds before + or ~ apply to the element or a
+// sibling, so they are not required. Attribute selectors and pseudo-class
+// arguments are skipped; they only narrow a compound further. Selector lists
+// and namespaces disable the filter.
+func ancestorKeys(selector string) keySet {
+	lexer := css.NewLexer(parse.NewInputString(strings.TrimSpace(selector)))
+	var required, compound keySet
+	combinator := byte(0) // pending combinator between compounds
+	dot, pseudo := false, false
+	depth := 0
 	for {
 		typ, raw := lexer.Next()
-		switch typ {
-		case css.ErrorToken:
+		if typ == css.ErrorToken {
 			return required
-		case css.WhitespaceToken:
-			required |= compound
-			compound = 0
-			dot = false
+		}
+		if depth > 0 {
+			switch typ {
+			case css.FunctionToken, css.LeftParenthesisToken, css.LeftBracketToken:
+				depth++
+			case css.RightParenthesisToken, css.RightBracketToken:
+				depth--
+			}
+			continue
+		}
+		if typ == css.WhitespaceToken {
+			if combinator == 0 {
+				combinator = ' '
+			}
+			continue
+		}
+		if typ == css.DelimToken && (string(raw) == ">" || string(raw) == "+" || string(raw) == "~") {
+			combinator = raw[0]
+			continue
+		}
+		if combinator != 0 {
+			if combinator == ' ' || combinator == '>' {
+				required = required.union(compound)
+			}
+			compound, combinator = keySet{}, 0
+		}
+		switch typ {
+		case css.FunctionToken, css.LeftParenthesisToken, css.LeftBracketToken:
+			depth++
+		case css.ColonToken:
+			pseudo = true
+			continue
 		case css.DelimToken:
 			switch string(raw) {
-			case ">":
-				required |= compound
-				compound = 0
-				dot = false
 			case ".":
 				dot = true
+				continue
 			case "*":
-				dot = false
 			default:
-				return 0
+				return keySet{}
 			}
 		case css.HashToken:
-			compound |= keyBits('#', selectorIdent(string(raw[1:])))
-			dot = false
+			compound = compound.union(keyBits('#', selectorIdent(string(raw[1:]))))
 		case css.IdentToken:
-			kind := byte('t')
-			name := selectorIdent(string(raw))
-			if dot {
-				kind = '.'
-			} else {
-				name = asciiLower(name)
+			switch {
+			case pseudo:
+			case dot:
+				compound = compound.union(keyBits('.', selectorIdent(string(raw))))
+			default:
+				compound = compound.union(keyBits('t', asciiLower(selectorIdent(string(raw)))))
 			}
-			compound |= keyBits(kind, name)
-			dot = false
 		default:
-			return 0
+			return keySet{}
 		}
+		dot, pseudo = false, false
 	}
 }

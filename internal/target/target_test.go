@@ -212,7 +212,11 @@ func TestLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.Files[1].Truncated {
+	truncated := false
+	for _, f := range r.Files[1:] {
+		truncated = truncated || f.Truncated
+	}
+	if !truncated {
 		t.Fatal(r.Files)
 	}
 }
@@ -493,5 +497,35 @@ func TestDiscoveryWaves(t *testing.T) {
 	result := load(t, server.URL)
 	if len(result.Files) != 7 {
 		t.Fatal(result.Files)
+	}
+}
+
+func TestBudgetCountsReadBytes(t *testing.T) {
+	var page strings.Builder
+	for i := 0; i < 20; i++ {
+		fmt.Fprintf(&page, "<script src=/r%d.js></script>", i)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, page.String())
+			return
+		}
+		fmt.Fprint(w, "x")
+	}))
+	defer server.Close()
+	lim := defaultLimits
+	lim.total = page.Len() + 100
+	result, err := read(context.Background(), server.URL, "test", lim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Files) != 21 {
+		t.Fatal(result.Files)
+	}
+	for _, f := range result.Files {
+		if f.Error != "" || f.Truncated {
+			t.Fatal(f)
+		}
 	}
 }
