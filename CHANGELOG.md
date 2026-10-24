@@ -17,6 +17,8 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - `lfm check` on a localhost preview judges canonical, og:url, og:image and link findings against the page's declared canonical origin.
 - `design.palette` counts only colours the page uses, so unused framework variables (e.g. Bootstrap's `--bs-*`) no longer fire.
 - `copy.machine` skips tables and role=table/grid content.
+- New error rule `design.ground`: warm off-white page grounds (OKLCH L ≥ 0.88, C 0.004–0.045, hue 45–115°, e.g. cream, beige, ivory) and paper, parchment or notebook ground textures (SVG noise, ruled or squared lines, paper image files) fail the build in `lfm compile` and `lfm check`. `data-design-reason` does not exempt it. `concept.ground` rejects such colours in the concept palette; the cream-and-terracotta palette warning is replaced by these rules.
+- The reference example, the research skill's example palette and the design skill no longer show or suggest warm off-white or paper grounds.
 
 ## 0.1.8 (2026-10-24)
 
