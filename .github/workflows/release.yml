@@ -33,3 +33,5 @@ jobs:
           bin=$(find dist -type f -name lfm -path '*linux_amd64*' | head -1)
           "$bin" version | tee "$RUNNER_TEMP/version"
           grep -Eq "^lfm v?${GITHUB_REF_NAME#v}( |\$)" "$RUNNER_TEMP/version"
+      - name: archives are owned by root
+        run: sh scripts/archive-owner.sh dist/*.tar.gz

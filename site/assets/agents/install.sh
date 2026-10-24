@@ -70,16 +70,29 @@ if fetch "$base/$archive" "$tmp/$archive" && fetch "$base/checksums.txt" "$tmp/c
 	want="$(grep " $archive\$" "$tmp/checksums.txt" | cut -d' ' -f1)"
 	[ -n "$want" ] || fail "checksums.txt has no entry for $archive"
 	[ "$(sha256 "$tmp/$archive")" = "$want" ] || fail "checksum mismatch for $archive; nothing installed"
-	tar -xzf "$tmp/$archive" -C "$tmp" lfm
-	mv "$tmp/lfm" "$dir/lfm.new"
-	chmod 755 "$dir/lfm.new"
-	mv "$dir/lfm.new" "$dir/lfm"
+	# Ignore the archive's owner, and write a new file so it belongs to the
+	# installing user (root under sudo), not to the build machine's uid.
+	tar --no-same-owner -xzf "$tmp/$archive" -C "$tmp" lfm
+	rm -f "$dir/lfm.new"
+	install -m 755 "$tmp/lfm" "$dir/lfm.new"
+	if [ "$(id -u)" = 0 ]; then
+		chown 0:0 "$dir/lfm.new"
+	fi
+	mv -f "$dir/lfm.new" "$dir/lfm"
 elif ! go_install; then
 	fail "could not download $base/$archive, and Go 1.26 or newer is not available to build it"
 fi
 
-say "installed $("$dir/lfm" version) to $dir/lfm"
+installed="$("$dir/lfm" version)"
+say "installed $installed to $dir/lfm"
 case ":$PATH:" in
 *":$dir:"*) ;;
 *) say "$dir is not on PATH; add it, for example: export PATH=\"$dir:\$PATH\"" ;;
 esac
+found="$(command -v lfm || true)"
+if [ -n "$found" ] && [ "$found" != "$dir/lfm" ]; then
+	other="$("$found" version 2>/dev/null || echo "unknown version")"
+	if [ "$other" != "$installed" ]; then
+		say "warning: the shell runs $found ($other), not $dir/lfm ($installed), because it comes first on PATH; remove it or put $dir before it"
+	fi
+fi

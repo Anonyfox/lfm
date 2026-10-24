@@ -2,6 +2,8 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- Security: release archives now hold root-owned (0/0) entries instead of the build machine's uid 1001, and install.sh ignores the archive's owner, so a root install (sudo with `LFM_INSTALL_DIR`) writes a root-owned binary. CI checks both.
+- install.sh warns when another lfm of a different version comes first on PATH, with both paths and versions.
 - `lfm compile` updates untouched lfm skills written by an older release, including shared folders above the project, and names the folder it updated.
 - New projects ignore `qa/` for review state such as screenshots and logs.
 - copy.machine names the passages that drive its estimate, with location, excerpt and measured signals.

@@ -29,7 +29,7 @@ jobs:
       - name: staticcheck
         run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 -checks all ./...
       - name: shellcheck the installer
-        run: shellcheck -s sh install.sh
+        run: shellcheck -s sh install.sh scripts/*.sh
 
   test:
     strategy:
@@ -99,7 +99,15 @@ jobs:
           ./lfm init "$RUNNER_TEMP/smoke"
           ./lfm compile "$RUNNER_TEMP/smoke"
           test -f "$RUNNER_TEMP/smoke/output/index.html"
+      - name: install.sh as root and as a user
+        run: sh scripts/install-test.sh ./lfm
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
           args: check
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --snapshot --clean --skip=homebrew
+      - name: archives are owned by root
+        run: sh scripts/archive-owner.sh dist/*.tar.gz
