@@ -11,6 +11,10 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - Research minimums apply to every project's totals, whatever its first batch is called; a shortfall note waives voice and peer minimums alike and shows in the summary.
 - Imported research items keep their original fetch dates through an `Imported:` line.
 - Concept facts may cite an existing project file with a relative link.
+- `lfm check` on a folder without index.html, or on a bare URL path, says what to pass instead.
+- `lfm check` on a localhost preview judges canonical, og:url, og:image and link findings against the page's declared canonical origin.
+- `design.palette` counts only colours the page uses, so unused framework variables (e.g. Bootstrap's `--bs-*`) no longer fire.
+- `copy.machine` skips tables and role=table/grid content.
 
 ## 0.1.8 (2026-10-24)
 
