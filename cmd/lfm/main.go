@@ -25,6 +25,10 @@ func run() int {
 	scratch.Start()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	// The first signal cancels the running command, whose return runs the
+	// cleanup; restoring the default handler lets a second one end the
+	// process at once, and the next start prunes what it left.
+	go func() { <-ctx.Done(); stop() }()
 	defer scratch.Cleanup()
 	if info, ok := debug.ReadBuildInfo(); ok && version == "dev" {
 		if info.Main.Version != "" && info.Main.Version != "(devel)" {

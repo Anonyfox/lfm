@@ -4,7 +4,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 - Concepts support restrained, balanced and immersive motion intensity; existing concepts stay restrained.
 - Design and implementation skills plan media per immersive section and describe video loops, scroll scenes and image sequences with reduced-motion fallbacks.
-- compile, check and release no longer leave scratch in the temp directory: working folders are cleaned on exit, stale owned scratch is pruned after six hours, and review artifacts and LibreOffice verdicts use bounded user caches.
+- compile, check and release no longer leave files in the temp directory. Working folders are removed on every exit, including errors and Ctrl-C, and lfm's own leftovers older than six hours are removed at start. Release screenshots, Lighthouse reports and LibreOffice verdicts move to the user cache (`lfm/` under `~/.cache` on Linux, `~/Library/Caches` on macOS), at most 128 per kind and 30 days.
 - `design.media` warns about media-less immersive sections; `perf.video` warns about eager video and incomplete autoplay attributes.
 - `perf.budgets` adds configurable image (3000 KiB), video (8000 KiB) and first-screen media (400 KiB) budgets; only autoplay or preload=auto video sources count toward the first screen.
 - The reference example documentation includes an immersive variant.

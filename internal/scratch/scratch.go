@@ -17,9 +17,9 @@ var state struct {
 var once sync.Once
 var legacy = regexp.MustCompile(`^(lfm-frames-[0-9a-f]{12}|lfm-lighthouse-[0-9a-f]{12}\.json|lfm-libreoffice)$`)
 
-// Prune removes only owned, known scratch names older than six hours.
-func Prune() {
-	entries, _ := os.ReadDir(os.TempDir())
+// Prune removes only owned, known scratch names in dir older than six hours.
+func Prune(dir string) {
+	entries, _ := os.ReadDir(dir)
 	for _, entry := range entries {
 		name := entry.Name()
 		known := legacy.MatchString(name)
@@ -31,18 +31,23 @@ func Prune() {
 		}
 		info, err := entry.Info()
 		if err == nil && owned(info) && time.Since(info.ModTime()) > 6*time.Hour {
-			_ = os.RemoveAll(filepath.Join(os.TempDir(), name))
+			_ = os.RemoveAll(filepath.Join(dir, name))
 		}
 	}
 }
 
-// Start prunes once per process.
-func Start() { once.Do(Prune) }
+// Start prunes the system temp directory once per process.
+func Start() { once.Do(func() { Prune(os.TempDir()) }) }
 
-// Dir creates and registers an ephemeral directory.
-func Dir(prefix string) (string, error) {
+// Dir creates and registers an ephemeral directory in the system temp
+// directory.
+func Dir(prefix string) (string, error) { return DirIn("", prefix) }
+
+// DirIn creates and registers an ephemeral directory in parent ("" for the
+// system temp directory).
+func DirIn(parent, prefix string) (string, error) {
 	Start()
-	path, err := os.MkdirTemp("", "lfm-"+prefix+"-")
+	path, err := os.MkdirTemp(parent, "lfm-"+prefix+"-")
 	if err == nil {
 		register(path)
 	}

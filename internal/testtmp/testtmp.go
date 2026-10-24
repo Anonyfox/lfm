@@ -16,8 +16,14 @@ import (
 func Main(m *testing.M, setup ...func(string) error) {
 	os.Unsetenv("FORCE_COLOR")
 	os.Setenv("NO_COLOR", "1")
-	scratch.Start()
-	dir, err := scratch.Dir("tests")
+	// /tmp before the system temp directory: esbuild reads every directory
+	// above a project on each build, and a macOS user temp directory can
+	// hold a hundred thousand entries that slow every compile tenfold.
+	scratch.Prune("/tmp")
+	dir, err := scratch.DirIn("/tmp", "tests")
+	if err != nil {
+		dir, err = scratch.Dir("tests")
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

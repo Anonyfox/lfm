@@ -30,7 +30,7 @@ func TestPruneKnownOwnedScratch(t *testing.T) {
 	if err := os.Mkdir(fresh, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	Prune()
+	Prune(os.TempDir())
 	for _, name := range names {
 		_, err := os.Stat(filepath.Join(os.TempDir(), name))
 		if ownedInfo(t, fresh) && !os.IsNotExist(err) {
