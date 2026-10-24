@@ -56,12 +56,19 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 	}
 	// No deadline on the browser itself: a large release prints for longer
 	// than any fixed limit; each tab has its own.
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, abort := context.WithCancelCause(ctx)
+	cancel := func() { abort(nil) }
 	opts := BrowserOptions(path)
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, cancelBrowser := chromedp.NewContext(alloc)
 	p.stop = func() { cancelBrowser(); cancelAlloc(); cancel(); p.server.Close() }
-	if err := chromedp.Do(browser); err != nil { // starts the browser once
+	// The first command owns Chrome's lifetime. Abort that lifetime only on
+	// startup timeout; a successful startup leaves it available for later tabs.
+	if _, err := browserStep(browser, "start rendering browser", tabTime, func(step context.Context) (bool, error) {
+		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
+		defer stop()
+		return true, chromedp.Do(browser)
+	}); err != nil {
 		p.stop()
 		return nil, fmt.Errorf("start Chrome: %w", err)
 	}

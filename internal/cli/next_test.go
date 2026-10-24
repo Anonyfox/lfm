@@ -71,14 +71,14 @@ func TestDeployAsksForTheCompressionTheReleaseMeasured(t *testing.T) {
 	}
 }
 
-func TestRefreshNotesGroupByFolder(t *testing.T) {
-	changes := []skills.Change{
-		{Name: "lfm-design", Path: "/s/.agents/skills/lfm-design/SKILL.md", Reason: "was lfm 0.1.7"},
-		{Name: "lfm-research", Path: "/s/.agents/skills/lfm-research/SKILL.md", Reason: "was lfm 0.1.7"},
-		{Name: "lfm-design", Path: "/home/.claude/skills/lfm-design/SKILL.md", Reason: "was lfm 0.1.6"},
+func TestOutdatedNotesGroupByFolder(t *testing.T) {
+	changes := []skills.Copy{
+		{Name: "lfm-design", Path: "/s/.agents/skills/lfm-design/SKILL.md", State: skills.Outdated},
+		{Name: "lfm-research", Path: "/s/.agents/skills/lfm-research/SKILL.md", State: skills.Outdated},
+		{Name: "lfm-design", Path: "/home/.claude/skills/lfm-design/SKILL.md", State: skills.Outdated},
 	}
-	got := refreshNotes("/s/pages/home", changes)
-	want := []string{"Updated 2 lfm skills in ../../.agents/skills (was lfm 0.1.7).", "Updated 1 lfm skill in ../../../home/.claude/skills (was lfm 0.1.6)."}
+	got := nextStep(compile.Result{Root: "/s/pages/home"}, nil, changes).Notes
+	want := []string{"lfm skills in ../../.agents/skills are outdated; 'lfm skills install /s' updates them.", "lfm skills in ../../../home/.claude/skills are outdated; 'lfm skills install /home' updates them."}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("%q", got)
 	}

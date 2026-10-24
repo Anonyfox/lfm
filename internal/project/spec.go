@@ -44,7 +44,7 @@ var Spec = []Field{
 	{Path: "title", Kind: String, Required: true, Doc: "The page title, shown in the browser tab, search results and share previews.", Example: `"Keep your sourdough alive"`},
 	{Path: "description", Kind: String, Required: true, Doc: "One sentence for search results and share previews: who it is for and what they get.", Example: `"The jar check and the rescue feeding for a starter that smells wrong."`},
 	{Path: "socialImage", Kind: Object, Doc: "The share preview image."},
-	{Path: "socialImage.src", Kind: String, Doc: "Project path of the image, 1200×630 pixels.", Example: `"assets/images/share.jpg"`},
+	{Path: "socialImage.src", Kind: String, Doc: "Project path of a 1200×630 PNG/JPEG, or an HTML card rendered by compile at 1200×630 CSS pixels. Relative card assets are bundled; Chrome is required for the first render.", Example: `"assets/images/share.jpg"`},
 	{Path: "socialImage.alt", Kind: String, Doc: "What the image shows, for people who cannot see it.", Example: `"A jar of starter on a kitchen shelf"`},
 	{Path: "social", Kind: Object, Doc: "Optional social account attribution."},
 	{Path: "social.x", Kind: String, Doc: "The page's X (Twitter) handle: 1–15 ASCII letters, digits or underscores, with or without @; normalized to @handle and available as {{.social.x}}. Leave out or empty when unused. The compiler fills missing twitter:site and twitter:creator tags; authored tags are kept.", Example: `"@example"`},

@@ -82,6 +82,8 @@ func (st *stock) index() {
 			switch {
 			case strings.HasSuffix(path, ".pdf"):
 				key = stampOfFile(path)
+			case strings.HasSuffix(path, ".png"):
+				key = tailStampOfFile(path, socialPNGStamp)
 			case strings.HasSuffix(path, ".jpg"):
 				key = jpegStampOfFile(path)
 			case strings.HasSuffix(path, ".xlsx"):
@@ -109,7 +111,7 @@ func (pr *press) wait() {
 
 // stampOf is the key any stamped print or build carries.
 func stampOf(data []byte) string {
-	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, spreadsheet.Stamp, zipx.Stamp} {
+	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, socialPNGStamp, spreadsheet.Stamp, zipx.Stamp} {
 		if key := of(data); key != "" {
 			return key
 		}

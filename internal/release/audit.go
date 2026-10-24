@@ -27,6 +27,7 @@ const LighthouseSetup = "Install Node >=22.19 and run npm install -g lighthouse@
 const BrowserSetup = "Install Chrome/Chromium or a Chromium headless shell in PATH (Debian: apt install chromium), or set LFM_CHROME to its executable; retry --release."
 
 type AuditResult struct {
+	Reused      string                  `json:"reusedFrom,omitempty"`
 	Delivery    Delivery                `json:"delivery"`
 	Runtime     *RuntimeResult          `json:"runtime,omitempty"`
 	Lighthouse  *LighthouseResult       `json:"lighthouse"`
@@ -82,7 +83,9 @@ type AuditFinding struct {
 }
 
 func Audit(ctx context.Context, target Target, root string) *AuditResult {
-	return audit(ctx, target, root, net.Listen)
+	return cachedAuditRun(ctx, target, root, func(ctx context.Context, target Target, root string) *AuditResult {
+		return audit(ctx, target, root, net.Listen)
+	})
 }
 
 func audit(ctx context.Context, target Target, root string, listen func(string, string) (net.Listener, error)) *AuditResult {

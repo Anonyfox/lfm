@@ -45,10 +45,8 @@ func measureLighthouse(ctx context.Context, run func(context.Context) *Lighthous
 	first := run(ctx)
 	first.Runs = 1
 	retry := false
-	for _, group := range [][]AuditFinding{first.Findings, first.Info} {
-		for _, f := range group {
-			retry = retry || timingAudit(f.ID)
-		}
+	for _, f := range first.Findings {
+		retry = retry || timingAudit(f.ID)
 	}
 	if first.Status != "ok" || !retry {
 		return first

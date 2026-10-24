@@ -76,7 +76,8 @@ Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.
 
 The report ends with the next step: the missing phase (research, design,
 implementation, or a deliverable's), the findings to resolve, the release
-review, or deploy; it names the skill that covers it.
+review, or deploy; it names the skill that covers it. Compile never writes skills;
+after an upgrade, run the printed lfm skills install command to update them.
 --json prints the same result, findings and next step as one JSON object.
 Exit status: 0 when output/ was written; 1 when errors kept it unchanged or
 there is no project to compile; 2 for a mistake in the command line.`,
@@ -107,12 +108,8 @@ there is no project to compile; 2 for a mistake in the command line.`,
 			return err
 		}
 		data := skills.NewData(env.Build.Version)
-		installed, refreshed, rerr := skills.Refresh(skills.Find(result.Root, data), data)
+		installed := skills.Find(result.Root, data)
 		next := nextStep(result, err, installed)
-		next.Notes = append(next.Notes, refreshNotes(result.Root, refreshed)...)
-		if rerr != nil {
-			next.Notes = append(next.Notes, "Could not update the lfm skills: "+rerr.Error())
-		}
 		if p.has("json") {
 			if jerr := printJSON(env.Stdout, result, next, installed); jerr != nil {
 				return jerr

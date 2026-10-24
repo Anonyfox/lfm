@@ -6,7 +6,8 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
 Run `lfm skills install` once. It puts the research, design, implementation, book, printable, spreadsheet, document and deck skills where your
 agent loads them (`.agents/skills`, or `.claude/skills` under Claude Code); run it again after
-updating lfm. Without installed skills, `lfm skills <topic>` prints the one you need.
+updating lfm. Compile never writes skill files; run its printed `lfm skills install` command to update
+older copies. Without installed skills, `lfm skills <topic>` prints the one you need.
 
 Then run `lfm compile`. Its last line names the next step (research, design, implementation, fix,
 review or deploy) and the skill that covers it. Follow that line until it says deploy.

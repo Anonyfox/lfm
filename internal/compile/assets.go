@@ -53,7 +53,7 @@ func (b *builder) assetPath(ref, directory string) (string, *url.URL, error) {
 }
 
 func (b *builder) mode(path string) string {
-	rel, _ := filepath.Rel(b.root, path)
+	rel := b.project.Rel(path)
 	if override := b.config.Build.Assets.Overrides[filepath.ToSlash(rel)]; override != "" {
 		return override
 	}
@@ -72,6 +72,12 @@ func (b *builder) resource(ref, directory string, forceFile bool) (string, error
 	path, u, err := b.assetPath(ref, directory)
 	if err != nil {
 		return "", err
+	}
+	if strings.EqualFold(filepath.Ext(path), ".html") && b.config.SocialImage.Src != "" {
+		card, _, e := b.assetPath(b.config.SocialImage.Src, b.root)
+		if e == nil && card == path {
+			return b.cardResource(path)
+		}
 	}
 	contents, err := os.ReadFile(path)
 	if err != nil {

@@ -42,6 +42,9 @@ printable`, `lfm skills spreadsheet`, `lfm skills document` and `lfm skills deck
 binary exactly. The last five are for what the page sells, in `deliverables/book/`, `deliverables/printable/`,
 `deliverables/spreadsheet/`, `deliverables/document/` and `deliverables/deck/`.
 
+Compile never writes skill files. After upgrading lfm, run the printed `lfm skills install` command
+for each folder with older copies. Edited copies require `--force` to replace.
+
 ## 4. Follow the compiler
 
 Run `lfm compile`. The report ends with `Next (<phase>): …` and the skill for that phase. Do that step,

@@ -142,8 +142,9 @@ canonical sitemap and, at the host root, robots.txt; private download paths stay
 **Sharing.** Decide the shared object (a result, comparison, plan or challenge), who receives it and what
 they do next. Put only public state in the URL with `URLSearchParams`, restore it on load and handle bad
 input; the canonical never changes. The social image shows the offer at thumbnail size with its alt text;
-a card drawn in HTML keeps its source in the project (for example `assets/share/card.html`) so it can be
-rendered again at 1200×630.
+for an HTML card, keep its source in the project (for example `assets/share/card.html`) and set
+`socialImage.src` to that path. Compile renders it at 1200×630 with Chrome and reuses unchanged renders;
+no screenshot script is needed.
 Offer the share after value appears, show what will be shared, and never gate a promised result behind it.
 Add platform cards (X player, Discord, Farcaster, Snapchat) only when the audience is there; the compiler
 checks their metadata. Set `social.x` to the page’s X handle when known; the compiler fills missing

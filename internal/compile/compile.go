@@ -137,6 +137,7 @@ type emitted struct {
 // builder carries the state of the assemble stage. esbuild plugin callbacks
 // run concurrently, so shared maps are guarded by mu.
 type builder struct {
+	cards           map[string]string
 	ctx             context.Context // a cancelled compile stops its browsers
 	project         project.Project
 	root            string
@@ -238,13 +239,20 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		return result, err
 	}
 
+	for _, d := range b.notices {
+		if d.Severity == diagnostic.Error {
+			result.revalidate("assemble", b.notices, c.Build.Validation.Rules)
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+
 	if err := ctx.Err(); err != nil {
 		return result, err
 	}
 
 	// 4. optimize
 	if options.Release {
-		if err := b.optimize(doc, &result); err != nil {
+		if err := b.optimizeCached(doc, &result); err != nil {
 			return result, err
 		}
 	}

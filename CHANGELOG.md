@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.10 (2026-10-24)
+
+- Reverted automatic skill updates during compile: compile, serve and check never write skill files. After an upgrade, run the printed `lfm skills install` command; untouched older copies update without `--force`.
+- `socialImage.src` accepts an HTML card. Compile renders it through Chrome at 1200×630 and reuses the render while the card and its assets stay unchanged.
+- Release builds remeasure timing only for reported findings, and reuse critical CSS and artifact audits when the built bytes and tool versions stay unchanged. Reports show when an audit was reused; live URL checks always run fresh audits.
+
 ## 0.1.9 (2026-10-24)
 
 - Security: release archives now hold root-owned (0/0) entries instead of the build machine's uid 1001, and install.sh ignores the archive's owner, so a root install (sudo with `LFM_INSTALL_DIR`) writes a root-owned binary. CI checks both.

@@ -316,7 +316,7 @@ func TestNextStepOrder(t *testing.T) {
 		t.Errorf("deploy with book: %+v", n)
 	}
 	old := []skills.Copy{{Name: "lfm-design", Path: "/p/.agents/skills/lfm-design/SKILL.md", Version: "0.1", State: skills.Outdated}}
-	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm-design in .agents/skills is from lfm 0.1; 'lfm skills install /p' updates it.") {
+	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm skills in .agents/skills are outdated; 'lfm skills install /p' updates them.") {
 		t.Fatalf("%+v", n)
 	}
 }
@@ -364,5 +364,51 @@ func TestTemplateHelp(t *testing.T) {
 	}
 	if !strings.Contains(out, ".urls") || !strings.Contains(out, "Optional paths") {
 		t.Fatal(out)
+	}
+}
+
+func TestCompileNeverRefreshesSkills(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "project")
+	run(t, "init", root)
+	folder := filepath.Join(root, skills.AgentsDir)
+	if _, err := skills.Install(folder, skills.NewData("0.0.1"), false); err != nil {
+		t.Fatal(err)
+	}
+	parentFolder := filepath.Join(base, skills.ClaudeDir)
+	if _, err := skills.Install(parentFolder, skills.NewData("0.0.1"), false); err != nil {
+		t.Fatal(err)
+	}
+	parentFile := filepath.Join(parentFolder, "lfm-design", "SKILL.md")
+	parentBefore, err := os.ReadFile(parentFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(folder, "lfm-design", "SKILL.md")
+	before, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"compile", root}, {"compile", root, "--json"}} {
+		code, out, stderr := run(t, args...)
+		if code != 0 || !strings.Contains(out, "lfm skills install "+root) {
+			t.Fatalf("%d %s %s", code, out, stderr)
+		}
+		parentAfter, err := os.ReadFile(parentFile)
+		if err != nil || string(parentAfter) != string(parentBefore) {
+			t.Fatal("compile changed shared skills", err)
+		}
+		if !strings.Contains(out, "lfm skills install "+base) {
+			t.Fatal("missing shared folder command", out)
+		}
+		after, err := os.ReadFile(file)
+		if err != nil || string(after) != string(before) {
+			t.Fatal("compile changed skills", err)
+		}
+	}
+	code, _, stderr := run(t, "skills", "install", root)
+	after, _ := os.ReadFile(file)
+	if code != 0 || string(after) == string(before) {
+		t.Fatal("explicit install did not update", stderr)
 	}
 }

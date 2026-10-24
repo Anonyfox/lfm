@@ -10,7 +10,7 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `title` | string | required | The page title, shown in the browser tab, search results and share previews. Example: `"Keep your sourdough alive"`. |
 | `description` | string | required | One sentence for search results and share previews: who it is for and what they get. Example: `"The jar check and the rescue feeding for a starter that smells wrong."`. |
 | `socialImage` | object |  | The share preview image. |
-| `socialImage.src` | string |  | Project path of the image, 1200×630 pixels. Example: `"assets/images/share.jpg"`. |
+| `socialImage.src` | string |  | Project path of a 1200×630 PNG/JPEG, or an HTML card rendered by compile at 1200×630 CSS pixels. Relative card assets are bundled; Chrome is required for the first render. Example: `"assets/images/share.jpg"`. |
 | `socialImage.alt` | string |  | What the image shows, for people who cannot see it. Example: `"A jar of starter on a kitchen shelf"`. |
 | `social` | object |  | Optional social account attribution. |
 | `social.x` | string |  | The page's X (Twitter) handle: 1–15 ASCII letters, digits or underscores, with or without @; normalized to @handle and available as {{.social.x}}. Leave out or empty when unused. The compiler fills missing twitter:site and twitter:creator tags; authored tags are kept. Example: `"@example"`. |

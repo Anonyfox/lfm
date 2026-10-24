@@ -20,7 +20,7 @@ Findings carry a rule ID, the location, what is wrong and how to fix it; `lfm ru
 
 The report ends with the next step and the skill for it, in this order: fix errors; collect research when
 `research/` is empty; write `concept.md` when it is missing; replace the starter page; resolve warnings;
-run `--release` and review the frames; deploy. It also updates untouched lfm skills written by an older release (in the project and the folders above it) and notes copies the project changed.
+run `--release` and review the frames; deploy. It never writes skill files. After an upgrade, run the printed `lfm skills install` command to update older copies.
 `--json` prints the same result as one object (`errors`, `warnings`, `validation`, `next`, `skills`, and
 the build details) and keeps progress messages on stderr.
 
@@ -232,3 +232,15 @@ neither Chrome nor local sockets. Use `LFM_CHROME` and `LFM_LIGHTHOUSE` to selec
 only when the compiled page actually changed, keeping the scroll position. A failed compile shows its
 findings in the browser and keeps serving the last good page. The preview serves compiled files only, never
 sources, and injects its reload script into responses, never into `output/`.
+
+`socialImage.src` accepts a local HTML card as well as a PNG or JPEG. Compile bundles the card's relative
+images, fonts and CSS, renders it through Chrome at 1200×630 CSS pixels, and emits a hashed image URL.
+This also runs without `--release`; an unchanged card and its assets reuse the previous render in
+`output/`. Set `LFM_CHROME` if Chrome is not in PATH. A render has a 60-second tab timeout.
+
+Release optimization and audits are cached under the system user cache directory in `lfm/release/`.
+The keys include the served bytes, lfm build identity, Chrome and Lighthouse versions and audit settings.
+An unchanged artifact reuses its critical CSS decision, runtime/layout result and Lighthouse result; the
+report gives the original audit date. Changing any served byte or tool version requires a fresh audit.
+Live URLs checked with `lfm check --release` always run fresh audits. Cache failures do not block a build;
+entries expire after 30 days and at most 128 are kept.

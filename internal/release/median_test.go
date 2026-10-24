@@ -106,7 +106,7 @@ func TestDeterministicAuditsDoNotRetry(t *testing.T) {
 	}
 }
 
-func TestTimingDiagnosticIsInformationalAndRemeasured(t *testing.T) {
+func TestTimingDiagnosticDoesNotRemeasure(t *testing.T) {
 	calls := 0
 	result := measureLighthouse(context.Background(), func(context.Context) *LighthouseResult {
 		calls++
@@ -118,7 +118,7 @@ func TestTimingDiagnosticIsInformationalAndRemeasured(t *testing.T) {
 		}
 		return r
 	})
-	if calls != 3 || result.Runs != 3 || len(result.Findings) != 0 || len(result.Info) != 1 || len(LighthouseDiagnostics(result)) != 0 {
+	if calls != 1 || result.Runs != 1 || len(result.Findings) != 0 || len(result.Info) != 1 || len(LighthouseDiagnostics(result)) != 0 {
 		t.Fatal(calls, result)
 	}
 }
