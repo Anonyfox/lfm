@@ -35,13 +35,13 @@ jobs:
       - name: shellcheck the installer
         run: shellcheck -s sh install.sh scripts/*.sh
 
-  # The race tests run in three parallel package groups (scripts/test-group.sh);
-  # Codecov merges their coverage profiles.
+  # The race tests run in four parallel groups (scripts/test-group.sh), with the
+  # compile package split by test name; Codecov merges their coverage profiles.
   test:
     strategy:
       fail-fast: false
       matrix:
-        group: [compile, book, rest]
+        group: [compile-a, compile-b, book, rest]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
