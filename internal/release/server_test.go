@@ -34,7 +34,7 @@ func TestAuditListenFailureIsOneFinding(t *testing.T) {
 		t.Fatalf("findings: %+v", result.Diagnostics)
 	}
 	finding := result.Diagnostics[0]
-	if finding.Rule != "release.browser" || !strings.Contains(finding.Message, "no local port could be opened") || !strings.Contains(finding.Hint, "127.0.0.1") {
+	if finding.Severity != "error" || finding.Rule != "release.browser" || !strings.Contains(finding.Message, "no local port could be opened") || !strings.Contains(finding.Hint, "127.0.0.1") {
 		t.Fatalf("finding: %+v", finding)
 	}
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // LocalPortSetup explains how to let Chrome load pages from lfm.
-const LocalPortSetup = "Run lfm where it may listen on 127.0.0.1 (a sandbox may block local ports), then retry."
+const LocalPortSetup = "Release checks need loopback sockets to serve the page and connect to Chrome. Run outside the sandbox or allow listening and connections on 127.0.0.1, then retry --release."
 
 // ErrLocalPort means no loopback port could be opened for Chrome to load from.
 var ErrLocalPort = errors.New("no local port could be opened for Chrome to load the page from")

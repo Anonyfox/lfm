@@ -58,3 +58,14 @@ func TestCheckLiveBrowser(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 }
+
+func TestLiveTargetToolRoot(t *testing.T) {
+	target := Target{URL: "https://example.com/"}
+	project := t.TempDir()
+	if got := target.toolRoot(project); got != project {
+		t.Fatal(got)
+	}
+	if got := target.toolRoot(target.URL); got != "." {
+		t.Fatal(got)
+	}
+}

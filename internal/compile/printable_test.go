@@ -146,7 +146,7 @@ func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
 	}
 	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
 	if err != nil || !result.Bundle.Ready || len(result.Bundle.Channels) == 0 || result.Bundle.Images < 2 {
-		t.Fatalf("release: %v, %+v", err, result.Bundle)
+		t.Fatalf("release: %v, %+v; findings: %v", err, result.Bundle, findings(result, ""))
 	}
 	for _, want := range []string{"the-weekend-starter.epub", "maze-pack-a4.pdf", "maze-pack-letter.pdf"} {
 		if _, err := os.Stat(filepath.Join(dir, "output", bundlePath, want)); err != nil {

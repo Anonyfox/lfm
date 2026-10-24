@@ -25,10 +25,12 @@ func (t Target) serve(listen func(string, string) (net.Listener, error)) (destin
 	return server.URL + "/", server.URL, server.Close, nil
 }
 
-// toolRoot is the directory used to discover optional local audit tools.
+// toolRoot is the directory used to discover local audit tools.
 func (t Target) toolRoot(root string) string {
 	if t.URL != "" {
-		return "."
+		if info, err := os.Stat(root); err != nil || !info.IsDir() {
+			return "."
+		}
 	}
 	if info, err := os.Stat(root); err == nil && !info.IsDir() {
 		return filepath.Dir(root)

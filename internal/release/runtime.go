@@ -54,7 +54,7 @@ func auditRuntime(ctx context.Context, target Target, path, frames string, liste
 	defer cancel()
 	fail := func(err error) *RuntimeResult {
 		r.Reason = compact(err.Error(), 500)
-		r.Hint = BrowserSetup + " Check OS sandbox support and page startup time."
+		r.Hint = BrowserSetup + " " + LocalPortSetup + " Check OS sandbox support and page startup time."
 		return r
 	}
 	tab, cleanup, err := startAuditBrowser(ctx, path, proxy, "")

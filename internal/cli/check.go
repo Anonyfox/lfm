@@ -1,14 +1,20 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/target"
@@ -24,7 +30,8 @@ type checkRelease struct {
 }
 
 type checkResult struct {
-	Target string `json:"target"`
+	Target  string `json:"target"`
+	Project string `json:"project,omitempty"`
 	target.Result
 	Validation check.Report  `json:"validation"`
 	Release    *checkRelease `json:"release,omitempty"`
@@ -52,58 +59,106 @@ func pageRules(browser bool) ([]check.Rule, []skippedRule) {
 }
 
 var checkCommand = command{
-	name: "check", args: "<url | folder | file.html> [--release] [--json]",
+	name: "check", args: "[<url | folder | file.html>] [--project <dir>] [--release] [--json]",
 	summary: "Check any built page from a URL or disk",
 	details: `Checks any built page with the same rules compile runs on its own output,
 from any framework or host: HTML, links, SEO, sharing, accessibility, forms,
 performance, design defaults and copy. Rules that need an lfm project are
-listed as skipped. Config, templates, research, concept and deliverables
-are outside this command's scope.
+listed as skipped unless --project <dir> supplies their project context.
+With --project and no target, check that project's output/ and compare it with
+an in-memory compile of the current source to report stale files.
 
 An http(s) URL fetches the page and its embedded resources, including from
 localhost. A folder means index.html; a .html file uses its containing folder.
 Static checks execute nothing. --release adds runtime errors, the frame-by-frame
-layout walk and Lighthouse when installed. For URLs the browser visits the real
-page and runs its JavaScript, including analytics. Files use a sealed artifact server.
+layout walk and Lighthouse. Release needs installed Chrome and Lighthouse plus
+loopback sockets. For URLs the browser visits the real page and runs its JavaScript, including analytics. Files use a sealed artifact server.
 --json prints the same findings as the human report.
 Exit status: 0 with no errors (warnings allowed); 1 for findings with errors or
 an unreadable page; 2 for a mistake in the command line.`,
-	flags: []flagSpec{{name: "release", usage: "also run runtime, layout and Lighthouse checks"}, {name: "json", usage: "print the result as JSON instead of the report"}},
+	flags: []flagSpec{{name: "project", value: true, usage: "pair the built page with an lfm project"}, {name: "release", usage: "also run runtime, layout and Lighthouse checks"}, {name: "json", usage: "print the result as JSON instead of the report"}},
 	run:   runCheck,
 }
 
-func runCheck(ctx context.Context, env Env, p parsed) error {
-	if len(p.args) != 1 {
-		return usageError("lfm check takes exactly one URL, folder or .html file")
+func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
+	defer func() {
+		if resultErr != nil && !errors.Is(resultErr, errReported) && !errors.Is(resultErr, errUsage) && p.has("json") {
+			if err := printJSONError(env.Stdout, resultErr); err != nil {
+				resultErr = err
+			} else {
+				resultErr = errReported
+			}
+		}
+	}()
+	if len(p.args) > 1 || (len(p.args) == 0 && !p.has("project")) {
+		return usageError("lfm check takes one URL, folder or .html file, or --project <dir> without a target")
 	}
 	start := time.Now()
+	projectDir := ""
+	noTarget := len(p.args) == 0
+	if p.has("project") {
+		var err error
+		projectDir, err = filepath.Abs(p.flags["project"])
+		if err != nil {
+			return err
+		}
+		if noTarget {
+			p.args = []string{filepath.Join(projectDir, "output")}
+		}
+	}
 	input, err := target.Read(ctx, p.args[0], env.Build.Version)
 	if err != nil {
 		if errors.Is(err, target.ErrUsage) {
 			return usageError("%s", err)
-		}
-		if p.has("json") {
-			if err := printJSONError(env.Stdout, err); err != nil {
-				return err
-			}
-			return errReported
 		}
 		return err
 	}
 	browser := p.has("release")
 	rules, skipped := pageRules(browser)
 	doc := input.Document
-	r := checkResult{Target: p.args[0], Result: input, Validation: check.Run(doc, rules, nil), Skipped: skipped}
+	var overrides map[string]diagnostic.Severity
+	if projectDir != "" {
+		options, err := compile.ProjectCheckOptions(projectDir, input.Options)
+		if err != nil {
+			return err
+		}
+		doc, err = check.Parse(input.Page, options)
+		if err != nil {
+			return err
+		}
+		overrides = options.Rules
+		rules, skipped = check.DefaultRules(), nil
+		if !browser {
+			skipped = []skippedRule{{"release.*", "browser checks run with --release"}, {"lighthouse.*", "browser checks run with --release"}}
+		}
+	}
+	r := checkResult{Target: p.args[0], Project: projectDir, Result: input, Validation: check.Run(doc, rules, nil), Skipped: skipped}
 	issues := r.Validation.Diagnostics
+	if noTarget {
+		built, err := compile.Compile(ctx, projectDir, compile.Options{})
+		if err != nil {
+			return fmt.Errorf("compare current source: %w", err)
+		}
+		different, err := staleFiles(filepath.Join(projectDir, "output"), built.Artifact)
+		if err != nil {
+			return err
+		}
+		if len(different) > 0 {
+			issues = append(issues, diagnostic.Diagnostic{Rule: "build.stale", Severity: diagnostic.Warning, Location: diagnostic.Location{File: "output/", Line: 1, Column: 1}, Message: "output/ is stale against the current source: " + strings.Join(different, ", "), Hint: "Run lfm compile to rebuild output/ from the current source."})
+		}
+	}
 	if browser {
 		root := p.args[0]
+		if projectDir != "" {
+			root = projectDir
+		}
 		r.Release = &checkRelease{Audit: release.Audit(ctx, input.Browser, root)}
 		for i := range r.Release.Audit.Diagnostics {
 			r.Release.Audit.Diagnostics[i].Location.File = input.Options.File
 		}
 		issues = append(append([]diagnostic.Diagnostic{}, issues...), r.Release.Audit.Diagnostics...)
 	}
-	summary := diagnostic.Summarize(issues)
+	summary := diagnostic.Summarize(diagnostic.Apply(issues, overrides))
 	r.Validation.Diagnostics = summary.Diagnostics
 	r.Validation.Errors = summary.Errors
 	r.Validation.Warnings = summary.Warnings
@@ -161,4 +216,41 @@ func runCheck(ctx context.Context, env Env, p parsed) error {
 		return errReported
 	}
 	return nil
+}
+
+// staleFiles compares the full output tree, including removed source assets.
+func staleFiles(dir string, artifact map[string][]byte) ([]string, error) {
+	different := map[string]bool{}
+	for name, want := range artifact {
+		got, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(name)))
+		if err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+		if err != nil || !bytes.Equal(got, want) {
+			different[name] = true
+		}
+	}
+	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		name, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		name = filepath.ToSlash(name)
+		if _, ok := artifact[name]; !ok {
+			different[name] = true
+		}
+		return nil
+	})
+	names := make([]string, 0, len(different))
+	for name := range different {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names, err
 }

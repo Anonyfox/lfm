@@ -1,6 +1,7 @@
 # Contributing
 
 Go 1.26 or newer. Chrome or Chromium is optional; browser-backed tests skip without it.
+Compiler and CLI tests use a local Lighthouse fixture; release commands require an installed Lighthouse.
 
 ```sh
 go build ./cmd/lfm          # the binary

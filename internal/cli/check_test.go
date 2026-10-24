@@ -57,7 +57,7 @@ func TestCheckCLI(t *testing.T) {
 	if code, out, _ := run(t, "help", "check"); code != 0 || !strings.Contains(out, "framework") || !strings.Contains(out, "--release") {
 		t.Fatal(code, out)
 	}
-	if code, out, _ := run(t, "rules", "links.declared"); code != 0 || !strings.Contains(out, "Needs an lfm project (needs lfm.json urls); lfm check skips it.") {
+	if code, out, _ := run(t, "rules", "links.declared"); code != 0 || !strings.Contains(out, "Needs an lfm project (needs lfm.json urls); lfm check skips it unless --project supplies the context.") {
 		t.Fatal(code, out)
 	}
 }
@@ -222,4 +222,202 @@ func TestCheckFolderRejectsCreamWithBrickAccent(t *testing.T) {
 		}
 	}
 	t.Fatalf("missing design.ground error for cream ground: %s", out)
+}
+
+func TestCheckProjectTargetsAndStaleOutput(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := scaffold.Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	if code, out, errs := run(t, "compile", dir); code != 0 {
+		t.Fatal(code, out, errs)
+	}
+	page, err := os.ReadFile(filepath.Join(dir, "output", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Keep the live fixture's resource requests local; production share images
+	// are checked separately by the sharing rules' fixtures.
+	page = regexp.MustCompile(`<meta\b[^>]*\bproperty=["']?og:image["']?(?:\s[^>]*)?>`).ReplaceAll(page, nil)
+	files := http.FileServer(http.Dir(filepath.Join(dir, "output")))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			files.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write(page)
+	}))
+	defer server.Close()
+	for _, target := range []string{"", filepath.Join(dir, "output"), filepath.Join(dir, "output", "index.html"), server.URL} {
+		args := []string{"check", "--project", dir, "--json"}
+		if target != "" {
+			args = append(args, target)
+		}
+		code, out, errs := run(t, args...)
+		var result checkResult
+		if err := json.Unmarshal([]byte(out), &result); err != nil {
+			t.Fatal(err, out, errs)
+		}
+		if code != 0 || result.Project != dir || len(result.Skipped) != 2 || strings.Contains(out, "build.stale") {
+			t.Fatal(code, out, errs)
+		}
+	}
+	output := filepath.Join(dir, "output", "index.html")
+	raw, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(output, append(raw, []byte("<!--old-->")...), 0644); err != nil {
+		t.Fatal(err)
+	}
+	code, out, errs := run(t, "check", "--project", dir, "--json")
+	if code != 0 || !strings.Contains(out, "output/ is stale against the current source: index.html") {
+		t.Fatal(code, out, errs)
+	}
+}
+
+func TestStaleFilesIncludesAddedChangedAndRemoved(t *testing.T) {
+	dir := t.TempDir()
+	for name, content := range map[string]string{"same": "same", "changed": "old", "removed": "old"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := staleFiles(dir, map[string][]byte{"same": []byte("same"), "changed": []byte("new"), "added": []byte("new")})
+	if err != nil || strings.Join(got, ",") != "added,changed,removed" {
+		t.Fatal(got, err)
+	}
+}
+
+func TestCheckProjectRunsDeclaredLinksOnLivePage(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := scaffold.Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	if code, out, errs := run(t, "compile", dir); code != 0 {
+		t.Fatal(code, out, errs)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, "output", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = regexp.MustCompile(`<meta\b[^>]*\bproperty=["']?og:image["']?(?:\s[^>]*)?>`).ReplaceAll(raw, nil)
+	raw = bytes.Replace(raw, []byte("</body>"), []byte(`<a href="https://undeclared.invalid/unlisted">Unlisted</a></body>`), 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write(raw)
+	}))
+	defer server.Close()
+	_, out, errs := run(t, "check", server.URL, "--project", dir, "--json")
+	if !strings.Contains(out, `"rule": "links.declared"`) {
+		t.Fatal(out, errs)
+	}
+	_, out, errs = run(t, "check", server.URL, "--json")
+	var result checkResult
+	if err := json.Unmarshal([]byte(out), &result); err != nil {
+		t.Fatal(err, out, errs)
+	}
+	for _, finding := range result.Validation.Diagnostics {
+		if finding.Rule == "links.declared" {
+			t.Fatal(finding)
+		}
+	}
+}
+
+func TestProjectStaleFindingObeysValidationPolicy(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := scaffold.Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	if code, out, errs := run(t, "compile", dir); code != 0 {
+		t.Fatal(code, out, errs)
+	}
+	page := filepath.Join(dir, "output", "index.html")
+	raw, err := os.ReadFile(page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(page, append(raw, []byte("<!-- stale -->")...), 0644); err != nil {
+		t.Fatal(err)
+	}
+	config := filepath.Join(dir, "lfm.json")
+	raw, err = os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var values map[string]any
+	if err := json.Unmarshal(raw, &values); err != nil {
+		t.Fatal(err)
+	}
+	for _, level := range []string{"off", "error"} {
+		build, ok := values["build"].(map[string]any)
+		if !ok {
+			build = map[string]any{}
+			values["build"] = build
+		}
+		build["validation"] = map[string]any{"rules": map[string]any{"build.stale": level}}
+		raw, err = json.Marshal(values)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(config, raw, 0644); err != nil {
+			t.Fatal(err)
+		}
+		code, out, errs := run(t, "check", "--project", dir, "--json")
+		var report checkResult
+		if err := json.Unmarshal([]byte(out), &report); err != nil {
+			t.Fatal(err, out, errs)
+		}
+		if level == "off" && (code != 0 || strings.Contains(out, `"rule": "build.stale"`)) {
+			t.Fatal(code, out, errs)
+		}
+		if level == "error" && (code != 1 || report.Errors != 1 || !strings.Contains(out, `"rule": "build.stale"`)) {
+			t.Fatal(code, out, errs)
+		}
+	}
+}
+
+func TestCheckProjectErrorsRemainJSONAndNameTheSourceKey(t *testing.T) {
+	target := t.TempDir()
+	if err := os.WriteFile(filepath.Join(target, "index.html"), []byte(checkHTML), 0644); err != nil {
+		t.Fatal(err)
+	}
+	project := t.TempDir()
+	if _, err := scaffold.Create(project); err != nil {
+		t.Fatal(err)
+	}
+	config := filepath.Join(project, "lfm.json")
+	raw, err := os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var values map[string]any
+	if err := json.Unmarshal(raw, &values); err != nil {
+		t.Fatal(err)
+	}
+	values["url"] = "not a URL"
+	raw, err = json.Marshal(values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(config, raw, 0644); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{project, filepath.Join(project, "missing")} {
+		code, out, errs := run(t, "check", target, "--project", dir, "--json")
+		var result struct {
+			Error string `json:"error"`
+			Next  any    `json:"next"`
+		}
+		if err := json.Unmarshal([]byte(out), &result); err != nil {
+			t.Fatal(err, out, errs)
+		}
+		if code != 1 || result.Error == "" || result.Next == nil {
+			t.Fatal(code, out, errs)
+		}
+		if dir == project && (!strings.Contains(result.Error, "lfm.json") || !strings.Contains(result.Error, "url")) {
+			t.Fatal(out)
+		}
+	}
 }

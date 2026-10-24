@@ -321,13 +321,20 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		}
 		<-auditDone
 		result.Release.Audit = audit
+		if audit.Runtime != nil && audit.Runtime.Status != "ok" {
+			// A failed browser capability is reported once by the audit, even
+			// if critical CSS encountered the same unavailable browser first.
+			result.Validation.Diagnostics = slices.DeleteFunc(result.Validation.Diagnostics, func(d diagnostic.Diagnostic) bool {
+				return d.Rule == "release.css"
+			})
+		}
 		var opened []string
 		for _, u := range units {
 			if ext := u.opens(); ext != "" {
 				opened = append(opened, ext)
 			}
 		}
-		result.Optional = optionalHelpers(opened, audit)
+		result.Optional = optionalHelpers(opened)
 		if !result.revalidate("audit", audit.Diagnostics, c.Build.Validation.Rules) {
 			return result, &Failure{Errors: result.Errors()}
 		}
@@ -623,13 +630,10 @@ func (r *Result) distribute(unit string, files map[string][]byte) {
 
 // optionalHelpers are the helpers a release did without and what each
 // would have added.
-func optionalHelpers(kinds []string, audit *release.AuditResult) []string {
+func optionalHelpers(kinds []string) []string {
 	var out []string
 	if _, err := office.Find(); len(kinds) > 0 && office.Missing(err) {
 		out = append(out, "LibreOffice, a second opinion on how another app opens the "+strings.Join(kinds, " and ")+" files")
-	}
-	if audit != nil && audit.Lighthouse != nil && audit.Lighthouse.Missing {
-		out = append(out, "Lighthouse, scores for performance, accessibility, best practices and SEO")
 	}
 	return out
 }

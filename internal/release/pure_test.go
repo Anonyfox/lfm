@@ -316,7 +316,7 @@ func TestLighthouseParsingReadsMetricsErrorsWarningsAndSamples(t *testing.T) {
 		byID[f.ID] = f
 		ids = append(ids, f.ID)
 	}
-	if strings.Join(ids, ",") != "color-contrast,font-display,largest-contentful-paint,render-blocking" {
+	if strings.Join(ids, ",") != "font-display,largest-contentful-paint,render-blocking" {
 		t.Fatalf("findings in id order: %q", ids)
 	}
 	blocking := byID["render-blocking"]
@@ -326,7 +326,7 @@ func TestLighthouseParsingReadsMetricsErrorsWarningsAndSamples(t *testing.T) {
 	if !slices.Equal(blocking.Samples, []string{"url=/style.css; wastedMs=300", "url=[embedded resource; full detail in report]", "body > p; <p>"}) {
 		t.Fatalf("samples %q", blocking.Samples)
 	}
-	if c := byID["color-contrast"]; c.Categories != nil || !strings.HasSuffix(c.Hint, "Warnings: Some nodes were skipped.") {
+	if c := r.Info[0]; c.Categories != nil || !strings.HasSuffix(c.Hint, "Warnings: Some nodes were skipped.") {
 		t.Fatalf("a passing audit with warnings counts as a diagnostic: %+v", c)
 	}
 	if f := byID["font-display"]; f.Value != "Audit crashed" {

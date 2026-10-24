@@ -1,24 +1,35 @@
 # Checking a built page
 
-`lfm check <url | folder | file.html> [--release] [--json]` checks the initial HTML of
-any built page with compile's page rules: HTML, links, SEO, sharing, accessibility,
-forms, performance, design and copy. It reads without changing files or executing scripts.
-A client-rendered shell is checked as the HTML received, before JavaScript runs.
+`lfm check [<url | folder | file.html>] [--project <dir>] [--release] [--json]`
+checks the initial HTML of any built page with compile's page rules: HTML, links,
+SEO, sharing, accessibility, forms, performance, design and copy. It reads without
+changing files or executing scripts. A client-rendered shell is checked as the
+HTML received, before JavaScript runs.
 
-Use an HTTP or HTTPS URL (including localhost and private hosts), a folder containing
-index.html, or a .html file. A folder without index.html needs a built output folder,
-an explicit .html file, or the served full URL (for example http://localhost:8080/path/). A source folder containing lfm.json points to `lfm compile`
-instead. Config, templates, research, concept and deliverables are outside this check.
-The five page rules needing project facts are listed in `skipped`: links.declared,
-jsonld.block, commerce.discovery, commerce.structured-data and concept.fidelity.
+Use an HTTP or HTTPS URL (including localhost and private hosts), a folder
+containing index.html, or a .html file. A folder without index.html needs a built output
+folder, an explicit .html file, or the served full URL (for example
+http://localhost:8080/path/). A source folder containing lfm.json points
+to `lfm compile` instead. Use `--project <dir>` to pair a built target with its
+lfm.json, concept, research and templates. Project-only page rules then run with
+the same facts and validation settings as compile. The JSON report includes the
+absolute project path.
+
+Without `--project`, the five page rules needing project facts are listed in
+`skipped`: links.declared, jsonld.block, commerce.discovery,
+commerce.structured-data and concept.fidelity. With `--project` and no target, the
+target is `<dir>/output/`. An in-memory non-release compile compares the full
+output tree against the current source and reports one build.stale warning naming
+added, changed or removed files. No stamp files are written. Release-specific
+optimizations can also produce differences from this non-release baseline.
 Static mode also lists release.* and lighthouse.* as skipped.
 
 The reader follows at most five redirects and fetches embedded resources across
 origins using GET, without cookies or credentials. It does not crawl links, inspect
 iframe or audio/video sources, or fetch srcset alternatives. Stylesheet font faces
 and one level of CSS imports are included. Folder reads never use the network and
-are confined to the folder, including symlinks. Absolute resource URLs on the
-canonical origin map into the folder; other remote files are listed as not inspected.
+are confined to the folder, including symlinks. Absolute resource URLs under the
+canonical directory map into the folder; other remote files are listed as not inspected.
 
 Limits: 8 MiB for the page and each file, 512 KiB read per image, 32 MiB total,
 512 inspected files, eight concurrent requests, ten seconds per request and thirty
@@ -41,8 +52,10 @@ other URL syntax findings remain active. Live pages retain every check. Diagnost
 same crawler policy as robots meta tags in seo.indexability and seo.snippets.
 robots.txt and sitemap.xml are not checked.
 
-`--release` adds runtime errors, a frame-by-frame layout walk and Lighthouse when
-installed. For a URL, Chrome visits that URL directly with a fresh temporary profile
+`--release` adds runtime errors, a frame-by-frame layout walk and Lighthouse.
+Chrome, Lighthouse and loopback sockets are required; unavailable capabilities
+produce one clear error with setup guidance. See [release checks](compiling.md#release)
+for sandbox requirements. For a URL, Chrome visits that URL directly with a fresh temporary profile
 and no proxy. The page's JavaScript runs, including analytics; the checks do not
 click controls or submit forms. Local pages use the sealed artifact server, which
 accepts only GET requests to supplied files. Lighthouse host checks remain in

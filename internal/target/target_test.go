@@ -569,3 +569,26 @@ func TestMissingRelativeFilePreservesReadError(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestFolderResourcesUnderCanonicalDirectory(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "index.html", strings.Replace(pageHTML, `https://example.org/`, `https://example.org/product/`, 1)+`<img src="https://example.org/product/image.svg" alt="Tree"><img src="https://example.org/shared.svg" alt="Shared">`)
+	write(t, dir, "image.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>`)
+	write(t, dir, "shared.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>`)
+	result, err := Read(context.Background(), dir, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, file := range result.Files {
+		if file.Name == "image.svg" {
+			found = true
+			if file.Error != "" {
+				t.Fatal(file)
+			}
+		}
+	}
+	if !found || len(result.Options.Assets["image.svg"]) == 0 || len(result.Options.Assets["shared.svg"]) == 0 {
+		t.Fatal(result.Files)
+	}
+}

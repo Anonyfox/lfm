@@ -56,6 +56,9 @@ compile again, and repeat until it says deploy:
 `lfm compile --json` gives the same result as one JSON object, with `next.phase` and `next.skill`.
 
 `lfm check <url> --json` checks any existing page, from any framework, with the same page rules.
+Add `--project <dir>` for project-only rules; omit the target to check output/ and detect stale files.
+Release checks require Chrome, Lighthouse and loopback sockets; run outside a sandbox that blocks them.
+Timing warnings use up to three measurements; informational diagnostics and third-party rows do not block release.
 
 ## Rules
 

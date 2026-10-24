@@ -6,6 +6,7 @@ import "strings"
 // Lighthouse owns a versioned audit namespace, so its concrete IDs are dynamic.
 func OperationalRules() []RuleInfo {
 	return []RuleInfo{
+		{ID: "build.stale", Summary: "Built output matches the current source", Help: "With lfm check --project and no target, an in-memory compile differs from output/. A stale baseline can hide recent source changes. Run lfm compile to rebuild the named files and check again."},
 		{
 			ID:       "build.failed",
 			Summary:  "Reading inputs, bundling assets or writing output completed without an error",
@@ -35,7 +36,7 @@ func OperationalRules() []RuleInfo {
 		{
 			ID:      "release.browser",
 			Summary: "A Chrome browser was available for the --release checks",
-			Help:    "--release needs Chrome or Chromium for critical CSS, the runtime probe and Lighthouse; when none is found or navigation fails, those checks are skipped and the page ships untested in a real browser. Install Chrome/Chromium on PATH or set LFM_CHROME to its executable. Set this rule to error if a release must never ship without the browser checks.",
+			Help:    "--release needs Chrome or Chromium for critical CSS, the runtime probe and Lighthouse; when none is found or navigation fails, the release cannot be verified. Release reports an error when Chrome or loopback sockets are unavailable. Install Chrome/Chromium on PATH or set LFM_CHROME; run outside the sandbox or allow local sockets.",
 		},
 		{
 			ID:      "release.runtime",
@@ -50,12 +51,12 @@ func OperationalRules() []RuleInfo {
 		{
 			ID:      "release.lighthouse",
 			Summary: "Installed Lighthouse ran and produced a complete audit",
-			Help:    "With --release, lfm runs an installed Lighthouse against the artifact; this warns when a run fails, times out or returns incomplete JSON. Lighthouse is optional: when it is not installed the report notes the skip and nothing warns, so a release on a machine with Chrome alone comes out clean. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
+			Help:    "With --release, lfm runs an installed Lighthouse against the artifact; this reports an error when a run fails, times out or returns incomplete JSON. A missing executable also reports an error because release requires these measurements. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
 		},
 		{
 			ID:      "lighthouse.*",
 			Summary: "Findings from the installed Lighthouse audit, one rule per lighthouse.<audit-id>",
-			Help:    "With --release, every Lighthouse audit that scores below 100%, errors or carries warnings becomes a warning named lighthouse.<audit-id>, with the audit's own guidance and sample elements. They measure one cold load on a simulated phone over a throttled mobile network, which is close to how many visitors first meet the page. Follow the audit's hint and the saved full report. Set \"lighthouse.*\" to change every audit's level at once; an exact lighthouse.<audit-id> override takes precedence.",
+			Help:    "With --release, scored audits below 100%, errors and metrics outside the mobile good thresholds become warnings named lighthouse.<audit-id>, with the audit's own guidance and sample elements. Zero-weight diagnostics and third-party resource rows are informational. Timing failures are remeasured up to three times using per-audit medians within two minutes; the full report retains the last run. These cold mobile measurements approximate first visits; follow the audit's hint and saved full report. Set \"lighthouse.*\" to change every audit's level at once; an exact lighthouse.<audit-id> override takes precedence.",
 		},
 		{
 			ID:      "lighthouse.run",

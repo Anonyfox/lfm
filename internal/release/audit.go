@@ -33,10 +33,15 @@ type AuditResult struct {
 	Diagnostics []diagnostic.Diagnostic `json:"-"`
 }
 type LighthouseResult struct {
+	raw        []byte
+	origin     string
+	Runs       int               `json:"runs,omitempty"`
+	Info       []AuditFinding    `json:"diagnostics,omitempty"`
+	ThirdParty []AuditFinding    `json:"thirdParty,omitempty"`
 	Status     string            `json:"status"`
 	Reason     string            `json:"reason,omitempty"`
 	Hint       string            `json:"hint,omitempty"`
-	Missing    bool              `json:"missing,omitempty"` // not installed, which no release needs
+	Missing    bool              `json:"missing,omitempty"` // executable not installed
 	Version    string            `json:"version,omitempty"`
 	Chrome     string            `json:"chrome,omitempty"`
 	Scope      string            `json:"scope"`
@@ -83,27 +88,28 @@ func Audit(ctx context.Context, target Target, root string) *AuditResult {
 func audit(ctx context.Context, target Target, root string, listen func(string, string) (net.Listener, error)) *AuditResult {
 	var t texts
 	r := &AuditResult{Delivery: t.delivery(target.Page, target.Assets)}
-	warn := func(rule, message, hint string) {
-		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
+	add := func(severity diagnostic.Severity, rule, message, hint string) {
+		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: severity, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
 	browser, err := BrowserPath()
 	_, toolErr := lighthousePath(target.toolRoot(root))
 	if err != nil {
 		r.Runtime = &RuntimeResult{Status: "skipped", Reason: err.Error(), Hint: BrowserSetup}
 		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "browser unavailable", Hint: BrowserSetup, Scope: target.auditScope()}
-		warn("release.browser", "Critical CSS, runtime and Lighthouse browser features skipped: "+err.Error(), BrowserSetup)
+		add(diagnostic.Error, "release.browser", "Release needs Chrome for critical CSS, runtime, layout and Lighthouse: "+err.Error(), BrowserSetup)
 		if toolErr != nil {
 			r.Lighthouse.Reason = "Chrome and Lighthouse unavailable"
 			r.Lighthouse.Hint = BrowserSetup + " " + LighthouseSetup
+			r.Diagnostics[0].Hint = r.Lighthouse.Hint
 		}
 		return r
 	}
 	r.Runtime = auditRuntime(ctx, target, browser, FramesPath(root), listen)
 	if r.Runtime.Status != "ok" {
-		warn("release.browser", "Runtime navigation check skipped: "+r.Runtime.Reason, r.Runtime.Hint)
+		add(diagnostic.Error, "release.browser", "Release browser checks could not run: "+r.Runtime.Reason, r.Runtime.Hint)
 	}
 	for _, problem := range r.Runtime.Problems {
-		warn("release.runtime", problem, "Fix the named browser exception or missing generated asset; this check observes initial navigation only.")
+		add(diagnostic.Warning, "release.runtime", problem, "Fix the named browser exception or missing generated asset; this check observes initial navigation only.")
 	}
 	if l := r.Runtime.Layout; l != nil {
 		for _, f := range l.Findings {
@@ -111,21 +117,25 @@ func audit(ctx context.Context, target Target, root string, listen func(string, 
 			if l.Count > 0 {
 				hint += " Frames: " + l.Frames
 			}
-			warn("release.layout", f.Message, hint)
+			add(diagnostic.Warning, "release.layout", f.Message, hint)
 		}
 	}
-	if r.Runtime.Status != "ok" && r.Runtime.Chrome == "" {
+	if r.Runtime.Status != "ok" {
 		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "Chrome could not start for navigation", Hint: r.Runtime.Hint, Scope: target.auditScope()}
 		if toolErr != nil {
 			r.Lighthouse.Hint += " " + LighthouseSetup
 		}
 		return r
 	}
+	if toolErr != nil {
+		r.Lighthouse = &LighthouseResult{Status: "skipped", Missing: true, Reason: toolErr.Error(), Hint: LighthouseSetup, Scope: target.auditScope()}
+		add(diagnostic.Error, "release.lighthouse", "Release needs Lighthouse for performance, accessibility and SEO measurements: "+toolErr.Error(), LighthouseSetup)
+		return r
+	}
 	r.Lighthouse = runLighthouse(ctx, target, browser, root)
-	// Lighthouse is optional: when it is not installed the report says so
-	// and nothing warns; a run that fails does.
-	if r.Lighthouse.Status != "ok" && !r.Lighthouse.Missing {
-		warn("release.lighthouse", "Lighthouse skipped: "+r.Lighthouse.Reason, r.Lighthouse.Hint)
+	// A release must report an error when its measurement tools cannot run.
+	if r.Lighthouse.Status != "ok" {
+		add(diagnostic.Error, "release.lighthouse", "Release needs Lighthouse to measure performance, accessibility and SEO: "+r.Lighthouse.Reason, r.Lighthouse.Hint)
 	}
 	r.Diagnostics = append(r.Diagnostics, LighthouseDiagnostics(r.Lighthouse)...)
 	return r
@@ -179,7 +189,7 @@ func lighthousePath(root string) (string, error) {
 	return "", fmt.Errorf("installed Lighthouse executable not found")
 }
 
-func runLighthouse(ctx context.Context, target Target, browser, root string) *LighthouseResult {
+func runLighthouseOnce(ctx context.Context, target Target, browser, root string) *LighthouseResult {
 	start := time.Now()
 	r := &LighthouseResult{Status: "skipped", Scope: target.auditScope()}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
@@ -213,7 +223,7 @@ func runLighthouse(ctx context.Context, target Target, browser, root string) *Li
 	_, closeBrowser, err := startAuditBrowser(ctx, browser, proxy, profile)
 	if err != nil {
 		r.Reason = err.Error()
-		r.Hint = BrowserSetup
+		r.Hint = BrowserSetup + " " + LocalPortSetup
 		return r
 	}
 	defer closeBrowser()
@@ -221,7 +231,7 @@ func runLighthouse(ctx context.Context, target Target, browser, root string) *Li
 	port, portErr := strconv.Atoi(strings.SplitN(string(active), "\n", 2)[0])
 	if err != nil || portErr != nil || port < 1 || port > 65535 {
 		r.Reason = "Chrome did not expose a valid local DevTools port"
-		r.Hint = BrowserSetup
+		r.Hint = BrowserSetup + " " + LocalPortSetup
 		return r
 	}
 	// Attach Lighthouse to OUR Chrome. Even a killed/timed-out Node process
@@ -364,6 +374,8 @@ func compact(s string, limit int) string {
 
 type lhAudit struct {
 	Title, Description, DisplayValue, ScoreDisplayMode, ErrorMessage string
+	NumericValue                                                     *float64
+	NumericUnit                                                      string
 	Score                                                            *float64
 	Details                                                          json.RawMessage
 	Warnings                                                         []string
@@ -396,6 +408,7 @@ func parseLighthouse(raw []byte, origin string) (*LighthouseResult, error) {
 		return nil, fmt.Errorf("the Lighthouse JSON lacks version, categories or audits")
 	}
 	r := &LighthouseResult{Status: "ok", Version: data.LighthouseVersion, Chrome: data.UserAgent, Scope: auditScope, Scores: map[string]*int{}, Metrics: map[string]string{}, Warnings: data.RunWarnings}
+	r.raw, r.origin = raw, origin
 	owners := map[string][]string{}
 	for _, name := range []string{"performance", "accessibility", "best-practices", "seo"} {
 		category, ok := data.Categories[name]
@@ -429,6 +442,9 @@ func parseLighthouse(raw []byte, origin string) (*LighthouseResult, error) {
 		if !manual && a.ErrorMessage == "" && len(a.Warnings) == 0 && (a.Score == nil || *a.Score >= 1) {
 			continue
 		}
+		if limit, ok := metricGood[id]; ok && a.NumericValue != nil && *a.NumericValue <= limit && a.ErrorMessage == "" {
+			continue
+		}
 		items := auditItems(a.Details)
 		f := AuditFinding{ID: id, Title: a.Title, Hint: a.Description, Value: a.DisplayValue, Categories: owners[id], Score: a.Score, Items: len(items)}
 		if a.ErrorMessage != "" {
@@ -440,7 +456,45 @@ func parseLighthouse(raw []byte, origin string) (*LighthouseResult, error) {
 				f.Categories = nil
 			}
 		}
+		var own []json.RawMessage
+		var foreign []string
 		for _, item := range items {
+			var row struct {
+				URL       string `json:"url"`
+				SourceURL string `json:"sourceURL"`
+			}
+			_ = json.Unmarshal(item, &row)
+			rawURL := row.URL
+			if rawURL == "" {
+				rawURL = row.SourceURL
+			}
+			u, err := url.Parse(rawURL)
+			page, _ := url.Parse(origin)
+			if err == nil && u.Host != "" && page != nil && (!strings.EqualFold(u.Host, page.Host) || !strings.EqualFold(u.Scheme, page.Scheme)) {
+				foreign = append(foreign, u.Host+": "+detailSample(item, origin))
+			} else {
+				own = append(own, item)
+			}
+		}
+		if len(foreign) > 0 {
+			third := f
+			third.Title += " (third-party resources)"
+			third.Samples, third.Items = foreign, len(foreign)
+			third.Hint = "These resources are controlled by the named third-party host. " + third.Hint
+			r.ThirdParty = append(r.ThirdParty, third)
+			f.Items = len(own)
+			f.Value = fmt.Sprintf("%d first-party detail rows (third-party rows reported separately)", len(own))
+			if len(own) == 0 {
+				continue
+			}
+		}
+		if id == "cumulative-layout-shift" {
+			for _, detailID := range []string{"layout-shifts", "layout-shift-elements"} {
+				own = append(own, auditItems(data.Audits[detailID].Details)...)
+			}
+			f.Items = len(own)
+		}
+		for _, item := range own {
 			if sample := detailSample(item, origin); sample != "" && len(f.Samples) < 3 {
 				f.Samples = append(f.Samples, sample)
 			}
@@ -450,6 +504,8 @@ func parseLighthouse(raw []byte, origin string) (*LighthouseResult, error) {
 			r.Manual = append(r.Manual, f)
 		case hostAudits[id]:
 			r.Host = append(r.Host, f)
+		case len(f.Categories) == 0 && a.ErrorMessage == "" && metricGood[id] == 0:
+			r.Info = append(r.Info, f)
 		default:
 			r.Findings = append(r.Findings, f)
 		}
@@ -463,7 +519,7 @@ func detailSample(raw json.RawMessage, origin string) string {
 		return ""
 	}
 	var parts []string
-	for _, key := range []string{"url", "sourceURL", "node", "source", "location", "reason", "failureType", "protocolReason", "frameUrl", "message", "errorMessage", "description", "label", "wastedBytes", "wastedMs", "totalBytes"} {
+	for _, key := range []string{"url", "sourceURL", "node", "source", "location", "reason", "failureType", "protocolReason", "frameUrl", "message", "errorMessage", "description", "label", "wastedBytes", "wastedMs", "totalBytes", "score", "cumulativeLayoutShiftScore", "shiftScore"} {
 		v, ok := value[key]
 		if !ok {
 			continue

@@ -44,7 +44,7 @@ func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 	}
 	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
 	if err != nil || result.Deck.Pending || result.Deck.Images < 4 || !strings.HasPrefix(result.Deck.Layout, "2 decks print as planned") {
-		t.Fatalf("release: %v %+v %v", err, result.Deck, findings(result, "deck."))
+		t.Fatalf("release: %v %+v %v", err, result.Deck, findings(result, ""))
 	}
 	z, err := zip.OpenReader(filepath.Join(out, "fire-safety-briefing-en.zip"))
 	if err != nil {

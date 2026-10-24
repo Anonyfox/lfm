@@ -12,7 +12,7 @@ of them report through the same findings, so a single run lists everything that 
 | finalize | Serialize and compact the HTML; generate crawler discovery files. |
 | verify | Run every check on the exact bytes that will be written. |
 | deliver | When `deliverables/book/`, `deliverables/printable/`, `deliverables/spreadsheet/`, `deliverables/document/` or `deliverables/deck/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of the units it holds when one is configured. PDFs, a book's paperback and covers, a printable's and a spreadsheet's listing images and start PDFs are made in Chrome by `--release` and reused by every later compile while their inputs are unchanged. |
-| audit | `--release` only: a runtime probe, the layout audit and, when installed, Lighthouse. |
+| audit | `--release` only: a runtime probe, the layout audit and Lighthouse. |
 | publish | Replace `output/` with one rename. |
 
 Nothing is written before verify passes. A failed compile keeps the previous `output/` and exits with code 1.
@@ -181,9 +181,9 @@ unchanged documents, decks or workbooks does not open them again.
 
 ## Release
 
-`lfm compile --release` adds three bounded stages that need installed tools:
+`lfm compile --release` adds three stages that need installed tools:
 
-1. **Critical CSS** (45 s limit): the first screen is rendered at 390×844, 768×1024 and 1440×900; the rules it
+1. **Critical CSS** (45 s per browser operation): the first screen is rendered at 390×844, 768×1024 and 1440×900; the rules it
    uses stay in the head and the complete stylesheet loads after. A rule counts by the elements it styles:
    pseudo-elements by their element, states such as `:hover` as they hold on a first visit, and rules that hide
    or move an element away (a closed menu, a skip link) where that element would otherwise appear. Every
@@ -203,16 +203,28 @@ unchanged documents, decks or workbooks does not open them again.
    requests are blocked; nothing is clicked, typed or submitted.
    Images get the hints the author left out: those below the first screen at every size load lazily, and
    the largest file image of the phone's first screen is fetched first; authored hints are kept.
-3. **Lighthouse** (45 s, when installed): one mobile lab run. Scores, metrics and every failing audit are
-   reported; the complete JSON is saved in the system temp directory. Audits of what the static host
+3. **Lighthouse**: one mobile lab run on the fast path (45 s per run). Timing findings
+   trigger up to three runs within a 120 s total budget. Audit metrics and category scores
+   use per-audit medians; the report shows run count and metric ranges. Deterministic
+   findings do not trigger retries. The saved full JSON is the last run, rather than the
+   synthesized median. Metric warnings use mobile good thresholds: LCP 2.5 s, TBT 200 ms,
+   FCP 1.8 s, speed index 3.4 s and CLS 0.1. CLS details name shifting elements and scores
+   when Lighthouse supplies them. Zero-weight diagnostics are informational. URL-bearing
+   third-party rows are informational and name their hosts; mixed audits warn for first-party
+   rows only. Scores and findings are reported; the complete JSON is saved in the system
+   temp directory. Audits of what the static host
    decides (cache lifetimes, HTTPS, latency) are listed as host settings instead of warnings. Text goes out
    gzip-compressed, as every common static host sends it, so the metrics describe the page visitors get;
    the report's host line gives the text as sent and as built, and about how much later a phone gets it
    from a host that does not compress, and the deploy step names the check for it.
 
 Chrome or Chromium is found on `PATH` and in standard locations, or set `LFM_CHROME`. Lighthouse is found on
-`PATH`, in `node_modules/.bin`, or via `LFM_LIGHTHOUSE` (`npm install -g lighthouse`). A missing tool is a
-warning and its stage is skipped; lfm never installs anything.
+`PATH`, in `node_modules/.bin`, or via `LFM_LIGHTHOUSE` (`npm install -g lighthouse`). Missing
+tools produce a release error with setup guidance; lfm never installs anything.
+Release checks start Chrome and open local listeners for artifact HTTP and Chrome DevTools.
+Sandboxed jobs must allow listening and connecting on loopback (127.0.0.1); otherwise run
+`compile --release` or `check --release` outside the sandbox. Ordinary static checks need
+neither Chrome nor local sockets. Use `LFM_CHROME` and `LFM_LIGHTHOUSE` to select installed binaries.
 
 ## Preview
 

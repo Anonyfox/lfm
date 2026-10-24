@@ -471,6 +471,12 @@ func (r *reader) name(u *url.URL) string {
 	if r.remote || u.Host != "local.invalid" && !sameOrigin(u, r.origin) {
 		return u.String()
 	}
+	if u.Host != "local.invalid" && r.origin != nil {
+		directory := r.origin.ResolveReference(&url.URL{Path: "."}).Path
+		if strings.HasPrefix(u.Path, directory) {
+			return strings.TrimPrefix(u.Path, directory)
+		}
+	}
 	return strings.TrimPrefix(u.Path, "/")
 }
 func (r *reader) fetch(item resource, cap int) fetched {
@@ -527,7 +533,7 @@ func (r *reader) fetch(item resource, cap int) fetched {
 			f.Error = "not inspected: remote resource in folder mode"
 			return f
 		}
-		name := strings.TrimPrefix(item.u.Path, "/")
+		name := r.name(item.u)
 		if unsafePath(name) {
 			f.Error = "not inspected: unsafe resource path"
 			return f

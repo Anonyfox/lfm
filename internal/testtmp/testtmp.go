@@ -10,8 +10,8 @@ import (
 )
 
 // Main runs the tests with color disabled and TMPDIR inside a fresh directory,
-// then removes it afterwards. Use it as a package's TestMain.
-func Main(m *testing.M) {
+// applies optional fixtures, then removes the directory afterwards.
+func Main(m *testing.M, setup ...func(string) error) {
 	os.Unsetenv("FORCE_COLOR")
 	os.Setenv("NO_COLOR", "1")
 	// /tmp before the system temp directory: esbuild reads every directory
@@ -26,6 +26,13 @@ func Main(m *testing.M) {
 		os.Exit(1)
 	}
 	os.Setenv("TMPDIR", dir)
+	for _, fixture := range setup {
+		if err := fixture(dir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.RemoveAll(dir)
+			os.Exit(1)
+		}
+	}
 	code := m.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)

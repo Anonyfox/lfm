@@ -20,10 +20,10 @@ func TestLighthouseParsingSeparatesScoresDiagnosticsAndManualChecks(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if *r.Scores["best-practices"] != 96 || len(r.Findings) != 2 || len(r.Manual) != 1 || len(r.Host) != 1 || r.Host[0].ID != "cache-insight" {
+	if *r.Scores["best-practices"] != 96 || len(r.Findings) != 1 || len(r.Info) != 1 || len(r.Manual) != 1 || len(r.Host) != 1 || r.Host[0].ID != "cache-insight" {
 		t.Fatal(r)
 	}
-	if len(r.Findings[0].Categories) != 1 || r.Findings[0].Samples[0] != "url=/favicon.ico" || len(r.Findings[1].Categories) != 0 {
+	if len(r.Findings[0].Categories) != 1 || r.Findings[0].Samples[0] != "url=/favicon.ico" || len(r.Info[0].Categories) != 0 {
 		t.Fatal(r.Findings)
 	}
 	for _, bad := range []string{`{}`, `{"runtimeError":{"message":"Navigation failed"}}`, strings.Replace(raw, `"score":0.96`, `"score":null`, 1)} {
@@ -104,9 +104,8 @@ func TestMissingCapabilitiesReportAllSetupRequirements(t *testing.T) {
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
 	t.Setenv("LFM_LIGHTHOUSE", "/does-not-exist/lighthouse")
 	r := Audit(context.Background(), Target{Page: []byte("page")}, t.TempDir())
-	// Only the missing browser warns; Lighthouse is optional, but the skip
-	// still names how to set up both.
-	if len(r.Diagnostics) != 1 || !strings.Contains(r.Lighthouse.Hint, "LFM_CHROME") || !strings.Contains(r.Lighthouse.Hint, "npm install") {
+	// One setup error names both missing executables.
+	if len(r.Diagnostics) != 1 || r.Diagnostics[0].Severity != "error" || !strings.Contains(r.Lighthouse.Hint, "LFM_CHROME") || !strings.Contains(r.Lighthouse.Hint, "npm install") {
 		t.Fatal(r)
 	}
 }

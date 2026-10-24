@@ -19,7 +19,7 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-func TestReleaseMissingBrowserWarnsAndPublishesNormalArtifact(t *testing.T) {
+func TestReleaseMissingBrowserFailsAndPreservesNormalArtifact(t *testing.T) {
 	root := fixture(t)
 	if _, err := Compile(context.Background(), root, Options{Publish: true}); err != nil {
 		t.Fatal(err)
@@ -27,7 +27,7 @@ func TestReleaseMissingBrowserWarnsAndPublishesNormalArtifact(t *testing.T) {
 	before := read(t, root, "output/index.html")
 	t.Setenv("LFM_CHROME", "/missing/chromium")
 	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
-	if err != nil || !report.Published || report.Validation.Errors != 0 {
+	if err == nil || report.Published || report.Validation.Errors != 1 {
 		t.Fatal(err, report.Validation)
 	}
 	if read(t, root, "output/index.html") != before {
@@ -38,12 +38,12 @@ func TestReleaseMissingBrowserWarnsAndPublishesNormalArtifact(t *testing.T) {
 	}
 	found := false
 	for _, d := range report.Validation.Diagnostics {
-		if d.Rule == "release.browser" && d.Severity == "warn" && strings.Contains(d.Hint, "LFM_CHROME") {
+		if d.Rule == "release.browser" && d.Severity == "error" && strings.Contains(d.Hint, "LFM_CHROME") {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatal("missing actionable warning", report.Validation)
+		t.Fatal("missing actionable error", report.Validation)
 	}
 }
 

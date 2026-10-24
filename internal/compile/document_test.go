@@ -74,11 +74,11 @@ func TestDocumentsAreBuiltCheckedAndDelivered(t *testing.T) {
 
 func TestOptionalHelpersNameWhatIsMissing(t *testing.T) {
 	t.Setenv("LFM_SOFFICE", "none")
-	got := optionalHelpers([]string{".docx"}, &release.AuditResult{Lighthouse: &release.LighthouseResult{Missing: true}})
-	if len(got) != 2 || !strings.HasPrefix(got[0], "LibreOffice") || !strings.HasPrefix(got[1], "Lighthouse") {
+	got := optionalHelpers([]string{".docx"})
+	if len(got) != 1 || !strings.HasPrefix(got[0], "LibreOffice") {
 		t.Fatalf("optional = %q", got)
 	}
-	if got := optionalHelpers(nil, nil); len(got) != 0 {
+	if got := optionalHelpers(nil); len(got) != 0 {
 		t.Fatalf("a page without files needs no LibreOffice: %q", got)
 	}
 }

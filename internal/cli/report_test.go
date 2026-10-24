@@ -170,3 +170,17 @@ func TestResearchShortfallIsVisible(t *testing.T) {
 		t.Fatal(out.String())
 	}
 }
+
+func TestReleaseReportShowsMeasurementCountAndInformationalAudits(t *testing.T) {
+	var output bytes.Buffer
+	renderRelease(&output, term.For(&output), &release.Result{Audit: &release.AuditResult{Lighthouse: &release.LighthouseResult{
+		Status: "ok", Runs: 3,
+		Info:       []release.AuditFinding{{Title: "Potential input delay", Value: "median of 3 runs: 120 ms; runs 60–190 ms"}},
+		ThirdParty: []release.AuditFinding{{Title: "Legacy JavaScript (third-party resources)", Samples: []string{"beacon.example: script.js"}}},
+	}}})
+	for _, want := range []string{"3 Lighthouse runs", "info Potential input delay", "median of 3 runs: 120 ms; runs 60–190 ms", "info Legacy JavaScript (third-party resources)", "beacon.example: script.js"} {
+		if !strings.Contains(output.String(), want) {
+			t.Fatalf("missing %q in %s", want, &output)
+		}
+	}
+}
