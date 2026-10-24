@@ -517,3 +517,71 @@ func TestCheckTimeoutReport(t *testing.T) {
 		t.Fatal(code, out.String(), errs.String())
 	}
 }
+
+func TestCheckReleaseProjectBudgets(t *testing.T) {
+	// Browser availability does not change which budgets the static checks use.
+	t.Setenv("LFM_CHROME", filepath.Join(t.TempDir(), "missing-chrome"))
+	t.Setenv("LFM_LIGHTHOUSE", filepath.Join(t.TempDir(), "missing-lighthouse"))
+	dir := t.TempDir()
+	if _, err := scaffold.Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	config := filepath.Join(dir, "lfm.json")
+	raw, err := os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var c map[string]any
+	if err := json.Unmarshal(raw, &c); err != nil {
+		t.Fatal(err)
+	}
+	build, ok := c["build"].(map[string]any)
+	if !ok {
+		build = map[string]any{}
+		c["build"] = build
+	}
+	build["validation"] = map[string]any{"budgets": map[string]any{"cssKiB": 40}}
+	raw, err = json.Marshal(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(config, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, strings.Replace(checkHTML, "</head>", "<style>"+strings.Repeat(" ", 21*1024)+"</style></head>", 1))
+	}))
+	defer server.Close()
+	for _, browser := range []bool{false, true} {
+		for _, project := range []bool{false, true} {
+			args := []string{"check", server.URL, "--json"}
+			if browser {
+				args = append(args, "--release")
+			}
+			if project {
+				args = append(args, "--project", dir)
+			}
+			_, out, errs := run(t, args...)
+			var result checkResult
+			if err := json.Unmarshal([]byte(out), &result); err != nil {
+				t.Fatal(err, out, errs)
+			}
+			found := false
+			for _, d := range result.Validation.Diagnostics {
+				if d.Rule == "perf.budgets" && strings.Contains(d.Message, "CSS") {
+					found = true
+					if !strings.Contains(d.Hint, "--project <dir>") {
+						t.Fatal(d)
+					}
+				}
+			}
+			if found == project {
+				t.Fatalf("release=%v project=%v: %s", browser, project, out)
+			}
+			if browser && result.Release == nil {
+				t.Fatal("release path not exercised")
+			}
+		}
+	}
+}

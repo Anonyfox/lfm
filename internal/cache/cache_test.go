@@ -13,7 +13,7 @@ func TestPruneAgeAndCount(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	for _, category := range []string{"frames", "lighthouse", "libreoffice", "release"} {
 		dir := Dir(category)
-		if filepath.Dir(dir) != filepath.Join(os.Getenv("XDG_CACHE_HOME"), "lfm") {
+		if filepath.Dir(dir) != filepath.Join(userCache(t), "lfm") {
 			t.Fatal(dir)
 		}
 		if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -60,4 +60,14 @@ func TestDirFallsBackToTemp(t *testing.T) {
 	if got, want := Dir("frames"), filepath.Join(os.TempDir(), "lfm", "frames"); got != want {
 		t.Fatalf("%s != %s", got, want)
 	}
+}
+
+// userCache is the platform cache root, which is not XDG_CACHE_HOME on macOS.
+func userCache(t *testing.T) string {
+	t.Helper()
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dir
 }

@@ -47,7 +47,9 @@ as a file beside it, and explains each choice:
 
 Automatic files get a short suffix hashed from their path and content, so every change gets a new URL and
 hosts can cache files forever. `build.assets` in `lfm.json` overrides the policy globally or per path;
-explicitly configured files keep their names.
+explicitly configured binary assets keep their names. Every emitted stylesheet and script, including
+explicit file mode, uses the first 12 hex digits of its content SHA-256 before the extension
+(`bundle-<hash>.css`, `app-<hash>.js`).
 
 HTML is compacted at the syntax level only: attribute quotes and empty values shrink, text and whitespace
 stay exactly as written. Each compacted result is parsed and compared with the original tree.

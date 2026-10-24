@@ -355,8 +355,11 @@ opacity, and keep content readable without animation. Reduced motion shows poste
 frames. Anything moving by itself for more than five seconds needs a pause control. Informative loops
 need captions or an equivalent text explanation.
 
-`design.media` checks outermost content sections for immersive concepts. Without sections it groups
-main content at h1/h2 headings; nav and footer are excluded. `perf.video` checks video loading and
+`design.media` warns when consecutive paragraphs in one content section exceed 300 words without
+a heading, list, table, figure, blockquote, details, form or media between them. Break the run with
+a subheading, list, table or visual, or cut it. Immersive concepts also need media in every section.
+Without sections it groups main content at h1/h2 headings; templates, nav, footer and hidden text
+are excluded. Legal pages can disable `design.media` per page with `build.validation.rules`. `perf.video` checks video loading and
 autoplay attributes. `perf.budgets` counts known referenced file bytes once per budget: images,
 posters, srcset candidates and CSS backgrounds use `imageKiB` (3000); video sources use `videoKiB`
 (8000). The first section approximates the first screen, with `firstScreenKiB` (400). Lazy images

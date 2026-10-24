@@ -123,7 +123,7 @@ func TestResetFramesClearsOnlyOldFrames(t *testing.T) {
 func TestFramesAndReportsLiveInCachePerProject(t *testing.T) {
 	t.Parallel()
 	a, b := FramesPath("/projects/a"), FramesPath("/projects/b")
-	if a == b || a != FramesPath("/projects/a") || filepath.Dir(a) != filepath.Join(os.Getenv("XDG_CACHE_HOME"), "lfm", "frames") {
+	if a == b || a != FramesPath("/projects/a") || filepath.Dir(a) != filepath.Join(userCache(t), "lfm", "frames") {
 		t.Fatalf("%q %q", a, b)
 	}
 	if ReportPath("/projects/a") == a || !strings.HasSuffix(ReportPath("/projects/a"), ".json") {
@@ -493,4 +493,14 @@ func TestReviewArtifactPathsPruneAgeAndCount(t *testing.T) {
 			t.Fatalf("artifacts: %d %v", len(entries), err)
 		}
 	}
+}
+
+// userCache is the platform cache root, which is not XDG_CACHE_HOME on macOS.
+func userCache(t *testing.T) string {
+	t.Helper()
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dir
 }

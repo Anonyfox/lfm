@@ -21,7 +21,7 @@ func TestImmersiveMedia(t *testing.T) {
 		{`<main><section><h2>Workshop</h2><section><img src=a></section></section></main>`, "", 0},
 	} {
 		for _, intensity := range []string{"", "restrained", "balanced", "immersive"} {
-			got := runOn(t, immersiveMediaRule, "<style>"+tc.head+"</style>", tc.body, Options{Concept: &ConceptFacts{Intensity: intensity}})
+			got := runOn(t, sectionMediaRule, "<style>"+tc.head+"</style>", tc.body, Options{Concept: &ConceptFacts{Intensity: intensity}})
 			want := 0
 			if intensity == "immersive" {
 				want = tc.want
@@ -105,7 +105,7 @@ func FuzzMediaRules(f *testing.F) {
 		if err != nil {
 			return
 		}
-		immersiveMediaRule(d)
+		sectionMediaRule(d)
 		eagerVideoRule(d)
 		mediaBytes(d)
 	})
@@ -126,7 +126,7 @@ func TestMediaKnownSizesAndLazyCandidates(t *testing.T) {
 func TestImmersiveLinkedStyles(t *testing.T) {
 	opts := Options{Concept: &ConceptFacts{Intensity: "immersive"}, Stylesheets: map[string][]byte{"styles/main.css": []byte(`.photo{background-image:url(../scene.webp)}`)}, Assets: map[string][]byte{"scene.webp": make([]byte, 200)}}
 	body := `<main><section class=photo><h1>Scene</h1></section></main>`
-	if got := runOn(t, immersiveMediaRule, `<link rel=stylesheet href=styles/main.css>`, body, opts); len(got) != 0 {
+	if got := runOn(t, sectionMediaRule, `<link rel=stylesheet href=styles/main.css>`, body, opts); len(got) != 0 {
 		t.Fatal(got)
 	}
 	d, err := Parse([]byte(`<link rel=stylesheet href=styles/main.css>`+body), opts)
@@ -174,6 +174,46 @@ func TestFirstScreenVideoBytes(t *testing.T) {
 			if !attrs.eager && len(budgetsRule(d)) != 0 {
 				t.Fatalf("deferred video charged to image budget: %v", budgetsRule(d))
 			}
+		}
+	}
+}
+
+func TestTextWalls(t *testing.T) {
+	words := func(n int) string { return strings.Repeat("word ", n) }
+	for _, tc := range []struct {
+		name, body string
+		want       int
+	}{
+		{"over", "<p>" + words(151) + "</p><div><p>" + words(150) + "</p></div>", 1},
+		{"background section", `<div style="background-image:url(scene.webp)"><p>` + words(301) + `</p></div>`, 1},
+		{"boundary", "<p>" + words(300) + "</p>", 0},
+		{"list", "<p>" + words(200) + "</p><ul><li><p>" + words(200) + "</p></li></ul><p>" + words(200) + "</p>", 0},
+		{"heading", "<p>" + words(200) + "</p><h3>Break</h3><p>" + words(200) + "</p>", 0},
+		{"media", "<p>" + words(200) + "</p><img src=a><p>" + words(200) + "</p>", 0},
+		{"icon", "<p>" + words(200) + "</p><svg width=24 height=24></svg><p>" + words(200) + "</p>", 1},
+		{"hidden", "<p>" + words(300) + "<span hidden> extra</span></p><p hidden>" + words(400) + "</p><template><p>" + words(400) + "</p></template><nav><p>" + words(400) + "</p></nav><footer><p>" + words(400) + "</p></footer>", 0},
+		{"separate runs", "<p>" + words(301) + "</p><hr><h3>Break</h3><p>" + words(301) + "</p>", 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := runOn(t, sectionMediaRule, "", "<main><section><h2>Story</h2>"+tc.body+"</section></main>", Options{})
+			if len(got) != tc.want {
+				t.Fatalf("%+v", got)
+			}
+			count := "301 words"
+			if tc.name == "icon" {
+				count = "400 words"
+			}
+			for _, d := range got {
+				if !strings.Contains(d.Message, "Story") || !strings.Contains(d.Message, count) {
+					t.Fatal(d)
+				}
+			}
+		})
+	}
+	for _, tag := range []string{"table", "figure", "blockquote", "details", "form"} {
+		body := "<main><p>" + words(200) + "</p><" + tag + ">Break</" + tag + "><p>" + words(200) + "</p></main>"
+		if got := runOn(t, sectionMediaRule, "", body, Options{}); len(got) != 0 {
+			t.Errorf("%s: %+v", tag, got)
 		}
 	}
 }

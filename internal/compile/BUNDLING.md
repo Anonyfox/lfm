@@ -83,9 +83,11 @@ import "../styles/main.css";
   the template. They must not affect the active page before instantiation.
 - Normal packing favors inline; large compatible groups can automatically become
   files. Legacy `build.assets.default` / entry-path overrides pin a policy.
-  Different explicit modes are separate groups. Single-entry groups keep their
-  basename; merged groups use `bundle.js` / `bundle.css`; separate groups number
-  those names. Template-local file groups also receive a template prefix.
+  Different explicit modes are separate groups. Single-entry groups use their
+  basename; merged groups use `bundle`; separate groups number those names.
+  Template-local file groups also receive a template prefix. Every emitted CSS
+  and JS filename ends with the first 12 hex digits of its content SHA-256
+  before the extension, including explicit file mode (`app-<hash>.js`, `bundle-<hash>.css`).
 - CSS is placed at the end of head; runtime JSON/JSON-LD precede executable JS
   near the end of body. Inline style attributes remain attributes.
 

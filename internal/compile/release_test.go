@@ -154,7 +154,7 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
-	if report.Release == nil || !report.Release.Applied || report.Release.Stylesheet != "theme&sheet.css" {
+	if report.Release == nil || !report.Release.Applied || report.Release.Stylesheet != outputMatch(t, root, "theme&sheet-*.css") {
 		t.Fatalf("%+v", report.Release)
 	}
 	count := 0
@@ -165,7 +165,7 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 	}
 	hasSheet := false
 	for _, n := range parsePage(t, read(t, root, "output/index.html")) {
-		if n.Data == "link" && htmlx.Attr(n, "href") == "./theme&sheet.css" {
+		if n.Data == "link" && htmlx.Attr(n, "href") == fileURL(outputMatch(t, root, "theme&sheet-*.css")) {
 			hasSheet = true
 		}
 	}

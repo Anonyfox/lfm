@@ -201,7 +201,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"app.js", "bundle.css", "demo.woff2", "favicon.png", "index.html", "picture.svg", "sitemap.xml"}
+	want := []string{outputMatch(t, root, "app-*.js"), outputMatch(t, root, "bundle-*.css"), "demo.woff2", "favicon.png", "index.html", "picture.svg", "sitemap.xml"}
 	var got []string
 	for _, file := range report.Files {
 		got = append(got, file.Name)
@@ -221,7 +221,7 @@ func TestFileModeAndCleanReplacement(t *testing.T) {
 			t.Fatal("output must be flat")
 		}
 	}
-	css := read(t, root, "output/bundle.css")
+	css := read(t, root, "output/"+outputMatch(t, root, "bundle-*.css"))
 	if !strings.Contains(css, "./demo.woff2") || !strings.Contains(css, "./picture.svg") {
 		t.Fatal("CSS references not rewritten")
 	}

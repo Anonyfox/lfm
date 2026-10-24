@@ -240,7 +240,7 @@ func budgetsRule(d *Document) []Diagnostic {
 	} {
 		if limit := budget.limit * budget.unit; budget.value > limit {
 			issues = append(issues, d.Whole(Warning, fmt.Sprintf("%s is %s, over this page's budget of %s.", budget.name, budget.show(budget.value), budget.show(limit)),
-				budget.hint+" When the page needs more, raise build.validation.budgets."+budget.field+" in lfm.json for it."))
+				budget.hint+" When the page needs more, raise build.validation.budgets."+budget.field+" in lfm.json for it. With lfm check, pass --project <dir> to apply the page's own budgets."))
 		}
 	}
 	return issues

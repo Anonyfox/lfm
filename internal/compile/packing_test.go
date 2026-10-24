@@ -247,7 +247,7 @@ func TestLocalHintsFollowCompiledFilesAndDropInlineResources(t *testing.T) {
 		}
 		if htmlx.Rel(n, "modulepreload") {
 			moduleHints++
-			if htmlx.Attr(n, "href") != "./bundle.js" {
+			if htmlx.Attr(n, "href") != fileURL(outputMatch(t, root, "bundle-*.js")) {
 				t.Fatal(htmlx.Attr(n, "href"))
 			}
 		}

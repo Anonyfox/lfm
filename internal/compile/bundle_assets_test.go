@@ -16,7 +16,7 @@ func TestFileLoaderPreservesResourceSuffixes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
-	css := read(t, root, "output/bundle.css")
+	css := read(t, root, "output/"+outputMatch(t, root, "bundle-*.css"))
 	if !strings.Contains(css, "picture.svg?v=1#shape") || !strings.Contains(css, "picture.svg?v=2#other") {
 		t.Fatal(css)
 	}

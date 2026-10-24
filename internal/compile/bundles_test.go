@@ -95,7 +95,7 @@ func TestPackagesVendorFormatsAndTreeShaking(t *testing.T) {
 				t.Fatalf("wanted one CSS bundle, got %d", styles)
 			}
 			if mode == "file" {
-				css := read(t, root, "output/bundle.css")
+				css := read(t, root, "output/"+outputMatch(t, root, "bundle-*.css"))
 				if !strings.Contains(css, "./font.woff2") || !strings.Contains(css, "./icon.svg") {
 					t.Fatal(css)
 				}

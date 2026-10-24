@@ -102,8 +102,8 @@ func TestHelperContextsDormancyAndFileOverrides(t *testing.T) {
 	if len(executableBlobs(t, root)) != 2 {
 		t.Fatal("inert and active graphs were collapsed")
 	}
-	for _, name := range []string{"app.js", "theme.css", "template-1-app.js", "template-1-theme.css"} {
-		if _, err := os.Stat(filepath.Join(root, "output", name)); err != nil {
+	for _, name := range []string{"app-*.js", "theme-*.css", "template-1-app-*.js", "template-1-theme-*.css"} {
+		if _, err := os.Stat(filepath.Join(root, "output", outputMatch(t, root, name))); err != nil {
 			t.Fatal(err)
 		}
 	}

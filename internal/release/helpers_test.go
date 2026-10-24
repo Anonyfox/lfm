@@ -75,7 +75,7 @@ func TestToolDiscoveryHonorsEnvironmentAndProjectBin(t *testing.T) {
 	if _, err := BrowserPath(); err == nil || !strings.Contains(err.Error(), "LFM_CHROME") {
 		t.Fatalf("broken LFM_CHROME: %v", err)
 	}
-	if ReportPath(root) == ReportPath(t.TempDir()) || !strings.HasPrefix(ReportPath(root), filepath.Join(os.Getenv("XDG_CACHE_HOME"), "lfm", "lighthouse")) {
+	if ReportPath(root) == ReportPath(t.TempDir()) || !strings.HasPrefix(ReportPath(root), filepath.Join(userCache(t), "lfm", "lighthouse")) {
 		t.Fatal("report paths must be per project, in the user cache")
 	}
 	if len(browserCandidates()) < 10 {

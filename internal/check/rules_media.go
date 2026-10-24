@@ -109,38 +109,94 @@ func mediaBackgrounds(d *Document, n *html.Node) []string {
 	return refs
 }
 
-func immersiveMediaRule(d *Document) []Diagnostic {
-	if d.Options.Concept == nil || d.Options.Concept.Intensity != "immersive" {
-		return nil
+func sectionMedia(d *Document, n *html.Node) bool {
+	switch n.Data {
+	case "img", "picture", "video", "canvas":
+		return true
+	case "svg":
+		w, h := sizeAttr(Attr(n, "width")), sizeAttr(Attr(n, "height"))
+		if w == 0 || h == 0 || w > 48 || h > 48 {
+			return true
+		}
 	}
+	return len(mediaBackgrounds(d, n)) > 0
+}
+
+func sectionMediaRule(d *Document) []Diagnostic {
+	immersive := d.Options.Concept != nil && d.Options.Concept.Intensity == "immersive"
 	var issues []Diagnostic
 	for _, s := range contentSections(d) {
-		media := false
+		name := s.heading
+		if name == "" {
+			name = "Untitled section"
+		}
+		media, words := false, 0
+		var first *html.Node
+		flush := func() {
+			if words > 300 {
+				issues = append(issues, d.At(first, Warning, fmt.Sprintf("Section %q has a text wall of %d words in consecutive paragraphs.", name, words), "Break it with a subheading, list, table or a visual, or cut it."))
+			}
+			words, first = 0, nil
+		}
+		// Nodes are in document order. A breaking element's paragraphs do not
+		// belong to the surrounding run.
+		var blocked *html.Node
 		for _, n := range s.nodes {
 			if n.Type != html.ElementNode || !d.designVisible(n) {
 				continue
 			}
-			switch n.Data {
-			case "img", "picture", "video", "canvas":
-				media = true
-			case "svg":
-				w, h := sizeAttr(Attr(n, "width")), sizeAttr(Attr(n, "height"))
-				if w == 0 || h == 0 || w > 48 || h > 48 {
-					media = true
+			hasMedia := sectionMedia(d, n)
+			media = media || hasMedia
+			if blocked != nil {
+				inside := false
+				for p := n.Parent; p != nil; p = p.Parent {
+					if p == blocked {
+						inside = true
+						break
+					}
 				}
+				if inside {
+					continue
+				}
+				blocked = nil
 			}
-			if !media && len(mediaBackgrounds(d, n)) > 0 {
-				media = true
+			breaker, container := hasMedia, false
+			switch n.Data {
+			case "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "menu", "dl", "table", "figure", "blockquote", "details", "form", "picture", "video", "canvas":
+				breaker, container = true, true
+			case "svg":
+				container = hasMedia
 			}
-			if media {
-				break
+			if breaker {
+				flush()
+				if container {
+					blocked = n
+				}
+				continue
+			}
+			if n.Data == "p" {
+				var text strings.Builder
+				var walk func(*html.Node)
+				walk = func(c *html.Node) {
+					if !d.designVisible(c) {
+						return
+					}
+					if c.Type == html.TextNode {
+						text.WriteString(c.Data)
+					}
+					for child := c.FirstChild; child != nil; child = child.NextSibling {
+						walk(child)
+					}
+				}
+				walk(n)
+				if first == nil {
+					first = n
+				}
+				words += wordCount(text.String())
 			}
 		}
-		if !media {
-			name := s.heading
-			if name == "" {
-				name = "Untitled section"
-			}
+		flush()
+		if immersive && !media {
 			issues = append(issues, d.At(s.node, Warning, fmt.Sprintf("Immersive section %q has no media.", name), "Add the planned media for this section or lower Intensity in concept.md to balanced or restrained."))
 		}
 	}
