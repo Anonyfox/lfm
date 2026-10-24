@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## 0.1.12 (unreleased)
+## 0.1.12 (2026-10-25)
 
 - Books render front and back matter, publish complete files without a listing, and publish private previews of written chapters while the rest are planned.
 - Book SVG images stay vector in print and use cached PNG renditions in EPUB with Chrome; print images fit the content height. EPUB navigation passes epubcheck, now enforced on Linux CI.
@@ -9,6 +9,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - Chapters take an optional Status column (planned, draft, done); planned chapters skip prose checks. A Matter table plans front and back matter.
 - Quoted book titles ignore trailing notes; AI statements match tool names without model suffixes.
 - Open imagery rows reserve covers and wait for the owner; a missing cover gets one store warning.
+- Book reports say "1 chapter" for a one-chapter book.
+- CI on every Linux push runs the race tests in four parallel groups and every fuzz target, at full fuzz time, in eight parallel shards; a push checks in about 5 minutes instead of 10, with the same tests, race checks, coverage uploads and fuzz targets. macOS tests run on release tags and manual runs.
+- Release tags skip the release workflow's own test run only after a fully green CI run on the tagged commit.
 
 ## 0.1.11 (2026-10-24)
 
