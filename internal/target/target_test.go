@@ -144,10 +144,21 @@ func TestFolder(t *testing.T) {
 		if r.Identity != "https://example.org/" || string(r.Options.Stylesheets["https://example.org/assets/a.css"]) != "body{color:red}" {
 			t.Fatal(r.Options)
 		}
+		remote := false
 		for _, f := range r.Files {
 			if strings.Contains(f.SHA256, "SECRET") {
 				t.Fatal("escaped root")
 			}
+			// A file outside the folder's origin keeps its absolute URL as its name.
+			if f.Name == "https://remote.invalid/x.js" && strings.Contains(f.Error, "remote resource") {
+				remote = true
+			}
+			if f.Name == "x.js" {
+				t.Fatal("remote file named like a local one")
+			}
+		}
+		if !remote {
+			t.Fatal(r.Files)
 		}
 		for _, b := range r.Options.Assets {
 			if strings.Contains(string(b), "SECRET") {

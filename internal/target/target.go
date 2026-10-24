@@ -455,8 +455,9 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	return result, nil
 }
 
+// name is a folder-relative path for files read from disk, else the absolute URL.
 func (r *reader) name(u *url.URL) string {
-	if r.remote {
+	if r.remote || u.Host != "local.invalid" && !sameOrigin(u, r.origin) {
 		return u.String()
 	}
 	return strings.TrimPrefix(u.Path, "/")
