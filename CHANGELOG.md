@@ -19,6 +19,10 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - `copy.machine` skips tables and role=table/grid content.
 - New error rule `design.ground`: warm off-white page grounds (OKLCH L ≥ 0.88, C 0.004–0.045, hue 45–115°, e.g. cream, beige, ivory) and paper, parchment or notebook ground textures (SVG noise, ruled or squared lines, paper image files) fail the build in `lfm compile` and `lfm check`. `data-design-reason` does not exempt it. `concept.ground` rejects such colours in the concept palette; the cream-and-terracotta palette warning is replaced by these rules.
 - The reference example, the research skill's example palette and the design skill no longer show or suggest warm off-white or paper grounds.
+- Release Lighthouse re-measures timing audits up to three times and reports per-audit medians with the run range; scores are judged against Lighthouse's own "good" thresholds, and CLS findings name the shifting elements.
+- Third-party audit results (e.g. legacy JavaScript in an analytics beacon) and informational diagnostics are reported apart from the page's own findings.
+- `compile --release` and `check --release` say clearly when Chrome, Lighthouse or loopback sockets are unavailable.
+- `lfm check --project <folder>` pairs a built page or live URL with its project, so project-only rules run with compile's facts and validation settings; without a target it checks `output/` and warns (`build.stale`) when output no longer matches the source. Project errors stay JSON under `--json`.
 
 ## 0.1.8 (2026-10-24)
 
