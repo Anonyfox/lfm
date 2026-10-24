@@ -197,6 +197,9 @@ frames that changed. Then review by looking:
 Without Chrome, ask the user for phone and desktop screenshots of the whole page, and report the visual
 review as not done rather than passed.
 
+Keep your own review state (screenshots, logs, scripts, browser checks) in `qa/` at the project root.
+The project's .gitignore excludes it; research/ holds only the two research files.
+
 The page is done when `lfm compile --release` reports 0 errors and 0 warnings, the review left nothing
 above detail level, and the report's `Next` line says deploy.
 

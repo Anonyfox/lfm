@@ -36,7 +36,8 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 	for _, c := range installed {
 		have[c.Name] = true
 		if c.State == skills.Outdated {
-			notes = append(notes, fmt.Sprintf("%s in %s is from lfm %s; 'lfm skills install' updates it.", c.Name, shortPath(r.Root, c.Path), c.Version))
+			folder := filepath.Dir(filepath.Dir(filepath.Dir(filepath.Dir(c.Path))))
+			notes = append(notes, fmt.Sprintf("%s in %s is from lfm %s; 'lfm skills install %s' updates it.", c.Name, shortPath(r.Root, c.Path), c.Version, filepath.ToSlash(folder)))
 		}
 	}
 	n := next{Notes: notes}
@@ -165,6 +166,30 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		}
 	}
 	return n
+}
+
+// refreshNotes summarizes the skill copies a compile updated, one line per folder.
+func refreshNotes(root string, changes []skills.Change) []string {
+	var folders []string
+	count := map[string]int{}
+	from := map[string]string{}
+	for _, c := range changes {
+		f := shortPath(root, c.Path)
+		if count[f] == 0 {
+			folders = append(folders, f)
+		}
+		count[f]++
+		from[f] = c.Reason
+	}
+	var notes []string
+	for _, f := range folders {
+		noun := "skills"
+		if count[f] == 1 {
+			noun = "skill"
+		}
+		notes = append(notes, fmt.Sprintf("Updated %d lfm %s in %s (%s).", count[f], noun, f, from[f]))
+	}
+	return notes
 }
 
 func shortPath(root, path string) string {

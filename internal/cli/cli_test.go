@@ -316,7 +316,7 @@ func TestNextStepOrder(t *testing.T) {
 		t.Errorf("deploy with book: %+v", n)
 	}
 	old := []skills.Copy{{Name: "lfm-design", Path: "/p/.agents/skills/lfm-design/SKILL.md", Version: "0.1", State: skills.Outdated}}
-	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm-design in .agents/skills is from lfm 0.1") {
+	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm-design in .agents/skills is from lfm 0.1; 'lfm skills install /p' updates it.") {
 		t.Fatalf("%+v", n)
 	}
 }

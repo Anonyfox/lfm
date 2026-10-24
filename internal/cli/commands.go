@@ -106,8 +106,13 @@ there is no project to compile; 2 for a mistake in the command line.`,
 			}
 			return err
 		}
-		installed := skills.Find(result.Root, skills.NewData(env.Build.Version))
+		data := skills.NewData(env.Build.Version)
+		installed, refreshed, rerr := skills.Refresh(skills.Find(result.Root, data), data)
 		next := nextStep(result, err, installed)
+		next.Notes = append(next.Notes, refreshNotes(result.Root, refreshed)...)
+		if rerr != nil {
+			next.Notes = append(next.Notes, "Could not update the lfm skills: "+rerr.Error())
+		}
 		if p.has("json") {
 			if jerr := printJSON(env.Stdout, result, next, installed); jerr != nil {
 				return jerr

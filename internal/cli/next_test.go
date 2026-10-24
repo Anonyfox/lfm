@@ -15,6 +15,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/research"
+	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/spreadsheet"
 )
 
@@ -67,5 +68,18 @@ func TestDeployAsksForTheCompressionTheReleaseMeasured(t *testing.T) {
 	r.Release.Audit.Delivery = release.Delivery{TextBytes: 3000, CompressedBytes: 1200, UncompressedMS: 8}
 	if n := nextStep(r, nil, nil); len(n.Notes) != 0 {
 		t.Fatalf("a note for a page compression barely changes: %+v", n.Notes)
+	}
+}
+
+func TestRefreshNotesGroupByFolder(t *testing.T) {
+	changes := []skills.Change{
+		{Name: "lfm-design", Path: "/s/.agents/skills/lfm-design/SKILL.md", Reason: "was lfm 0.1.7"},
+		{Name: "lfm-research", Path: "/s/.agents/skills/lfm-research/SKILL.md", Reason: "was lfm 0.1.7"},
+		{Name: "lfm-design", Path: "/home/.claude/skills/lfm-design/SKILL.md", Reason: "was lfm 0.1.6"},
+	}
+	got := refreshNotes("/s/pages/home", changes)
+	want := []string{"Updated 2 lfm skills in ../../.agents/skills (was lfm 0.1.7).", "Updated 1 lfm skill in ../../../home/.claude/skills (was lfm 0.1.6)."}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("%q", got)
 	}
 }

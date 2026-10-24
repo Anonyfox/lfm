@@ -101,7 +101,8 @@ unattended stays on the path. When it says deploy, upload `output/` to the URL i
 `.agents/skills` in every other case; `--agents`, `--claude` and `--global` choose explicitly. Each
 installed `SKILL.md` records the lfm version and a digest of its text, so running it again after an
 update replaces untouched copies and keeps copies the project changed (`--force` replaces them too).
-`lfm compile` notes installed skills that are older than the binary.
+`lfm compile` updates untouched copies written by an older lfm release, in the project and every folder
+above it, and notes copies the project changed.
 
 `lfm compile --json` prints the result as one object with `errors`, `warnings`, the findings under
 `validation`, `next` (`phase`, `do`, `skill`) and the installed `skills`. Exit status is 0 when

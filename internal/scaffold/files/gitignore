@@ -1,3 +1,5 @@
 output/
 distribution/
 node_modules/
+# Review state: screenshots, logs, browser checks. Keep it out of research/.
+qa/
