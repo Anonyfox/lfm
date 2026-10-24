@@ -205,7 +205,11 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 		return
 	}
 	if r.Audit.Reused != "" {
-		fmt.Fprintf(w, "  %s audit reused from %s because the build did not change\n", term.Pad("release", 12), r.Audit.Reused)
+		when := r.Audit.Reused
+		if t, err := time.Parse(time.RFC3339, when); err == nil {
+			when = t.Local().Format("2006-01-02 15:04")
+		}
+		fmt.Fprintf(w, "  %s audit reused from %s because the build did not change\n", term.Pad("release", 12), when)
 	}
 	if d := r.Audit.Delivery; d.TextBytes > 0 {
 		line := fmt.Sprintf("measured as hosts send it, text compressed: %s instead of %s", term.Bytes(d.CompressedBytes), term.Bytes(d.TextBytes))
