@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/deliver"
+	"github.com/Anonyfox/lfm/internal/golden"
 	"github.com/Anonyfox/lfm/internal/zipx"
 
 	"golang.org/x/net/html"
@@ -272,6 +273,16 @@ func TestCompleteBookChecksCleanAndBuilds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	files := map[string][]byte{
+		"book.epub":       built.EPUB,
+		"print.html":      built.Print,
+		"paperback.html":  built.Document(PrintOptions{Paper: true, Inside: 0.75}),
+		"cover-wrap.html": built.CoverDocument(0.5, true),
+	}
+	for name, data := range built.PrintAssets {
+		files["assets/"+name] = data
+	}
+	golden.Files(t, "book-sourdough", files)
 	z, err := zip.NewReader(bytes.NewReader(built.EPUB), int64(len(built.EPUB)))
 	if err != nil {
 		t.Fatal(err)
@@ -333,7 +344,10 @@ func TestCompleteBookChecksCleanAndBuilds(t *testing.T) {
 	if dir := os.Getenv("LFM_EPUB_OUT"); dir != "" {
 		_ = os.WriteFile(filepath.Join(dir, "fixture.epub"), built.EPUB, 0o644)
 	}
-	again, _ := buildChecked(t, r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC))
+	again, err := Build(r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(again.EPUB, built.EPUB) {
 		t.Error("EPUB build is not reproducible")
 	}

@@ -7,16 +7,6 @@ import (
 	"testing"
 )
 
-func TestCompactCountsRunes(t *testing.T) {
-	t.Parallel()
-	if got := compact("  größe   über\n alles ", 20); got != "größe über alles" {
-		t.Fatalf("short multibyte text was cut: %q", got)
-	}
-	if got := compact("abcdef", 3); got != "abc…" {
-		t.Fatalf("%q", got)
-	}
-}
-
 func TestCappedBufferKeepsTheLimitAndReportsTruncation(t *testing.T) {
 	t.Parallel()
 	b := cappedBuffer{Limit: 5}

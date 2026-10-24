@@ -154,13 +154,23 @@ func TestCapitalize(t *testing.T) {
 	}
 }
 
-func TestCompactCollapsesWhitespace(t *testing.T) {
+func TestCompact(t *testing.T) {
 	t.Parallel()
-	if got := compact("a\n\tb   c", 100); got != "a b c" {
-		t.Fatalf("%q", got)
-	}
-	if got := compact("", 3); got != "" {
-		t.Fatalf("%q", got)
+	for _, tc := range []struct {
+		name, text string
+		limit      int
+		want       string
+	}{
+		{"whitespace", "a\n\tb   c", 100, "a b c"},
+		{"empty", "", 3, ""},
+		{"runes", "  größe   über\n alles ", 20, "größe über alles"},
+		{"truncated", "abcdef", 3, "abc…"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := compact(tc.text, tc.limit); got != tc.want {
+				t.Fatalf("compact(%q, %d) = %q, want %q", tc.text, tc.limit, got, tc.want)
+			}
+		})
 	}
 }
 

@@ -70,6 +70,24 @@ var (
 	exampleValue = regexp.MustCompile(`\b(?:e\.g\.|for example|such as)[ :,]+(?:["“]|[A-Z][\w-]*)`)
 )
 
+// Compile the guidance vocabulary once, rather than once per source line.
+var familyPatterns = func() []*regexp.Regexp {
+	families := append(stock.Families(), commonFamilies...)
+	patterns := make([]*regexp.Regexp, len(families))
+	for i, f := range families {
+		patterns[i] = regexp.MustCompile(`(?:^|[^\w-])` + regexp.QuoteMeta(f) + `(?:[^\w-]|$)`)
+	}
+	return patterns
+}()
+
+var registerPatterns = func() []*regexp.Regexp {
+	patterns := make([]*regexp.Regexp, len(registers))
+	for i, w := range registers {
+		patterns[i] = regexp.MustCompile(`\b` + w + `\b`)
+	}
+	return patterns
+}()
+
 // plants are the planted defaults in a text; used records the allowed
 // phrases a text relies on.
 func plants(text string, used map[int]bool) []string {
@@ -80,8 +98,8 @@ func plants(text string, used map[int]bool) []string {
 		at := func(kind, what string) {
 			out = append(out, kind+" "+strconv.Quote(what)+" in line "+strconv.Itoa(n+1)+": "+strings.TrimSpace(line))
 		}
-		for _, f := range families {
-			if regexp.MustCompile(`(?:^|[^\w-])`+regexp.QuoteMeta(f)+`(?:[^\w-]|$)`).MatchString(low) && !strings.HasPrefix(f, "-") && f != "sans-serif" && f != "monospace" {
+		for i, f := range families {
+			if strings.Contains(low, f) && familyPatterns[i].MatchString(low) && !strings.HasPrefix(f, "-") && f != "sans-serif" && f != "monospace" {
 				at("font", f)
 			}
 		}
@@ -92,8 +110,8 @@ func plants(text string, used map[int]bool) []string {
 			at("example value", m)
 		}
 	words:
-		for _, w := range registers {
-			if !regexp.MustCompile(`\b` + w + `\b`).MatchString(low) {
+		for wi, w := range registers {
+			if !strings.Contains(low, w) || !registerPatterns[wi].MatchString(low) {
 				continue
 			}
 			for i, a := range allowed {
