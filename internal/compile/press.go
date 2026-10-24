@@ -281,10 +281,14 @@ func printKey(kind string, doc []byte, assets map[string][]byte) string {
 // a release, a fresh print stamped with key. Otherwise it returns nil and
 // marks the press pending.
 func (pr *press) job(key string, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
+	return pr.cachedJob(key, pr.release, run)
+}
+
+func (pr *press) cachedJob(key string, print bool, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
 	if pdf := pr.lookup(key); pdf != nil {
 		return pdf, nil
 	}
-	if !pr.release {
+	if !print {
 		pr.wait()
 		return nil, nil
 	}

@@ -1,10 +1,10 @@
 ## book
   book         no deliverables/book/concept.md yet
-  book         untitled · 1 of 12 chapters · 2,400 of 36,000 words
+  book         untitled · 12 chapters: 1 written, 0 planned · 2,400 of 36,000 words
                presale: the download page says the copy is being written · https://x.test/p/
-  book         Rye · 0 of 2 chapters · 0 of 1,200 words · sold in shops
+  book         Rye · 2 chapters: 0 written, 0 planned · 0 of 1,200 words · sold in shops
                not built until every chapter is written
-  book         Rye · 2 of 2 chapters · 1,250 of 1,200 words · sold in the bundle
+  book         Rye · 2 chapters: 2 written, 0 planned · 1,250 of 1,200 words · sold in the bundle
                EPUB 50.8 KiB, PDF 1.00 MiB · fits
   stores       distribution/book/ · 1 channel
                kdp

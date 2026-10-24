@@ -335,7 +335,7 @@ func opener(s string) string {
 }
 
 // checkChapter checks one written chapter against its plan.
-func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(bookRel string) bool) (prose, []diagnostic.Diagnostic) {
+func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, read Reader) (prose, []diagnostic.Diagnostic) {
 	file := Dir + "/" + ch.File
 	var issues []diagnostic.Diagnostic
 	warn := func(rule string, line int, message, hint string) {
@@ -380,20 +380,8 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 		}
 	}
 	chapterDir := path.Dir(ch.File)
-	for _, img := range p.images {
-		rel := path.Clean(path.Join(chapterDir, img.dest))
-		switch {
-		case strings.Contains(img.dest, "://"):
-			warn(RuleChapter, img.line, "Image "+img.dest+" is remote.", "Store the image in deliverables/book/images; books are read offline.")
-		case outside(rel):
-			warn(RuleChapter, img.line, "Image "+img.dest+" lies outside deliverables/book.", "Copy it into deliverables/book/images and link it as ../images/name.jpg; the book carries only its own files.")
-		case !exists(rel):
-			warn(RuleChapter, img.line, "Image "+img.dest+" does not exist.", "Link images relative to the chapter, e.g. ../images/name.jpg.")
-		}
-		if strings.TrimSpace(img.alt) == "" {
-			warn(RuleChapter, img.line, "Image "+img.dest+" has no alternative text.", "Describe what the image shows for readers who cannot see it.")
-		}
-	}
+	issues = append(issues, checkImageReferences(ch.File, p.images, read)...)
+
 	chapters := map[string]bool{}
 	for _, c := range plan.Chapters {
 		chapters[c.File] = true
@@ -572,4 +560,37 @@ func checkOutline(ch Chapter, p prose, plan Plan, warn func(string, int, string,
 			warn(RuleChapter, 1, fmt.Sprintf("The planned hook %q is not in the chapter's ending.", hook), "Use the planned hook in the last 300 words or update the outline.")
 		}
 	}
+}
+
+// checkImageReferences validates images at their Markdown source lines.
+func checkImageReferences(file string, images []ref, read Reader) []diagnostic.Diagnostic {
+	var issues []diagnostic.Diagnostic
+	add := func(img ref, rule string, severity diagnostic.Severity, message, hint string) {
+		issues = append(issues, at(Dir+"/"+file, img.line, rule, severity, message, hint))
+	}
+	for _, img := range images {
+		rel := path.Clean(path.Join(path.Dir(file), img.dest))
+		switch {
+		case strings.Contains(img.dest, "://"):
+			add(img, RuleChapter, diagnostic.Error, "Image "+img.dest+" is remote.", "Store the image in deliverables/book/images; books are read offline.")
+		case outside(rel):
+			add(img, RuleChapter, diagnostic.Error, "Image "+img.dest+" lies outside deliverables/book.", "Copy it into deliverables/book/images and link it as ../images/name.jpg; the book carries only its own files.")
+		default:
+			data, err := read(rel)
+			switch {
+			case err != nil:
+				add(img, RuleChapter, diagnostic.Error, "Image "+img.dest+" does not exist.", "Link images relative to the chapter, e.g. ../images/name.jpg.")
+			case !imageExt(rel):
+				add(img, RuleImages, diagnostic.Error, "Image "+img.dest+" is not a supported book image.", "Use JPEG, PNG, WebP or SVG.")
+			case strings.EqualFold(path.Ext(rel), ".svg"):
+				if _, _, err := SVGSize(data); err != nil {
+					add(img, RuleImages, diagnostic.Error, "Image "+img.dest+": "+err.Error(), "Use a self-contained SVG with dimensions and no scripts, event attributes or foreignObject.")
+				}
+			}
+		}
+		if strings.TrimSpace(img.alt) == "" {
+			add(img, RuleChapter, diagnostic.Warning, "Image "+img.dest+" has no alternative text.", "Describe what the image shows for readers who cannot see it.")
+		}
+	}
+	return issues
 }

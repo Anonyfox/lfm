@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
@@ -112,19 +113,25 @@ func (p *Printer) Print(doc []byte, assets map[string][]byte, outline bool) ([]b
 
 // BookLayout loads a book document at phone width and at the width of the
 // printed text column and reports what does not fit: elements wider than the
-// column and text below 9 pixels.
+// column, clipped images, images split across printed pages and text below 9 pixels.
 func (p *Printer) BookLayout(doc []byte, assets map[string][]byte, columnInches float64) ([]string, error) {
 	tab, url, done := p.tab(doc, assets)
 	defer done()
 	type report struct {
-		Wide  []string
-		Tiny  int
-		Width int
+		Wide   []string
+		Tiny   int
+		Width  int
+		Images []string
 	}
 	measure := `(()=>{const W=document.documentElement.clientWidth;const wide=[];
 for(const el of document.querySelectorAll('img,table,pre,figure,svg,video')){const r=el.getBoundingClientRect();if(r.width>0&&r.right>W+1){const t=el.tagName.toLowerCase();const label=t==='img'?'image '+(el.getAttribute('src')||''):t==='pre'?'code block "'+el.textContent.trim().slice(0,30)+'"':t==='table'?'table "'+el.textContent.trim().slice(0,30)+'"':t;wide.push(label+' is '+Math.round(r.width)+' px wide')}}
 let tiny=0;const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);while(walker.nextNode()){const n=walker.currentNode;if(!n.textContent.trim())continue;const s=getComputedStyle(n.parentElement);if(parseFloat(s.fontSize)<9&&s.display!=='none'&&s.visibility!=='hidden')tiny++}
-return {Wide:wide.slice(0,6),Tiny:tiny,Width:W}})()`
+const images=[];
+for(const img of document.images){if(img.closest('.cover'))continue;const r=img.getBoundingClientRect();let problem='';
+ for(let el=img.parentElement;el&&!problem;el=el.parentElement){const s=getComputedStyle(el),p=el.getBoundingClientRect();if((['hidden','clip'].includes(s.overflowY)&&(r.top<p.top-1||r.bottom>p.bottom+1))||(['hidden','clip'].includes(s.overflowX)&&(r.left<p.left-1||r.right>p.right+1)))problem='is clipped';}
+ if(problem)images.push('image '+img.getAttribute('src')+' '+problem);
+}
+return {Wide:wide.slice(0,6),Tiny:tiny,Width:W,Images:images}})()`
 	var issues []string
 	sizes := []struct {
 		name  string
@@ -144,18 +151,38 @@ return {Wide:wide.slice(0,6),Tiny:tiny,Width:W}})()`
 		if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
 			return nil, err
 		}
-		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
+		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
 			return nil, err
 		}
 		r, err := chromedp.Run(tab, chromedp.Evaluate[report](measure))
 		if err != nil {
 			return nil, err
 		}
+		for _, image := range r.Images {
+			issues = append(issues, capitalize(s.name)+", "+image+".")
+		}
 		for _, w := range r.Wide {
 			issues = append(issues, fmt.Sprintf("%s, %s in a %d px column.", capitalize(s.name), w, r.Width))
 		}
 		if r.Tiny > 0 {
 			issues = append(issues, fmt.Sprintf("%s, %d text passages render below 9 px.", capitalize(s.name), r.Tiny))
+		}
+		if s.media == "print" {
+			sources, err := chromedp.Run(tab, chromedp.Evaluate[[]string](`Array.from(document.images).filter(img=>!img.closest('.cover')).map((img,n)=>{img.alt='lfm-layout-image-'+n;return img.getAttribute('src')||''})`))
+			if err != nil {
+				return nil, err
+			}
+			yes := true
+			pdf, err := chromedp.Call(tab, page.PrintToPDF, page.PrintToPDFParams{PreferCSSPageSize: &yes, GenerateTaggedPDF: &yes})
+			if err != nil {
+				return nil, fmt.Errorf("print the book for its layout check: %w", err)
+			}
+			pages := pdfx.FigurePages(pdf.Data)
+			for i, source := range sources {
+				if n := pages[fmt.Sprintf("lfm-layout-image-%d", i)]; n > 1 {
+					issues = append(issues, fmt.Sprintf("In print, image %s is split across %d pages.", source, n))
+				}
+			}
 		}
 	}
 	return issues, nil

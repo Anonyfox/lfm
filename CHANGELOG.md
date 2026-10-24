@@ -2,10 +2,13 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## 0.1.12 (unreleased)
 
+- Books render front and back matter, publish complete files without a listing, and publish private previews of written chapters while the rest are planned.
+- Book SVG images stay vector in print and use cached PNG renditions in EPUB with Chrome; print images fit the content height. EPUB navigation passes epubcheck, now enforced on Linux CI.
+- Shop-only projects with the starter page follow the deliverable pipeline and skip page release audits; fiction reports and next steps name the fiction skill.
 - `deliverables.book.kind: fiction` with its own concept (premise, cast, world, arc, POV, tense) and the `lfm-fiction` skill; research minimums, value and readability checks stay nonfiction-only.
 - Chapters take an optional Status column (planned, draft, done); planned chapters skip prose checks. A Matter table plans front and back matter.
 - Quoted book titles ignore trailing notes; AI statements match tool names without model suffixes.
-- Open imagery rows reserve covers and wait for the owner without missing-image findings.
+- Open imagery rows reserve covers and wait for the owner; a missing cover gets one store warning.
 
 ## 0.1.11 (2026-10-24)
 

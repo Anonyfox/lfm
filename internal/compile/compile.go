@@ -93,6 +93,7 @@ type Result struct {
 	Concept     concept.Summary      `json:"concept"`
 	SocialMeta  []string             `json:"socialMetaRepairs,omitempty"`
 	FontHints   int                  `json:"fontHintRepairs,omitempty"`
+	PageOffers  bool                 `json:"pageOffers,omitempty"`
 	Starter     bool                 `json:"starter"` // the template is still the starter page of lfm init
 	Book        *book.Summary        `json:"book,omitempty"`
 	Printable   *printable.Summary   `json:"printable,omitempty"`
@@ -219,6 +220,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		units, pack, found = checkDeliverables(checking{p: p, loaded: loaded, commerce: prepared.Commerce, researched: researched}, &result)
 		findings = append(findings, found...)
 	}
+	result.PageOffers = len(prepared.Commerce.Offers) > 0
 	preliminary = *summarize(preliminary.Stage, append(preliminary.Diagnostics, findings...))
 	result.Validation = &preliminary
 	if err != nil {
@@ -251,7 +253,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	}
 
 	// 4. optimize
-	if options.Release {
+	if options.Release && result.PageNeeded() {
 		if err := b.optimizeCached(doc, &result); err != nil {
 			return result, err
 		}
@@ -303,7 +305,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	// The audit loads only the page; it runs while deliverables are delivered.
 	var audit *release.AuditResult
 	auditDone := make(chan struct{})
-	if options.Release && ctx.Err() == nil {
+	if options.Release && result.PageNeeded() && ctx.Err() == nil {
 		go func() {
 			defer close(auditDone)
 			audit = release.Audit(ctx, release.Target{Page: page, Assets: b.sidecars()}, p.Root)
@@ -323,7 +325,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	}
 
 	// 7. audit
-	if options.Release && ctx.Err() == nil {
+	if options.Release && result.PageNeeded() && ctx.Err() == nil {
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
@@ -336,6 +338,16 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 				return d.Rule == "release.css"
 			})
 		}
+
+		if !result.revalidate("audit", audit.Diagnostics, c.Build.Validation.Rules) {
+			return result, &Failure{Errors: result.Errors()}
+		}
+	}
+
+	if options.Release && ctx.Err() == nil {
+		if result.Release == nil {
+			result.Release = &release.Result{}
+		}
 		var opened []string
 		for _, u := range units {
 			if ext := u.opens(); ext != "" {
@@ -343,9 +355,6 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 			}
 		}
 		result.Optional = optionalHelpers(opened)
-		if !result.revalidate("audit", audit.Diagnostics, c.Build.Validation.Rules) {
-			return result, &Failure{Errors: result.Errors()}
-		}
 	}
 
 	// 8. publish
@@ -653,4 +662,39 @@ func criticalCopy(r *release.Result) int {
 		return 0
 	}
 	return r.CriticalBytes
+}
+
+// PageNeeded reports whether the current page participates in selling the deliverables.
+func (r Result) PageNeeded() bool {
+	if !r.Starter || r.PageOffers {
+		return true
+	}
+	var sells []string
+	if r.Book != nil {
+		sells = append(sells, r.Book.Sell)
+	}
+	if r.Printable != nil {
+		sells = append(sells, r.Printable.Sell)
+	}
+	if r.Spreadsheet != nil {
+		sells = append(sells, r.Spreadsheet.Sell)
+	}
+	if r.Document != nil {
+		sells = append(sells, r.Document.Sell)
+	}
+	if r.Deck != nil {
+		sells = append(sells, r.Deck.Sell)
+	}
+	if r.Bundle != nil {
+		sells = append(sells, r.Bundle.Sell)
+	}
+	if len(sells) == 0 {
+		return true
+	}
+	for _, sell := range sells {
+		if sell != "shops" && sell != "bundle" {
+			return true
+		}
+	}
+	return false
 }

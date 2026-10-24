@@ -425,7 +425,7 @@ func (c conceptChecker) imagery(d concept.Document, plan *Plan) {
 			continue
 		}
 		if !strings.HasPrefix(img.File, ImagesDir+"/") || !imageExt(img.File) {
-			c.add(RuleConcept, row.N, fmt.Sprintf("Image file %q is not images/<name>.jpg, .png or .webp.", img.File), "Store images in deliverables/book/images and link them as [name](images/cover.jpg).")
+			c.add(RuleConcept, row.N, fmt.Sprintf("Image file %q is not images/<name>.jpg, .png, .webp or .svg.", img.File), "Store images in deliverables/book/images and link them as [name](images/cover.jpg).")
 		}
 		if img.Job == "cover" {
 			plan.Cover = img.File
@@ -437,7 +437,7 @@ func (c conceptChecker) imagery(d concept.Document, plan *Plan) {
 
 func imageExt(p string) bool {
 	switch strings.ToLower(path.Ext(p)) {
-	case ".jpg", ".jpeg", ".png", ".webp":
+	case ".jpg", ".jpeg", ".png", ".webp", ".svg":
 		return true
 	}
 	return false

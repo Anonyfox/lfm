@@ -112,6 +112,9 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 	}
 	fmt.Fprintln(w, line)
 	renderFiles(w, s, r)
+	if !r.PageNeeded() {
+		fmt.Fprintln(w, "  page         starter, not audited (sold in shops)")
+	}
 	if len(r.SocialMeta) > 0 {
 		fmt.Fprintf(w, "  %s added %s from social.x\n", term.Pad("sharing", 12), strings.Join(r.SocialMeta, ", "))
 	}
@@ -374,7 +377,10 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 	if title == "" {
 		title = "untitled"
 	}
-	line := fmt.Sprintf("%s · %d of %d chapters · %s of %s words", title, b.Written, len(b.Chapters), groupDigits(b.Words), groupDigits(b.Target)) + sellNote(b.Sell)
+	if b.Kind == "fiction" {
+		title += " · fiction"
+	}
+	line := fmt.Sprintf("%s · %d chapters: %d written, %d planned · %s of %s words", title, len(b.Chapters), b.Written, b.Planned, groupDigits(b.Words), groupDigits(b.Target)) + sellNote(b.Sell)
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("book", 12), line)
 	var built []string
 	seen := map[string]bool{} // a bundle's download folder holds the same files
@@ -393,8 +399,21 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 	if len(built) > 0 {
 		detail = strings.Join(built, ", ")
 	}
+	if b.Sell == "shops" && len(b.Files) > 0 {
+		var written []string
+		for _, name := range b.Files {
+			written = append(written, strings.ToUpper(strings.TrimPrefix(path.Ext(name), "."))+" "+term.Bytes(b.Sizes[name]))
+		}
+		detail = strings.Join(written, ", ") + " → distribution/book/"
+	}
+	if b.Blocker != "" {
+		detail = b.Blocker
+	}
+	if b.Preview != "" {
+		detail = "preview EPUB → " + b.Preview
+	}
 	if b.Pending {
-		detail += " · the PDF and paperback print with --release"
+		detail += " · the paperback prints with --release"
 	}
 	if b.Layout != "" {
 		detail += " · " + b.Layout

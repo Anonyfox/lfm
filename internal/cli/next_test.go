@@ -83,3 +83,41 @@ func TestOutdatedNotesGroupByFolder(t *testing.T) {
 		t.Fatalf("%q", got)
 	}
 }
+
+func TestFictionShopNext(t *testing.T) {
+	r := compile.Result{Starter: true, Book: &book.Summary{Kind: "fiction", Sell: "shops"}}
+	n := nextStep(r, nil, nil)
+	if n.Phase != "book" || n.Skill != "lfm-fiction" || !strings.Contains(n.Do, "write deliverables/book/concept.md: premise, cast, world, arc and voice") {
+		t.Fatal(n)
+	}
+	r.Book.Concept = true
+	r.Book.Chapters = []book.Chapter{{N: 1, File: "chapters/one.md", Status: "planned"}}
+	if n = nextStep(r, nil, nil); n.Phase != "book" || n.Skill != "lfm-fiction" {
+		t.Fatal(n)
+	}
+	r.Book.Chapters = nil
+	r.Book.Complete = true
+	if n = nextStep(r, nil, nil); !strings.Contains(n.Do, "deliverables/book/listing.md") || n.Skill != "lfm-fiction" {
+		t.Fatal(n)
+	}
+	r.Book.Listing = true
+	if n = nextStep(r, nil, nil); n.Phase != "review" || !strings.Contains(n.Do, "distribution/") {
+		t.Fatal(n)
+	}
+	r.Release = &release.Result{}
+	if n = nextStep(r, nil, nil); n.Phase != "deploy" || !strings.Contains(n.Do, "distribution/") {
+		t.Fatal(n)
+	}
+}
+
+func TestShopNextKeepsDeliverableWarnings(t *testing.T) {
+	r := compile.Result{Starter: true, Book: &book.Summary{Kind: "fiction", Sell: "shops", Concept: true, Complete: true, Listing: true}, Validation: &check.Report{Warnings: 1, Diagnostics: []check.Diagnostic{{Rule: "page.rule", Severity: diagnostic.Warning}}}}
+	if n := nextStep(r, nil, nil); n.Phase != "review" {
+		t.Fatal(n)
+	}
+	r.Validation.Warnings++
+	r.Validation.Diagnostics = append(r.Validation.Diagnostics, check.Diagnostic{Rule: "book.machine", Severity: diagnostic.Warning})
+	if n := nextStep(r, nil, nil); n.Phase != "fix" || !strings.Contains(n.Do, "deliverable warnings") {
+		t.Fatal(n)
+	}
+}

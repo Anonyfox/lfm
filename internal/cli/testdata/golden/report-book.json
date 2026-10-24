@@ -20,8 +20,8 @@
     },
     {
       "name": "q7w2k9m4x8c3v6b1n5zt/the-weekend-starter.epub",
-      "bytes": 5283,
-      "sha256": "2a44e1afc4623cd89f152864f4836e1dfc279b8ecbfbaa5d0bb43b8c0c7d9afd"
+      "bytes": 5356,
+      "sha256": "85c42a5539c166160a0aba4dca910a0abba563701ec523cc9aebe142cda68d46"
     },
     {
       "name": "share-3f93c132da0c.png",
@@ -409,6 +409,7 @@
   },
   "starter": true,
   "book": {
+    "kind": "nonfiction",
     "concept": true,
     "name": "The Weekend Starter",
     "chapters": [
@@ -446,11 +447,14 @@
     "targetWords": 900,
     "complete": true,
     "url": "https://example.com/001/q7w2k9m4x8c3v6b1n5zt/",
+    "fileBytes": {
+      "the-weekend-starter.epub": 5356
+    },
     "files": [
       "the-weekend-starter.epub"
     ],
     "listing": false,
-    "pending": true,
+    "pending": false,
     "sell": "page"
   },
   "errors": 0,

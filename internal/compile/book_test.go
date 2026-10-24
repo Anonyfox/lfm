@@ -40,9 +40,11 @@ func TestBookIsPublishedBehindItsPath(t *testing.T) {
 	if err != nil || !bytes.HasPrefix(epub, []byte("PK")) {
 		t.Fatalf("epub: %v", err)
 	}
-	// An ordinary compile never starts a browser: the prints wait for a release.
-	if _, err := os.Stat(filepath.Join(out, "the-weekend-starter.pdf")); err == nil || !result.Book.Pending {
-		t.Fatalf("an ordinary compile printed: pending %v, %v", result.Book.Pending, err)
+	// A complete book prints its PDF when Chrome is available.
+	if _, browserErr := release.BrowserPath(); browserErr == nil {
+		if _, err := os.Stat(filepath.Join(out, "the-weekend-starter.pdf")); err != nil {
+			t.Fatal(err)
+		}
 	}
 	main, _ := os.ReadFile(filepath.Join(dir, "output", "index.html"))
 	if bytes.Contains(main, []byte(bookPath)) {
@@ -148,5 +150,77 @@ func TestInvalidBookKindUsesBookConfigRule(t *testing.T) {
 				t.Fatal(r.Validation.Diagnostics)
 			}
 		})
+	}
+}
+
+func TestShopBookWithoutListingAndPreview(t *testing.T) {
+	dir := bookProject(t)
+	changeConfig(t, dir, func(c map[string]any) {
+		cfg := c["deliverables"].(map[string]any)["book"].(map[string]any)
+		cfg["sell"] = "shops"
+		cfg["formats"] = []string{"epub"}
+	})
+	os.Remove(filepath.Join(dir, book.ListingFile))
+	r, err := Compile(context.Background(), dir, Options{Publish: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Book.Complete {
+		t.Fatal(r.Book)
+	}
+	full := filepath.Join(dir, "distribution/book/the-weekend-starter.epub")
+	if _, err := os.Stat(full); err != nil {
+		t.Fatal(err)
+	}
+	first := filepath.Join(dir, book.Dir, "chapters/01.md")
+	text, err := os.ReadFile(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(first, append(text, []byte("\n[Later](03.md) and [Available](02.md).\n")...), 0644); err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(filepath.Join(dir, book.Dir, "chapters/03.md"))
+	r, err = Compile(context.Background(), dir, Options{Publish: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Book.Preview != "distribution/book/preview/" || r.Book.Written != 2 {
+		t.Fatal(r.Book)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "distribution/book/preview/the-weekend-starter-preview.epub")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(full); !os.IsNotExist(err) {
+		t.Fatalf("complete book remains: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "output", bookPath)); !os.IsNotExist(err) {
+		t.Fatalf("shop book has a download page: %v", err)
+	}
+	os.Remove(filepath.Join(dir, book.Dir, "chapters/01.md"))
+	os.Remove(filepath.Join(dir, book.Dir, "chapters/02.md"))
+	r, err = Compile(context.Background(), dir, Options{Publish: true})
+	if err != nil || r.Book.Written != 0 || r.Book.Preview != "" {
+		t.Fatal(err, r.Book)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "distribution/book/preview/the-weekend-starter-preview.epub")); !os.IsNotExist(err) {
+		t.Fatalf("stale preview: %v", err)
+	}
+}
+
+func TestPageNeeded(t *testing.T) {
+	for _, tc := range []struct {
+		r    Result
+		want bool
+	}{
+		{Result{Starter: true, Book: &book.Summary{Sell: "shops"}}, false},
+		{Result{Starter: true, Book: &book.Summary{Sell: "page"}}, true},
+		{Result{Starter: false, Book: &book.Summary{Sell: "shops"}}, true},
+		{Result{Starter: true, PageOffers: true, Book: &book.Summary{Sell: "shops"}}, true},
+		{Result{Starter: true}, true},
+	} {
+		if got := tc.r.PageNeeded(); got != tc.want {
+			t.Errorf("%+v: %v", tc.r, got)
+		}
 	}
 }

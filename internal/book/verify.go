@@ -158,9 +158,15 @@ func checkReferences(name string, doc []byte, files map[string][]byte) error {
 				}
 				file, _, _ := strings.Cut(v, "#")
 				if _, ok := files[path.Join(dir, file)]; !ok {
-					return fmt.Errorf("%s references %s, which is not in the package", name, v)
+					return &referenceError{name: name, ref: v}
 				}
 			}
 		}
 	}
+}
+
+type referenceError struct{ name, ref string }
+
+func (e *referenceError) Error() string {
+	return fmt.Sprintf("%s references %s, which is not in the package", e.name, e.ref)
 }

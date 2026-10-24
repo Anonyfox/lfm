@@ -3,6 +3,7 @@ package release
 import (
 	"bytes"
 	"context"
+	"image"
 	"image/color"
 	"image/png"
 	"os"
@@ -311,3 +312,27 @@ func TestImagePlacementFindsTheFirstScreen(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+func TestBookLayoutTallImage(t *testing.T) {
+	p := printer(t)
+	var image bytes.Buffer
+	if err := png.Encode(&image, newTestTallImage()); err != nil {
+		t.Fatal(err)
+	}
+	assets := map[string][]byte{"tall.png": image.Bytes()}
+	doc := []byte(`<!doctype html><style>@page{size:5in 8in;margin:0.75in 0.6in 0.85in}img{width:4in;height:auto}</style><p><img src="tall.png"></p>`)
+	findings, err := p.BookLayout(doc, assets, 3.8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.Join(findings, "\n"), "tall.png is split across") {
+		t.Fatal(findings)
+	}
+	doc = []byte(`<!doctype html><style>@page{size:5in 8in;margin:0.75in 0.6in 0.85in}img{max-width:100%;max-height:6.25in;width:auto;height:auto;break-inside:avoid}p{break-inside:avoid}</style><p><img src="tall.png"></p>`)
+	findings, err = p.BookLayout(doc, assets, 3.8)
+	if err != nil || len(findings) > 0 {
+		t.Fatal(err, findings)
+	}
+}
+
+func newTestTallImage() image.Image { return image.NewRGBA(image.Rect(0, 0, 100, 175)) }

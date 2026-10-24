@@ -129,8 +129,12 @@ func Distribution(r Report, b Built, p Printed, day string) (map[string][]byte, 
 	}
 	epub, pdf, cover, interior := slug+".epub", slug+".pdf", "cover.jpg", "paperback-interior.pdf"
 	put(epub, b.EPUB, "the ebook, EPUB 3 with accessibility metadata")
-	if r.Plan.Cover != "" {
-		if data, err := StoreCover(r.Sources[r.Plan.Cover], p.LastCover); err != nil {
+	if r.Plan.Cover != "" && len(r.Sources[r.Plan.Cover]) > 0 {
+		source := r.Sources[r.Plan.Cover]
+		if png := r.EPUBImages[r.Plan.Cover]; png != nil {
+			source = png
+		}
+		if data, err := StoreCover(source, p.LastCover); err != nil {
 			warn(ConceptFile, "The store cover could not be written: "+err.Error(), "Save the cover as a JPEG or PNG of 1600×2560 pixels.")
 		} else {
 			put(cover, data, "the store cover, RGB JPEG")

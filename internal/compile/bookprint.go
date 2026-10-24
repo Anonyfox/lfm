@@ -14,7 +14,7 @@ import (
 // the page each chapter starts on, the second prints those pages in the
 // contents.
 func (pr *press) screen(built book.Built) ([]byte, error) {
-	return pr.job(printKey("screen", built.Print, built.PrintAssets), func(printer *release.Printer) ([]byte, error) {
+	return pr.cachedJob(printKey("screen", built.Print, built.PrintAssets), true, func(printer *release.Printer) ([]byte, error) {
 		first, err := printer.Print(built.Print, built.PrintAssets, true)
 		if err != nil {
 			return nil, err

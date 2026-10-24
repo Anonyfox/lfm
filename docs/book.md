@@ -22,7 +22,7 @@ A quoted Hook: sentence in Beats must appear in the last 300 words.
 
 ## Matter
 
-Matter follows Chapters. Files are read and checked but are not rendered yet.
+Matter follows Chapters. Front parts render after copyright, back parts after the chapters, in table order and without chapter numbers.
 
 | Part | Place | File |
 | --- | --- | --- |
@@ -49,5 +49,8 @@ Tools in listing.md is a comma list of names, optionally followed by a model in 
 Statement names each tool without needing its model. It is printed on the copyright page.
 An Open: Statement reports that it would be printed.
 
-An Imagery row containing Open: waits for the owner and has no missing-image finding.
+An Imagery row containing Open: waits for the owner. A missing cover still gets one store warning.
 A cover row with Open: reserves the cover; a linked cover path is retained.
+
+Book images accept JPEG, PNG, WebP and self-contained SVG with dimensions and no active content.
+Print keeps SVG vectors; EPUB uses a 1600 px PNG rendition when Chrome is available.

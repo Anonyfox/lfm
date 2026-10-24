@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -65,8 +66,10 @@ func (b Built) Document(o PrintOptions) []byte {
 type Reader func(rel string) ([]byte, error)
 
 type chapterDoc struct {
-	ch   Chapter
-	body []byte // rendered XHTML body content
+	ch          Chapter
+	body        []byte // rendered XHTML body content
+	place, kind string
+	refs        []ref
 }
 
 var cssURL = regexp.MustCompile(`url\(\s*(['"]?)([^'")]+)['"]?\s*\)`)
@@ -74,6 +77,18 @@ var cssURL = regexp.MustCompile(`url\(\s*(['"]?)([^'")]+)['"]?\s*\)`)
 // Build renders the finished book. modified is the newest change of its sources.
 func Build(r Report, read Reader, modified time.Time) (Built, error) {
 	plan, cfg := r.Plan, r.Config
+	for file, src := range r.Sources {
+		if !strings.HasSuffix(file, ".md") {
+			continue
+		}
+		_, parsed := parseChapter(src)
+		for _, img := range parsed.images {
+			rel := path.Clean(path.Join(path.Dir(file), img.dest))
+			if !imageExt(rel) || r.Sources[rel] == nil {
+				return Built{}, &SourceError{File: file, Line: img.line, Err: fmt.Errorf("image %s is unavailable or unsupported", img.dest)}
+			}
+		}
+	}
 	b := Built{PrintAssets: map[string][]byte{}, TrimInches: Trims[plan.Trim]}
 	if b.TrimInches == [2]float64{} {
 		b.TrimInches = Trims["6x9in"]
@@ -113,19 +128,55 @@ func Build(r Report, read Reader, modified time.Time) (Built, error) {
 	}
 
 	if _, ok := images[plan.Cover]; !ok {
-		plan.Cover = "" // a missing cover is a book.images warning; the book builds without it
+		plan.Cover = "" // a missing cover is a book.channels warning; the book builds without it
 	}
 
 	// Chapters, converted once per target because link and image paths differ.
 	render := func(target string) ([]chapterDoc, error) {
 		var docs []chapterDoc
+		chapters := []Chapter{}
+		for i, m := range plan.Matter {
+			if m.Exists && m.Place == "front" {
+				chapters = append(chapters, Chapter{N: -i - 1, File: m.File, Title: m.Part})
+			}
+		}
 		for _, ch := range plan.Chapters {
+			if r.Previewable && !r.Summary.Complete {
+				include := false
+				for _, written := range r.Summary.Chapters {
+					if written.N == ch.N && written.Exists && written.Status != "planned" {
+						include = true
+						break
+					}
+				}
+				if !include {
+					continue
+				}
+			}
+			chapters = append(chapters, ch)
+		}
+		for i, m := range plan.Matter {
+			if m.Exists && m.Place == "back" {
+				chapters = append(chapters, Chapter{N: -i - 1, File: m.File, Title: m.Part})
+			}
+		}
+		included := map[string]bool{}
+		for _, ch := range chapters {
+			included[ch.File] = true
+		}
+		for _, ch := range chapters {
 			src := r.Sources[ch.File]
-			body, err := renderChapter(ch, src, plan, target, language)
+			body, err := renderChapter(ch, src, plan, target, language, included)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", ch.File, err)
 			}
-			docs = append(docs, chapterDoc{ch, body})
+			_, parsed := parseChapter(src)
+			d := chapterDoc{ch: ch, body: body, refs: append(parsed.images, parsed.links...)}
+			if ch.N < 0 {
+				m := plan.Matter[-ch.N-1]
+				d.place, d.kind = m.Place, matterType(m)
+			}
+			docs = append(docs, d)
 		}
 		return docs, nil
 	}
@@ -141,7 +192,31 @@ func Build(r Report, read Reader, modified time.Time) (Built, error) {
 	}
 	b.plan, b.cfg, b.listing, b.language, b.style, b.year = plan, cfg, r.Listing, language, style, modified.Year()
 
-	b.EPUB, err = writeEPUB(plan, cfg, r.Listing, language, epubDocs, images, fonts, style, modified)
+	epubImages := make(map[string][]byte, len(images))
+	for rel, data := range images {
+		if png := r.EPUBImages[rel]; png != nil {
+			epubImages[rel+".png"] = png
+		} else {
+			epubImages[rel] = data
+		}
+	}
+	for i := range epubDocs {
+		for rel := range r.EPUBImages {
+			epubDocs[i].body = bytes.ReplaceAll(epubDocs[i].body, []byte("../"+esc(rel)+"\""), []byte("../"+esc(rel)+".png\""))
+		}
+	}
+	epubPlan := plan
+	if r.EPUBImages[plan.Cover] != nil {
+		epubPlan.Cover += ".png"
+	}
+	epubStyle := cssURL.ReplaceAllStringFunc(style, func(m string) string {
+		sub := cssURL.FindStringSubmatch(m)
+		if r.EPUBImages[path.Clean(sub[2])] != nil {
+			return `url("` + path.Clean(sub[2]) + `.png")`
+		}
+		return m
+	})
+	b.EPUB, err = writeEPUB(epubPlan, cfg, r.Listing, language, epubDocs, epubImages, fonts, epubStyle, modified)
 	if err != nil {
 		return b, err
 	}
@@ -173,13 +248,20 @@ func flatName(prefix, rel string) string {
 	return prefix + "-" + strings.NewReplacer("/", "-", " ", "-").Replace(rel)
 }
 
-func chapterFile(n int) string { return fmt.Sprintf("ch%02d.xhtml", n) }
+func chapterID(n int) string {
+	if n < 0 {
+		return fmt.Sprintf("matter%02d", -n)
+	}
+	return fmt.Sprintf("ch%02d", n)
+}
+
+func chapterFile(n int) string { return chapterID(n) + ".xhtml" }
 
 // renderChapter converts one chapter to XHTML body content for a target:
 // "epub" (files in text/, images in ../images/), "print" (one document,
 // flat asset names, chapters as #ch01 anchors) or "paper" (as print, without
 // links).
-func renderChapter(ch Chapter, src []byte, plan Plan, target, language string) ([]byte, error) {
+func renderChapter(ch Chapter, src []byte, plan Plan, target, language string, included ...map[string]bool) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.Table, extension.Strikethrough, typographerFor(language),
 			extension.NewFootnote(extension.WithFootnoteIDPrefix([]byte(fmt.Sprintf("c%d-", ch.N))))),
@@ -191,6 +273,7 @@ func renderChapter(ch Chapter, src []byte, plan Plan, target, language string) (
 		files[c.File] = c.N
 	}
 	dir := path.Dir(ch.File)
+	var omitted []*ast.Link
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -209,7 +292,14 @@ func renderChapter(ch Chapter, src []byte, plan Plan, target, language string) (
 				return ast.WalkContinue, nil
 			}
 			file, frag, _ := strings.Cut(dest, "#")
-			if n, ok := files[path.Clean(path.Join(dir, file))]; ok {
+			resolved := path.Clean(path.Join(dir, file))
+			if len(included) > 0 && !included[0][resolved] {
+				if _, planned := files[resolved]; planned {
+					omitted = append(omitted, v)
+				}
+				return ast.WalkContinue, nil
+			}
+			if n, ok := files[resolved]; ok {
 				switch {
 				case target == "epub" && frag != "":
 					v.Destination = []byte(chapterFile(n) + "#" + frag)
@@ -224,6 +314,15 @@ func renderChapter(ch Chapter, src []byte, plan Plan, target, language string) (
 		}
 		return ast.WalkContinue, nil
 	})
+	for _, link := range omitted {
+		parent := link.Parent()
+		for link.FirstChild() != nil {
+			child := link.FirstChild()
+			link.RemoveChild(link, child)
+			parent.InsertBefore(parent, link, child)
+		}
+		parent.RemoveChild(parent, link)
+	}
 	var out bytes.Buffer
 	if err := md.Renderer().Render(&out, src, doc); err != nil {
 		return nil, err
@@ -287,7 +386,8 @@ h2 { font-size: 1.3em; margin: 1.6em 0 0.6em; }
 h3 { font-size: 1.1em; margin: 1.4em 0 0.4em; }
 p { margin: 0 0 0.8em; orphans: 2; widows: 2; hyphens: auto; -webkit-hyphens: auto; }
 a { color: var(--accent); }
-img { max-width: 100%%; height: auto; }
+img { max-width: 100%%; max-height: 80vh; width: auto; height: auto; display: block; margin-inline: auto; break-inside: avoid; }
+p:has(> img:only-child), figure { break-inside: avoid; text-align: center; }
 figure, .figure { margin: 1.2em 0; text-align: center; }
 blockquote { margin: 1em 1.5em; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.85em; }
@@ -464,22 +564,36 @@ func writeEPUB(plan Plan, cfg Config, listing Listing, language string, docs []c
 	add("copyright", "text/copyright.xhtml", "application/xhtml+xml", "", xhtmlPage(language, Words(language).Copyright, "../css/book.css", copyrightPage(cfg, listing, modified.Year(), cfg.ISBNEbook, true)))
 	spine = append(spine, "copyright")
 	var nav, ncx strings.Builder
+	order := 0
 	for _, d := range docs {
-		id := fmt.Sprintf("ch%02d", d.ch.N)
+		id := chapterID(d.ch.N)
 		label := fmt.Sprintf(`<p class="chapter-label">%s</p>`, esc(fmt.Sprintf(Words(language).Chapter, d.ch.N)))
-		page := xhtmlPage(language, d.ch.Title, "../css/book.css", fmt.Sprintf(`<section epub:type="chapter" id="%s">%s%s</section>`, id, label, d.body))
+		kind := "chapter"
+		if d.place != "" {
+			label = ""
+			kind = d.kind
+		}
+		page := xhtmlPage(language, d.ch.Title, "../css/book.css", fmt.Sprintf(`<section epub:type="%s" id="%s">%s%s</section>`, kind, id, label, d.body))
 		if err := wellFormed(d.ch.File, page); err != nil {
 			return nil, err
 		}
 		add(id, "text/"+chapterFile(d.ch.N), "application/xhtml+xml", "", page)
 		spine = append(spine, id)
 		fmt.Fprintf(&nav, "<li><a href=\"%s\">%s</a></li>\n", chapterFile(d.ch.N), esc(d.ch.Title))
-		fmt.Fprintf(&ncx, "<navPoint id=\"np%d\" playOrder=\"%d\"><navLabel><text>%s</text></navLabel><content src=\"text/%s\"/></navPoint>\n", d.ch.N, d.ch.N, esc(d.ch.Title), chapterFile(d.ch.N))
+		order++
+		fmt.Fprintf(&ncx, "<navPoint id=\"np%d\" playOrder=\"%d\"><navLabel><text>%s</text></navLabel><content src=\"text/%s\"/></navPoint>\n", order, order, esc(d.ch.Title), chapterFile(d.ch.N))
 	}
 	w := Words(language)
+	start := ""
+	for _, d := range docs {
+		if d.place == "" {
+			start = chapterFile(d.ch.N)
+			break
+		}
+	}
 	navBody := fmt.Sprintf(`<nav epub:type="toc" id="toc"><h1>%s</h1><ol>
 %s</ol></nav>
-<nav epub:type="landmarks" hidden=""><ol><li><a epub:type="toc" href="nav.xhtml#toc">%s</a></li><li><a epub:type="bodymatter" href="%s">%s</a></li></ol></nav>`, esc(w.Contents), nav.String(), esc(w.Contents), chapterFile(docs[0].ch.N), esc(w.Start))
+<nav epub:type="landmarks" hidden=""><ol><li><a epub:type="toc" href="nav.xhtml#toc">%s</a></li><li><a epub:type="bodymatter" href="%s">%s</a></li></ol></nav>`, esc(w.Contents), nav.String(), esc(w.Contents), start, esc(w.Start))
 	add("nav", "text/nav.xhtml", "application/xhtml+xml", "nav", xhtmlPage(language, w.Contents, "../css/book.css", navBody))
 	for _, it := range items {
 		if strings.HasSuffix(it.href, ".xhtml") {
@@ -502,6 +616,7 @@ func writeEPUB(plan Plan, cfg Config, listing Listing, language string, docs []c
 	add("ncx", "toc.ncx", "application/x-dtbncx+xml", "", []byte(ncxDoc))
 
 	var manifest, itemrefs strings.Builder
+	itemrefs.WriteString("<itemref idref=\"nav\" linear=\"no\"/>\n")
 	for _, it := range items {
 		props := ""
 		if it.props != "" {
@@ -581,6 +696,22 @@ func writeEPUB(plan Plan, cfg Config, listing Listing, language string, docs []c
 		return nil, err
 	}
 	if err := verifyEPUB(out.Bytes()); err != nil {
+		for _, d := range docs {
+			if strings.Contains(err.Error(), "text/"+chapterFile(d.ch.N)) {
+				line := 1
+				var ref *referenceError
+				if errors.As(err, &ref) {
+					for _, original := range d.refs {
+						dest := path.Clean(path.Join(path.Dir(d.ch.File), original.dest))
+						if ref.ref == original.dest || ref.ref == "../"+dest || strings.HasSuffix(ref.ref, "/"+path.Base(dest)) {
+							line = original.line
+							break
+						}
+					}
+				}
+				return nil, &SourceError{File: d.ch.File, Line: line, Err: err}
+			}
+		}
 		return nil, fmt.Errorf("the EPUB failed its own check: %w", err)
 	}
 	return out.Bytes(), nil
@@ -645,6 +776,9 @@ func printDocument(bk Built, docs []chapterDoc, isbn string, o PrintOptions) []b
 @page blank { @bottom-center { content: none; } }
 html { font-size: 10.5pt; }
 body { margin: 0; }
+@media print { img { max-height: %.3fin; } }
+.matter { break-before: page; }
+.matter.front { page: front; }
 .cover { page: front; height: %.3fin; break-after: page; overflow: hidden; }
 .cover img { width: 100%%; height: 100%%; object-fit: cover; max-height: none; }
 .title-page, .toc, .copyright { page: front; break-after: page; }
@@ -660,7 +794,7 @@ body { margin: 0; }
 .blank { page: blank; break-before: page; height: 1px; }
 .url { font-size: 0.85em; overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; }
 a { text-decoration: none; }
-`, trim[0], trim[1], margins, trim[1], trim[1]-marginTop-marginBottom-0.1)
+`, trim[0], trim[1], margins, trim[1]-marginTop-marginBottom, trim[1], trim[1]-marginTop-marginBottom-0.1)
 	if !o.Paper {
 		css += "@page :first { margin: 0; @bottom-center { content: none; } }\n"
 	}
@@ -684,11 +818,15 @@ a { text-decoration: none; }
 		if o.Paper {
 			fmt.Fprintf(&b, "<li><span class=\"entry\">%s</span></li>\n", entry)
 		} else {
-			fmt.Fprintf(&b, "<li><a class=\"entry\" href=\"#ch%02d\">%s</a></li>\n", d.ch.N, entry)
+			fmt.Fprintf(&b, "<li><a class=\"entry\" href=\"#%s\">%s</a></li>\n", chapterID(d.ch.N), entry)
 		}
 	}
 	b.WriteString("</ol></nav>\n")
 	for _, d := range docs {
+		if d.place != "" {
+			fmt.Fprintf(&b, "<section class=\"matter %s\" id=\"%s\">%s</section>\n", d.place, chapterID(d.ch.N), d.body)
+			continue
+		}
 		if o.Blanks[d.ch.N] {
 			b.WriteString("<div class=\"blank\"></div>\n")
 		}
@@ -707,6 +845,15 @@ a { text-decoration: none; }
 func (b Built) ChapterStarts(pdf []byte) map[int]int {
 	pages := pdfx.OutlinePages(pdf)
 	n := len(b.plan.Chapters)
+	back := 0
+	for _, m := range b.plan.Matter {
+		if m.Exists && m.Place == "back" {
+			back++
+		}
+	}
+	if len(pages) >= back {
+		pages = pages[:len(pages)-back]
+	}
 	if len(pages) < n {
 		return nil
 	}
@@ -829,3 +976,22 @@ func DownloadPage(plan Plan, cfg Config, files []deliver.File) []byte {
 	return deliver.Page(deliver.Download{Language: cfg.Language, Title: title, Subtitle: sub, Accent: plan.Accent,
 		Heading: fmt.Sprintf(w.DownloadTitle, title), Files: files, Thanks: w.Thanks, Pending: w.Writing, Keep: w.Keep})
 }
+
+func matterType(m Matter) string {
+	for _, kind := range []string{"dedication", "epigraph", "foreword", "preface", "afterword", "acknowledgments", "appendix", "colophon"} {
+		if strings.EqualFold(m.Part, kind) || strings.EqualFold(strings.TrimSuffix(path.Base(m.File), ".md"), kind) {
+			return kind
+		}
+	}
+	return m.Place + "matter"
+}
+
+// SourceError locates a build failure in the author's input.
+type SourceError struct {
+	File string
+	Line int
+	Err  error
+}
+
+func (e *SourceError) Error() string { return e.File + ": " + e.Err.Error() }
+func (e *SourceError) Unwrap() error { return e.Err }

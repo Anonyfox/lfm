@@ -32,7 +32,7 @@ func TestFictionConcept(t *testing.T) {
 	if len(msgs) != 1 || !strings.Contains(msgs[0], RuleOpen) {
 		t.Fatal(msgs)
 	}
-	if p.Kind != "fiction" || strings.Join(p.Cast, ",") != "Marie,Stefan" || p.POV != "third person" || p.Tense != "past" || len(p.Matter) != 1 || !p.CoverOpen || p.Cover != "images/cover.png" {
+	if p.Kind != "fiction" || strings.Join(p.Cast, ",") != "Nora,Jonas" || p.POV != "third person" || p.Tense != "past" || len(p.Matter) != 1 || !p.CoverOpen || p.Cover != "images/cover.png" {
 		t.Fatalf("%+v", p)
 	}
 	for _, name := range []string{"Reader", "Premise", "Cast", "World", "Arc", "Hooks", "Voice", "Chapters", "Imagery", "Look"} {
@@ -62,12 +62,12 @@ func TestQuotedHooks(t *testing.T) {
 
 func TestChapterJobsAndStatus(t *testing.T) {
 	text := fictionConcept(t)
-	_, msgs := fictionPlan(t, strings.Replace(text, "Marie hears the strange signal", "Listen", 1))
+	_, msgs := fictionPlan(t, strings.Replace(text, "Nora hears the strange signal", "Listen", 1))
 	if !strings.Contains(strings.Join(msgs, "\n"), "job \"Listen\" is too short to plan from (1 words, write at least 4)") {
 		t.Fatal(msgs)
 	}
-	text = strings.ReplaceAll(text, "Stefan follows the signal home", "Marie hears the strange signal")
-	text = strings.ReplaceAll(text, "Both neighbours identify the source", "Marie hears the strange signal")
+	text = strings.ReplaceAll(text, "Jonas follows the signal home", "Nora hears the strange signal")
+	text = strings.ReplaceAll(text, "Both neighbours identify the source", "Nora hears the strange signal")
 	_, msgs = fictionPlan(t, text)
 	n := 0
 	for _, m := range msgs {
@@ -99,7 +99,7 @@ func TestFictionCheckPlannedMatterAndListing(t *testing.T) {
 	root := t.TempDir()
 	text := strings.Replace(fictionConcept(t), "- Avoid:", "- Use: \"quiet signal\"\n- Avoid:", 1)
 	writeFile(t, root, ConceptFile, []byte(text))
-	writeFile(t, root, Dir+"/chapters/one.md", []byte("# Arrival\n\nMarie listened. The radio fell silent."))
+	writeFile(t, root, Dir+"/chapters/one.md", []byte("# Arrival\n\nNora listened. The radio fell silent."))
 	writeFile(t, root, Dir+"/chapters/three.md", []byte("TODO miraculous solution"))
 	writeFile(t, root, Dir+"/matter/dedication.md", []byte("# Dedication\n\nFor everyone."))
 	p, err := project.Open(root)
@@ -161,15 +161,15 @@ func TestFictionCheckPlannedMatterAndListing(t *testing.T) {
 func TestFictionOutline(t *testing.T) {
 	plan, _ := fictionPlan(t, fictionConcept(t))
 	ch := plan.Chapters[0]
-	for _, src := range []string{"# Arrival\n\nMaries radio sounded. The radio fell silent.", "# Arrival\n\nMarie's radio sounded. The radio fell silent."} {
-		_, ds := checkChapter(ch, []byte(src), plan, Config{Language: "en"}, func(string) bool { return true })
+	for _, src := range []string{"# Arrival\n\nNoras radio sounded. The radio fell silent.", "# Arrival\n\nNora's radio sounded. The radio fell silent."} {
+		_, ds := checkChapter(ch, []byte(src), plan, Config{Language: "en"}, func(string) ([]byte, error) { return nil, nil })
 		for _, d := range ds {
 			if strings.Contains(d.Message, "outline names") || strings.Contains(d.Message, "planned hook") {
 				t.Fatal(d)
 			}
 		}
 	}
-	_, ds := checkChapter(ch, []byte("# Arrival\n\nMarielle listened."), plan, Config{Language: "en"}, func(string) bool { return true })
+	_, ds := checkChapter(ch, []byte("# Arrival\n\nNoralee listened."), plan, Config{Language: "en"}, func(string) ([]byte, error) { return nil, nil })
 	count := 0
 	for _, d := range ds {
 		if strings.Contains(d.Message, "outline names") || strings.Contains(d.Message, "planned hook") {
@@ -180,7 +180,7 @@ func TestFictionOutline(t *testing.T) {
 		t.Fatal(ds)
 	}
 	ch.Status = "planned"
-	_, ds = checkChapter(ch, []byte("TODO"), plan, Config{}, func(string) bool { return false })
+	_, ds = checkChapter(ch, []byte("TODO"), plan, Config{}, func(string) ([]byte, error) { return nil, os.ErrNotExist })
 	if len(ds) != 0 {
 		t.Fatal(ds)
 	}
@@ -290,8 +290,8 @@ func TestPlannedFilesDoNotRepeat(t *testing.T) {
 	text := fictionConcept(t)
 	writeFile(t, root, ConceptFile, []byte(text))
 	repeated := "This passage contains enough words to be detected when two chapters repeat exactly the same sentence."
-	writeFile(t, root, Dir+"/chapters/one.md", []byte("# Arrival\n\nMarie listened. "+repeated))
-	writeFile(t, root, Dir+"/chapters/two.md", []byte("# Search\n\nStefan listened. "+repeated))
+	writeFile(t, root, Dir+"/chapters/one.md", []byte("# Arrival\n\nNora listened. "+repeated))
+	writeFile(t, root, Dir+"/chapters/two.md", []byte("# Search\n\nJonas listened. "+repeated))
 	writeFile(t, root, Dir+"/chapters/three.md", []byte("# Answer\n\n"+repeated))
 	p, err := project.Open(root)
 	if err != nil {
@@ -333,8 +333,8 @@ func TestFictionInvalidStatusIsIncomplete(t *testing.T) {
 }
 
 func TestDuplicateJobsAfterMalformedRow(t *testing.T) {
-	text := strings.Replace(fictionConcept(t), "| 1 | Arrival | Marie hears the strange signal | Hook: „The radio fell silent.“ | 300 | [one](chapters/one.md) | done |", "| broken |", 1)
-	text = strings.Replace(text, "Both neighbours identify the source", "Stefan follows the signal home", 1)
+	text := strings.Replace(fictionConcept(t), "| 1 | Arrival | Nora hears the strange signal | Hook: „The radio fell silent.“ | 300 | [one](chapters/one.md) | done |", "| broken |", 1)
+	text = strings.Replace(text, "Both neighbours identify the source", "Jonas follows the signal home", 1)
 	_, msgs := fictionPlan(t, text)
 	if !strings.Contains(strings.Join(msgs, "\n"), "Chapters 2 and 3 share the job") {
 		t.Fatal(msgs)

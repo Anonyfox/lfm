@@ -46,6 +46,14 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		}
 	}
 	n := next{Notes: notes}
+	bookTopic := "book"
+	if r.Book != nil && r.Book.Kind == "fiction" {
+		bookTopic = "fiction"
+	}
+	pageNeeded := r.PageNeeded()
+	if !pageNeeded {
+		n.Notes = append(n.Notes, "The page is optional for shop sales. Start it by writing concept.md, then replace the starter page.")
+	}
 	skill := func(topic string) string {
 		n.Skill = "lfm-" + topic
 		if have[n.Skill] {
@@ -56,11 +64,11 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 	switch {
 	case err != nil || r.Errors() > 0:
 		n.Phase, n.Do = "fix", "fix the errors above and compile again; output/ is unchanged until none remain."
-	case r.Research.Empty():
+	case pageNeeded && r.Research.Empty():
 		n.Phase, n.Do = "research", "collect real buyer voices and competitor pages into research/. "+skill("research")
-	case !r.Concept.Present:
+	case pageNeeded && !r.Concept.Present:
 		n.Phase, n.Do = "design", "write concept.md from the research. "+skill("design")
-	case r.Starter:
+	case pageNeeded && r.Starter:
 		n.Phase, n.Do = "implementation", "replace the starter page with the page concept.md describes. "+skill("implementation")
 	case r.Printable != nil && !r.Printable.Concept:
 		n.Phase, n.Do = "printable", "write deliverables/printable/concept.md: buyer, promise, contents, editions, look. "+skill("printable")
@@ -99,36 +107,46 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 	case r.Printable != nil && !r.Printable.Listing && r.Printable.Sell != "bundle":
 		n.Phase, n.Do = "printable", "write deliverables/printable/listing.md, the store texts lfm renders into every channel's guide under distribution/. "+skill("printable")
 	case r.Book != nil && r.Book.Complete && !r.Book.Listing && r.Book.Sell != "bundle":
-		n.Phase, n.Do = "book", "write deliverables/book/listing.md, the store texts lfm renders into every channel's package under distribution/. "+skill("book")
+		n.Phase, n.Do = "book", "write deliverables/book/listing.md, the store texts lfm renders into every channel's package under distribution/. "+skill(bookTopic)
 	case r.Book != nil && bookFindings(r) > 0:
 		then := " before the next piece of the book"
 		if r.Book.Complete {
 			then = ""
 		}
-		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above%s. %s", term.Plural(bookFindings(r), "book finding"), then, skill("book"))
+		n.Phase, n.Do = "fix", fmt.Sprintf("resolve the %s above%s. %s", term.Plural(bookFindings(r), "book finding"), then, skill(bookTopic))
 	case r.Book != nil && !r.Book.Concept:
-		n.Phase, n.Do = "book", "write deliverables/book/concept.md from the research. "+skill("book")
+		brief := "from the research"
+		if bookTopic == "fiction" {
+			brief = "premise, cast, world, arc and voice"
+		}
+		n.Phase, n.Do = "book", "write deliverables/book/concept.md: "+brief+". "+skill(bookTopic)
 	case r.Book != nil && r.Book.Next() != nil:
 		ch := r.Book.Next()
 		n.Phase = "book"
-		n.Do = fmt.Sprintf("write deliverables/book/%s, chapter %d of %d, \"%s\" (about %d words): %s. %s", ch.File, ch.N, len(r.Book.Chapters), ch.Title, ch.Words, strings.TrimSuffix(ch.Job, "."), skill("book"))
+		n.Do = fmt.Sprintf("write deliverables/book/%s, chapter %d of %d, \"%s\" (about %d words): %s. %s", ch.File, ch.N, len(r.Book.Chapters), ch.Title, ch.Words, strings.TrimSuffix(ch.Job, "."), skill(bookTopic))
 		if r.Book.URL != "" {
 			n.Notes = append(n.Notes, "The page can sell the book now: buyers who pay land on "+r.Book.URL+", which tells them their copy is being written.")
 		}
 		if machine := ruleCount(r, "book.machine"); machine > 0 {
 			n.Notes = append(n.Notes, fmt.Sprintf("%s read as generated to AI-text detectors (book.machine); revise them in the whole-book pass.", term.Plural(machine, "chapter")))
 		}
-		if page := pageWarnings(r); page > 0 {
+		if page := pageWarnings(r); pageNeeded && page > 0 {
 			n.Notes = append(n.Notes, fmt.Sprintf("The page itself has %s to resolve before it ships.", term.Plural(page, "warning")))
 		}
 	case r.Bundle != nil && !r.Bundle.Listing && (r.Book == nil || r.Book.Complete):
 		n.Phase, n.Do = "bundle", "write deliverables/bundle/listing.md, the shop texts for the "+listed(r.Bundle.Units)+" sold together. "+skill("printable")
-	case r.Warnings() > 0:
+	case r.Warnings() > 0 && (pageNeeded || r.Warnings() > pageWarnings(r)):
 		n.Phase, n.Do = "fix", "resolve the warnings above; a page is done at 0 errors and 0 warnings."
+		if !pageNeeded {
+			n.Do = "resolve the deliverable warnings above before publishing distribution/."
+		}
 	case r.Release == nil:
 		n.Phase, n.Do = "review", "run 'lfm compile --release' and look at every frame it saves, at phone and desktop size."
+		if !pageNeeded {
+			n.Do = "run 'lfm compile --release' and review the files in distribution/."
+		}
 		if r.Book != nil && r.Book.Pending {
-			n.Notes = append(n.Notes, "The release also prints the book's PDF and paperback; open them and look at every page.")
+			n.Notes = append(n.Notes, "The release also prints the book's paperback; open it and look at every page.")
 		}
 		if r.Document != nil && r.Document.Pending {
 			n.Notes = append(n.Notes, "The release also prints every document as Word lays it out and checks its pages and fonts, prints the start guides and renders the listing images from the real files; look at them.")
@@ -148,6 +166,9 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 			where = r.PageURL
 		}
 		n.Phase, n.Do = "deploy", "upload output/ as is to "+where+"."
+		if !pageNeeded {
+			n.Do = "upload the files in distribution/ to the shops, following their store guides."
+		}
 		if a := r.Release; a != nil && a.Audit != nil && a.Audit.Delivery.UncompressedMS >= 100 {
 			d := a.Audit.Delivery
 			check := "curl -sI --compressed " + where
@@ -163,7 +184,7 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 			}
 			if len(u.channels) > 0 {
 				note := "To sell the " + u.name + " in shops, distribution/" + u.dir + "/README.md lists every channel; each guide in its stores/ names the files to upload and the fields to paste."
-				if u.sell == "shops" {
+				if u.sell == "shops" && pageNeeded {
 					note += " Once a listing is live, put its address into urls and point the page's offer at it: the shop delivers the files."
 				}
 				n.Notes = append(n.Notes, note)

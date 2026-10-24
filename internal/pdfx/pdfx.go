@@ -218,3 +218,49 @@ func StampOf(pdf []byte) string {
 	}
 	return ""
 }
+
+var (
+	figureLabel   = regexp.MustCompile(`/Alt \(((?:\\.|[^\\)])*)\)`)
+	figurePage    = regexp.MustCompile(`/Pg\s+(\d+) 0 R`)
+	structureKids = regexp.MustCompile(`(?s)/K\s*(\[[^\]]*\]|\d+ 0 R|<<.*?>>)`)
+)
+
+// FigurePages counts the distinct pages occupied by each labelled figure in
+// Chrome's tagged PDF. A figure painted on multiple pages has been split.
+func FigurePages(pdf []byte) map[string]int {
+	o := objects(pdf)
+	out := map[string]int{}
+	for n, body := range o {
+		if !bytes.Contains(body, []byte("/S /Figure")) {
+			continue
+		}
+		label := figureLabel.FindSubmatch(body)
+		if label == nil {
+			continue
+		}
+		pages, seen := map[int]bool{}, map[int]bool{}
+		var walk func(int, int)
+		walk = func(n, depth int) {
+			if depth > 32 || seen[n] {
+				return
+			}
+			seen[n] = true
+			body := o[n]
+			for _, m := range figurePage.FindAllSubmatch(body, -1) {
+				page, _ := strconv.Atoi(string(m[1]))
+				pages[page] = true
+			}
+			for _, kids := range structureKids.FindAll(body, -1) {
+				for _, m := range reference.FindAllSubmatch(kids, -1) {
+					child, _ := strconv.Atoi(string(m[1]))
+					if bytes.Contains(o[child], []byte("/Type /StructElem")) || bytes.Contains(o[child], []byte("/Type /MCR")) {
+						walk(child, depth+1)
+					}
+				}
+			}
+		}
+		walk(n, 0)
+		out[string(label[1])] = max(out[string(label[1])], len(pages))
+	}
+	return out
+}

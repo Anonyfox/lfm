@@ -52,3 +52,21 @@ func TestStampKeepsThePDFValid(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(dir, "stamped.pdf"), again, 0o644)
 	}
 }
+
+func TestFigurePages(t *testing.T) {
+	pdf := []byte(`%PDF-1.7
+1 0 obj
+<</Type /StructElem /S /Figure /Alt (split) /Pg 10 0 R /K [0 <</Type /MCR /Pg 11 0 R /MCID 0>>]>>
+endobj
+2 0 obj
+<</Type /StructElem /S /Figure /Alt (whole) /Pg 10 0 R /K [3 0 R]>>
+endobj
+3 0 obj
+<</Type /StructElem /Pg 10 0 R /K [2 0 R]>>
+endobj
+`)
+	got := FigurePages(pdf)
+	if got["split"] != 2 || got["whole"] != 1 {
+		t.Fatal(got)
+	}
+}

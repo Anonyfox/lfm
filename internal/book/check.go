@@ -21,21 +21,25 @@ import (
 
 // Summary describes the book for the report, the next step and --json.
 type Summary struct {
-	Concept  bool      `json:"concept"`
-	Title    string    `json:"name,omitempty"`
-	Chapters []Chapter `json:"chapters,omitempty"`
-	Planned  int       `json:"planned"`
-	Written  int       `json:"written"`
-	Words    int       `json:"words"`
-	Target   int       `json:"targetWords"`
-	Complete bool      `json:"complete"`
-	URL      string    `json:"url,omitempty"`
-	Files    []string  `json:"files,omitempty"` // built formats, set by the build
-	Listing  bool      `json:"listing"`
-	Pending  bool      `json:"pending"`            // the PDF and paperback wait for a release to print
-	Layout   string    `json:"layout,omitempty"`   // release: "fits", or the number of layout findings
-	Channels []string  `json:"channels,omitempty"` // store packages written to distribution/
-	Sell     string    `json:"sell"`               // page, shops or bundle
+	Kind     string         `json:"kind"`
+	Blocker  string         `json:"blocker,omitempty"`
+	Preview  string         `json:"preview,omitempty"`
+	Concept  bool           `json:"concept"`
+	Title    string         `json:"name,omitempty"`
+	Chapters []Chapter      `json:"chapters,omitempty"`
+	Planned  int            `json:"planned"`
+	Written  int            `json:"written"`
+	Words    int            `json:"words"`
+	Target   int            `json:"targetWords"`
+	Complete bool           `json:"complete"`
+	URL      string         `json:"url,omitempty"`
+	Sizes    map[string]int `json:"fileBytes,omitempty"`
+	Files    []string       `json:"files,omitempty"` // built formats, set by the build
+	Listing  bool           `json:"listing"`
+	Pending  bool           `json:"pending"`            // the paperback waits for a release to print
+	Layout   string         `json:"layout,omitempty"`   // release: "fits", or the number of layout findings
+	Channels []string       `json:"channels,omitempty"` // store packages written to distribution/
+	Sell     string         `json:"sell"`               // page, shops or bundle
 }
 
 // Next returns the first unwritten active chapter, then the first planned chapter.
@@ -61,6 +65,8 @@ type Report struct {
 	Config      Config
 	Sources     map[string][]byte // book-relative path -> bytes of every chapter, image and style read
 	Listing     Listing
+	EPUBImages  map[string][]byte // optional PNG renditions, keyed by original SVG path
+	Previewable bool
 	Buildable   bool // config valid and every chapter written; the build may run
 }
 
@@ -119,6 +125,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 		configOK = false
 		errorAt("deliverables.book.kind", RuleConfig, "deliverables.book.kind must be nonfiction or fiction.", "Choose nonfiction or fiction.")
 	}
+	r.Summary.Kind = cfg.Kind
 	r.Summary.Sell = deliver.Sell(cfg.Sell)
 	if configOK && r.Summary.Sell == deliver.SellPage {
 		r.Summary.URL = strings.TrimSuffix(site, "/") + "/" + cfg.Path + "/"
@@ -135,22 +142,23 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 	r.Summary.Title = r.Plan.Title
 
 	var sources sync.Mutex // chapters are checked side by side
-	exists := func(rel string) bool {
+	readSource := func(rel string) ([]byte, error) {
 		sources.Lock()
 		defer sources.Unlock()
-		if _, ok := r.Sources[rel]; ok {
-			return true
+		if data, ok := r.Sources[rel]; ok {
+			return data, nil
 		}
 		if outside(rel) {
-			return false
+			return nil, fmt.Errorf("outside deliverables/book")
 		}
-		b, err := p.Read(Dir + "/" + rel)
-		if err != nil {
-			return false
+		data, err := p.Read(Dir + "/" + rel)
+		if err == nil {
+			r.Sources[rel] = data
 		}
-		r.Sources[rel] = b
-		return true
+		return data, err
 	}
+	exists := func(rel string) bool { _, err := readSource(rel); return err == nil }
+
 	// Each chapter is checked on its own; the report keeps the plan's order.
 	type checked struct {
 		src    []byte
@@ -168,7 +176,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 			}
 			if c.src, c.err = p.Read(Dir + "/" + ch.File); c.err == nil {
 				ch.Exists = true
-				c.pr, c.issues = checkChapter(ch, c.src, r.Plan, cfg, exists)
+				c.pr, c.issues = checkChapter(ch, c.src, r.Plan, cfg, readSource)
 			}
 		})
 	}
@@ -209,7 +217,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 			}
 		}
 	}
-	r.checkMatter(exists)
+	r.checkMatter(readSource)
 	r.checkImages(exists)
 	styleOK := true
 	if raw, err := p.Read(Dir + "/" + StyleFile); err == nil {
@@ -232,26 +240,50 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 			}
 		}
 	} else if r.Summary.Complete {
+		topic := "book"
+		if cfg.Kind == "fiction" {
+			topic = "fiction"
+		}
 		r.Diagnostics = append(r.Diagnostics, at(ConceptFile, 1, RuleListing, diagnostic.Warning, "The book has no listing.md for the stores.",
-			"Write deliverables/book/listing.md as the lfm-book skill shows: descriptions, keywords, categories, prices and AI use, which lfm renders for every channel."))
+			"Write deliverables/book/listing.md as the lfm-"+topic+" skill shows: descriptions, keywords, categories, prices and AI use, which lfm renders for every channel."))
 	}
 	r.Summary.Listing = r.Listing.Present
-	r.Buildable = configOK && styleOK && r.Summary.Complete
+	imagesOK := true
+	for _, d := range r.Diagnostics {
+		if d.Severity == diagnostic.Error && (d.Rule == RuleImages || d.Rule == RuleChapter) {
+			imagesOK = false
+		}
+	}
+
+	r.Previewable = configOK && styleOK && imagesOK && r.Summary.Written > 0
+	r.Buildable = configOK && styleOK && imagesOK && r.Summary.Complete
+	if !imagesOK {
+		r.Summary.Blocker = "not built: resolve the chapter image findings"
+	}
 	return r
 }
 
 // checkImages verifies the planned images and the cover.
 func (r *Report) checkImages(exists func(string) bool) {
+	if r.Plan.Cover != "" && !exists(r.Plan.Cover) {
+		r.Diagnostics = append(r.Diagnostics, at(ConceptFile, 1, RuleChannels, diagnostic.Warning, "No cover yet: "+r.Plan.Cover+" is missing; the stores need it.", "Add the cover at the planned path."))
+	}
 	used := map[string]bool{}
-	for _, ch := range r.Plan.Chapters {
-		if src, ok := r.Sources[ch.File]; ok {
-			_, p := parseChapter(src)
-			for _, img := range p.images {
-				used[path.Clean(path.Join(path.Dir(ch.File), img.dest))] = true
-			}
+	for file, src := range r.Sources {
+		if !strings.HasSuffix(file, ".md") {
+			continue
+		}
+		_, p := parseChapter(src)
+		for _, img := range p.images {
+			used[path.Clean(path.Join(path.Dir(file), img.dest))] = true
 		}
 	}
 	for _, img := range r.Plan.Images {
+		if strings.EqualFold(path.Ext(img.File), ".svg") && exists(img.File) && !used[img.File] {
+			if _, _, err := SVGSize(r.Sources[img.File]); err != nil {
+				r.Diagnostics = append(r.Diagnostics, at(ConceptFile, img.Line, RuleImages, diagnostic.Error, "Image "+img.File+": "+err.Error(), "Use a self-contained SVG with dimensions and no active content."))
+			}
+		}
 		if img.Open {
 			if imageExt(img.File) {
 				exists(img.File)
@@ -262,10 +294,20 @@ func (r *Report) checkImages(exists func(string) bool) {
 			continue
 		}
 		if !exists(img.File) {
+			if img.File == r.Plan.Cover {
+				continue
+			}
 			r.Diagnostics = append(r.Diagnostics, at(ConceptFile, img.Line, RuleImages, diagnostic.Warning, fmt.Sprintf("Planned image %s does not exist yet.", img.File), "Produce it for its job, or mark the cell Open: when it waits for the owner."))
 			continue
 		}
 		if img.Job == "cover" {
+			if strings.EqualFold(path.Ext(img.File), ".svg") {
+				w, h, err := SVGSize(r.Sources[img.File])
+				if err == nil && (h/w < 1.5 || h/w > 1.7) {
+					r.Diagnostics = append(r.Diagnostics, at(ConceptFile, img.Line, RuleImages, diagnostic.Warning, fmt.Sprintf("The cover's ratio is 1:%.2f; ebook covers are 1:1.6.", h/w), "Adjust its viewBox to a 1:1.6 portrait ratio."))
+				}
+				continue
+			}
 			info := imaging.Inspect(r.Sources[img.File])
 			switch {
 			case info.Width == 0:
@@ -315,16 +357,18 @@ func repetitionRule(kind string) string {
 	return RuleValue
 }
 
-func (r *Report) checkMatter(exists func(string) bool) {
+func (r *Report) checkMatter(read Reader) {
 	for i := range r.Plan.Matter {
 		m := &r.Plan.Matter[i]
-		m.Exists = exists(m.File)
+		_, err := read(m.File)
+		m.Exists = err == nil
 		if !m.Exists {
 			r.Diagnostics = append(r.Diagnostics, at(ConceptFile, m.Line, RuleConcept, diagnostic.Warning, "Matter file "+m.File+" does not exist yet.", "Write the file or mark the row Open:."))
 			continue
 		}
 		src := r.Sources[m.File]
 		_, p := parseChapter(src)
+		r.Diagnostics = append(r.Diagnostics, checkImageReferences(m.File, p.images, read)...)
 		if len(p.headings) == 0 || p.headings[0].level != 1 || !strings.EqualFold(strings.TrimSpace(p.headings[0].text), strings.TrimSpace(check.Straight(m.Part))) {
 			r.Diagnostics = append(r.Diagnostics, at(Dir+"/"+m.File, 1, RuleChapter, diagnostic.Warning, fmt.Sprintf("Matter does not start with %q.", "# "+m.Part), "Open the file with its planned part heading."))
 		}

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -44,6 +45,25 @@ func TestReportGolden(t *testing.T) {
 			t.Run(name+"."+format, func(t *testing.T) {
 				t.Parallel()
 				dir := project(t)
+				if name == "book" {
+					file := filepath.Join(dir, "lfm.json")
+					data, err := os.ReadFile(file)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var config map[string]any
+					if err := json.Unmarshal(data, &config); err != nil {
+						t.Fatal(err)
+					}
+					config["deliverables"].(map[string]any)["book"].(map[string]any)["formats"] = []string{"epub"}
+					data, err = json.MarshalIndent(config, "", "  ")
+					if err != nil {
+						t.Fatal(err)
+					}
+					if err := os.WriteFile(file, data, 0644); err != nil {
+						t.Fatal(err)
+					}
+				}
 				settle(t, dir)
 				args := []string{"compile", dir}
 				if format == "json" {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/testtmp"
 	"github.com/Anonyfox/lfm/internal/zipx"
 )
 
@@ -19,6 +20,9 @@ func strictArchives(t *testing.T, dir string) {
 	t.Helper()
 	var check func(name string, data []byte)
 	check = func(name string, data []byte) {
+		if strings.HasSuffix(name, ".epub") {
+			testtmp.EPUBCheck(t, data)
+		}
 		for _, p := range zipx.Problems(data) {
 			t.Errorf("%s: %s", name, p)
 		}

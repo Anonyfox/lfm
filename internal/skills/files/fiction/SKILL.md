@@ -96,7 +96,7 @@ Work through it in order:
    and `done` rows are checked in full. The book builds once no row is planned; until then the compile
    writes a preview of the written chapters.
 6. **Matter**: front or back parts, each `matter/<name>.md` starting with `# <Part>`. Any cell with
-   `Open:` waits for the owner. Matter has no length check; Avoid phrases apply.
+   `Open:` waits for the owner. Matter renders unnumbered in table order, with no length check or front page labels. Avoid phrases apply.
 7. **Imagery and Look** as in lfm-book. A cover row whose cell says `Open:` reserves the cover.
 
 Then reread it as the writer of the middle chapter would. Could each chapter be written from its row,

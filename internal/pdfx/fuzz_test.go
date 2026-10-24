@@ -20,6 +20,7 @@ func FuzzStamp(f *testing.F) {
 	f.Fuzz(func(t *testing.T, pdf []byte, key string) {
 		PageCount(pdf)
 		OutlinePages(pdf)
+		FigurePages(pdf)
 		Transparent(pdf)
 		StampOf(pdf)
 		stamped, err := Stamp(pdf, key)

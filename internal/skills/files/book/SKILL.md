@@ -114,9 +114,9 @@ Work through it in order:
    from [[.Book.MinWords]] to [[.Book.MaxWords]]; chapters must land within [[.Book.Tolerance]]% of them.
    An optional seventh column, Status, is planned, draft or done; planned chapters skip prose checks.
 8. **Matter** (optional, after Chapters): `| Part | Place | File |` rows, Place front or back, File a
-   link to `matter/<name>.md` that starts with `# <Part>`: a foreword, acknowledgements, about the author.
+   link to `matter/<name>.md` that starts with `# <Part>`: rendered unnumbered, front after copyright and back after the chapters.
 9. **Imagery**: a cover and only images with a job (a diagram that explains, a photo that proves), art
-   direction from what readers photograph. Cells that wait for the owner say `Open:`.
+   direction from readers. JPEG, PNG, WebP and self-contained SVG are supported. Waiting cells say `Open:`.
 10. **Look**: trim, typefaces you can embed, one accent color.
 
 Then reread it as the writer of chapter 4 would. Could each chapter be written from its row alone? Does
@@ -194,9 +194,9 @@ Once every chapter exists, read the book in one pass with fresh eyes, as its har
   the same design composed for the trim at the size the finding names.
 - Typefaces: WOFF2 files licensed for embedding (OFL works) under `[[.Book.Dir]]/fonts/`, with
   `@font-face` rules in `[[.Book.Dir]]/book.css`. That file may refine lfm's book styles.
-- Once every chapter exists, `lfm compile` builds the EPUB into `output/<path>/` beside the download
-  page; `lfm compile --release` prints the PDF and paperback with Chrome, which later compiles reuse while
-  the book is unchanged, and checks the layout at phone width and in print.
+- Once every chapter exists and no row is planned, compile writes the EPUB to `distribution/book/`.
+  With `sell: page`, `output/<path>/` also holds the download page and chosen formats. Chrome prints the PDF.
+  `--release` prints the paperback and checks layout; unchanged prints are reused. Incomplete books get previews.
 - Open the PDF and look at every page: cover, title page, contents, each chapter opening, every image
   and table, the page breaks. Open the EPUB in a reader when you can. Fix what you see, compile again.
 

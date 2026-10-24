@@ -2,6 +2,7 @@ package compile
 
 import (
 	"bytes"
+	"errors"
 	"maps"
 	"os"
 	"path/filepath"
@@ -112,13 +113,31 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 	at := func(sev diagnostic.Severity, rule, message, hint string) {
 		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: sev, Location: diagnostic.Location{File: book.ConceptFile, Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
-	if r.Buildable {
-		built, err := book.Build(*r, func(rel string) ([]byte, error) { return p.Read(book.Dir + "/" + rel) }, newest(p, r))
+	if r.Buildable || r.Previewable {
+		buildReport := *r
+		preview := !r.Summary.Complete
+		buildReport.EPUBImages = bookImages(r, st, at)
+		r.EPUBImages = buildReport.EPUBImages
+		built, err := book.Build(buildReport, func(rel string) ([]byte, error) { return p.Read(book.Dir + "/" + rel) }, newest(p, r))
 		if err != nil {
-			at(diagnostic.Error, book.RuleBuild, "The book could not be built: "+err.Error(), "Fix the named file and compile again.")
+			var source *book.SourceError
+			if errors.As(err, &source) {
+				issues = append(issues, diagnostic.Diagnostic{Rule: book.RuleChapter, Severity: diagnostic.Error, Location: diagnostic.Location{File: book.Dir + "/" + source.File, Line: source.Line, Column: 1}, Message: source.Err.Error(), Hint: "Fix the named reference and compile again."})
+			} else {
+				at(diagnostic.Error, book.RuleBuild, "The book could not be built: "+err.Error(), "Fix the named file and compile again.")
+			}
 			return out, issues
 		}
 		slug := deliver.Slug(r.Plan.Title, "book")
+		if preview {
+			name := "preview/" + slug + "-preview.epub"
+			result.distribute("book", map[string][]byte{name: built.EPUB})
+			r.Summary.Preview = "distribution/book/preview/"
+			if pageSale {
+				downloadPage(result, r.Config.Path, book.DownloadPage(r.Plan, r.Config, nil), out)
+			}
+			return out, issues
+		}
 		if r.Config.Wants("epub") {
 			out.add(deliver.File{Name: slug + ".epub", Label: "EPUB", Note: book.Words(r.Config.Language).EPUBNote}, built.EPUB)
 		}
@@ -155,7 +174,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 			printRule = book.RulePDF
 		}
 		switch {
-		case pr.startErr != nil:
+		case pr.startErr != nil && (r.Config.Wants("pdf") || ownStores):
 			at(diagnostic.Warning, printRule, "The PDF and the paperback were not printed: "+pr.startErr.Error(), "Install Chrome or Chromium, or set LFM_CHROME; or remove pdf from deliverables.book.formats.")
 		default:
 			if pdfErr != nil {
@@ -174,7 +193,11 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 			r.Summary.Channels = channels
 			issues = append(issues, found...)
 		} else {
-			result.distribute("book", map[string][]byte{}) // no package of its own
+			files := map[string][]byte{slug + ".epub": built.EPUB}
+			for _, f := range out.Files {
+				files[f.Name] = out.Data[f.Name]
+			}
+			result.distribute("book", files)
 		}
 		if st.release {
 			switch {
@@ -191,8 +214,16 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 			}
 		}
 	}
-	for _, f := range out.Files {
-		r.Summary.Files = append(r.Summary.Files, f.Name)
+	if !r.Buildable && !r.Previewable {
+		result.distribute("book", map[string][]byte{})
+	}
+	r.Summary.Sizes = map[string]int{}
+	for _, ext := range []string{"epub", "pdf"} {
+		name := deliver.Slug(r.Plan.Title, "book") + "." + ext
+		if data := result.Distribution["book"][name]; len(data) > 0 {
+			r.Summary.Sizes[name] = len(data)
+			r.Summary.Files = append(r.Summary.Files, name)
+		}
 	}
 	if pageSale {
 		downloadPage(result, r.Config.Path, book.DownloadPage(r.Plan, r.Config, out.Files), out)

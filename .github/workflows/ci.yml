@@ -51,6 +51,14 @@ jobs:
       - name: allow Chrome's sandbox
         if: runner.os == 'Linux'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: install epubcheck
+        if: runner.os == 'Linux'
+        run: |
+          curl -fsSL https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip -o "$RUNNER_TEMP/epubcheck.zip"
+          unzip -q "$RUNNER_TEMP/epubcheck.zip" -d "$RUNNER_TEMP"
+          printf '#!/bin/sh\nexec java -jar "%s/epubcheck-5.4.0/epubcheck.jar" "$@"\n' "$RUNNER_TEMP" > "$RUNNER_TEMP/epubcheck"
+          chmod +x "$RUNNER_TEMP/epubcheck"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: test
         run: go test -race -timeout 15m -coverprofile=coverage.out -covermode=atomic ./...
       - name: upload coverage

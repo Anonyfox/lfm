@@ -268,7 +268,7 @@ func TestCompleteBookChecksCleanAndBuilds(t *testing.T) {
 	if !s.Complete || !r.Buildable || s.Written != 3 || s.Title != "The Weekend Starter" || s.URL != "https://example.org/sourdough/k3x9m2q7w8e4r5t6y1u0/" {
 		t.Fatalf("summary %+v", s)
 	}
-	built, err := Build(r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC))
+	built, err := buildChecked(t, r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +333,7 @@ func TestCompleteBookChecksCleanAndBuilds(t *testing.T) {
 	if dir := os.Getenv("LFM_EPUB_OUT"); dir != "" {
 		_ = os.WriteFile(filepath.Join(dir, "fixture.epub"), built.EPUB, 0o644)
 	}
-	again, _ := Build(r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC))
+	again, _ := buildChecked(t, r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC))
 	if !bytes.Equal(again.EPUB, built.EPUB) {
 		t.Error("EPUB build is not reproducible")
 	}
@@ -444,7 +444,7 @@ func TestDownloadPage(t *testing.T) {
 func TestVerifyCatchesBrokenPackages(t *testing.T) {
 	p, voices, peers := fixture(t)
 	r := Check(p, testConfig, true, nil, "https://example.org/", voices, peers)
-	built, err := Build(r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Unix(0, 0))
+	built, err := buildChecked(t, r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Unix(0, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -571,7 +571,7 @@ func TestListingFindsWhatStoresRefuse(t *testing.T) {
 func TestDistributionPackagesEveryChannel(t *testing.T) {
 	p, voices, peers := fixture(t)
 	r := Check(p, testConfig, true, nil, "https://example.org/", voices, peers)
-	built, err := Build(r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Unix(1700000000, 0))
+	built, err := buildChecked(t, r, func(rel string) ([]byte, error) { return p.Read(Dir + "/" + rel) }, time.Unix(1700000000, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
