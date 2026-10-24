@@ -73,7 +73,7 @@ func (d *Document) commerceFacts() []Diagnostic {
 			return
 		}
 		if node.Data == "a" || node.Data == "area" {
-			if !inactiveHTML(node) && !hidden(node) && !strings.EqualFold(Attr(node, "aria-disabled"), "true") {
+			if !d.inactiveHTML(node) && !hidden(node) && !strings.EqualFold(Attr(node, "aria-disabled"), "true") {
 				usable[identity] = true
 			}
 			if HasAttr(node, "download") {
@@ -84,7 +84,7 @@ func (d *Document) commerceFacts() []Diagnostic {
 		}
 	}
 	for _, n := range d.Elements {
-		if n.Namespace != "" || inTemplate(n) {
+		if n.Namespace != "" || d.inTemplate(n) {
 			continue
 		}
 		switch n.Data {

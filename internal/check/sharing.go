@@ -16,7 +16,7 @@ import (
 func platformMeta(d *Document, key string) []*html.Node {
 	var nodes []*html.Node
 	for _, n := range d.Elements {
-		if n.Namespace == "" && n.Data == "meta" && !inTemplate(n) && (strings.EqualFold(strings.TrimSpace(Attr(n, "name")), key) || strings.EqualFold(strings.TrimSpace(Attr(n, "property")), key)) {
+		if n.Namespace == "" && n.Data == "meta" && !d.inTemplate(n) && (strings.EqualFold(strings.TrimSpace(Attr(n, "name")), key) || strings.EqualFold(strings.TrimSpace(Attr(n, "property")), key)) {
 			nodes = append(nodes, n)
 		}
 	}

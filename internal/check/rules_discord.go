@@ -16,7 +16,7 @@ func discordRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	var carriers []*html.Node
 	for _, n := range d.Elements {
-		if n.Namespace == "" && !inTemplate(n) && (n.Data == "script" && Attr(n, "id") == "discord:component-embed" || n.Data == "link" && containsWord(Attr(n, "rel"), "discord:component-embed")) {
+		if n.Namespace == "" && !d.inTemplate(n) && (n.Data == "script" && Attr(n, "id") == "discord:component-embed" || n.Data == "link" && containsWord(Attr(n, "rel"), "discord:component-embed")) {
 			carriers = append(carriers, n)
 		}
 	}

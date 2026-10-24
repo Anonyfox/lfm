@@ -10,7 +10,7 @@ func relationshipsRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	f := d.accessFacts()
 	for _, n := range d.Elements {
-		if n.Namespace != "" || inTemplate(n) {
+		if n.Namespace != "" || d.inTemplate(n) {
 			continue
 		}
 		if n.Data == "label" {

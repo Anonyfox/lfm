@@ -396,7 +396,7 @@ func referencesRule(d *Document) []Diagnostic {
 		ids[Attr(n, "id")] = n
 	}
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if d.inTemplate(n) {
 			continue
 		}
 		for _, key := range []string{"aria-labelledby", "aria-describedby", "aria-controls", "aria-owns", "aria-activedescendant", "aria-details", "aria-errormessage", "aria-flowto", "headers", "list", "form", "for", "popovertarget", "commandfor"} {

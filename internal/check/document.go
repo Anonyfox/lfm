@@ -44,8 +44,11 @@ type Document struct {
 	designFacts    *designFacts
 	sheets         []styleSource
 	keyframeIndex  map[string]keyframe
-	ownText        []copySegment // visible text blocks without quotations
-	allText        []copySegment // visible text blocks with quotations
+	templated      map[*html.Node]bool // element has a template ancestor
+	designHidden   map[*html.Node]bool // element or an ancestor never renders
+	inactive       map[*html.Node]bool // element can never be focused or used
+	ownText        []copySegment       // visible text blocks without quotations
+	allText        []copySegment       // visible text blocks with quotations
 }
 
 func Parse(raw []byte, options Options) (*Document, error) {
@@ -60,7 +63,7 @@ func Parse(raw []byte, options Options) (*Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := &Document{Raw: raw, Root: root, Tokens: tokens, Options: options, positions: map[*html.Node]int{}, lines: lineStarts(raw)}
+	d := &Document{Raw: raw, Root: root, Tokens: tokens, Options: options, positions: map[*html.Node]int{}, lines: lineStarts(raw), templated: map[*html.Node]bool{}, designHidden: map[*html.Node]bool{}, inactive: map[*html.Node]bool{}}
 	// Final compiler output is serialized HTML; start tags and DOM preorder align.
 	// For malformed standalone fixtures only matched tags receive a source position.
 	starts := map[string][]int{}
@@ -69,10 +72,24 @@ func Parse(raw []byte, options Options) (*Document, error) {
 			starts[token.Value.Data] = append(starts[token.Value.Data], token.Offset)
 		}
 	}
-	var visit func(*html.Node, int)
-	visit = func(n *html.Node, depth int) {
+	// Ancestor facts are recorded on the way down so rules need not walk up
+	// from every element, which is quadratic on deeply nested markup.
+	var visit func(n *html.Node, depth int, templated, hidden, inactive bool)
+	visit = func(n *html.Node, depth int, templated, hidden, inactive bool) {
+		var summary *html.Node
+		closed := false
 		if n.Type == html.ElementNode {
 			d.Elements = append(d.Elements, n)
+			hidden = hidden || designBlocks(n)
+			inactive = inactive || templated || n.Namespace == "" && (HasAttr(n, "hidden") || HasAttr(n, "inert"))
+			d.templated[n], d.designHidden[n], d.inactive[n] = templated, hidden, inactive
+			templated = templated || n.Data == "template" && n.Namespace == ""
+			if n.Namespace == "" && (n.Data == "dialog" || n.Data == "details") && !HasAttr(n, "open") {
+				closed = true
+				if n.Data == "details" {
+					summary = firstSummary(n)
+				}
+			}
 			if offsets := starts[strings.ToLower(n.Data)]; len(offsets) > 0 {
 				d.positions[n] = offsets[0]
 				starts[strings.ToLower(n.Data)] = offsets[1:]
@@ -83,10 +100,10 @@ func Parse(raw []byte, options Options) (*Document, error) {
 			}
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			visit(c, depth)
+			visit(c, depth, templated, hidden, inactive || closed && (n.Data == "dialog" || c != summary))
 		}
 	}
-	visit(root, 0)
+	visit(root, 0, false, false, false)
 	d.Stats.HTMLBytes = len(raw)
 	d.Stats.ExternalCSSBytes = options.ExternalCSSBytes
 	d.Stats.ExternalJSBytes = options.ExternalJSBytes
@@ -127,6 +144,14 @@ func (d *Document) selectNodes(selector string) []*html.Node {
 	return nodes
 }
 
+// inTemplate answers from the parse-time walk for the document's own nodes.
+func (d *Document) inTemplate(n *html.Node) bool {
+	if v, ok := d.templated[n]; ok {
+		return v
+	}
+	return inTemplate(n)
+}
+
 func inTemplate(n *html.Node) bool {
 	for p := n.Parent; p != nil; p = p.Parent {
 		if p.Data == "template" && p.Namespace == "" {
@@ -139,7 +164,7 @@ func inTemplate(n *html.Node) bool {
 func (d *Document) activeNodes(selector string) []*html.Node {
 	var active []*html.Node
 	for _, n := range d.selectNodes(selector) {
-		if !inTemplate(n) {
+		if !d.inTemplate(n) {
 			active = append(active, n)
 		}
 	}

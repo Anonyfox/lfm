@@ -304,7 +304,7 @@ func imageryCount(d *Document) int {
 			}
 			continue
 		}
-		if inTemplate(n) || !designVisible(n) {
+		if d.inTemplate(n) || !d.designVisible(n) {
 			continue
 		}
 		switch n.Data {

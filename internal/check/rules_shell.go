@@ -11,7 +11,7 @@ import (
 func clientShellRule(d *Document) []Diagnostic {
 	module, mount := false, false
 	for _, n := range d.Elements {
-		if inTemplate(n) || n.Namespace != "" {
+		if d.inTemplate(n) || n.Namespace != "" {
 			continue
 		}
 		if n.Data == "script" && strings.EqualFold(Attr(n, "type"), "module") {

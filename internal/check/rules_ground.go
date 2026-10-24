@@ -39,7 +39,7 @@ func groundRule(d *Document) []Diagnostic {
 		}
 		mainPainted := false
 		for _, main := range d.activeNodes("main") {
-			if designVisible(main) && paintedGround(m.value(main, "background-color")) {
+			if d.designVisible(main) && paintedGround(m.value(main, "background-color")) {
 				mainPainted = true
 				break
 			}
@@ -63,7 +63,7 @@ func groundRule(d *Document) []Diagnostic {
 		}
 	}
 	inspect := func(n *html.Node, model *styleModel, selector string, ground bool) {
-		if n.Namespace != "" || !designVisible(n) {
+		if n.Namespace != "" || !d.designVisible(n) {
 			return
 		}
 		if ground {

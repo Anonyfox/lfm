@@ -11,7 +11,7 @@ func focusRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	autofocus := map[*html.Node]*html.Node{}
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if d.inTemplate(n) {
 			continue
 		}
 		if HasAttr(n, "tabindex") {
@@ -38,7 +38,7 @@ func focusRule(d *Document) []Diagnostic {
 				autofocus[scope] = n
 			}
 		}
-		if sequentialCandidate(n) {
+		if d.sequentialCandidate(n) {
 			for p := n; p != nil; p = p.Parent {
 				if strings.EqualFold(Attr(p, "aria-hidden"), "true") {
 					issue := d.At(n, Warning, "Tab-order candidate is inside aria-hidden content.", "aria-hidden does not disable focus. Remove it from the active control/ancestor or make the inactive view inert/hidden; verify computed visibility and keyboard behavior.")
@@ -48,7 +48,7 @@ func focusRule(d *Document) []Diagnostic {
 				}
 			}
 		}
-		if inactiveHTML(n) || disabledHTML(n) {
+		if d.inactiveHTML(n) || disabledHTML(n) {
 			continue
 		}
 		role := explicitRole(n)

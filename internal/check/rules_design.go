@@ -233,18 +233,28 @@ func classMatch(n *html.Node, re *regexp.Regexp) bool {
 
 func designVisible(n *html.Node) bool {
 	for p := n; p != nil; p = p.Parent {
-		if p.Type != html.ElementNode {
-			continue
-		}
-		switch p.Data {
-		case "template", "script", "style", "noscript", "head", "title", "dialog":
-			return false
-		}
-		if HasAttr(p, "hidden") {
+		if p.Type == html.ElementNode && designBlocks(p) {
 			return false
 		}
 	}
 	return true
+}
+
+// designBlocks reports an element that hides itself and its subtree.
+func designBlocks(n *html.Node) bool {
+	switch n.Data {
+	case "template", "script", "style", "noscript", "head", "title", "dialog":
+		return true
+	}
+	return HasAttr(n, "hidden")
+}
+
+// designVisible answers from the parse-time walk for the document's own nodes.
+func (d *Document) designVisible(n *html.Node) bool {
+	if v, ok := d.designHidden[n]; ok {
+		return !v
+	}
+	return designVisible(n)
 }
 
 func wordCount(s string) int { return len(strings.Fields(s)) }
@@ -443,7 +453,7 @@ func (a *designAnalysis) gradientText() {
 		}
 		if clip && grad && transparent {
 			for _, n := range r.matches {
-				if designVisible(n) && a.text(n) != "" {
+				if a.d.designVisible(n) && a.text(n) != "" {
 					a.add(designSignal{rule: "design.gradient-text", kind: "gradient text", strong: true, node: n, message: fmt.Sprintf("Gradient-filled text %s (background-clip:text): a top generated-page tell.", label(n)), hint: "Carry emphasis with size, weight, position or a solid color."})
 				}
 			}
@@ -451,7 +461,7 @@ func (a *designAnalysis) gradientText() {
 	}
 	for _, n := range a.d.Elements {
 		c := classes(n)
-		if c["bg-clip-text"] && (classMatch(n, reDesign18) || classMatch(n, reDesign21)) && designVisible(n) {
+		if c["bg-clip-text"] && (classMatch(n, reDesign18) || classMatch(n, reDesign21)) && a.d.designVisible(n) {
 			a.add(designSignal{rule: "design.gradient-text", kind: "gradient text", strong: true, node: n, message: fmt.Sprintf("Tailwind gradient text %s (bg-clip-text + gradient).", label(n)), hint: "Carry emphasis with size, weight, position or a solid color."})
 		}
 	}
@@ -499,7 +509,7 @@ func (a *designAnalysis) glows() {
 	}
 	var live []*html.Node
 	for _, n := range orbs {
-		if designVisible(n) && !reasoned(n) {
+		if a.d.designVisible(n) && !reasoned(n) {
 			live = append(live, n)
 		}
 	}
@@ -544,7 +554,7 @@ var eyebrowClass = regexp.MustCompile(`(?i)^(eyebrow|kicker|overline|pre-?title|
 
 func (a *designAnalysis) eyebrows() {
 	for _, h := range a.d.Elements {
-		if !isHeading(h) || h.Data > "h3" || !designVisible(h) {
+		if !isHeading(h) || h.Data > "h3" || !a.d.designVisible(h) {
 			continue
 		}
 		e := prevElement(h)
@@ -614,7 +624,7 @@ func (a *designAnalysis) typography() {
 		if n.Data == "body" && body == nil {
 			body = n
 		}
-		if n.Data == "h1" && h1 == nil && designVisible(n) {
+		if n.Data == "h1" && h1 == nil && a.d.designVisible(n) {
 			h1 = n
 		}
 	}
@@ -628,7 +638,7 @@ func (a *designAnalysis) typography() {
 	if fb != "" && fb == fh && stock.GenericSans(fb) {
 		distinct := false
 		for _, n := range a.d.Elements {
-			if isHeading(n) && designVisible(n) && firstFamily(a.m.value(n, "font-family")) != fb && firstFamily(a.m.value(n, "font-family")) != "" {
+			if isHeading(n) && a.d.designVisible(n) && firstFamily(a.m.value(n, "font-family")) != fb && firstFamily(a.m.value(n, "font-family")) != "" {
 				distinct = true
 				break
 			}
@@ -642,7 +652,7 @@ func (a *designAnalysis) typography() {
 	}
 	// accent word: a short differently styled span inside a longer heading
 	for _, h := range a.d.Elements {
-		if (h.Data != "h1" && h.Data != "h2") || !designVisible(h) || wordCount(shownText(h)) < 4 {
+		if (h.Data != "h1" && h.Data != "h2") || !a.d.designVisible(h) || wordCount(shownText(h)) < 4 {
 			continue
 		}
 		for _, c := range elementChildren(h) {
@@ -697,14 +707,14 @@ func (a *designAnalysis) emoji() {
 			}
 		case "li":
 			t := a.text(n)
-			if r, ok := hasEmoji(firstRunes(t, 3)); ok && designVisible(n) {
+			if r, ok := hasEmoji(firstRunes(t, 3)); ok && a.d.designVisible(n) {
 				a.add(designSignal{rule: "design.emoji", kind: "emoji as interface", strong: true, node: n, message: fmt.Sprintf("Emoji %q used as a list bullet in %s.", string(r), label(n)), hint: "Use typographic bullets, numbers or a real glyph that names the item."})
 			}
 			continue
 		default:
 			continue
 		}
-		if !designVisible(n) {
+		if !a.d.designVisible(n) {
 			continue
 		}
 		if r, ok := hasEmoji(a.text(n)); ok {
@@ -732,7 +742,7 @@ var badgeText = regexp.MustCompile(`(?i)^(✨|new\b|introducing|now (with|live|a
 func (a *designAnalysis) hero() {
 	var h1 *html.Node
 	for _, n := range a.d.Elements {
-		if n.Data == "h1" && designVisible(n) {
+		if n.Data == "h1" && a.d.designVisible(n) {
 			h1 = n
 			break
 		}
@@ -756,7 +766,7 @@ func (a *designAnalysis) hero() {
 			before = false
 			return
 		}
-		if n.Type == html.ElementNode && designVisible(n) {
+		if n.Type == html.ElementNode && a.d.designVisible(n) {
 			if before && badge == nil && n.Data != "a" && n.Data != "img" && n.Data != "svg" {
 				t := a.text(n)
 				if t != "" && wordCount(t) <= 7 && len(elementChildren(n)) <= 3 {
@@ -826,7 +836,7 @@ var statNumber = regexp.MustCompile(`^[~≈<>+]?\d[\d.,]*\s?(%|\+|x|×|k|K|M|B|h
 
 func (a *designAnalysis) grids() {
 	for _, p := range a.d.Elements {
-		if !designVisible(p) || p.Data == "nav" || p.Data == "table" || p.Data == "tbody" || p.Data == "select" || p.Data == "form" || p.Data == "svg" {
+		if !a.d.designVisible(p) || p.Data == "nav" || p.Data == "table" || p.Data == "tbody" || p.Data == "select" || p.Data == "form" || p.Data == "svg" {
 			continue
 		}
 		kids := elementChildren(p)
@@ -942,7 +952,7 @@ func (a *designAnalysis) sideStripes() {
 			case "blockquote", "li", "tr", "td", "th", "ins", "del", "hr", "q":
 				continue
 			}
-			if designVisible(n) {
+			if a.d.designVisible(n) {
 				hits = append(hits, n)
 			}
 		}
@@ -951,7 +961,7 @@ func (a *designAnalysis) sideStripes() {
 		}
 	}
 	for _, n := range a.d.Elements {
-		if classMatch(n, reDesign20) && designVisible(n) && n.Data != "blockquote" && a.once("tw stripe") {
+		if classMatch(n, reDesign20) && a.d.designVisible(n) && n.Data != "blockquote" && a.once("tw stripe") {
 			a.add(designSignal{rule: "design.stripes", kind: "side-stripe accent", strong: true, node: n, message: "Tailwind border-l-* accent stripe on a card.", hint: "Separate items by tone, spacing or a meaningful marker."})
 		}
 	}
@@ -968,7 +978,7 @@ func (a *designAnalysis) glass() {
 		for _, dcl := range r.decls {
 			if strings.HasSuffix(dcl.prop, "backdrop-filter") && strings.Contains(strings.ToLower(dcl.value), "blur") {
 				for _, n := range r.matches {
-					if designVisible(n) && !reasoned(n) {
+					if a.d.designVisible(n) && !reasoned(n) {
 						set[n] = true
 					}
 				}
@@ -976,7 +986,7 @@ func (a *designAnalysis) glass() {
 		}
 	}
 	for _, n := range a.d.Elements {
-		if classMatch(n, reDesign17) && designVisible(n) && !reasoned(n) {
+		if classMatch(n, reDesign17) && a.d.designVisible(n) && !reasoned(n) {
 			set[n] = true
 		}
 	}
@@ -1040,7 +1050,7 @@ func (a *designAnalysis) weakSurfaces() {
 	same := map[key]int{}
 	pills := 0
 	for _, n := range a.d.Elements {
-		if !designVisible(n) {
+		if !a.d.designVisible(n) {
 			continue
 		}
 		radius, shadow := a.prop(n, "border-radius"), a.prop(n, "box-shadow")
@@ -1081,7 +1091,7 @@ var liftTransform = regexp.MustCompile(`translatey\(\s*-([0-9.]+)px|translate\(\
 func (a *designAnalysis) motion() {
 	var reveal []*html.Node
 	for _, n := range a.d.Elements {
-		if !designVisible(n) {
+		if !a.d.designVisible(n) {
 			continue
 		}
 		if HasAttr(n, "data-aos") || HasAttr(n, "data-sal") || HasAttr(n, "data-animate") || HasAttr(n, "data-reveal") || classMatch(n, revealClass) {
@@ -1123,7 +1133,7 @@ func (a *designAnalysis) arrows() {
 	total, arrowed := 0, 0
 	var first *html.Node
 	for _, n := range a.d.Elements {
-		if n.Data != "a" && n.Data != "button" || !designVisible(n) {
+		if n.Data != "a" && n.Data != "button" || !a.d.designVisible(n) {
 			continue
 		}
 		if p := n.Parent; p != nil && (p.Data == "p" || p.Data == "li") && wordCount(a.text(p)) > wordCount(a.text(n))+3 {
@@ -1156,7 +1166,7 @@ func (a *designAnalysis) separators() {
 	count := 0
 	var first *html.Node
 	for _, n := range a.d.Elements {
-		if !designVisible(n) {
+		if !a.d.designVisible(n) {
 			continue
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -1186,7 +1196,7 @@ func (a *designAnalysis) mono() {
 	declared := a.d.conceptFamilies()
 	var hits []*html.Node
 	for _, n := range a.d.Elements {
-		if !designVisible(n) {
+		if !a.d.designVisible(n) {
 			continue
 		}
 		own := ""
@@ -1235,7 +1245,7 @@ func codeContext(n *html.Node) bool {
 func (a *designAnalysis) chrome() {
 	for _, p := range a.d.Elements {
 		kids := elementChildren(p)
-		if len(kids) < 3 || !designVisible(p) {
+		if len(kids) < 3 || !a.d.designVisible(p) {
 			continue
 		}
 		// red, yellow, green in this order, each a distinct traffic-light hue
@@ -1289,7 +1299,7 @@ func (a *designAnalysis) proof() {
 		}
 	}
 	for _, n := range a.d.Elements {
-		if !designVisible(n) || (n.Data != "h2" && n.Data != "h3" && n.Data != "p" && n.Data != "span" && n.Data != "div" && n.Data != "strong") || len(elementChildren(n)) > 4 {
+		if !a.d.designVisible(n) || (n.Data != "h2" && n.Data != "h3" && n.Data != "p" && n.Data != "span" && n.Data != "div" && n.Data != "strong") || len(elementChildren(n)) > 4 {
 			continue
 		}
 		// proof claims and badges are short labels; long text never is one
@@ -1317,7 +1327,7 @@ func (a *designAnalysis) sections() {
 	found := map[string]bool{}
 	details := 0
 	for _, n := range a.d.Elements {
-		if !designVisible(n) {
+		if !a.d.designVisible(n) {
 			continue
 		}
 		if n.Data == "details" {
@@ -1388,7 +1398,7 @@ func (a *designAnalysis) contrast() {
 		return okColor{}, false
 	}
 	for _, p := range a.d.Elements {
-		if p.Data != "p" || !designVisible(p) || wordCount(a.text(p)) < 8 {
+		if p.Data != "p" || !a.d.designVisible(p) || wordCount(a.text(p)) < 8 {
 			continue
 		}
 		bg, ok := backdrop(p)

@@ -654,7 +654,7 @@ func placeholderRule(d *Document) []Diagnostic {
 		check(s.node, "text", s.text)
 	}
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if d.inTemplate(n) {
 			continue
 		}
 		switch {
@@ -709,7 +709,7 @@ func preview(s string) string {
 func hiddenStartRule(d *Document) []Diagnostic {
 	var h1 *html.Node
 	for _, n := range d.activeNodes("h1") {
-		if designVisible(n) {
+		if d.designVisible(n) {
 			h1 = n
 			break
 		}

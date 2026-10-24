@@ -167,7 +167,7 @@ func (d *Document) fragmentTarget(id string) *html.Node {
 	}
 	d.fragmentIDs, d.fragmentNames = map[string]*html.Node{}, map[string]*html.Node{}
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if d.inTemplate(n) {
 			continue
 		}
 		if id := Attr(n, "id"); id != "" && d.fragmentIDs[id] == nil {

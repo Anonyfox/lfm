@@ -19,7 +19,7 @@ func (d *Document) accessFacts() *accessibilityFacts {
 	}
 	f := &accessibilityFacts{ids: map[string]*html.Node{}, labels: map[*html.Node][]*html.Node{}, managed: map[string][]*html.Node{}}
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if d.inTemplate(n) {
 			continue
 		}
 		if id := Attr(n, "id"); id != "" && f.ids[id] == nil {
@@ -116,6 +116,14 @@ func explicitRole(n *html.Node) string {
 	return ""
 }
 
+// inactiveHTML answers from the parse-time walk for the document's own nodes.
+func (d *Document) inactiveHTML(n *html.Node) bool {
+	if v, ok := d.inactive[n]; ok {
+		return v
+	}
+	return inactiveHTML(n)
+}
+
 func inactiveHTML(n *html.Node) bool {
 	if inTemplate(n) {
 		return true
@@ -209,8 +217,8 @@ func nativeKeyboard(n *html.Node) bool {
 	return false
 }
 
-func sequentialCandidate(n *html.Node) bool {
-	if inactiveHTML(n) || disabledHTML(n) {
+func (d *Document) sequentialCandidate(n *html.Node) bool {
+	if d.inactiveHTML(n) || disabledHTML(n) {
 		return false
 	}
 	if value, valid := tabindex(n); valid {

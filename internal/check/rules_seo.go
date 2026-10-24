@@ -13,7 +13,7 @@ import (
 func metaNodes(d *Document, key, value string) []*html.Node {
 	var nodes []*html.Node
 	for _, n := range d.Elements {
-		if n.Namespace == "" && n.Data == "meta" && !inTemplate(n) && strings.EqualFold(strings.TrimSpace(Attr(n, key)), value) {
+		if n.Namespace == "" && n.Data == "meta" && !d.inTemplate(n) && strings.EqualFold(strings.TrimSpace(Attr(n, key)), value) {
 			nodes = append(nodes, n)
 		}
 	}

@@ -18,7 +18,7 @@ func sharingMediaRule(d *Document) []Diagnostic {
 	var images []*media
 	var current *media
 	for _, n := range d.Elements {
-		if n.Namespace != "" || n.Data != "meta" || inTemplate(n) {
+		if n.Namespace != "" || n.Data != "meta" || d.inTemplate(n) {
 			continue
 		}
 		key := strings.ToLower(strings.TrimSpace(Attr(n, "property")))

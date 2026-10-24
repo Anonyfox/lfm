@@ -21,7 +21,7 @@ var ariaTokens = map[string]string{
 func ariaRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	for _, n := range d.Elements {
-		if inTemplate(n) {
+		if d.inTemplate(n) {
 			continue
 		}
 		role := explicitRole(n)
