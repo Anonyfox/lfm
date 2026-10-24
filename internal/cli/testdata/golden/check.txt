@@ -1,0 +1,13 @@
+Check http://127.0.0.1:PORT
+  HTTP 200  http://127.0.0.1:PORT
+  identity https://example.org/
+  1 file inspected; 0 errors, 1 warning; 0 ms
+  skipped: links.declared, jsonld.block, commerce.discovery, commerce.structured-data,
+           concept.fidelity, release.*, lighthouse.*
+warning  seo.social  page
+         Social preview is missing nonempty og:title, og:type, og:url, og:image.
+         fix: Render the Open Graph core fields in head from config; use the canonical URL and a
+              public image file URL.
+Next (review): review the warnings above and check again.
+'lfm rules <id>' explains a rule
+run with --release for runtime, layout and Lighthouse

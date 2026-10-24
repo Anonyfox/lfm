@@ -55,6 +55,7 @@ type RuleInfo struct {
 	Summary  string `json:"summary"`
 	Help     string `json:"help"`
 	Required bool   `json:"required,omitempty"`
+	Project  bool   `json:"project,omitempty"` // Needs the lfm project's sources.
 }
 
 type Summary struct {

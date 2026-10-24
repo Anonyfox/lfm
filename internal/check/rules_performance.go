@@ -152,7 +152,7 @@ func inlineRule(d *Document) []Diagnostic {
 			hint += " Sources: " + strings.Join(embed.Sources, ", ") + "."
 		}
 		diagnostic := d.Whole(Warning, fmt.Sprintf("Embedded %s occupies %d HTML bytes across %d occurrence(s).", embed.MIME, embed.TotalBytes, embed.Count), hint)
-		diagnostic.Location = location("index.html", d.lines, embed.Offset)
+		diagnostic.Location = location(d.Options.File, d.lines, embed.Offset)
 		issues = append(issues, diagnostic)
 	}
 	for _, n := range d.selectNodes("[srcset]") {

@@ -20,6 +20,7 @@ type Reference struct {
 	Tag, Attribute, Value string
 	Offset, End           int
 	Resource              bool
+	Import                bool // CSS @import, rather than a declaration URL.
 }
 
 func URLAttribute(tag, attribute string, attrs map[string]string) (bool, bool) {

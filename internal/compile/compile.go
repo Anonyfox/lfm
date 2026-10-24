@@ -298,7 +298,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if options.Release && ctx.Err() == nil {
 		go func() {
 			defer close(auditDone)
-			audit = release.Audit(ctx, page, b.sidecars(), p.Root)
+			audit = release.Audit(ctx, release.Target{Page: page, Assets: b.sidecars()}, p.Root)
 		}()
 	} else {
 		close(auditDone)

@@ -5,7 +5,8 @@ import (
 )
 
 func rule(id, summary, help string, check func(*Document) []Diagnostic) Rule {
-	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help}, Check: check}
+	project := id == "links.declared" || id == "jsonld.block" || id == "commerce.discovery" || id == "commerce.structured-data" || id == "concept.fidelity"
+	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help, Project: project}, Check: check}
 }
 
 const designException = " Deliberate? Keep it and add data-design-reason=\"why this subject needs it\" on the element or an ancestor."

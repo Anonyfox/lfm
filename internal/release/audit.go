@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -75,21 +76,21 @@ type AuditFinding struct {
 	Items      int      `json:"detailItems,omitempty"`
 }
 
-func Audit(ctx context.Context, page []byte, assets map[string][]byte, root string) *AuditResult {
-	return audit(ctx, page, assets, root, net.Listen)
+func Audit(ctx context.Context, target Target, root string) *AuditResult {
+	return audit(ctx, target, root, net.Listen)
 }
 
-func audit(ctx context.Context, page []byte, assets map[string][]byte, root string, listen func(string, string) (net.Listener, error)) *AuditResult {
+func audit(ctx context.Context, target Target, root string, listen func(string, string) (net.Listener, error)) *AuditResult {
 	var t texts
-	r := &AuditResult{Delivery: t.delivery(page, assets)}
+	r := &AuditResult{Delivery: t.delivery(target.Page, target.Assets)}
 	warn := func(rule, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
 	browser, err := BrowserPath()
-	_, toolErr := lighthousePath(root)
+	_, toolErr := lighthousePath(target.toolRoot(root))
 	if err != nil {
 		r.Runtime = &RuntimeResult{Status: "skipped", Reason: err.Error(), Hint: BrowserSetup}
-		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "browser unavailable", Hint: BrowserSetup, Scope: auditScope}
+		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "browser unavailable", Hint: BrowserSetup, Scope: target.auditScope()}
 		warn("release.browser", "Critical CSS, runtime and Lighthouse browser features skipped: "+err.Error(), BrowserSetup)
 		if toolErr != nil {
 			r.Lighthouse.Reason = "Chrome and Lighthouse unavailable"
@@ -97,7 +98,7 @@ func audit(ctx context.Context, page []byte, assets map[string][]byte, root stri
 		}
 		return r
 	}
-	r.Runtime = auditRuntime(ctx, page, assets, browser, FramesPath(root), listen)
+	r.Runtime = auditRuntime(ctx, target, browser, FramesPath(root), listen)
 	if r.Runtime.Status != "ok" {
 		warn("release.browser", "Runtime navigation check skipped: "+r.Runtime.Reason, r.Runtime.Hint)
 	}
@@ -114,13 +115,13 @@ func audit(ctx context.Context, page []byte, assets map[string][]byte, root stri
 		}
 	}
 	if r.Runtime.Status != "ok" && r.Runtime.Chrome == "" {
-		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "Chrome could not start for navigation", Hint: r.Runtime.Hint, Scope: auditScope}
+		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "Chrome could not start for navigation", Hint: r.Runtime.Hint, Scope: target.auditScope()}
 		if toolErr != nil {
 			r.Lighthouse.Hint += " " + LighthouseSetup
 		}
 		return r
 	}
-	r.Lighthouse = runLighthouse(ctx, page, assets, browser, root)
+	r.Lighthouse = runLighthouse(ctx, target, browser, root)
 	// Lighthouse is optional: when it is not installed the report says so
 	// and nothing warns; a run that fails does.
 	if r.Lighthouse.Status != "ok" && !r.Lighthouse.Missing {
@@ -178,25 +179,24 @@ func lighthousePath(root string) (string, error) {
 	return "", fmt.Errorf("installed Lighthouse executable not found")
 }
 
-func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, browser, root string) *LighthouseResult {
+func runLighthouse(ctx context.Context, target Target, browser, root string) *LighthouseResult {
 	start := time.Now()
-	r := &LighthouseResult{Status: "skipped", Scope: auditScope}
+	r := &LighthouseResult{Status: "skipped", Scope: target.auditScope()}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
-	tool, err := lighthousePath(root)
+	tool, err := lighthousePath(target.toolRoot(root))
 	if err != nil {
 		r.Reason, r.Hint, r.Missing = err.Error(), LighthouseSetup, true
 		return r
 	}
-	// Chrome's proxy sends ALL HTTP(S), including loopback, through this deny-by-
-	// default artifact server. It never forwards requests. HTTPS CONNECT, outside
-	// origins, mutations and WebSocket upgrades are rejected. No user profile.
-	server, err := localServerWithOrigin(func(origin string) http.Handler { return AuditHandler(page, assets, origin) }, net.Listen)
+	// Artifact targets use the sealed non-forwarding proxy. URL targets visit
+	// the live page without a proxy. Both use a fresh browser profile.
+	destination, proxy, closeTarget, err := target.serve(net.Listen)
 	if err != nil {
 		r.Reason = err.Error()
 		r.Hint = LocalPortSetup
 		return r
 	}
-	defer server.Close()
+	defer closeTarget()
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
 	profile, err := os.MkdirTemp("", "lfm-lighthouse-chrome-")
@@ -210,7 +210,7 @@ func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, b
 			r.Warnings = append(r.Warnings, "Could not remove release browser profile "+profile+": "+err.Error())
 		}
 	}()
-	_, closeBrowser, err := startAuditBrowser(ctx, browser, server.URL, profile)
+	_, closeBrowser, err := startAuditBrowser(ctx, browser, proxy, profile)
 	if err != nil {
 		r.Reason = err.Error()
 		r.Hint = BrowserSetup
@@ -226,8 +226,8 @@ func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, b
 	}
 	// Attach Lighthouse to OUR Chrome. Even a killed/timed-out Node process
 	// cannot orphan a Chrome child/profile: Go owns and closes both.
-	cmd := exec.CommandContext(ctx, tool, server.URL+"/", "--quiet", "--output=json", "--output-path=stdout", "--only-categories=performance,accessibility,best-practices,seo", "--form-factor=mobile", "--throttling-method=simulate", "--port="+strconv.Itoa(port), "--no-enable-error-reporting")
-	cmd.Dir = root
+	cmd := exec.CommandContext(ctx, tool, destination, "--quiet", "--output=json", "--output-path=stdout", "--only-categories=performance,accessibility,best-practices,seo", "--form-factor=mobile", "--throttling-method=simulate", "--port="+strconv.Itoa(port), "--no-enable-error-reporting")
+	cmd.Dir = target.toolRoot(root)
 	cmd.Env = append(os.Environ(), "CHROME_PATH="+browser)
 	var stdout cappedBuffer
 	stdout.Limit = 32 * 1024 * 1024
@@ -248,7 +248,10 @@ func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, b
 		r.Hint = "Reduce repetitive audit detail or inspect the page's DOM/assets; rerun --release."
 		return r
 	}
-	parsed, parseErr := parseLighthouse(stdout.Bytes(), server.URL)
+	parsed, parseErr := parseLighthouse(stdout.Bytes(), strings.TrimSuffix(destination, "/"))
+	if parsed != nil && target.URL != "" {
+		parsed.Scope = target.auditScope()
+	}
 	// Persist raw detail in the system temp directory, one file per project.
 	// Atomic rename replaces an existing symlink rather than following it.
 	report := ReportPath(root)
@@ -319,7 +322,7 @@ func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Han
 			return
 		}
 		name := strings.TrimPrefix(r.URL.Path, "/")
-		if name == filepath.Base(name) && !strings.ContainsAny(name, `/\`) {
+		if name != "" && name != "." && !path.IsAbs(name) && path.Clean(name) == name && !strings.Contains(name, "\\") && !strings.HasPrefix(name, "../") {
 			if content, ok := assets[name]; ok {
 				kind := mime.TypeByExtension(filepath.Ext(name))
 				if kind == "" {

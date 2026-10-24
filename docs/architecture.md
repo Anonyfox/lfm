@@ -33,6 +33,7 @@ one package per responsibility, each testable on its own.
 | `urlcheck` | URL syntax, the named-URL registry and destination matching across config, template and output. |
 | `commercecheck` | The optional offer and Stripe checkout contract in config. |
 | `jsonldcheck` | Offline JSON-LD expansion with a bundled Schema.org context. |
+| `target` | Reads a built URL or confined local page and its resources for [page checks](check.md). |
 | `check` | Every check on the final document: one parse, many rules, one report. |
 | `fontcheck`, `imaging` | Bounded inspection of font containers and image headers, without decoding. |
 | `htmlcompact` | Syntax-only HTML compaction, proven by comparing parsed trees. |
@@ -45,7 +46,7 @@ one package per responsibility, each testable on its own.
 | `serve` | The preview server, the polling watcher and live reload. |
 | `golden`, `testtmp`, `testproject` | For tests only: manifests of whole outputs held to `testdata/golden` (`LFM_UPDATE_GOLDEN=1` rewrites them), a temp directory of their own for browser-backed tests, and a project per deliverable for the compile and report tests. |
 
-Dependencies point one way, in layers: `cli` drives `serve`, `compile`, `scaffold` and `skills`; `compile`
+Dependencies point one way, in layers: `cli` drives `target`, `serve`, `compile`, `scaffold` and `skills`; `target` builds inputs for `check` and `release`; `compile`
 drives the checkers, `research`, `concept` and `release`; everything may use the shared base (`project`, `diagnostic`,
 `htmlx`, `jsonsrc`, `term`). Checkers never import `compile`, and nothing imports `cli`.
 

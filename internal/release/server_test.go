@@ -29,7 +29,7 @@ func TestAuditListenFailureIsOneFinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("LFM_CHROME", executable)
-	result := audit(context.Background(), []byte("<!doctype html><title>Fixture</title>"), nil, t.TempDir(), func(string, string) (net.Listener, error) { return nil, errors.New("listen denied") })
+	result := audit(context.Background(), Target{Page: []byte("<!doctype html><title>Fixture</title>"), Assets: nil}, t.TempDir(), func(string, string) (net.Listener, error) { return nil, errors.New("listen denied") })
 	if len(result.Diagnostics) != 1 {
 		t.Fatalf("findings: %+v", result.Diagnostics)
 	}

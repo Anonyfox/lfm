@@ -174,7 +174,7 @@ func TestRootSkillNamesRealCommands(t *testing.T) {
 			t.Errorf("does not name %s", s.Name)
 		}
 	}
-	commands := map[string]bool{"init": true, "compile": true, "serve": true, "rules": true, "skills": true, "version": true}
+	commands := map[string]bool{"init": true, "compile": true, "check": true, "serve": true, "rules": true, "skills": true, "version": true}
 	for _, m := range regexp.MustCompile("`lfm ([a-z]+)( [a-z]+)?").FindAllStringSubmatch(text, -1) {
 		if !commands[m[1]] {
 			t.Errorf("names unknown command %q", m[0])

@@ -55,6 +55,8 @@ compile again, and repeat until it says deploy:
 
 `lfm compile --json` gives the same result as one JSON object, with `next.phase` and `next.skill`.
 
+`lfm check <url> --json` checks any existing page, from any framework, with the same page rules.
+
 ## Rules
 
 - Do not skip research or design to save time: the page without them is the generic page lfm warns about.

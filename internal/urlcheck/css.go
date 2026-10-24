@@ -47,6 +47,7 @@ func CSSReferences(raw []byte, offset int) []Reference {
 				depth--
 			}
 		}
+		isImport := importing
 		var value string
 		position := start
 		if kind == css.URLToken && !namespace {
@@ -76,7 +77,7 @@ func CSSReferences(raw []byte, offset int) []Reference {
 		} else {
 			continue
 		}
-		refs = append(refs, Reference{Tag: "style", Attribute: "CSS URL", Value: cssUnescape(value), Offset: offset + position, End: offset + position + len(value), Resource: true})
+		refs = append(refs, Reference{Tag: "style", Attribute: "CSS URL", Value: cssUnescape(value), Offset: offset + position, End: offset + position + len(value), Resource: true, Import: isImport})
 	}
 	return refs
 }

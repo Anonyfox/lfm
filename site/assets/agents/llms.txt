@@ -10,3 +10,5 @@ When the page sells a file, lfm builds and checks that too: an ebook, a printabl
 - [install.sh](https://lfm.cash/install.sh): installs the lfm binary on macOS or Linux without sudo
 - [lfm.cash Grok Bot](https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf): the same process as a Grok Bot template
 - [Source and docs](https://github.com/Anonyfox/lfm): README, docs/authoring.md, docs/compiling.md
+
+`lfm check <url> --json` checks any existing page, from any framework, with the same page rules.

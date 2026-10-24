@@ -19,7 +19,7 @@ func (d *Document) linkFacts() ([]urlcheck.Reference, *urlcheck.Analyzer) {
 	return d.linkRefs, d.linkAnalyzer
 }
 func (d *Document) linkAt(ref urlcheck.Reference, severity Severity, message, hint string) Diagnostic {
-	finding := Diagnostic{Severity: severity, Location: location("index.html", d.lines, ref.Offset), Element: ref.Tag, Message: message, Hint: hint}
+	finding := Diagnostic{Severity: severity, Location: location(d.Options.File, d.lines, ref.Offset), Element: ref.Tag, Message: message, Hint: hint}
 	if d.Options.Registry != nil {
 		if names := d.Options.Registry.Match(ref.Value); len(names) > 0 {
 			finding.Path = names[0].Path

@@ -14,7 +14,7 @@ import (
 func snippetsRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	for _, key := range []string{"robots", "googlebot", "googlebot-news", "bingbot"} {
-		for _, n := range metaNodes(d, "name", key) {
+		for _, n := range robotsNodes(d, key) {
 			noSnippet, limit := false, -1
 			parts := strings.Split(strings.ToLower(Attr(n, "content")), ",")
 			for _, part := range parts {
@@ -39,7 +39,7 @@ func snippetsRule(d *Document) []Diagnostic {
 				restrictions = append(restrictions, "max-snippet:"+strconv.Itoa(limit))
 			}
 			if len(restrictions) > 0 {
-				issues = append(issues, d.At(n, Warning, "Search snippet/content reuse is restricted by "+strings.Join(restrictions, ", ")+".", "Remove unintended limits; nosnippet/max-snippet:0 suppress Google text previews and direct AI input, and positive limits constrain excerpts. Keep intentional publishing controls."))
+				issues = append(issues, d.At(n, Warning, robotsMessage(n, "Search snippet/content reuse is restricted by "+strings.Join(restrictions, ", ")+"."), "Remove unintended limits; nosnippet/max-snippet:0 suppress Google text previews and direct AI input, and positive limits constrain excerpts. Keep intentional publishing controls."))
 			}
 		}
 	}

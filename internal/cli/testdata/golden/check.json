@@ -1,0 +1,86 @@
+{
+  "target": "http://127.0.0.1:PORT",
+  "url": "http://127.0.0.1:PORT",
+  "status": 200,
+  "redirects": [],
+  "canonical": "https://example.org/",
+  "identity": "https://example.org/",
+  "lang": "en",
+  "files": [
+    {
+      "name": "http://127.0.0.1:PORT",
+      "bytes": 406,
+      "sha256": "e2dcdde7256fc0bad2cb93debb68f860ac7d42b6529f650be857a9170dfbf41a",
+      "status": 200
+    }
+  ],
+  "validation": {
+    "stage": "html",
+    "stats": {
+      "htmlBytes": 406,
+      "elements": 11,
+      "maxDepth": 4,
+      "inlineCSSBytes": 0,
+      "inlineJSBytes": 0,
+      "embeddedBytes": 0,
+      "embeds": []
+    },
+    "diagnostics": [
+      {
+        "rule": "seo.social",
+        "severity": "warn",
+        "location": {
+          "file": "index.html",
+          "line": 1,
+          "column": 1,
+          "offset": 0
+        },
+        "message": "Social preview is missing nonempty og:title, og:type, og:url, og:image.",
+        "hint": "Render the Open Graph core fields in head from config; use the canonical URL and a public image file URL."
+      }
+    ],
+    "errors": 0,
+    "warnings": 1
+  },
+  "skipped": [
+    {
+      "rule": "links.declared",
+      "reason": "needs lfm.json urls"
+    },
+    {
+      "rule": "jsonld.block",
+      "reason": "lfm convention: one compiler-generated block"
+    },
+    {
+      "rule": "commerce.discovery",
+      "reason": "needs declared offers in lfm.json"
+    },
+    {
+      "rule": "commerce.structured-data",
+      "reason": "needs declared offers in lfm.json"
+    },
+    {
+      "rule": "concept.fidelity",
+      "reason": "needs concept.md"
+    },
+    {
+      "rule": "release.*",
+      "reason": "browser checks run with --release"
+    },
+    {
+      "rule": "lighthouse.*",
+      "reason": "browser checks run with --release"
+    }
+  ],
+  "errors": 0,
+  "warnings": 1,
+  "durationMs": 0,
+  "next": {
+    "phase": "review",
+    "do": "review the warnings above and check again.",
+    "notes": [
+      "'lfm rules \u003cid\u003e' explains a rule",
+      "run with --release for runtime, layout and Lighthouse"
+    ]
+  }
+}

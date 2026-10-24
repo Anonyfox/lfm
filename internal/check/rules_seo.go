@@ -133,13 +133,13 @@ func RobotsDirectives(n *html.Node) (noIndex, noFollow bool) {
 func indexabilityRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	for _, key := range []string{"robots", "googlebot", "googlebot-news", "bingbot"} {
-		for _, n := range metaNodes(d, "name", key) {
+		for _, n := range robotsNodes(d, key) {
 			noIndex, noFollow := RobotsDirectives(n)
 			if noIndex {
-				issues = append(issues, d.At(n, Warning, "Page explicitly requests no indexing.", "Remove noindex/none for public searchable products; keep it for intentional private or test pages."))
+				issues = append(issues, d.At(n, Warning, robotsMessage(n, "Page explicitly requests no indexing."), "Remove noindex/none for public searchable products; keep it for intentional private or test pages."))
 			}
 			if noFollow {
-				issues = append(issues, d.At(n, Warning, "Page requests that crawlers not follow its links.", "Remove page-wide nofollow/none when linked products and supporting pages should be discoverable; retain deliberate restrictions."))
+				issues = append(issues, d.At(n, Warning, robotsMessage(n, "Page requests that crawlers not follow its links."), "Remove page-wide nofollow/none when linked products and supporting pages should be discoverable; retain deliberate restrictions."))
 			}
 		}
 	}
@@ -182,4 +182,40 @@ func headingsRule(d *Document) []Diagnostic {
 		issues = append(issues, d.Whole(Warning, "No visible main h1 heading.", "Give the page a readable main heading in initial HTML; hidden or template headings do not supply one."))
 	}
 	return issues
+}
+
+// robotsNodes applies header crawler groups with the same crawler policy as meta tags.
+func robotsNodes(d *Document, key string) []*html.Node {
+	nodes := metaNodes(d, "name", key)
+	for _, line := range d.Options.RobotsHeader {
+		crawler := "robots"
+		var directives []string
+		flush := func() {
+			if crawler == key && len(directives) > 0 {
+				nodes = append(nodes, &html.Node{Type: html.ElementNode, Data: "meta", Attr: []html.Attribute{{Key: "name", Val: key}, {Key: "content", Val: strings.Join(directives, ",")}, {Key: "data-header", Val: "X-Robots-Tag"}}})
+			}
+			directives = nil
+		}
+		for _, part := range strings.Split(line, ",") {
+			part = strings.TrimSpace(part)
+			name, value, colon := strings.Cut(part, ":")
+			name = strings.ToLower(strings.TrimSpace(name))
+			// Valued directives are not crawler prefixes.
+			if colon && name != "max-snippet" && name != "max-image-preview" && name != "max-video-preview" && name != "unavailable_after" {
+				flush()
+				crawler, part = name, strings.TrimSpace(value)
+			}
+			if part != "" {
+				directives = append(directives, part)
+			}
+		}
+		flush()
+	}
+	return nodes
+}
+func robotsMessage(n *html.Node, message string) string {
+	if Attr(n, "data-header") != "" {
+		return "X-Robots-Tag: " + message
+	}
+	return message
 }

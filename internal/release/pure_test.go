@@ -404,7 +404,7 @@ func TestLighthouseDiagnosticsMarkUnscoredFindings(t *testing.T) {
 
 func TestMissingLighthouseIsNotAFailure(t *testing.T) {
 	t.Setenv("LFM_LIGHTHOUSE", filepath.Join(t.TempDir(), "missing"))
-	r := runLighthouse(context.Background(), []byte("page"), nil, "/no/chrome", t.TempDir())
+	r := runLighthouse(context.Background(), Target{Page: []byte("page"), Assets: nil}, "/no/chrome", t.TempDir())
 	if r.Status != "skipped" || !r.Missing || r.Hint != LighthouseSetup || r.Scope != auditScope {
 		t.Fatalf("%+v", r)
 	}
@@ -420,7 +420,7 @@ func TestMissingBrowserWithLighthouseInstalledNamesOnlyTheBrowser(t *testing.T) 
 	}
 	t.Setenv("LFM_CHROME", "/does-not-exist/chrome")
 	t.Setenv("LFM_LIGHTHOUSE", tool)
-	r := Audit(context.Background(), []byte("page"), nil, t.TempDir())
+	r := Audit(context.Background(), Target{Page: []byte("page")}, t.TempDir())
 	if r.Runtime.Status != "skipped" || r.Lighthouse.Status != "skipped" || r.Lighthouse.Hint != BrowserSetup || r.Lighthouse.Reason != "browser unavailable" {
 		t.Fatalf("%+v %+v", r.Runtime, r.Lighthouse)
 	}

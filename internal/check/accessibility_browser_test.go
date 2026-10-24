@@ -7,6 +7,8 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/chromedp/cdproto/accessibility"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 )
@@ -41,16 +43,15 @@ func TestBrowserAccessibleNamesAndNativeFocus(t *testing.T) {
 	defer stop()
 	tab, closeTab := chromedp.NewContext(allocator)
 	defer closeTab()
-	// Start Chrome before installing the fixture. Navigation waits for loader
-	// lifecycle events; this fixture only needs a completed local document.
-	if err := chromedp.Do(tab); err != nil {
+	// The fixture goes straight into the blank tab's document. A navigation
+	// would wait for loader lifecycle events, which is where this test used to
+	// hang on loaded CI runners. Setting the content parses it synchronously, so
+	// the elements exist once the call returns.
+	tree, err := chromedp.Call(tab, page.GetFrameTree, cdp.Empty{})
+	if err != nil {
 		t.Fatal(err)
 	}
-	fixture, _ := json.Marshal(raw)
-	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.open();document.write(`+string(fixture)+`);document.close();true`)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := chromedp.Run(tab, chromedp.Poll[bool](`document.readyState === "complete" && !!document.getElementById("inert-control")`)); err != nil {
+	if _, err := chromedp.Call(tab, page.SetDocumentContent, page.SetDocumentContentParams{FrameID: tree.FrameTree.Frame.ID, HTML: raw}); err != nil {
 		t.Fatal(err)
 	}
 	d, _ := Parse([]byte(raw), Options{})

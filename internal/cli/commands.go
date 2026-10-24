@@ -245,6 +245,9 @@ func printRules(w io.Writer, filter string) error {
 // rule.ID only for a concrete lighthouse.<audit-id>.
 func printRule(w io.Writer, s term.Style, rule diagnostic.RuleInfo, id string) {
 	fmt.Fprintf(w, "%s\n%s\n\n%s\n\n", s.Bold(id), term.Wrap(rule.Summary, term.Width, ""), term.Wrap(rule.Help, term.Width, ""))
+	if rule.Project {
+		fmt.Fprintln(w, "Needs an lfm project; lfm check skips it.")
+	}
 	if rule.Required {
 		fmt.Fprintln(w, "Required: yes. It always blocks the compile and cannot be turned off.")
 		return

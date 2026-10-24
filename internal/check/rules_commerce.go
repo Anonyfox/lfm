@@ -157,7 +157,7 @@ func commerceSecretsRule(d *Document) []Diagnostic {
 			issues = append(issues, Diagnostic{Rule: "commerce.secrets", Severity: Error, Location: diagnostic.At(name, raw, at), Message: "Published text contains a Stripe secret-key-shaped value.", Hint: "Remove it from the template, browser data or bundled code; keep API/webhook secrets in the operator environment. This value is intentionally redacted; public pk_ keys/object IDs are allowed."})
 		}
 	}
-	add("index.html", d.Raw)
+	add(d.Options.File, d.Raw)
 	names := make([]string, 0, len(d.Options.Assets))
 	for name := range d.Options.Assets {
 		names = append(names, name)

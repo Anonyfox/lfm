@@ -227,3 +227,5 @@ These ship on pages that looked finished in chosen screenshots; check each in th
 - Values that change with input use tabular numerals and units in the same element.
 - A warning you cannot fix without breaking the concept means the concept needs a change; edit
   [[.ConceptFile]] first, then the page.
+
+After deployment, `lfm check <url> --json` checks the published page with the same page rules.

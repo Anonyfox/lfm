@@ -92,6 +92,7 @@ unattended stays on the path. When it says deploy, upload `output/` to the URL i
 | `lfm skills <topic>` | One `SKILL.md`, rendered for the installed version |
 | `lfm skills install` | All skills into the project's `.agents/skills` or `.claude/skills` |
 | `lfm compile [--release] [--json]` | Check and build; the last line is the next step |
+| `lfm check <url\|folder\|file> [--release] [--json]` | Check any built page from a URL or disk |
 | `lfm serve --open` | Live preview that recompiles on every save |
 | `lfm rules [id]` | Every check, or what one means and how to fix it |
 
@@ -138,6 +139,7 @@ there too.
 ## Docs
 
 - [Authoring a project](docs/authoring.md): layout, `lfm.json`, templates, assets, research and concept.
+- [Checking any built page](docs/check.md): targets, limits, browser checks and reports.
 - [What `lfm compile` does](docs/compiling.md): lifecycle, packing, output, release, preview.
 - [The lfm.cash Grok Bot](docs/grok-bot.md): the handoff a Grok Bot follows to set up and share it.
 - [Architecture](docs/architecture.md) and [contributing](CONTRIBUTING.md): building, testing, the package map.

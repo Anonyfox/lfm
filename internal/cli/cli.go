@@ -58,7 +58,7 @@ func commandNames() []string {
 
 func commands() []command {
 	return []command{
-		initCommand, compileCommand, serveCommand, rulesCommand, skillsCommand, versionCommand,
+		initCommand, compileCommand, checkCommand, serveCommand, rulesCommand, skillsCommand, versionCommand,
 	}
 }
 

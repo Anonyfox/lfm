@@ -49,6 +49,9 @@ type Document struct {
 }
 
 func Parse(raw []byte, options Options) (*Document, error) {
+	if options.File == "" {
+		options.File = "index.html"
+	}
 	root, err := html.Parse(bytes.NewReader(raw))
 	if err != nil {
 		return nil, fmt.Errorf("final HTML: %w", err)
@@ -145,7 +148,7 @@ func (d *Document) activeNodes(selector string) []*html.Node {
 
 func (d *Document) At(n *html.Node, severity Severity, message, hint string) Diagnostic {
 	offset := d.positions[n]
-	return Diagnostic{Severity: severity, Location: location("index.html", d.lines, offset), Element: elementLabel(n), Message: message, Hint: hint}
+	return Diagnostic{Severity: severity, Location: location(d.Options.File, d.lines, offset), Element: elementLabel(n), Message: message, Hint: hint}
 }
 
 func (d *Document) Whole(severity Severity, message, hint string) Diagnostic {

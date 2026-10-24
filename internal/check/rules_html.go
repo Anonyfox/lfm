@@ -30,7 +30,7 @@ func words(value string) map[string]bool {
 // the HTML tree builder. Legal optional end tags/implied containers are normalized.
 // It is intentionally a repair detector, not a complete WHATWG conformance checker.
 func syntaxRule(d *Document) []Diagnostic {
-	issues := syntaxIssues(d.Raw, "index.html", d.Root, d.Tokens)
+	issues := syntaxIssues(d.Raw, d.Options.File, d.Root, d.Tokens)
 	if len(d.Options.RenderedSource) > 0 && !bytes.Equal(d.Raw, d.Options.RenderedSource) {
 		issues = append(issues, syntaxIssues(d.Options.RenderedSource, "rendered-template.html", nil, nil)...)
 	}

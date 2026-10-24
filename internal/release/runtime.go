@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -33,21 +32,24 @@ type RuntimeResult struct {
 // It never guesses which business controls to click or submits forms/orders.
 // The same tab then walks the page frame by frame at every review screen
 // (auditLayout); frames is the screenshot folder, "" for none.
-func AuditRuntime(ctx context.Context, page []byte, assets map[string][]byte, path, frames string) *RuntimeResult {
-	return auditRuntime(ctx, page, assets, path, frames, net.Listen)
+func AuditRuntime(ctx context.Context, target Target, path, frames string) *RuntimeResult {
+	return auditRuntime(ctx, target, path, frames, net.Listen)
 }
 
-func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, path, frames string, listen func(string, string) (net.Listener, error)) *RuntimeResult {
+func auditRuntime(ctx context.Context, target Target, path, frames string, listen func(string, string) (net.Listener, error)) *RuntimeResult {
 	start := time.Now()
 	r := &RuntimeResult{Status: "skipped", Scope: "390x844 initial navigation with application JS; 250 ms settle; no user journeys or simulated mobile performance scores; external traffic/mutations blocked."}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
-	server, err := localServerWithOrigin(func(origin string) http.Handler { return AuditHandler(page, assets, origin) }, listen)
+	destination, proxy, closeTarget, err := target.serve(listen)
 	if err != nil {
 		r.Reason = err.Error()
 		r.Hint = LocalPortSetup
 		return r
 	}
-	defer server.Close()
+	defer closeTarget()
+	if target.URL != "" {
+		r.Scope = "Live URL navigation with application JS; no clicks or form submissions."
+	}
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 	fail := func(err error) *RuntimeResult {
@@ -55,7 +57,7 @@ func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, pa
 		r.Hint = BrowserSetup + " Check OS sandbox support and page startup time."
 		return r
 	}
-	tab, cleanup, err := startAuditBrowser(ctx, path, server.URL, "")
+	tab, cleanup, err := startAuditBrowser(ctx, path, proxy, "")
 	if err != nil {
 		return fail(err)
 	}
@@ -70,7 +72,7 @@ func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, pa
 	add := func(s string) {
 		mu.Lock()
 		defer mu.Unlock()
-		problems[compact(strings.ReplaceAll(s, server.URL, ""), 500)]++
+		problems[compact(strings.ReplaceAll(s, strings.TrimSuffix(destination, "/"), ""), 500)]++
 	}
 	exceptions := chromedp.Events(tab, runtime.ExceptionThrown)
 	responses := chromedp.Events(tab, network.ResponseReceived)
@@ -125,7 +127,7 @@ func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, pa
 	if _, err := chromedp.Run(tab, chromedp.EmulateViewport(390, 844)); err != nil {
 		return fail(err)
 	}
-	if _, err := chromedp.Run(tab, chromedp.Navigate(server.URL+"/")); err != nil {
+	if _, err := chromedp.Run(tab, chromedp.Navigate(destination)); err != nil {
 		return fail(err)
 	}
 	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`(async()=>{await document.fonts.ready;await new Promise(r=>setTimeout(r,250));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return true})()`, chromedp.EvalAwaitPromise)); err != nil {
@@ -142,7 +144,7 @@ func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, pa
 	sort.Strings(r.Problems)
 	r.Status = "ok"
 	// Problems are taken before the frame walk reloads the page at other sizes.
-	layout, err := auditLayout(tab, server.URL+"/", frames)
+	layout, err := auditLayout(tab, destination, frames)
 	r.Layout = layout
 	if err != nil {
 		layout.Findings = append(layout.Findings, LayoutFinding{Kind: "incomplete", Message: "The frame walk stopped early: " + compact(err.Error(), 300), Hint: "Check that the page loads and scrolls in Chrome; rerun --release."})
@@ -153,7 +155,12 @@ func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, pa
 
 func startAuditBrowser(ctx context.Context, path, proxy, profile string) (context.Context, func(), error) {
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	opts = append(opts, chromedp.ExecPath(path), chromedp.ProxyServer(proxy), chromedp.Flag("proxy-bypass-list", "<-loopback>"), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-component-update", true))
+	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-component-update", true))
+	if proxy != "" {
+		opts = append(opts, chromedp.ProxyServer(proxy), chromedp.Flag("proxy-bypass-list", "<-loopback>"))
+	} else {
+		opts = append(opts, chromedp.Flag("no-proxy-server", true))
+	}
 	if profile != "" {
 		opts = append(opts, chromedp.UserDataDir(profile), chromedp.Flag("remote-debugging-port", "0"), remote.WebSocket)
 	}

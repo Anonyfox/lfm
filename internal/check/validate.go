@@ -32,6 +32,8 @@ type Rule struct {
 
 // Options is also usable by small rule tests; no workbench/filesystem is needed.
 type Options struct {
+	File            string
+	RobotsHeader    []string
 	URL             string
 	Registry        *urlcheck.Registry
 	GeneratedAssets map[string]bool

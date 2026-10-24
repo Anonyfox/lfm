@@ -185,7 +185,7 @@ the reliable local subset on final bytes without rewriting content or adding kno
 | Title/description/canonical/language | `seo.metadata`: exactly one initial-head canonical equals configured url, HTTPS/public with no query/fragment; config also rejects empty ?/#. Wording relevance and displayed engine rewrites require review. No character limits. |
 | Shared identity and public preview | `seo.social` checks OG title/type/url/image, URL identity and metadata shape. It neither requires identical headlines nor downloads/decodes public previews. |
 | Crawlable links and direct entry | `links.*`, `html.references`; IDs, legacy named anchors, percent-encoded IDs and text-fragment directives are distinguished. Shared state queries retain the page's base canonical. CSS/JS scroll resets, handler-driven reveal and incoming site links require review. |
-| Snippet/index restrictions | `seo.indexability`, `seo.snippets`, `seo.content`; intentional restrictions are retained. HTTP headers, robots.txt, status codes and real crawler access are publication checks. |
+| Snippet/index restrictions | `seo.indexability`, `seo.snippets`, `seo.content`; intentional restrictions are retained. `lfm check` also reads X-Robots-Tag and the page status from a URL. Other HTTP policy, robots.txt and real crawler access require publication review. |
 | Structured-data agreement | `jsonld.*` validates one optional block and offline JSON-LD structure; `links.*` owns destinations. `commerce.*` checks identifiable offer-price/config agreement and purchase targets. Freeform visible-fact agreement, entity/type appropriateness and engine eligibility require review. No schema/citation-score invention. |
 | Intent, clusters, extraction, outcomes | Semantic task fit, source quality, internal-link relevance/orphans, retrieval/citations, real listings and conversion measurement remain author/publication work. |
 
@@ -312,7 +312,7 @@ end tags and implied document/table containers. Raw attribute checks use a lexer
 because x/net drops duplicate attributes. A rendered-template check prevents the
 compiler's first parse from hiding authoring errors before the final gate.
 
-Final findings name `index.html`. Supplementary findings name the virtual
+Compile findings name `index.html`; `lfm check` uses the target URL path or file name. Supplementary findings name the virtual
 `rendered-template.html`: lines belong to expanded template output, not original
 partial/template line numbers. Analysis never mutates the serialization buffer.
 
