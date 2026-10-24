@@ -35,12 +35,14 @@ const (
 	RuleFormat   = "concept.format"
 	RuleEvidence = "concept.evidence"
 	RuleDefaults = "concept.defaults"
+	RuleGround   = "concept.ground"
 	RuleOpen     = "concept.open"
 )
 
 // Rules describes the concept checks for the rule catalog.
 func Rules() []diagnostic.RuleInfo {
 	return []diagnostic.RuleInfo{
+		{ID: RuleGround, Summary: "Palette avoids warm off-white grounds", Help: "Errors when a declared palette color is warm-light (OKLCH L >= 0.88, C 0.004–0.045, hue 45–115 degrees). Cream and beige grounds are prohibited. Use white, cool or neutral grey, dark, or a saturated subject color."},
 		{
 			ID:      RuleFormat,
 			Summary: "concept.md has every section of the lfm-design format, each holding a decision",
@@ -59,7 +61,7 @@ func Rules() []diagnostic.RuleInfo {
 		{
 			ID:      RuleDefaults,
 			Summary: "concept.md avoids the palette, type and imagery defaults of generated pages",
-			Help:    "Warns when the declared palette uses stock indigo or violet accents or the cream and terracotta house palette, holds no pair readable as text, when a typeface comes from the generator display roster or one stock sans does everything, and when the page plans no imagery at all. These defaults make a page read as generated before anyone reads a word. Choose from the research instead; if this subject truly calls for one of them, say why in the Source column and set this rule to off for the project.",
+			Help:    "Warns when the declared palette uses stock indigo or violet accents, holds no pair readable as text, when a typeface comes from the generator display roster or one stock sans does everything, and when the page plans no imagery at all. These defaults make a page read as generated before anyone reads a word. Choose from the research instead; if this subject truly calls for one of them, say why in the Source column and set this rule to off for the project.",
 		},
 	}
 }
@@ -150,8 +152,12 @@ func checkConcept(text string, voices *research.Voices, competitors *research.Co
 	var r Report
 	c := checker{source: source, voices: map[string]research.Voice{}, peers: map[string]bool{}}
 	c.add = func(rule string, line int, message, hint string) {
+		severity := diagnostic.Warning
+		if rule == RuleGround {
+			severity = diagnostic.Error
+		}
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{
-			Rule: rule, Severity: diagnostic.Warning,
+			Rule: rule, Severity: severity,
 			Location: diagnostic.Location{File: File, Line: line, Column: 1},
 			Message:  message, Hint: hint,
 		})
@@ -503,7 +509,6 @@ func (c checker) defaults(d Document) {
 	if s := d.Sections["Palette"]; s != nil {
 		rows, _ := s.Table([]string{"Role", "Color", "Source"})
 		var colors []color.Color
-		var cream, terra bool
 		for _, row := range rows {
 			if len(row.Cells) != 3 {
 				continue
@@ -516,12 +521,9 @@ func (c checker) defaults(d Document) {
 			if n, stocked := stock.Nearest(col, stock.Accents, 0.02); stocked {
 				c.add(RuleDefaults, row.N, row.Cells[1]+" is "+n.Name+", the stock generator accent.", "Take the accent from the research: what the buyers photograph, the subject's real materials.")
 			}
-			_, isCream := stock.Nearest(col, stock.Creams, 0.012)
-			_, isTerra := stock.Nearest(col, stock.Terracottas, 0.02)
-			cream, terra = cream || isCream, terra || isTerra
-		}
-		if cream && terra {
-			c.add(RuleDefaults, s.Line, "Cream ground with terracotta accent: the assistant house palette.", "Choose colors the research supports, not the palette of the tool that wrote the page.")
+			if color.WarmLightGround(col) {
+				c.add(RuleGround, row.N, row.Cells[1]+" is a prohibited warm-light palette color.", "Use white, cool or neutral grey, dark, or a saturated color from the subject.")
+			}
 		}
 		best := 0.0
 		for i := range colors {

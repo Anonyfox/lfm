@@ -114,7 +114,8 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `perf.font-assets` | Warnings: bounded container failures/inspection limits; >128 KiB per retained font, >256 KiB total, >8 MiB declared SFNT size. No glyph/payload sanitization or proven download count. |
 | `perf.viewport` | Warnings: missing/duplicate viewport or disabled zoom |
 | `perf.budgets` | Warnings: total inline + file CSS >20 KiB, JS >50 KiB, >1,500 elements, depth >32 |
-| `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH) and Bootstrap primary blue, gradients whose colored stops are all violet/blue/pink, and the assistant cream + terracotta pair. Unused custom properties stay quiet; colors referenced through var(), including indirect references, count. Rainbow/iridescent gradients, lone off-white paper and lone terracotta stay quiet. |
+| `design.ground` | Errors: warm-light page grounds, paper/parchment images, SVG noise and ruled full-cover textures. No design-reason exemption. |
+| `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH) and Bootstrap primary blue, gradients whose colored stops are all violet/blue/pink. Unused custom properties stay quiet; colors referenced through var(), including indirect references, count. Rainbow/iridescent gradients and lone terracotta stay quiet. |
 | `design.gradient-text` | Warnings: text filled by a gradient through `background-clip:text` (CSS or Tailwind classes). Image-filled text is not flagged. |
 | `design.glow` | Warnings: two or more heavily blurred (≥24px) round or radial decorative shapes; zero-offset colored glows on three or more elements. A single orb or glow only feeds `design.defaults`. |
 | `design.eyebrows` | Warnings: a short uppercase label, tracked or small (or named eyebrow/kicker/overline), directly before an h1–h3. Labels containing digits or currency (time, step, price) only feed `design.defaults`. |
@@ -323,3 +324,5 @@ restricted structures; arbitrary attributes, every HTML context, CSS layout,
 computed accessible names, browser API behavior, network resources and live Core
 Web Vitals require additional checks. Inert template content is excluded from
 active metadata/ID/reference/name checks. No network request is made.
+
+`design.ground` reports errors for warm-light page backgrounds and paper/noise/ruled textures on grounds or full-cover overlays. It uses the default light CSS cascade and has no `data-design-reason` exemption. See [page checks](../../docs/check.md).

@@ -190,8 +190,9 @@ func DefaultRules() []Rule {
 			budgetsRule),
 
 		// design
-		rule("design.palette", "Stock generator accent colors, violet gradients and the assistant cream/terracotta pair",
-			"Warns for Tailwind's stock indigo, violet and purple accents, Bootstrap's default primary blue, gradients whose colored stops are all violet, blue or pink, and a cream background with a terracotta accent. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role; custom-property colors count only through declarations that use them on the page, including indirect var() references."+designException,
+		rule("design.ground", "No warm off-white grounds or paper and notebook textures", "Errors for warm-light page grounds (OKLCH L >= 0.88, C 0.004–0.045, hue 45–115 degrees), paper/parchment images, SVG noise and ruled ground textures. These designs are prohibited because they repeat a recognizable generated-page signature. Use white, cool or neutral grey, dark, or a saturated subject colour and remove decorative ground textures. The default light scheme is checked; data-design-reason does not exempt this rule.", groundRule),
+		rule("design.palette", "Stock generator accent colors and violet gradients",
+			"Warns for Tailwind's stock indigo, violet and purple accents, Bootstrap's default primary blue, gradients whose colored stops are all violet, blue or pink. Visitors now read these palettes as generated, which makes the offer look less considered. Take colors from the product's real materials, place or brand and name each role; custom-property colors count only through declarations that use them on the page, including indirect var() references."+designException,
 			designRule("design.palette")),
 		rule("design.gradient-text", "Text filled with a gradient through background-clip:text",
 			"Warns for text painted with a gradient via background-clip:text, in CSS or Tailwind classes. It is one of the most recognizable generated-page tells and often loses contrast. Carry emphasis with size, weight, position or a solid color."+designException,

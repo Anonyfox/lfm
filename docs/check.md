@@ -81,3 +81,7 @@ truncation at the shared byte limit may depend on response timing.
 Palette checks count custom-property colors only through declarations used on the page,
 including indirect var() references. Unused framework tokens do not count.
 The machine-copy estimate excludes table elements and subtrees with role=table or role=grid.
+
+`design.ground` errors on warm-light grounds and paper, parchment or notebook textures on page grounds and full-cover overlays. It checks the default light scheme using the static CSS cascade, including variables and shorthands. Warm-light means OKLCH L ≥ 0.88, C 0.004–0.045 and hue 45–115°; transparent colours do not count, and translucent colours are composited over white. Use white, cool or neutral grey, dark, or saturated subject colours. `data-design-reason` never exempts this rule; `build.validation.rules` can disable it. `concept.ground` applies the same colour restriction to every declared palette colour.
+
+See the [design guidance](design.md#generator-defaults) for the ground and decoration restrictions.

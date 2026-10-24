@@ -44,6 +44,7 @@ type cssRule struct {
 }
 
 type styleModel struct {
+	origin   *styleModel // originating element cascade for pseudo-element custom properties
 	rules    []*cssRule
 	base     map[*html.Node][]*cssRule
 	computed map[*html.Node]map[string]string
@@ -433,17 +434,9 @@ func readRules(raw []byte) []*cssRule {
 			if len(stack) == 0 || stack[len(stack)-1].name != "ruleset" {
 				continue
 			}
-			prop := strings.ToLower(urlcheck.DecodeCSS(string(data)))
-			if kind == css.CustomPropertyGrammar {
-				prop = string(data)
-			}
-			value := strings.TrimSpace(tokensText(p.Values()))
-			important := false
-			if lower := strings.ToLower(value); strings.HasSuffix(lower, "!important") {
-				important, value = true, strings.TrimSpace(value[:len(value)-len("!important")])
-			}
+			dcl := styleDeclaration(kind, data, p.Values())
 			for _, r := range stack[len(stack)-1].rule {
-				r.decls = append(r.decls, cssDecl{prop, value, important})
+				r.decls = append(r.decls, dcl)
 			}
 		}
 	}
@@ -511,20 +504,33 @@ func stripPseudo(s string) (selector, state, pseudo string) {
 	return strings.TrimSpace(selector), state, pseudo
 }
 
-func inlineDecls(v string) []cssDecl {
-	var out []cssDecl
-	for _, part := range strings.Split(v, ";") {
-		prop, value, ok := strings.Cut(part, ":")
-		if !ok {
-			continue
-		}
-		prop = strings.TrimSpace(prop)
-		if !strings.HasPrefix(prop, "--") {
-			prop = strings.ToLower(prop)
-		}
-		out = append(out, cssDecl{prop: prop, value: strings.TrimSpace(value)})
+func styleDeclaration(kind css.GrammarType, data []byte, values []css.Token) cssDecl {
+	prop := strings.ToLower(urlcheck.DecodeCSS(string(data)))
+	if kind == css.CustomPropertyGrammar {
+		prop = string(data)
 	}
-	return out
+	value := strings.TrimSpace(tokensText(values))
+	important := strings.HasSuffix(strings.ToLower(value), "!important")
+	if important {
+		value = strings.TrimSpace(value[:len(value)-len("!important")])
+	}
+	return cssDecl{prop: prop, value: value, important: important}
+}
+
+func inlineDecls(v string) []cssDecl {
+	input := parse.NewInputString(v)
+	defer input.Restore()
+	parser := css.NewParser(input, true)
+	var out []cssDecl
+	for {
+		kind, _, data := parser.Next()
+		if kind == css.ErrorGrammar {
+			return out
+		}
+		if kind == css.DeclarationGrammar || kind == css.CustomPropertyGrammar {
+			out = append(out, styleDeclaration(kind, data, parser.Values()))
+		}
+	}
 }
 
 var inheritedProps = map[string]bool{"font-family": true, "font-style": true, "font-weight": true, "font-size": true, "text-transform": true, "letter-spacing": true, "color": true, "text-align": true, "font-variant": true}
@@ -543,8 +549,8 @@ func (m *styleModel) declared(n *html.Node, prop string) (string, bool) {
 		}
 	}
 	for _, dcl := range m.inline[n] {
-		if (dcl.prop == prop || shorthandFor(dcl.prop, prop)) && !imp {
-			value, ok = longhand(dcl, prop), true
+		if (dcl.prop == prop || shorthandFor(dcl.prop, prop)) && (!imp || dcl.important) {
+			value, ok, imp = longhand(dcl, prop), true, dcl.important
 		}
 	}
 	return value, ok
@@ -632,6 +638,12 @@ func (m *styleModel) value(n *html.Node, prop string) string {
 }
 
 func (m *styleModel) custom(n *html.Node, name string) (string, bool) {
+	if m.origin != nil {
+		if v, ok := m.declared(n, name); ok {
+			return v, true
+		}
+		return m.origin.custom(n, name)
+	}
 	for p := n; p != nil && p.Type == html.ElementNode; p = p.Parent {
 		if v, ok := m.declared(p, name); ok {
 			return v, true

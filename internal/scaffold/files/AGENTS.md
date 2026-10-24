@@ -67,3 +67,5 @@ Every page goes through three phases, each with its own skill:
   every field lfm.json takes; config findings quote the field they are about.
 - The page must compile with 0 errors and 0 warnings. Silence a design check only with
   `data-design-reason="…"` naming the real reason.
+
+Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-whites and paper, parchment or notebook decoration fail `design.ground`; `data-design-reason` does not exempt it.

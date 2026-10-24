@@ -237,3 +237,5 @@ These ship on pages that looked finished in chosen screenshots; check each in th
   [[.ConceptFile]] first, then the page.
 
 After deployment, `lfm check <url> --json` checks the published page with the same page rules.
+
+Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-whites and paper, parchment or notebook decoration fail `design.ground`; `data-design-reason` does not exempt it.

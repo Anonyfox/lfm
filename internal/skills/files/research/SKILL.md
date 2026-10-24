@@ -231,7 +231,7 @@ Observer note: phone screen recording of a code editor, white caption box at the
 <example>
 ### P003 · Trade Coffee · https://www.drinktrade.com/ · fetched 2026-10-17 · via browser
 - Opening: "Coffee matched to your taste"; bag packshots; "Take the quiz"
-- Palette: off-white, black, one citrus accent
+- Palette: white, black, one citrus accent
 - Type: one geometric sans
 - Imagery: studio packshots of bags
 - Motion: none

@@ -135,6 +135,7 @@ func ParseHex(h string) (Color, bool) {
 var named = map[string]string{
 	"black": "#000000", "white": "#ffffff", "red": "#ff0000", "green": "#008000", "blue": "#0000ff",
 	"yellow": "#ffff00", "orange": "#ffa500", "purple": "#800080", "gray": "#808080", "grey": "#808080",
+	"beige": "#f5f5dc", "ivory": "#fffff0", "oldlace": "#fdf5e6", "linen": "#faf0e6", "floralwhite": "#fffaf0", "cornsilk": "#fff8dc", "antiquewhite": "#faebd7", "seashell": "#fff5ee",
 	"silver": "#c0c0c0", "navy": "#000080", "teal": "#008080", "maroon": "#800000", "olive": "#808000",
 	"lime": "#00ff00", "aqua": "#00ffff", "fuchsia": "#ff00ff", "rebeccapurple": "#663399",
 }
@@ -248,4 +249,15 @@ func function(name, args string) (Color, bool) {
 		return Color{L, C * math.Cos(H*math.Pi/180), C * math.Sin(H*math.Pi/180), alpha}, true
 	}
 	return Color{}, false
+}
+
+// WarmLightGround reports warm off-white grounds in OKLCH: L >= 0.88,
+// 0.004 <= C <= 0.045 and hue 45–115 degrees. Transparent colors never
+// count; translucent colors are evaluated over white.
+func WarmLightGround(c Color) bool {
+	if c.Alpha <= 0 {
+		return false
+	}
+	c = c.Over(FromSRGB(1, 1, 1, 1))
+	return c.L >= 0.88 && c.Chroma() >= 0.004 && c.Chroma() <= 0.045 && c.Hue() >= 45 && c.Hue() <= 115
 }

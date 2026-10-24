@@ -48,13 +48,6 @@ var Accents = func() []Named {
 	return list
 }()
 
-// Creams and Terracottas together form the house palette of 2025/26 assistant
-// interfaces: cream ground, terracotta accent.
-var (
-	Creams      = []Named{hex("cream", "#f4f1ea"), hex("cream", "#faf9f5"), hex("cream", "#f7f1e4"), hex("cream", "#f0eee6")}
-	Terracottas = []Named{hex("terracotta", "#d97757"), hex("terracotta", "#c96442"), hex("terracotta", "#d9622b"), hex("terracotta", "#cc785c")}
-)
-
 // WindowControls are the red, yellow and green dots of a mocked macOS window,
 // in that order: fake product chrome.
 var WindowControls = [][]Named{

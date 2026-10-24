@@ -1,11 +1,11 @@
 :root {
   color-scheme: light;
-  --paper: #f7f3e9;
+  --ground: #f3f4f6;
   --ink: #202923;
   --accent: #ffd366;
   font-family: system-ui, sans-serif;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--ground);
 }
 
 * { box-sizing: border-box; }
@@ -32,14 +32,14 @@ p { max-width: 65ch; }
   display: inline-block;
   padding: .9rem 1.3rem;
   background: var(--ink);
-  color: var(--paper);
+  color: var(--ground);
   font-weight: 700;
   text-decoration: none;
 }
 .button:hover { text-decoration: underline; }
 .breakdown { background: white; }
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
-.calculator { background: var(--ink); color: var(--paper); }
+.calculator { background: var(--ink); color: var(--ground); }
 fieldset { border: 0; padding: 0; margin: 2rem 0; min-width: 0; }
 legend { margin-bottom: 1rem; font-weight: 700; }
 .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }

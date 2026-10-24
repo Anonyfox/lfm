@@ -52,8 +52,8 @@ func TestDesignPalette(t *testing.T) {
 	expectDesign(t, "design.palette", 1, `<style>.h{background:linear-gradient(90deg,#7c3aed,#db2777)}</style><div class="h">x</div>`)
 	expectDesign(t, "design.palette", 0, `<style>.foil{background:conic-gradient(#ff4fa3,#6fd6ff,#ffb12e,#9b7bff,#6fffc2)}</style><div class="foil">x</div>`)
 	expectDesign(t, "design.palette", 0, `<style>.b{background:#1720d4;color:#fff}</style><div class="b">Klein-ish blue is not violet</div>`)
-	expectDesign(t, "design.palette", 1, `<style>body{background:#f4f1ea}.a{color:#d97757}</style><p class="a">Warm</p>`)
-	expectDesign(t, "design.palette", 0, `<style>body{background:#f4f1ea}</style><p>Paper alone is fine</p>`)
+	expectDesign(t, "design.palette", 0, `<style>body{background:#f4f1ea}.a{color:#d97757}</style><p class="a">Warm</p>`)
+	expectDesign(t, "design.palette", 0, `<style>body{background:#f4f1ea}</style><p>Grounds are checked separately</p>`)
 }
 
 func TestDesignEmoji(t *testing.T) {

@@ -194,3 +194,32 @@ func TestCheckInterruptExit(t *testing.T) {
 		t.Fatalf("%d %s", code, &errs)
 	}
 }
+
+// A linked stylesheet must reach the shared ground rule when checking a
+// prebuilt folder, without compile or project configuration supplying facts.
+func TestCheckFolderRejectsCreamWithBrickAccent(t *testing.T) {
+	dir := t.TempDir()
+	raw := strings.Replace(checkHTML, "</head>", `<link rel="stylesheet" href="styles.css"></head>`, 1)
+	for name, contents := range map[string]string{
+		"index.html": raw,
+		"styles.css": `:root{--ground:#F4EFE6;--accent:#8F3A26}body{background:var(--ground);color:var(--accent)}`,
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(contents), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	code, out, errs := run(t, "check", dir, "--json")
+	var result checkResult
+	if err := json.Unmarshal([]byte(out), &result); err != nil {
+		t.Fatalf("%v: %s %s", err, out, errs)
+	}
+	if code != 1 {
+		t.Fatalf("exit %d: %s %s", code, out, errs)
+	}
+	for _, d := range result.Validation.Diagnostics {
+		if d.Rule == "design.ground" && d.Severity == check.Error && strings.Contains(strings.ToLower(d.Message), "#f4efe6") {
+			return
+		}
+	}
+	t.Fatalf("missing design.ground error for cream ground: %s", out)
+}

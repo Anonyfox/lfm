@@ -128,7 +128,7 @@ The page is the fridge rota, counting down to the zombie day V011 V001.
 | Role | Color | Source |
 | --- | --- | --- |
 | ground | #1b1f2a | dim rooms V023 |
-| text | #f2efe6 | fridge paper V001 |
+| text | #f3f4f6 | fridge paper V001 |
 | accent | #e8a33d | sodium night light V028 |
 
 ## Type
@@ -259,12 +259,11 @@ func TestEvidenceFindings(t *testing.T) {
 
 func TestDefaultsFindings(t *testing.T) {
 	for name, tc := range map[string]struct{ from, to, want string }{
-		"stock accent":  {"#e8a33d", "#6366f1", "stock generator accent"},
-		"house palette": {"| ground | #1b1f2a | dim rooms V023 |\n| text | #f2efe6 | fridge paper V001 |\n| accent | #e8a33d |", "| ground | #f4f1ea | dim rooms V023 |\n| text | #1b1f2a | fridge paper V001 |\n| accent | #d97757 |", "assistant house palette"},
-		"unreadable":    {"| ground | #1b1f2a | dim rooms V023 |\n| text | #f2efe6 | fridge paper V001 |\n| accent | #e8a33d |", "| ground | #555555 | dim rooms V023 |\n| text | #777777 | fridge paper V001 |\n| accent | #666666 |", "No two palette colors reach 4.5:1"},
-		"roster face":   {"| display | Recursive |", "| display | Space Grotesk |", "display roster"},
-		"stock sans":    {"| display | Recursive |", "| display | Inter |", "Every role uses a stock sans"},
-		"imageless":     {"| Image | Job | Art direction | Source |\n| --- | --- | --- | --- |\n| fridge rota | protagonist | phone photo at night V005 | generated |", "None: the page is a printed form V001", "plans no imagery"},
+		"stock accent": {"#e8a33d", "#6366f1", "stock generator accent"},
+		"unreadable":   {"| ground | #1b1f2a | dim rooms V023 |\n| text | #f3f4f6 | fridge paper V001 |\n| accent | #e8a33d |", "| ground | #555555 | dim rooms V023 |\n| text | #777777 | fridge paper V001 |\n| accent | #666666 |", "No two palette colors reach 4.5:1"},
+		"roster face":  {"| display | Recursive |", "| display | Space Grotesk |", "display roster"},
+		"stock sans":   {"| display | Recursive |", "| display | Inter |", "Every role uses a stock sans"},
+		"imageless":    {"| Image | Job | Art direction | Source |\n| --- | --- | --- | --- |\n| fridge rota | protagonist | phone photo at night V005 | generated |", "None: the page is a printed form V001", "plans no imagery"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if !strings.Contains(good, tc.from) {
@@ -361,4 +360,22 @@ func FuzzLocalFactSources(f *testing.F) {
 		}
 		CheckProject("# Concept: X\n## Facts\n- Source [file]("+path+")\n", nil, nil, p)
 	})
+}
+
+func TestWarmGroundIsError(t *testing.T) {
+	for _, hex := range []string{"#f4f1ea", "#faf7f2"} {
+		r := check(t, strings.Replace(good, "#f3f4f6", hex, 1))
+		found := false
+		for _, d := range r.Diagnostics {
+			if d.Rule == RuleGround {
+				found = true
+				if d.Severity != "error" {
+					t.Fatalf("%+v", d)
+				}
+			}
+		}
+		if !found {
+			t.Fatal(messages(r))
+		}
+	}
 }

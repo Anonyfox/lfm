@@ -34,6 +34,8 @@ var registers = []string{"modern", "premium", "clean", "minimal", "minimalist", 
 
 // allowed are the uses of those words that name no style, each with why.
 var allowed = []struct{ word, phrase, why string }{
+	{"warm", "never cream, beige, ivory or other warm off-whites", "a prohibited colour range, not a recommended style"},
+	{"warm", "warm off-whites and paper, parchment or notebook decoration fail", "a prohibition, not a style recommendation"},
 	{"clean", "are clean", "a check with zero findings"},
 	{"clean", "is clean", "a check with zero findings"},
 	{"clean", "compiles clean", "a compile with zero findings"},

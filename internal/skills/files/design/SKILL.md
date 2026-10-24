@@ -90,7 +90,10 @@ Work through the sections in order; each builds on the one before.
 10. **Concept.** The chosen direction, pushed once more: what would make it astonishing without slowing
    the visitor? Say how it builds on its sparks.
 11. **Spine.** The page's sections in order, each with its job and the evidence it shows.
-12. **Visual system.** Derive palette, type, form, imagery and motion from the concept and the axes. For
+12. **Visual system.** Grounds are white, cool or neutral grey, dark, or a saturated colour from the subject;
+    never cream, beige, ivory or other warm off-whites, and no paper, parchment or notebook styling
+    (grain/noise overlays, ruled lines, torn edges as page decoration); the compiler fails on them.
+    Derive palette, type, form, imagery and motion from the concept and the axes. For
     each, list about eight candidates of your own in your notes (not in the file), estimate the chance a
     typical generator picks each, and
     choose one below roughly 10% that serves the spine. Cite a voice, peer or fact for it: type and form

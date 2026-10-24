@@ -10,7 +10,7 @@ import (
 // Property: Analyze on any input of a few KB is deterministic, finishes well
 // within a second and locates every diagnostic inside the input.
 func FuzzAnalyzeBounded(f *testing.F) {
-	for _, seed := range []string{"", `<!doctype html><html lang=en><title>T</title><p>hello`, `<svg><text>Hi</text></svg>`, `<script>let a="</script>"</script>`,
+	for _, seed := range []string{`<body style="background:url('data:image/svg+xml;base64,PHN2Zz48ZmVUdXJidWxlbmNlLz48L3N2Zz4=');--ground:#faf7f2"><main style="background:var(--ground)">x</main>`, "", `<!doctype html><html lang=en><title>T</title><p>hello`, `<svg><text>Hi</text></svg>`, `<script>let a="</script>"</script>`,
 		`<meta name=" GOOGLEBOT " content="NoIndex, nofollow"><template><meta name=robots content=none></template>`,
 		strings.Repeat("<div>", 500), strings.Repeat(`<a href="#x" class="a b c">x</a>`, 60),
 		`<style>` + strings.Repeat(".a .b > .c ~ .d { color: red; background: url(x.png) } ", 40) + `</style>` + strings.Repeat(`<p class="a b c d">x</p>`, 40),

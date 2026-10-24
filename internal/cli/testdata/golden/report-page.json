@@ -10,8 +10,8 @@
     },
     {
       "name": "index.html",
-      "bytes": 10535,
-      "sha256": "fdce2c377123eab440b1b2ee7c713b6282336166fb3def8acce9ae8e72d43d81"
+      "bytes": 10539,
+      "sha256": "4d093182a8f08ddd1713289148eb885bab3ad975fa9ade040d99bd93135d67e6"
     },
     {
       "name": "share-4c2fc583eba1.webp",
@@ -27,10 +27,10 @@
   "validation": {
     "stage": "html",
     "stats": {
-      "htmlBytes": 10535,
+      "htmlBytes": 10539,
       "elements": 81,
       "maxDepth": 10,
-      "inlineCSSBytes": 2182,
+      "inlineCSSBytes": 2186,
       "inlineJSBytes": 767,
       "embeddedBytes": 1289,
       "embeds": [
@@ -42,7 +42,7 @@
           "bytes": 1289,
           "count": 1,
           "totalBytes": 1289,
-          "offset": 4536
+          "offset": 4540
         }
       ]
     },
@@ -66,7 +66,7 @@
           "file": "index.html",
           "line": 24,
           "column": 9,
-          "offset": 3452
+          "offset": 3456
         },
         "element": "p.eyebrow",
         "message": "Eyebrow \"Tagungsplanung 🧮\" above heading \"Was kostet deine Tagung pro Kopf?\": small tracked label restating or framing the heading.",
@@ -80,7 +80,7 @@
           "file": "index.html",
           "line": 25,
           "column": 9,
-          "offset": 3501
+          "offset": 3505
         },
         "element": "h1",
         "message": "\"system-ui\" sets both the display headline and the body: the one-sans generator default.",
@@ -115,18 +115,18 @@
     }
   ],
   "cost": {
-    "htmlBytes": 10535,
-    "htmlGzipLevel1Bytes": 4132,
+    "htmlBytes": 10539,
+    "htmlGzipLevel1Bytes": 4137,
     "sidecarBytes": 27168,
-    "totalRawBytes": 37703,
-    "totalCSSBytes": 2182,
+    "totalRawBytes": 37707,
+    "totalCSSBytes": 2186,
     "totalJSBytes": 767,
     "externalCSSBytes": 0,
     "externalJSBytes": 0
   },
   "htmlCompaction": {
-    "beforeBytes": 10751,
-    "afterBytes": 10535,
+    "beforeBytes": 10755,
+    "afterBytes": 10539,
     "savedBytes": 216
   },
   "images": [

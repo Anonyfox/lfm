@@ -362,7 +362,6 @@ func (a *designAnalysis) prop(n *html.Node, p string) string { return strings.To
 var colorProps = regexp.MustCompile(`^(color|background(-color|-image)?|border(-[a-z-]+)?|outline(-color)?|fill|stroke|box-shadow|text-shadow|accent-color|caret-color|text-decoration(-color)?|--.*)$`)
 
 func (a *designAnalysis) palette() {
-	var cream, terra *cssRule
 	rules := a.m.rules
 	for _, n := range a.d.Elements {
 		if decls := a.m.inline[n]; len(decls) > 0 {
@@ -416,17 +415,8 @@ func (a *designAnalysis) palette() {
 				if n, ok := stock.Nearest(c, stock.Accents, 0.02); ok && !gradientHit && a.once("accent "+n.Name) {
 					a.add(designSignal{rule: "design.palette", kind: "stock accent color", strong: true, css: r, message: fmt.Sprintf("%s (%s) is the stock generator accent; `%s` uses it.", n.Name, dcl.prop, r.selector), hint: "Derive the accent from the subject's own world and name its role in the brief."})
 				}
-				if _, ok := stock.Nearest(c, stock.Creams, 0.012); ok && cream == nil && strings.HasPrefix(dcl.prop, "background") {
-					cream = r
-				}
-				if _, ok := stock.Nearest(c, stock.Terracottas, 0.02); ok && terra == nil {
-					terra = r
-				}
 			}
 		}
-	}
-	if cream != nil && terra != nil {
-		a.add(designSignal{rule: "design.palette", kind: "assistant house palette", strong: true, css: cream, message: "Cream background with terracotta accent: the 2026 assistant house palette, now read as generated.", hint: "Take the palette from the product's real materials or place and state each role in the brief."})
 	}
 }
 

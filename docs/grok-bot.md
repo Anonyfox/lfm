@@ -19,7 +19,7 @@ Create a new Bot and set its profile exactly:
 
 - **Name:** `lfm.cash`
 - **Label:** `Sales pages that sell first`
-- **Avatar:** a till receipt in black on off-white with one red line; no robot, no rocket.
+- **Avatar:** a till receipt in black on cool grey with one red line; no robot, no rocket.
 - **Description** (this is also the template's public persona; keep it whole):
 
 > Makes one-page sales pages that sell before you build. Reads what your buyers actually post, designs
