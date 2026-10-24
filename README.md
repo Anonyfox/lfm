@@ -1,6 +1,7 @@
 # lfm
 
 [![CI](https://github.com/Anonyfox/lfm/actions/workflows/ci.yml/badge.svg)](https://github.com/Anonyfox/lfm/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Anonyfox/lfm/graph/badge.svg)](https://codecov.io/gh/Anonyfox/lfm)
 [![Release](https://img.shields.io/github/v/release/Anonyfox/lfm)](https://github.com/Anonyfox/lfm/releases)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Anonyfox/lfm.svg)](https://pkg.go.dev/github.com/Anonyfox/lfm)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
