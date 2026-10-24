@@ -70,7 +70,7 @@ Work through the sections in order; each builds on the one before.
    Research tells you the hesitations around it, not the facts.
 6. **Facts.** At least [[.Design.MinFacts]] checked facts true of this subject and hardly any other: numbers, units
    and timings, textures, sounds and light, tools and vocabulary, failure modes and rituals, places. Words
-   that only rate or label a style are not facts; a fact can be checked against the subject. Each fact cites its source.
+   that only rate or label a style are not facts; a fact can be checked against the subject. Each fact cites its source; a relative Markdown link such as `[theme](assets/theme.css)` counts when it names an existing file inside the project, including through symlinks.
 7. **Axes.** At least [[.Design.MinAxes]] design axes on which the data separates. Per axis: the market
    position with the peers that hold it, the voice position with the voices that hold it, and your chosen
    position: break from the market where it clusters, match the voices; where both agree, the axis is free,
@@ -103,6 +103,8 @@ Work through the sections in order; each builds on the one before.
     shows with reduced motion.
 13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices. Write the
     exact phrases as `Use: "…"` and `Avoid: "…"` lines; `lfm compile` holds the page to them.
+
+For a hub that routes to other pages and sells nothing itself, the next step is a named link per product page with ItemList JSON-LD; Offer and BuyAction stay on the product pages.
 
 Then run `lfm compile`. Its `Next` line names the step that follows, normally the lfm-implementation skill.
 

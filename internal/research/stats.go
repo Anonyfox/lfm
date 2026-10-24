@@ -1,6 +1,7 @@
 package research
 
 import (
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -14,15 +15,16 @@ type Count struct {
 
 // Summary describes the research a page stands on.
 type Summary struct {
-	Voices    int       `json:"voices"`
-	Peers     int       `json:"peers"`
-	Batches   int       `json:"batches"`
-	Platforms []Count   `json:"platforms,omitempty"` // by voice count, largest first
-	Dated     int       `json:"dated"`               // voices with a posted date
-	Oldest    time.Time `json:"oldest,omitzero"`
-	Newest    time.Time `json:"newest,omitzero"`
-	Recent    int       `json:"recent"` // voices posted within a year of the latest fetch
-	Latest    time.Time `json:"latestBatch,omitzero"`
+	Shortfalls []string  `json:"shortfalls,omitempty"`
+	Voices     int       `json:"voices"`
+	Peers      int       `json:"peers"`
+	Batches    int       `json:"batches"`
+	Platforms  []Count   `json:"platforms,omitempty"` // by voice count, largest first
+	Dated      int       `json:"dated"`               // voices with a posted date
+	Oldest     time.Time `json:"oldest,omitzero"`
+	Newest     time.Time `json:"newest,omitzero"`
+	Recent     int       `json:"recent"` // voices posted within a year of the latest fetch
+	Latest     time.Time `json:"latestBatch,omitzero"`
 }
 
 // Empty reports whether there is no research to describe.
@@ -70,6 +72,9 @@ func summarize(v *Voices, c *Competitors) Summary {
 			}
 		}
 		for _, b := range v.Batches {
+			if b.Shortfall != "" && !slices.Contains(s.Shortfalls, b.Shortfall) {
+				s.Shortfalls = append(s.Shortfalls, b.Shortfall)
+			}
 			if b.Date.After(s.Latest) {
 				s.Latest = b.Date
 			}
@@ -79,6 +84,9 @@ func summarize(v *Voices, c *Competitors) Summary {
 		s.Peers = len(c.Entries)
 		s.Batches += len(c.Batches)
 		for _, b := range c.Batches {
+			if b.Shortfall != "" && !slices.Contains(s.Shortfalls, b.Shortfall) {
+				s.Shortfalls = append(s.Shortfalls, b.Shortfall)
+			}
 			if b.Date.After(s.Latest) {
 				s.Latest = b.Date
 			}

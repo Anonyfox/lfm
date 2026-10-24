@@ -180,8 +180,8 @@ func TestBalance(t *testing.T) {
 		}
 	}
 	ongoing := strings.Replace(b.String(), "· from zero ·", "· ongoing: new reviews ·", 1)
-	if r := Check(map[string][]byte{VoicesFile: []byte(ongoing)}, "research", today); found(r, RuleBalance, "voices from") || found(r, RuleBalance, "come from") || found(r, RuleBalance, "posted on") {
-		t.Error("balance applies only once research started from zero")
+	if r := Check(map[string][]byte{VoicesFile: []byte(ongoing)}, "research", today); !found(r, RuleBalance, "voices from") || !found(r, RuleBalance, "come from") || !found(r, RuleBalance, "posted on") {
+		t.Error("balance applies across all batches")
 	}
 }
 
@@ -230,6 +230,8 @@ func FuzzBlockquoteRoundTrip(f *testing.F) {
 func FuzzParseNeverPanics(f *testing.F) {
 	f.Add(goodVoices)
 	f.Add(goodCompetitors)
+	f.Add(goodVoices + "Imported: 2026-10-17 from home V014\n")
+	f.Add(strings.Replace(goodCompetitors, "- Opening:", "Imported: 2026-10-17 from home P003\n- Opening:", 1))
 	f.Fuzz(func(t *testing.T, text string) {
 		n := len(lines(text))
 		for _, p := range append(func() []Problem { _, p := ParseVoices(text); return p }(), func() []Problem { _, p := ParseCompetitors(text); return p }()...) {
@@ -258,10 +260,109 @@ func TestPrecisionShortfallAndAdjacent(t *testing.T) {
 	if len(problems) != 0 || v.Entries[0].Precision != Year || v.Batches[0].Shortfall != "niche has few public voices" {
 		t.Fatalf("%+v %+v", problems, v.Entries[0])
 	}
-	if found(Check(map[string][]byte{VoicesFile: []byte(text)}, "research", today), RuleBalance, "research from zero needs") {
+	if found(Check(map[string][]byte{VoicesFile: []byte(text)}, "research", today), RuleBalance, "project research needs") {
 		t.Error("a named shortfall acknowledges the minimums")
 	}
 	if found(Check(map[string][]byte{VoicesFile: []byte(strings.Replace(text, "posted 2021", "posted 2026-10", 1))}, "research", today), RuleSubstance, "") {
 		t.Error("a month that includes the fetch date is plausible")
+	}
+}
+
+func TestProjectMinimumsAndShortfall(t *testing.T) {
+	for _, mode := range []string{"from zero", "ongoing: refresh"} {
+		v := strings.ReplaceAll(goodVoices, "from zero", mode)
+		c := strings.ReplaceAll(goodCompetitors, "from zero", mode)
+		files := map[string][]byte{VoicesFile: []byte(v), CompetitorsFile: []byte(c)}
+		r := Check(files, "research", today)
+		if !found(r, RuleBalance, "2 voices") || !found(r, RuleBalance, "1 peers") {
+			t.Fatalf("missing project minimums: %+v", r.Diagnostics)
+		}
+		for _, file := range []string{VoicesFile, CompetitorsFile} {
+			note := "only two public discussions"
+			text := string(files[file])
+			lines := strings.Split(text, "\n")
+			for i := range lines {
+				if strings.HasPrefix(lines[i], "## Batch ") {
+					lines[i] += " · shortfall: " + note
+					break
+				}
+			}
+			waived := map[string][]byte{VoicesFile: files[VoicesFile], CompetitorsFile: files[CompetitorsFile]}
+			waived[file] = []byte(strings.Join(lines, "\n"))
+			r := Check(waived, "research", today)
+			if found(r, RuleBalance, "project research needs") || len(r.Summary.Shortfalls) != 1 || r.Summary.Shortfalls[0] != note {
+				t.Fatalf("waiver not shared or visible: %+v", r)
+			}
+		}
+	}
+}
+
+func TestImports(t *testing.T) {
+	v := strings.Replace(goodVoices, "fetched 2026-10-18", "fetched 2025-01-01", 1)
+	v += "Imported: 2026-10-17 from home V014\n"
+	c := strings.Replace(goodCompetitors, "fetched 2026-10-17", "fetched 2025-01-01", 1)
+	c = strings.Replace(c, "- Opening:", "Imported: 2026-10-17 from home P003\n- Opening:", 1)
+	files := map[string][]byte{VoicesFile: []byte(v), CompetitorsFile: []byte(c)}
+	r := Check(files, "research", today)
+	if found(r, RuleFormat, "") || found(r, RuleSubstance, "outside its batch") {
+		t.Fatalf("valid imports: %+v", r.Diagnostics)
+	}
+	if r.Summary.Voices != 2 || r.Summary.Peers != 1 || r.Voices.Entries[1].Imported.Origin != "home V014" {
+		t.Fatalf("imports not counted: %+v", r)
+	}
+	for _, line := range []string{"Imported: nonsense", "Imported: 2026-10-17 from ", "Imported: 2026-02-30 from home V014"} {
+		if _, p := parseImport(line, 1); p == nil {
+			t.Errorf("accepted %q", line)
+		}
+	}
+	for _, tc := range []struct{ old, replacement, want string }{
+		{"Imported: 2026-10-17", "Imported: 2026-12-01", "future"},
+		{"Imported: 2026-10-17", "Imported: 2024-01-01", "Fetched after"},
+		{"> POV: you're asleep at 3pm and the doorbell rings", "> Blackout curtains changed my life.\n>\n> ### This line is part of the quote · not a heading", "Same quote"},
+	} {
+		files[VoicesFile] = []byte(strings.Replace(v, tc.old, tc.replacement, 1))
+		if !found(Check(files, "research", today), RuleSubstance, tc.want) {
+			t.Errorf("missing %s", tc.want)
+		}
+	}
+}
+
+func TestRefreshUsesTotals(t *testing.T) {
+	var v, c strings.Builder
+	v.WriteString("# Human voices: X\n## Batch 2026-10-17 · ongoing: imported sample · queries: x · unreachable: none\n")
+	c.WriteString("# Competitor analysis: X\n## Batch 2026-10-17 · ongoing: imported sample\n")
+	for i := 1; i <= 61; i++ {
+		if i == 61 {
+			v.WriteString("## Batch 2026-10-18 · ongoing: new question · queries: x · unreachable: none\n")
+		}
+		fmt.Fprintf(&v, "### V%03d · Platform%d · buyer · posted unknown · fetched 2026-10-17 · via fetch\n> unique %d\n<https://example.com/v%d>\n", i, i%5, i, i)
+	}
+	for i := 1; i <= 13; i++ {
+		if i == 13 {
+			c.WriteString("## Batch 2026-10-18 · ongoing: new comparison\n")
+		}
+		fmt.Fprintf(&c, "### P%03d · Peer · https://example.com/p%d · fetched 2026-10-17 · via fetch\n", i, i)
+		for _, field := range PeerFields {
+			fmt.Fprintf(&c, "- %s: none\n", field)
+		}
+	}
+	r := Check(map[string][]byte{VoicesFile: []byte(v.String()), CompetitorsFile: []byte(c.String())}, "research", today)
+	if found(r, RuleBalance, "") {
+		t.Fatalf("refresh imposed separate minimums: %+v", r.Diagnostics)
+	}
+}
+
+func TestImportFormatAndDuplicatePeers(t *testing.T) {
+	for _, text := range []string{
+		strings.Replace(goodCompetitors, "- Opening:", "Imported: invalid\n- Opening:", 1),
+		strings.Replace(goodCompetitors, "- Opening:", "Imported: 2026-10-17 from home P001\nImported: 2026-10-17 from home P001\n- Opening:", 1),
+	} {
+		if !found(Check(map[string][]byte{CompetitorsFile: []byte(text)}, "research", today), RuleFormat, "") {
+			t.Fatal("accepted invalid import")
+		}
+	}
+	c := strings.Replace(goodCompetitors, "### Grid after this batch", "### P002 · Copy · https://example.com/sleep · fetched 2026-10-17 · via fetch\nImported: 2026-10-17 from home P001\n\n### Grid after this batch", 1)
+	if !found(Check(map[string][]byte{CompetitorsFile: []byte(c)}, "research", today), RuleSubstance, "Same page as P001") {
+		t.Fatal("import hid duplicate peer")
 	}
 }

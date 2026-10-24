@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -160,4 +161,12 @@ func TestReportStates(t *testing.T) {
 		External: []string{"https://cdn.test/x.js"}}, nil)
 
 	golden.Text(t, "report-states.txt", w.String())
+}
+
+func TestResearchShortfallIsVisible(t *testing.T) {
+	var out bytes.Buffer
+	renderResearch(&out, term.Style{}, research.Summary{Shortfalls: []string{"few public sources"}})
+	if !strings.Contains(out.String(), "shortfall: few public sources") {
+		t.Fatal(out.String())
+	}
 }

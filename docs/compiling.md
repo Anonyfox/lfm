@@ -24,6 +24,16 @@ run `--release` and review the frames; deploy. It also updates untouched lfm ski
 `--json` prints the same result as one object (`errors`, `warnings`, `validation`, `next`, `skills`, and
 the build details) and keeps progress messages on stderr.
 
+## Research and concept
+
+Research is checked before template preparation: `lfm compile` (or `lfm compile --json`)
+reports `research.*` findings even when templates are incomplete. Minimums apply to totals across
+all batches: 60 voices from 5 platforms and 12 peers. Refresh batches add to those totals.
+A `shortfall: <what and why>` on any batch waives both minimums; its text remains in the summary.
+Imported entries may keep original fetch dates with an `Imported: YYYY-MM-DD from <origin>` line
+(see `lfm skills research`). A concept fact may cite an existing project file with a relative
+Markdown link; missing files and paths escaping the project are reported.
+
 ## Packing
 
 With the default policy the compiler decides per resource whether it is inlined into `index.html` or emitted

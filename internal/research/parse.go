@@ -19,7 +19,7 @@ const (
 	CompetitorsFile = "competitor-analysis.md"
 )
 
-// Minimums for research started from zero.
+// Minimums across all project research batches.
 const (
 	MinVoices    = 60
 	MinPlatforms = 5
@@ -47,15 +47,21 @@ type Problem struct {
 type Batch struct {
 	Line        int
 	Date        time.Time
-	FromZero    bool
 	Trigger     string // ongoing batches name what triggered them
 	Queries     string
 	Unreachable string
 	Shortfall   string // why minimums are not met, when they are not
 }
 
+// Import records when an item was copied and identifies its original source record.
+type Import struct {
+	Date   time.Time
+	Origin string
+}
+
 // Voice is one verbatim quote.
 type Voice struct {
+	Imported  Import
 	Line      int
 	ID        int
 	Platform  string
@@ -105,14 +111,15 @@ type Voices struct {
 
 // Peer is one competitor page.
 type Peer struct {
-	Line    int
-	ID      int
-	Name    string
-	URL     string
-	Fetched time.Time
-	Via     string
-	Facts   map[string]string
-	Batch   int
+	Imported Import
+	Line     int
+	ID       int
+	Name     string
+	URL      string
+	Fetched  time.Time
+	Via      string
+	Facts    map[string]string
+	Batch    int
 }
 
 // GridRow is one value of one column and the number of peers showing it.
@@ -167,6 +174,7 @@ func parseBatch(line string, n int, withSources bool) (Batch, *Problem) {
 	if withSources {
 		format += ` · queries: "…" · unreachable: <platforms or none>`
 	}
+	format += " [ · shortfall: <what and why>]"
 	bad := &Problem{Line: n, Message: "Batch heading does not match the format.", Hint: "Write it as: " + format}
 	rest, ok := strings.CutPrefix(line, "## Batch ")
 	if !ok {
@@ -182,13 +190,18 @@ func parseBatch(line string, n int, withSources bool) (Batch, *Problem) {
 	}
 	switch mode := fields[1]; {
 	case mode == "from zero":
-		b.FromZero = true
 	case strings.HasPrefix(mode, "ongoing: ") && strings.TrimSpace(mode[len("ongoing: "):]) != "":
 		b.Trigger = strings.TrimSpace(mode[len("ongoing: "):])
 	default:
 		return Batch{}, &Problem{Line: n, Message: "Batch mode " + quote(mode) + " is neither \"from zero\" nor \"ongoing: <trigger>\".", Hint: "Name the mode; an ongoing batch says what triggered it."}
 	}
 	if !withSources {
+		if len(fields) == 3 && strings.HasPrefix(fields[2], "shortfall: ") {
+			b.Shortfall = strings.TrimSpace(strings.TrimPrefix(fields[2], "shortfall: "))
+			if b.Shortfall != "" {
+				return b, nil
+			}
+		}
 		if len(fields) != 2 {
 			return Batch{}, bad
 		}
@@ -343,6 +356,14 @@ func parseVoice(ls []string, i int, format string) (Voice, int, []Problem) {
 			j++
 		}
 	}
+	if j < len(ls) && strings.HasPrefix(ls[j], "Imported:") {
+		var p *Problem
+		v.Imported, p = parseImport(ls[j], j+1)
+		if p != nil {
+			problems = append(problems, *p)
+		}
+		j++
+	}
 	return v, j, problems
 }
 
@@ -411,6 +432,17 @@ func ParseCompetitors(text string) (Competitors, []Problem) {
 				}
 				peer.Batch = len(c.Batches) - 1
 				c.Entries = append(c.Entries, peer)
+			}
+		case section == "peer" && strings.HasPrefix(line, "Imported:") && len(c.Entries) > 0:
+			peer := &c.Entries[len(c.Entries)-1]
+			if !peer.Imported.Date.IsZero() {
+				add(n, "Duplicate import provenance.", "Keep one Imported line per item.")
+			} else {
+				var p *Problem
+				peer.Imported, p = parseImport(line, n)
+				if p != nil {
+					problems = append(problems, *p)
+				}
 			}
 		case section == "peer" && strings.HasPrefix(line, "- "):
 			key, value, ok := strings.Cut(strings.TrimPrefix(line, "- "), ": ")
@@ -543,4 +575,15 @@ func mergedFact(value string) string {
 		}
 	}
 	return ""
+}
+
+// parseImport accepts one explicit provenance line; origin identifies the original file and item.
+func parseImport(line string, n int) (Import, *Problem) {
+	rest, ok := strings.CutPrefix(line, "Imported: ")
+	day, origin, found := strings.Cut(rest, " from ")
+	d, valid := date(day)
+	if !ok || !found || !valid || strings.TrimSpace(origin) == "" {
+		return Import{}, &Problem{Line: n, Message: "Invalid import provenance.", Hint: "Write Imported: YYYY-MM-DD from <origin file or page and original item ID>."}
+	}
+	return Import{Date: d, Origin: strings.TrimSpace(origin)}, nil
 }

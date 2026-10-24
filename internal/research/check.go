@@ -29,12 +29,12 @@ func Rules() []diagnostic.RuleInfo {
 		{
 			ID:      RuleSubstance,
 			Summary: "Research entries are plausible: real dates, no duplicates, no template placeholders",
-			Help:    "Flags dates in the future or out of order, sources fetched outside their batch, the same quote recorded twice, the same competitor twice, leftover template placeholders and a competitor grid that no longer adds up to the number of peers. These are the typical traces of copied, invented or stale entries. Correct the entry from its source, delete the duplicate in its own batch only if it was added in this session, or recount the grid.",
+			Help:    "Flags dates in the future or out of order, sources fetched outside their batch without import provenance, the same quote recorded twice, the same competitor twice, leftover template placeholders and a competitor grid that no longer adds up to the number of peers. These are the typical traces of copied, invented or stale entries. Correct the entry from its source, delete the duplicate in its own batch only if it was added in this session, or recount the grid.",
 		},
 		{
 			ID:      RuleBalance,
-			Summary: "Research from zero meets its minimums and is not dominated by one source",
-			Help:    "Once a from-zero batch exists, the files need 60 voices from 5 platforms and 12 competitor pages, no platform above 40% of the voices, and no single day holding most of the dated voices, which usually means one thread was copied wholesale. A narrow sample makes every later design decision rest on one corner of the market. Collect more from underrepresented platforms, or name the shortfall in the batch heading and set this rule to off if the market is truly that small.",
+			Summary: "Project research meets its minimums and is not dominated by one source",
+			Help:    "Across all batches, the project needs 60 voices from 5 platforms and 12 competitor pages, no platform above 40% of the voices, and no single day holding most of the dated voices, which usually means one thread was copied wholesale. A narrow sample makes every later design decision rest on one corner of the market. Collect more from underrepresented platforms, or name the shortfall in any batch heading to waive both voice and peer minimums if the market is truly that small.",
 		},
 	}
 }
@@ -63,28 +63,33 @@ func Check(files map[string][]byte, dir string, today time.Time) Report {
 	var competitors *Competitors
 	if raw, ok := files[VoicesFile]; ok {
 		v, problems := ParseVoices(string(raw))
+		voices = &v
 		for _, p := range problems {
 			report(VoicesFile, RuleFormat, p.Line, p.Message, p.Hint)
 		}
-		checkVoices(v, today, func(rule string, line int, message, hint string) { report(VoicesFile, rule, line, message, hint) })
-		voices = &v
 	}
 	if raw, ok := files[CompetitorsFile]; ok {
 		c, problems := ParseCompetitors(string(raw))
+		competitors = &c
 		for _, p := range problems {
 			report(CompetitorsFile, RuleFormat, p.Line, p.Message, p.Hint)
 		}
-		checkCompetitors(c, today, func(rule string, line int, message, hint string) { report(CompetitorsFile, rule, line, message, hint) })
-		competitors = &c
 	}
-	// Each file is checked alone above; research from zero needs both, so a
+	waived := voices != nil && shortfall(voices.Batches) || competitors != nil && shortfall(competitors.Batches)
+	if voices != nil {
+		checkVoices(*voices, today, waived, func(rule string, line int, message, hint string) { report(VoicesFile, rule, line, message, hint) })
+	}
+	if competitors != nil {
+		checkCompetitors(*competitors, today, waived, func(rule string, line int, message, hint string) { report(CompetitorsFile, rule, line, message, hint) })
+	}
+	// Each file is checked alone above; project research needs both, so a
 	// filled file beside an empty or missing one is reported at the empty one.
 	hasVoices := voices != nil && len(voices.Entries) > 0
 	hasPeers := competitors != nil && len(competitors.Entries) > 0
-	if hasVoices && !hasPeers {
+	if hasVoices && !hasPeers && !waived {
 		report(CompetitorsFile, RuleBalance, 1, "Voices are collected but no competitor is analyzed yet.", "Visit the pages buyers compare against and record them; design needs both files.")
 	}
-	if hasPeers && !hasVoices {
+	if hasPeers && !hasVoices && !waived {
 		report(VoicesFile, RuleBalance, 1, "Competitors are analyzed but no voice is collected yet.", "Collect verbatim buyer voices; design needs both files.")
 	}
 	r.Summary = summarize(voices, competitors)
@@ -110,22 +115,14 @@ func checkSequence(ids []int, lines []int, prefix string, add reporter) {
 // checkDates reports implausible posted/fetched dates relative to the batch.
 // A posted period counts as plausible if its first day is.
 func checkDates(posted, fetched, batch, today time.Time, line int, add reporter) {
-	// Dates are calendar days. A source opened "today" somewhere east of here
-	// is already tomorrow, so the limit is the end of tomorrow.
-	y, m, d := today.Date()
-	today = time.Date(y, m, d, 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
-	if !fetched.IsZero() && fetched.After(today) {
-		add(RuleSubstance, line, "Fetched date "+fetched.Format(time.DateOnly)+" is in the future.", "Use the day the source was opened.")
-	}
+	checkDateWindow(fetched, batch, today, "Fetched", line, add)
+	today = calendarLimit(today)
 	future := !posted.IsZero() && posted.After(today)
 	if future {
 		add(RuleSubstance, line, "Posted date is in the future.", "Copy the date the source shows, or write unknown.")
 	}
 	if !future && !posted.IsZero() && !fetched.IsZero() && posted.After(fetched) {
 		add(RuleSubstance, line, "Posted after it was fetched.", "One of the two dates is wrong; check the source.")
-	}
-	if !batch.IsZero() && !fetched.IsZero() && (fetched.Before(batch.AddDate(0, 0, -1)) || fetched.After(batch.AddDate(0, 0, 7))) {
-		add(RuleSubstance, line, "Fetched "+fetched.Format(time.DateOnly)+", outside its batch of "+batch.Format(time.DateOnly)+".", "Entries are fetched during their batch; a stale fetched date usually means the entry was copied from elsewhere.")
 	}
 }
 
@@ -141,7 +138,7 @@ func placeholder(s string) string {
 	return ""
 }
 
-func checkVoices(v Voices, today time.Time, add reporter) {
+func checkVoices(v Voices, today time.Time, waived bool, add reporter) {
 	ids, lines := make([]int, len(v.Entries)), make([]int, len(v.Entries))
 	quotes := map[string]int{}
 	for k, e := range v.Entries {
@@ -149,6 +146,10 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 		var batch time.Time
 		if e.Batch >= 0 && e.Batch < len(v.Batches) {
 			batch = v.Batches[e.Batch].Date
+		}
+		if !e.Imported.Date.IsZero() {
+			checkImport(e.Imported, e.Fetched, batch, today, e.Line, add)
+			batch = time.Time{}
 		}
 		checkDates(e.Posted, e.Fetched, batch, today, e.Line, add)
 		if p := placeholder(e.Quote + " " + e.Platform + " " + e.Place + " " + e.URL); p != "" {
@@ -167,7 +168,7 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 			add(RuleSubstance, b.Line, "Template placeholder "+p+" left in a batch heading.", "Write the actual queries and unreachable platforms.")
 		}
 	}
-	if !fromZero(v.Batches) {
+	if len(v.Batches) == 0 {
 		return
 	}
 	platforms := map[string]int{}
@@ -181,8 +182,8 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 		}
 	}
 	total := len(v.Entries)
-	if (total < MinVoices || len(platforms) < MinPlatforms) && !shortfall(v.Batches) {
-		add(RuleBalance, v.Batches[0].Line, fmt.Sprintf("%d voices from %d platforms; research from zero needs %d from %d.", total, len(platforms), MinVoices, MinPlatforms), "Collect more, preferring platforms not yet covered, or add \"· shortfall: <what and why>\" to the batch heading.")
+	if (total < MinVoices || len(platforms) < MinPlatforms) && !waived {
+		add(RuleBalance, v.Batches[0].Line, fmt.Sprintf("%d voices from %d platforms; project research needs %d from %d.", total, len(platforms), MinVoices, MinPlatforms), "Collect more, preferring platforms not yet covered, or add \"· shortfall: <what and why>\" to the batch heading.")
 	}
 	if total >= 10 {
 		for _, name := range slices.Sorted(maps.Keys(platforms)) {
@@ -205,7 +206,7 @@ func checkVoices(v Voices, today time.Time, add reporter) {
 	}
 }
 
-func checkCompetitors(c Competitors, today time.Time, add reporter) {
+func checkCompetitors(c Competitors, today time.Time, waived bool, add reporter) {
 	ids, lines := make([]int, len(c.Entries)), make([]int, len(c.Entries))
 	urls := map[string]int{}
 	for k, p := range c.Entries {
@@ -213,6 +214,10 @@ func checkCompetitors(c Competitors, today time.Time, add reporter) {
 		var batch time.Time
 		if p.Batch >= 0 && p.Batch < len(c.Batches) {
 			batch = c.Batches[p.Batch].Date
+		}
+		if !p.Imported.Date.IsZero() {
+			checkImport(p.Imported, p.Fetched, batch, today, p.Line, add)
+			batch = time.Time{}
 		}
 		checkDates(time.Time{}, p.Fetched, batch, today, p.Line, add)
 		var missing []string
@@ -239,8 +244,8 @@ func checkCompetitors(c Competitors, today time.Time, add reporter) {
 		}
 	}
 	checkSequence(ids, lines, "P", add)
-	if fromZero(c.Batches) && len(c.Entries) < MinPeers {
-		add(RuleBalance, c.Batches[0].Line, fmt.Sprintf("%d peers; research from zero needs %d.", len(c.Entries), MinPeers), "Add pages the buyer compares against, including some that rank in search.")
+	if len(c.Batches) > 0 && len(c.Entries) < MinPeers && !waived {
+		add(RuleBalance, c.Batches[0].Line, fmt.Sprintf("%d peers; project research needs %d.", len(c.Entries), MinPeers), "Add pages the buyer compares against, including some that rank in search.")
 	}
 	if len(c.Entries) == 0 {
 		return
@@ -276,11 +281,27 @@ func shortfall(batches []Batch) bool {
 	return false
 }
 
-func fromZero(batches []Batch) bool {
-	for _, b := range batches {
-		if b.FromZero {
-			return true
-		}
+// checkImport checks the import session while keeping the original fetch date.
+func checkImport(provenance Import, fetched, batch, today time.Time, line int, add reporter) {
+	checkDateWindow(provenance.Date, batch, today, "Imported", line, add)
+	if fetched.After(provenance.Date) {
+		add(RuleSubstance, line, "Fetched after it was imported.", "Keep the original fetch date and use the actual import date.")
 	}
-	return false
+}
+
+// calendarLimit allows tomorrow in UTC because it may already be today locally.
+func calendarLimit(today time.Time) time.Time {
+	y, m, d := today.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
+}
+
+// checkDateWindow applies the same calendar and batch bounds to fetches and imports.
+func checkDateWindow(day, batch, today time.Time, label string, line int, add reporter) {
+	hint := "Use the actual " + strings.ToLower(label) + " date during this batch."
+	if !day.IsZero() && day.After(calendarLimit(today)) {
+		add(RuleSubstance, line, label+" date "+day.Format(time.DateOnly)+" is in the future.", hint)
+	}
+	if !batch.IsZero() && !day.IsZero() && (day.Before(batch.AddDate(0, 0, -1)) || day.After(batch.AddDate(0, 0, 7))) {
+		add(RuleSubstance, line, label+" "+day.Format(time.DateOnly)+", outside its batch of "+batch.Format(time.DateOnly)+".", hint)
+	}
 }

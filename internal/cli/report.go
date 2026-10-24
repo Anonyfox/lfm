@@ -277,7 +277,7 @@ func score(n *int) string {
 
 // renderResearch summarizes the evidence the page stands on.
 func renderResearch(w io.Writer, s term.Style, r research.Summary) {
-	if r.Empty() {
+	if r.Empty() && len(r.Shortfalls) == 0 {
 		return
 	}
 	line := fmt.Sprintf("%s · %s · %s", term.Plural(r.Voices, "voice"), term.Plural(len(r.Platforms), "platform"), term.Plural(r.Peers, "peer"))
@@ -286,6 +286,9 @@ func renderResearch(w io.Writer, s term.Style, r research.Summary) {
 	}
 	fmt.Fprintf(w, "  %s %s\n", term.Pad("research", 12), line)
 	var detail []string
+	for _, text := range r.Shortfalls {
+		detail = append(detail, "shortfall: "+text)
+	}
 	for i, p := range r.Platforms {
 		if i == 3 {
 			detail = append(detail, fmt.Sprintf("+%d more", len(r.Platforms)-3))

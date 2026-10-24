@@ -2,12 +2,15 @@ package concept
 
 import (
 	"fmt"
+	"net/url"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/color"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/research"
 	"github.com/Anonyfox/lfm/internal/stock"
 )
@@ -41,7 +44,7 @@ func Rules() []diagnostic.RuleInfo {
 		{
 			ID:      RuleFormat,
 			Summary: "concept.md has every section of the lfm-design format, each holding a decision",
-			Help:    "Every required section must exist in order and hold its decision in the expected shape: cited list items, the axes, palette, type and imagery tables, numbered directions marked chosen or struck, and the motion fields. Implementation reads this file as its only brief, so a missing or malformed section means a decision nobody made. Fix the named line to match the format printed by lfm skills design.",
+			Help:    "Every required section must exist in order and hold its decision in the expected shape: cited list items, the axes, palette, type and imagery tables, numbered directions marked chosen or struck, and the motion fields. Implementation reads this file as its only brief, so a missing or malformed section means a decision nobody made. Fix the named line to match the format printed by lfm skills design; facts cite research IDs, web sources or relative Markdown links to existing files contained inside the project.",
 		},
 		{
 			ID:      RuleEvidence,
@@ -129,13 +132,23 @@ type checker struct {
 	voices   map[string]research.Voice
 	peers    map[string]bool
 	research bool
+	source   func(string) error
 }
 
 // Check parses concept.md and checks it against the parsed research, which
 // may be nil when the files are absent.
 func Check(text string, voices *research.Voices, competitors *research.Competitors) Report {
+	return checkConcept(text, voices, competitors, nil)
+}
+
+// CheckProject also validates relative fact links against the confined project sources.
+func CheckProject(text string, voices *research.Voices, competitors *research.Competitors, p project.Project) Report {
+	return checkConcept(text, voices, competitors, func(name string) error { _, err := p.Read(name); return err })
+}
+
+func checkConcept(text string, voices *research.Voices, competitors *research.Competitors, source func(string) error) Report {
 	var r Report
-	c := checker{voices: map[string]research.Voice{}, peers: map[string]bool{}}
+	c := checker{source: source, voices: map[string]research.Voice{}, peers: map[string]bool{}}
 	c.add = func(rule string, line int, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{
 			Rule: rule, Severity: diagnostic.Warning,
@@ -254,8 +267,28 @@ func (c checker) sections(d Document) Summary {
 		items := s.Items()
 		c.need(s, len(items) >= MinFacts, fmt.Sprintf("Facts lists %d; mine at least %d facts true of this subject.", len(items), MinFacts), "Numbers, timings, materials, vocabulary, rituals, failure modes; each with its source.")
 		for _, it := range items {
-			if len(Citations(it.Text)) == 0 && !strings.Contains(it.Text, "http") {
-				c.add(RuleFormat, it.N, "Fact without a source.", "Cite a V or P ID or link the page it comes from.")
+			sourced := len(Citations(it.Text)) > 0 || strings.Contains(it.Text, "http")
+			for _, match := range localFactLinks.FindAllStringSubmatch(it.Text, -1) {
+				u, err := url.Parse(match[1])
+				if err != nil || u.IsAbs() || u.Host != "" || u.Path == "" {
+					continue
+				}
+				if c.source == nil {
+					continue
+				}
+				name := u.Path
+				if !filepath.IsLocal(name) {
+					c.add(RuleFormat, it.N, "Fact source outside project: "+name, "Link an existing file inside the project.")
+					continue
+				}
+				if err := c.source(name); err != nil {
+					c.add(RuleFormat, it.N, "Fact source missing or inaccessible: "+name, "Link an existing file inside the project.")
+					continue
+				}
+				sourced = true
+			}
+			if !sourced {
+				c.add(RuleFormat, it.N, "Fact without a source.", "Cite a V or P ID, link the source page, or use a relative Markdown link to an existing project file.")
 			}
 		}
 	}
@@ -525,3 +558,5 @@ func (c checker) defaults(d Document) {
 		}
 	}
 }
+
+var localFactLinks = regexp.MustCompile(`\[[^\]\n]*\]\(([^()\s]+)\)`)

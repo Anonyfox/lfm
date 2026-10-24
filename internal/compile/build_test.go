@@ -508,3 +508,19 @@ func TestPublishDistributionReportsAFailedCleanup(t *testing.T) {
 		t.Fatal("a stale file left in distribution/ was reported as published")
 	}
 }
+
+func TestResearchReportedWithIncompleteTemplate(t *testing.T) {
+	root := fixture(t)
+	write(t, root, project.TemplateFile, "{{")
+	write(t, root, "research/human-voices.md", "# Human voices: X\n\n## Batch 2026-10-17 · ongoing: refresh · queries: x · unreachable: none\n")
+	r, _ := Compile(context.Background(), root, Options{})
+	if r.Validation == nil {
+		t.Fatal("missing validation")
+	}
+	for _, d := range r.Validation.Diagnostics {
+		if d.Rule == "research.balance" && strings.Contains(d.Message, "0 voices") {
+			return
+		}
+	}
+	t.Fatalf("research finding lost on template failure: %+v", r.Validation)
+}

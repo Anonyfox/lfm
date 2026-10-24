@@ -2,9 +2,12 @@ package concept
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/research"
 )
 
@@ -302,4 +305,60 @@ func messages(r Report) []string {
 		out = append(out, fmt.Sprintf("%s:%d %s", d.Rule, d.Location.Line, d.Message))
 	}
 	return out
+}
+
+func TestLocalFactSources(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "theme.css"), []byte(":root{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "secret"), []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(outside, "secret"), filepath.Join(root, "escape")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("theme.css", filepath.Join(root, "inside")); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		path  string
+		valid bool
+	}{
+		{"theme.css", true}, {"./theme.css", true}, {"inside", true}, {"theme.css#colors", true},
+		{"missing.css", false}, {"../secret", false}, {"escape", false}, {"/etc/passwd", false},
+		{"%2e%2e/secret", false},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			p, err := project.Open(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := CheckProject("# Concept: X\n\n## Facts\n- The palette is declared in [theme]("+tc.path+").\n", nil, nil, p)
+			bad := false
+			for _, d := range r.Diagnostics {
+				if strings.HasPrefix(d.Message, "Fact source") || d.Message == "Fact without a source." {
+					bad = true
+				}
+			}
+			if bad == tc.valid {
+				t.Fatalf("valid=%v: %+v", tc.valid, r.Diagnostics)
+			}
+		})
+	}
+}
+
+func FuzzLocalFactSources(f *testing.F) {
+	f.Add("theme.css")
+	f.Add("../escape")
+	f.Add("%2e%2e/escape")
+	root := f.TempDir()
+	f.Fuzz(func(t *testing.T, path string) {
+		p, err := project.Open(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		CheckProject("# Concept: X\n## Facts\n- Source [file]("+path+")\n", nil, nil, p)
+	})
 }

@@ -597,7 +597,7 @@ func checkResearch(p project.Project, result *Result, rules map[string]diagnosti
 	if err != nil {
 		return diagnostic.Apply(findings, rules), nil, r
 	}
-	c := concept.Check(string(raw), r.Voices, r.Competitors)
+	c := concept.CheckProject(string(raw), r.Voices, r.Competitors, p)
 	result.Concept = c.Summary
 	findings = append(findings, c.Diagnostics...)
 	// The page is held to the concept once it is built; the untouched starter
