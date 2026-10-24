@@ -23,6 +23,11 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - Third-party audit results (e.g. legacy JavaScript in an analytics beacon) and informational diagnostics are reported apart from the page's own findings.
 - `compile --release` and `check --release` say clearly when Chrome, Lighthouse or loopback sockets are unavailable.
 - `lfm check --project <folder>` pairs a built page or live URL with its project, so project-only rules run with compile's facts and validation settings; without a target it checks `output/` and warns (`build.stale`) when output no longer matches the source. Project errors stay JSON under `--json`.
+- `lfm check --project` judges design rules with the concept's declared faces like compile does; without a project, `design.mono` and `design.defaults` hints say which project context compile would use.
+- `lfm check --json` prints the normal report, with the HTTP status and an error finding, when the page cannot be read (e.g. 404).
+- A page whose HTML is an empty client-rendered shell gets one finding listing what is missing instead of separate title, description, h1, landmark and social findings.
+- concept.fidelity matches simple inflections of Use phrases; on Avoid lines only the leading quoted phrases are banned, so a preferred wording quoted after them is allowed.
+- `url` keys inside `build.browserData` are no longer checked as links, and copy.placeholder ignores text in code elements and file names such as TODO.md.
 
 ## 0.1.8 (2026-10-24)
 
