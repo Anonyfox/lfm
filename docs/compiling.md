@@ -20,7 +20,7 @@ Findings carry a rule ID, the location, what is wrong and how to fix it; `lfm ru
 
 The report ends with the next step and the skill for it, in this order: fix errors; collect research when
 `research/` is empty; write `concept.md` when it is missing; replace the starter page; resolve warnings;
-run `--release` and review the frames; deploy. It also notes installed lfm skills older than the binary.
+run `--release` and review the frames; deploy. It also updates untouched lfm skills written by an older release (in the project and the folders above it) and notes copies the project changed.
 `--json` prints the same result as one object (`errors`, `warnings`, `validation`, `next`, `skills`, and
 the build details) and keeps progress messages on stderr.
 
