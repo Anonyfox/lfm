@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## 0.1.8 (unreleased)
+## 0.1.8 (2026-10-24)
 
 - Add `lfm check` for built URLs, folders and HTML files, with optional browser checks and JSON reports.
 - Include X-Robots-Tag response directives in the indexing and snippet checks.
