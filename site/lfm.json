@@ -23,7 +23,8 @@
     "mit": "https://opensource.org/licenses/MIT",
     "grokBot": "https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf",
     "analytics": "https://static.cloudflareinsights.com/beacon.min.js",
-    "caseStudy": "https://lfm.cash/case-studies/two-product-pages/"
+    "caseStudy": "https://lfm.cash/case-studies/two-product-pages/",
+    "news": "https://news.lfm.cash/"
   },
   "data": {
     "prompt": {
