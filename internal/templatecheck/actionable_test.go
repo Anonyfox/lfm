@@ -168,3 +168,23 @@ func TestOptionalDictMember(t *testing.T) {
 		t.Fatalf("%s %s", raw, messages(s))
 	}
 }
+
+func TestUndefinedPartialNamesFileAndSearchPath(t *testing.T) {
+	_, s, _ := fixture(t, `{{template "partials/mice/top.html.tmpl" .}}`, `{}`, nil)
+	m := messages(s)
+	var hint string
+	for _, d := range s.Diagnostics {
+		if d.Rule == "template.bindings" {
+			hint = d.Hint
+		}
+	}
+	if s.Errors == 0 || !strings.Contains(m, `"partials/mice/top.html.tmpl" is not defined: no such file`) || !strings.Contains(hint, "every file under partials/") || !strings.Contains(hint, "shared partial") {
+		t.Fatalf("%s | %s", m, hint)
+	}
+	_, s, _ = fixture(t, `{{template "crad" .}}{{define "card"}}x{{end}}`, `{}`, nil)
+	for _, d := range s.Diagnostics {
+		if d.Rule == "template.bindings" && !strings.Contains(d.Hint, "Defined: card") {
+			t.Fatal(d.Hint)
+		}
+	}
+}

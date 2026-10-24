@@ -6,6 +6,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - New projects ignore `qa/` for review state such as screenshots and logs.
 - copy.machine names the passages that drive its estimate, with location, excerpt and measured signals.
 - Missing template key paths report the template file and line and the closest keys that exist.
+- A call to an undefined partial names the missing file, where lfm looks for partials and the closest defined names.
 - Add a `dict` template helper; data passed to partials through `dict`, `$` or variables is no longer reported unused, and keys guarded by `if` or `with` are optional. `lfm help template` lists every helper.
 - Research minimums apply to every project's totals, whatever its first batch is called; a shortfall note waives voice and peer minimums alike and shows in the summary.
 - Imported research items keep their original fetch dates through an `Imported:` line.

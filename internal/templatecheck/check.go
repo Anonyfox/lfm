@@ -177,7 +177,8 @@ func (c *checker) call(t *htmltemplate.Template, name string, arg value, active 
 	target := t.Lookup(name)
 	if target == nil || target.Tree == nil {
 		// html/template inspects calls in both branches during contextual escaping.
-		c.issue("template.bindings", node, true, "", fmt.Sprintf("Template %q is not defined.", name), "Define this partial or fix its template name; HTML escaping also checks inactive calls.")
+		message, hint := undefinedTemplate(t, name)
+		c.issue("template.bindings", node, true, "", message, hint)
 		return
 	}
 	previous := c.tree
@@ -424,4 +425,37 @@ func mapItem(collection value, key string, raw any) value {
 		return child
 	}
 	return value{raw: raw, path: jsonsrc.Child(collection.path, key), origin: collection.origin}
+}
+
+// undefinedTemplate explains a call to a template that no loaded file defines:
+// which file is missing, where lfm looked and the closest defined names.
+func undefinedTemplate(t *htmltemplate.Template, name string) (message, hint string) {
+	var names []string
+	for _, defined := range t.Templates() {
+		if defined.Tree != nil && defined.Name() != "" {
+			names = append(names, defined.Name())
+		}
+	}
+	sort.Slice(names, func(i, j int) bool {
+		a, b := editDistance(name, names[i]), editDistance(name, names[j])
+		if a != b {
+			return a < b
+		}
+		return names[i] < names[j]
+	})
+	if len(names) > 5 {
+		names = names[:5]
+	}
+	closest := "none"
+	if len(names) > 0 {
+		closest = strings.Join(names, ", ")
+	}
+	if strings.HasSuffix(name, ".tmpl") || strings.Contains(name, "/") {
+		message = fmt.Sprintf("Template %q is not defined: no such file among the project's templates.", name)
+		hint = "lfm loads index.html.tmpl and every file under partials/ in the project folder (hidden folders skipped) and names each by its project-relative path. Create " + name + ", or, if it is a shared partial that a site sync step copies in, run that step in this checkout first. Defined: " + closest + "."
+		return message, hint
+	}
+	message = fmt.Sprintf("Template %q is not defined.", name)
+	hint = "Define it with {{define \"" + name + "\"}} in a partial, or fix its name; HTML escaping also checks inactive calls. Defined: " + closest + "."
+	return message, hint
 }
