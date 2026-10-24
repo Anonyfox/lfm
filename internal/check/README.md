@@ -64,6 +64,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 
 | ID | Default findings |
 | --- | --- |
+| `html.client-shell` | Groups missing initial content and metadata on an empty JavaScript module shell; independent findings remain. |
 | `links.syntax` | Errors for broken URL syntax/protocols; warnings for browser repairs and suspicious spelling |
 | `links.declared` | Errors for rendered destinations missing from the project URL registry |
 | `links.behavior` | Warnings for crawlability, mixed content, ineffective downloads and full same-page fragment targets |

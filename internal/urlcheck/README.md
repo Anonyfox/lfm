@@ -105,8 +105,8 @@ match declarations; prefer local imported assets or HTML-bound CSS values to avo
 copying endpoints into an untemplated stylesheet.
 
 The final gate checks URL-bearing HTML attributes, srcset/imagesrcset, ping/archive
-lists, supported social metadata, declarative refresh destinations, embedded JSON/JSON-LD and CSS url()/@import/image-set
-references in style elements/attributes. It validates actual rendered destinations,
+lists, supported social metadata, declarative refresh destinations, embedded JSON-LD and supported sharing JSON and CSS url()/@import/image-set
+references in style elements/attributes. Arbitrary application/json data, including browserData, is not a link declaration. It validates actual rendered destinations,
 including ones that a partial or expression assembled.
 
 Source literal checks are an authoring lint, not a proof of provenance across arbitrary

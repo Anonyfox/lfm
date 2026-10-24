@@ -253,3 +253,16 @@ func TestSchemaOrgTermsAreNotDestinations(t *testing.T) {
 		t.Fatalf("the offer url is still a reference: %+v", refs)
 	}
 }
+
+func TestApplicationDataIsNotLinks(t *testing.T) {
+	raw := []byte(`<script type=application/json id=product-data>{"url":"local choice","nested":{"url":"https://data.example/"}}</script><a href="https://link.example/">Visit</a><script type=application/ld+json>{"url":"https://schema.example/"}</script>`)
+	refs := AllReferences(raw)
+	if len(refs) != 2 {
+		t.Fatalf("%+v", refs)
+	}
+	for _, ref := range refs {
+		if strings.Contains(ref.Value, "data.example") || ref.Value == "local choice" {
+			t.Fatalf("data treated as link: %+v", ref)
+		}
+	}
+}

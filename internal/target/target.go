@@ -106,7 +106,9 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	ctx, cancel := context.WithTimeout(ctx, lim.run)
 	defer cancel()
 	defer func() {
-		if caller.Err() != nil {
+		if errors.Is(caller.Err(), context.DeadlineExceeded) {
+			retErr = fmt.Errorf("check timed out: %w", caller.Err())
+		} else if caller.Err() != nil {
 			retErr = fmt.Errorf("check interrupted: %w", caller.Err())
 		} else if ctx.Err() != nil {
 			retErr = fmt.Errorf("check timed out after %s: %w", lim.run, ctx.Err())
@@ -169,6 +171,16 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 		u = &url.URL{Scheme: "https", Host: "local.invalid", Path: "/" + pageName}
 	}
 	page := r.fetch(resource{u: u, kind: "page"}, lim.page)
+	result.Status = page.Status
+	result.URL = argument
+	if r.remote {
+		result.URL = page.final.String()
+	}
+	result.Redirects = page.redirects
+	if result.Redirects == nil {
+		result.Redirects = []string{}
+	}
+	result.Files = append(result.Files, page.File)
 	if page.Error != "" {
 		return result, fmt.Errorf("read page %s: %s", argument, page.Error)
 	}
@@ -179,16 +191,7 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 		return result, fmt.Errorf("read page %s: response is not HTML", argument)
 	}
 	result.Page = page.body
-	result.Status = page.Status
-	result.Redirects = page.redirects
-	if result.Redirects == nil {
-		result.Redirects = []string{}
-	}
 	base := page.final
-	result.URL = argument
-	if r.remote {
-		result.URL = base.String()
-	}
 	doc, err := check.Parse(page.body, check.Options{})
 	if err != nil {
 		return result, err
@@ -226,7 +229,6 @@ func read(ctx context.Context, argument, version string, lim limits) (result Res
 	if r.remote {
 		opts.ServedURL = result.URL
 	}
-	result.Files = append(result.Files, page.File)
 	all := map[string]fetched{u.String(): page}
 	seen := map[string]bool{u.String(): true, base.String(): true}
 	var queue, bindings []resource

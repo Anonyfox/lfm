@@ -190,12 +190,24 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 		for _, phrase := range facts.Use {
 			found := false
 			for _, s := range all {
-				if found = wordsInOrder(s.text, phrase, 5); found {
+				if found = usePhrase(d, s.text, phrase); found {
 					break
 				}
 			}
 			if !found {
-				issues = append(issues, d.Whole(Warning, fmt.Sprintf("concept.md says to use %q; the page never does.", phrase), "Use the buyers' phrase where it fits the section's job, or change the Copy section if the decision changed."))
+				hint := "Use the buyers' phrase where it fits the section's job, or change the Copy section if the decision changed."
+				for _, segment := range all {
+					for _, form := range inflectedPhrases(phrase) {
+						if wordsInOrder(segment.text, form, 5) {
+							hint += fmt.Sprintf(" Near match: %q; inflections count automatically only when html lang is English.", form)
+							break
+						}
+					}
+					if strings.Contains(hint, "Near match:") {
+						break
+					}
+				}
+				issues = append(issues, d.Whole(Warning, fmt.Sprintf("concept.md says to use %q; the page never does.", phrase), hint))
 			}
 		}
 	}
@@ -345,4 +357,56 @@ func sizeAttr(v string) int {
 		n = n*10 + int(c-'0')
 	}
 	return n
+}
+
+// usePhrase permits simple English inflections of the final word only.
+func usePhrase(d *Document, text, phrase string) bool {
+	if wordsInOrder(text, phrase, 5) {
+		return true
+	}
+	english := false
+	for _, n := range d.Elements {
+		if n.Data == "html" {
+			lang := strings.ToLower(Attr(n, "lang"))
+			english = lang == "en" || strings.HasPrefix(lang, "en-")
+			break
+		}
+	}
+	if !english {
+		return false
+	}
+	for _, form := range inflectedPhrases(phrase) {
+		if wordsInOrder(text, form, 5) {
+			return true
+		}
+	}
+	return false
+}
+
+func inflectedPhrases(phrase string) []string {
+	parts := strings.Fields(phrase)
+	if len(parts) == 0 {
+		return nil
+	}
+	last := strings.ToLower(parts[len(parts)-1])
+	forms := []string{last + "s", last + "es", last + "ed", last + "ing"}
+	if strings.HasSuffix(last, "e") {
+		forms = append(forms, last+"d", strings.TrimSuffix(last, "e")+"ing")
+	}
+	if strings.HasSuffix(last, "y") {
+		forms = append(forms, strings.TrimSuffix(last, "y")+"ies", strings.TrimSuffix(last, "y")+"ied")
+	}
+	// A final consonant can double before ed/ing (plan -> planned/planning).
+	if len(last) >= 3 {
+		end := last[len(last)-1]
+		if end >= 'a' && end <= 'z' && !strings.ContainsRune("aeiouwxy", rune(end)) && strings.ContainsRune("aeiou", rune(last[len(last)-2])) && !strings.ContainsRune("aeiou", rune(last[len(last)-3])) {
+			forms = append(forms, last+string(end)+"ed", last+string(end)+"ing")
+		}
+	}
+	var phrases []string
+	for _, form := range forms {
+		parts[len(parts)-1] = form
+		phrases = append(phrases, strings.Join(parts, " "))
+	}
+	return phrases
 }

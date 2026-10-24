@@ -278,6 +278,7 @@ func TestDefaultsFindings(t *testing.T) {
 
 func FuzzCheckNeverPanics(f *testing.F) {
 	f.Add(good)
+	f.Add("# Concept\n## Copy\n- Avoid: \"body search\"; say \"FTS5 search\" V030")
 	f.Add("# Concept: X\n## Axes\n| a |\n|---|\n- 1. → →")
 	f.Fuzz(func(t *testing.T, text string) {
 		lines := strings.Count(text, "\n") + 1
@@ -377,5 +378,18 @@ func TestWarmGroundIsError(t *testing.T) {
 		if !found {
 			t.Fatal(messages(r))
 		}
+	}
+}
+
+func TestQuotedPhrasesStopAtExplanation(t *testing.T) {
+	for _, text := range []string{`"full-text body search"; say "FTS5 local search"`, `“full-text body search” V030; say “FTS5 local search”`} {
+		got := quoted(text)
+		if len(got) != 1 || got[0] != "full-text body search" {
+			t.Fatalf("%q: %v", text, got)
+		}
+	}
+	got := quoted(`"one", “two”; "three" V030`)
+	if len(got) != 3 {
+		t.Fatal(got)
 	}
 }

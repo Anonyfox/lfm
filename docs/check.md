@@ -4,7 +4,11 @@
 checks the initial HTML of any built page with compile's page rules: HTML, links,
 SEO, sharing, accessibility, forms, performance, design and copy. It reads without
 changing files or executing scripts. A client-rendered shell is checked as the
-HTML received, before JavaScript runs.
+HTML received, before JavaScript runs. An empty mount element, a module script and
+little or no body text trigger `html.client-shell`. Missing initial content and
+metadata are listed in that finding, retaining error severity for a missing
+canonical. Independent problems remain separate. Prerendering or server rendering
+makes the content available to readers and preview clients without JavaScript.
 
 Use an HTTP or HTTPS URL (including localhost and private hosts), a folder
 containing index.html, or a .html file. A folder without index.html needs a built output
@@ -13,7 +17,9 @@ http://localhost:8080/path/). A source folder containing lfm.json points
 to `lfm compile` instead. Use `--project <dir>` to pair a built target with its
 lfm.json, concept, research and templates. Project-only page rules then run with
 the same facts and validation settings as compile. The JSON report includes the
-absolute project path.
+absolute project path. Declared concept faces exempt intentional monospace labels
+and can change the `design.defaults` count; without project context those findings
+explain how `--project` supplies the declarations and validation settings.
 
 Without `--project`, the five page rules needing project facts are listed in
 `skipped`: links.declared, jsonld.block, commerce.discovery,
@@ -86,7 +92,11 @@ The page is first in files; other files are sorted by name. Remote names are abs
 URLs; local names are folder-relative slash paths, and a file on another origin
 keeps its absolute URL. Local status is zero. Exit codes:
 0 means no errors (warnings allowed), 1 means errors or an unreadable page, 2 means a
-usage error. An unreadable page with --json produces `{"error": "…", "next": {…}}`.
+usage error. An unreadable page with `--json` produces the same report object, with one
+`build.failed` error diagnostic and a fix next step. The top-level `status` and
+page file retain the HTTP status when a response was received (including 404/500);
+connection, DNS and timeout failures have no HTTP status. Invalid project context
+still uses the operational JSON error envelope.
 
 Resources are discovered in parallel waves. File-count admission follows discovery order;
 truncation at the shared byte limit may depend on response timing.
@@ -98,3 +108,12 @@ The machine-copy estimate excludes table elements and subtrees with role=table o
 `design.ground` errors on warm-light grounds and paper, parchment or notebook textures on page grounds and full-cover overlays. It checks the default light scheme using the static CSS cascade, including variables and shorthands. Warm-light means OKLCH L ≥ 0.88, C 0.004–0.045 and hue 45–115°; transparent colours do not count, and translucent colours are composited over white. Use white, cool or neutral grey, dark, or saturated subject colours. `data-design-reason` never exempts this rule; `build.validation.rules` can disable it. `concept.ground` applies the same colour restriction to every declared palette colour.
 
 See the [design guidance](design.md#generator-defaults) for the ground and decoration restrictions.
+
+`concept.fidelity` accepts simple English s/es/ed/ing forms of the final word in a
+`Use:` phrase when `html lang` is English. Other languages keep the existing word
+matching and receive a near-match hint when an English-style suffix is found.
+`Avoid:` bans only the leading quoted list, before explanation text or evidence IDs;
+for example, `Avoid: "body search"; say "FTS5 search"` bans only "body search".
+`copy.placeholder` ignores code elements and filename tokens such as `TODO.md`.
+Ordinary `application/json` data is not treated as declared links; JSON-LD and
+supported sharing payloads still are.

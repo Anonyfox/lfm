@@ -9,11 +9,14 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Anonyfox/lfm/internal/check"
+	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/golden"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/scaffold"
@@ -71,7 +74,7 @@ func TestCheckUnreadableHTTP(t *testing.T) {
 			if err := json.Unmarshal([]byte(out), &r); err != nil {
 				t.Fatal(err)
 			}
-			if code != 1 || r["error"] == nil || r["next"] == nil {
+			if code != 1 || r["validation"] == nil || r["status"] != float64(status) || r["errors"] != float64(1) || r["next"] == nil {
 				t.Fatal(code, out)
 			}
 		})
@@ -419,5 +422,98 @@ func TestCheckProjectErrorsRemainJSONAndNameTheSourceKey(t *testing.T) {
 		if dir == project && (!strings.Contains(result.Error, "lfm.json") || !strings.Contains(result.Error, "url")) {
 			t.Fatal(out)
 		}
+	}
+}
+
+func TestCheckCompiledDesignContext(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := scaffold.Create(dir); err != nil {
+		t.Fatal(err)
+	}
+	template := filepath.Join(dir, "index.html.tmpl")
+	raw, err := os.ReadFile(template)
+	if err != nil {
+		t.Fatal(err)
+	}
+	labels := `<style>.labels{font-family:"Courier New",monospace}</style>` + strings.Repeat(`<p class=labels>Reference label</p>`, 8)
+	raw = []byte(strings.Replace(string(raw), "</main>", labels+"</main>", 1))
+	if err := os.WriteFile(template, raw, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "concept.md"), []byte("# Concept\n\n## Type\n| Role | Family | Source |\n| --- | --- | --- |\n| Labels | Courier New | System |\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	compiled, err := compile.Compile(context.Background(), dir, compile.Options{Publish: true})
+	if err != nil {
+		t.Fatal(err, compiled.Validation)
+	}
+	design := func(issues []check.Diagnostic) []string {
+		var out []string
+		for _, d := range issues {
+			if strings.HasPrefix(d.Rule, "design.") {
+				out = append(out, d.Rule+": "+string(d.Severity)+": "+d.Message)
+			}
+		}
+		return out
+	}
+	want := design(compiled.Validation.Diagnostics)
+	for _, paired := range []bool{false, true} {
+		args := []string{"check", filepath.Join(dir, "output"), "--json"}
+		if paired {
+			args = append(args, "--project", dir)
+		}
+		code, out, errs := run(t, args...)
+		var result checkResult
+		if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 {
+			t.Fatal(code, out, errs, err)
+		}
+		if paired {
+			if !reflect.DeepEqual(design(result.Validation.Diagnostics), want) {
+				t.Fatalf("compile %v; check %v", want, design(result.Validation.Diagnostics))
+			}
+		} else {
+			found := false
+			for _, d := range result.Validation.Diagnostics {
+				if d.Rule == "design.mono" {
+					found = true
+					if !strings.Contains(d.Hint, "--project") || !strings.Contains(d.Hint, "declared faces") {
+						t.Fatal(d)
+					}
+				}
+			}
+			if !found {
+				t.Fatal("standalone check did not detect undeclared mono", out)
+			}
+		}
+	}
+}
+
+func TestCheckNetworkFailureReport(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	target := server.URL
+	server.Close()
+	code, out, errs := run(t, "check", target, "--json")
+	var report checkResult
+	if err := json.Unmarshal([]byte(out), &report); err != nil {
+		t.Fatal(err, out)
+	}
+	if code != 1 || report.Errors != 1 || report.Validation.Diagnostics[0].Rule != "build.failed" || report.Next.Phase != "fix" {
+		t.Fatal(code, out, errs)
+	}
+}
+
+func TestCheckTimeoutReport(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+	defer server.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	var out, errs bytes.Buffer
+	code := Run(ctx, Env{Stdout: &out, Stderr: &errs}, []string{"check", server.URL, "--json"})
+	var report checkResult
+	if err := json.Unmarshal(out.Bytes(), &report); err != nil {
+		t.Fatal(err, out.String())
+	}
+	if code != 1 || report.Errors != 1 || len(report.Validation.Diagnostics) != 1 || !strings.Contains(report.Validation.Diagnostics[0].Message, "timed out") {
+		t.Fatal(code, out.String(), errs.String())
 	}
 }

@@ -88,7 +88,13 @@ var quotedPhrase = regexp.MustCompile(`"([^"]+)"|“([^”]+)”`)
 // quoted returns the phrases in straight or typographic double quotes.
 func quoted(text string) []string {
 	var out []string
-	for _, m := range quotedPhrase.FindAllStringSubmatch(text, -1) {
+	end := 0
+	for _, loc := range quotedPhrase.FindAllStringSubmatchIndex(text, -1) {
+		if strings.Trim(text[end:loc[0]], " \t,;") != "" {
+			break
+		}
+		m := quotedPhrase.FindStringSubmatch(text[loc[0]:loc[1]])
+		end = loc[1]
 		phrase := strings.TrimSpace(m[1] + m[2])
 		if phrase != "" {
 			out = append(out, phrase)

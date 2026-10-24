@@ -613,6 +613,8 @@ func linkPurposeRule(d *Document) []Diagnostic {
 
 // Template filler is matched case-sensitively where case carries the meaning
 // (TODO, TBD, FIXME are markers; "todo" is a word).
+var fileNameToken = regexp.MustCompile(`(?:[\p{L}\p{N}_/-]+\.)+[\p{L}\p{N}_-]+`)
+
 var placeholderText = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)\blorem ipsum\b`),
 	regexp.MustCompile(`\b(?:TODO|TBD|FIXME)\b`),
@@ -634,6 +636,7 @@ func placeholderRule(d *Document) []Diagnostic {
 		issues = append(issues, d.At(n, Warning, fmt.Sprintf("Placeholder %s left in the page: %q.", what, preview(found)), "Replace it with the real content; a page with filler reads as unfinished, and search and share previews show it."))
 	}
 	check := func(n *html.Node, what, text string) {
+		text = fileNameToken.ReplaceAllString(text, "")
 		for _, re := range placeholderText {
 			if m := re.FindString(text); m != "" {
 				report(n, what, m)

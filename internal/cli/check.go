@@ -108,16 +108,19 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 	}
 	input, err := target.Read(ctx, p.args[0], env.Build.Version)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
 		if errors.Is(err, target.ErrUsage) {
 			return usageError("%s", err)
 		}
-		return err
 	}
+	readErr := err
 	browser := p.has("release")
 	rules, skipped := pageRules(browser)
 	doc := input.Document
 	var overrides map[string]diagnostic.Severity
-	if projectDir != "" {
+	if projectDir != "" && readErr == nil {
 		options, err := compile.ProjectCheckOptions(projectDir, input.Options)
 		if err != nil {
 			return err
@@ -132,9 +135,14 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 			skipped = []skippedRule{{"release.*", "browser checks run with --release"}, {"lighthouse.*", "browser checks run with --release"}}
 		}
 	}
-	r := checkResult{Target: p.args[0], Project: projectDir, Result: input, Validation: check.Run(doc, rules, nil), Skipped: skipped}
+	r := checkResult{Target: p.args[0], Project: projectDir, Result: input, Validation: check.Report{Stage: "html", Diagnostics: []check.Diagnostic{}}, Skipped: skipped}
+	if readErr == nil {
+		r.Validation = check.Run(doc, rules, overrides)
+	} else {
+		r.Validation.Diagnostics = append(r.Validation.Diagnostics, diagnostic.Diagnostic{Rule: "build.failed", Severity: diagnostic.Error, Location: diagnostic.Location{File: p.args[0], Line: 1, Column: 1}, Message: readErr.Error(), Hint: "Make the page readable at this target and check again."})
+	}
 	issues := r.Validation.Diagnostics
-	if noTarget {
+	if noTarget && readErr == nil {
 		built, err := compile.Compile(ctx, projectDir, compile.Options{})
 		if err != nil {
 			return fmt.Errorf("compare current source: %w", err)
@@ -147,7 +155,7 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 			issues = append(issues, diagnostic.Diagnostic{Rule: "build.stale", Severity: diagnostic.Warning, Location: diagnostic.Location{File: "output/", Line: 1, Column: 1}, Message: "output/ is stale against the current source: " + strings.Join(different, ", "), Hint: "Run lfm compile to rebuild output/ from the current source."})
 		}
 	}
-	if browser {
+	if browser && readErr == nil {
 		root := p.args[0]
 		if projectDir != "" {
 			root = projectDir
@@ -173,7 +181,7 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 		r.Next.Phase = "review"
 		r.Next.Do = "review the warnings above and check again."
 	}
-	if doc.LoopbackPreview() {
+	if doc != nil && doc.LoopbackPreview() {
 		r.Next.Notes = append(r.Next.Notes, "Loopback URL requirements are judged on the live URL: the declared public canonical origin is used where available; otherwise public-host and mixed-content findings for loopback URLs are deferred.")
 	}
 	if !browser {

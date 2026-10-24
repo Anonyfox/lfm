@@ -135,7 +135,7 @@ func scan(raw []byte, all bool) (refs, extra []Reference) {
 				}
 				if value, ok := attrs["type"]; ok {
 					value = strings.ToLower(strings.TrimSpace(value))
-					jsonText = value == "application/ld+json" || value == "application/json" || value == "application/vnd.discord.component-embed+json"
+					jsonText = value == "application/ld+json" || platformText && (value == "application/json" || value == "application/vnd.discord.component-embed+json")
 				}
 			}
 			if value, ok := attrs["style"]; ok { // Attribute positions are tag-relative after entity decoding.

@@ -86,8 +86,12 @@ func TestPageFailures(t *testing.T) {
 				fmt.Fprint(w, tc.body)
 			}))
 			defer s.Close()
-			if _, err := Read(context.Background(), s.URL, "test"); err == nil {
+			result, err := Read(context.Background(), s.URL, "test")
+			if err == nil {
 				t.Fatal("expected unreadable page")
+			}
+			if result.Status != tc.status || len(result.Files) != 1 || result.Files[0].Status != tc.status {
+				t.Fatalf("lost response details: %+v", result)
 			}
 		})
 	}
@@ -590,5 +594,26 @@ func TestFolderResourcesUnderCanonicalDirectory(t *testing.T) {
 	}
 	if !found || len(result.Options.Assets["image.svg"]) == 0 || len(result.Options.Assets["shared.svg"]) == 0 {
 		t.Fatal(result.Files)
+	}
+}
+
+func TestCallerDeadline(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("expired context made a request") }))
+	defer server.Close()
+	ctx, cancel := context.WithDeadline(context.Background(), time.Time{})
+	defer cancel()
+	result, err := Read(ctx, server.URL, "test")
+	if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "timed out") || result.Status != 0 {
+		t.Fatal(result, err)
+	}
+}
+
+func TestPageConnectionFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	address := server.URL
+	server.Close()
+	result, err := Read(context.Background(), address, "test")
+	if err == nil || result.Status != 0 || len(result.Files) != 1 || result.Files[0].Error == "" || result.Redirects == nil {
+		t.Fatal(result, err)
 	}
 }

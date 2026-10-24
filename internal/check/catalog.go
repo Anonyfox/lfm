@@ -20,6 +20,8 @@ const designException = " Deliberate? Keep it and add data-design-reason=\"why t
 // the only description of each rule; `lfm rules <id>` prints them.
 func DefaultRules() []Rule {
 	return []Rule{
+		rule("html.client-shell", "Client-rendered shells expose readable initial HTML",
+			"Warns when a module script and an empty body mount appear with at most three words and forty bytes of body text and no readable h1. Missing title, description, canonical, heading, main content and social fields are grouped here, retaining error severity when required metadata is absent. Search and sharing clients need initial HTML. Prerender or server-render content and head metadata; independent findings remain separate.", clientShellRule),
 		// links
 		rule("links.syntax", "Every URL in templates and final HTML parses the way browsers will read it",
 			"Errors for URLs browsers cannot parse, protocol typos such as htps:, javascript: URLs, unresolved placeholders and escaping that changed a configured destination; warnings for whitespace, odd percent encoding, embedded credentials, unknown schemes, a likely missing https:// and mailto/tel mistakes. A malformed link silently goes nowhere or somewhere else. Fix the value in lfm.json urls; store a raw & in JSON and let html/template escape it."+previewPolicy,
@@ -237,7 +239,7 @@ func DefaultRules() []Rule {
 			"Warns for four or more middot-separated meta strings and for fake window-control dots framing a product image. Both are template chrome that adds no information. Write the information as a sentence, labelled value or list, and show the real interface without a fake frame."+designException,
 			designRule("design.chrome")),
 		rule("design.mono", "Monospace type on eight or more non-code labels and captions",
-			"Warns when monospace sets eight or more labels or captions that are not code, data, times, tables or form controls. The console-style microcopy is a generated default and is harder to read. Set labels in the text face, with tabular figures for numbers, and keep mono for code and technical values."+designException,
+			"Warns when monospace sets eight or more labels or captions that are not code, data, times, tables or form controls; console-style microcopy is a generated default and is harder to read. Set labels in the text face, with tabular figures for numbers, and keep mono for code and technical values. Faces declared in the concept are intentional; pass --project <folder> when checking built output to supply those declarations and validation settings."+designException,
 			designRule("design.mono")),
 		rule("design.proof", "Generic \"trusted by\" claims and placeholder avatar or photo services",
 			"Warns for generic proof claims such as \"trusted by\", \"as seen on\" or \"join 10,000+ teams\", and for images from placeholder services like pravatar, randomuser, ui-avatars or picsum. Visitors recognize stand-in faces and unverifiable claims as fabricated, which undermines the real proof. Show verifiable proof next to the claim it supports, with real permitted photos, or remove it."+designException,
@@ -249,7 +251,7 @@ func DefaultRules() []Rule {
 			"Warns when four or more custom properties hold the exact default theme values of shadcn/ui (its slate and zinc HSL tokens or its oklch neutrals); two or three only count in design.defaults, and Bootstrap's default blue is a design.palette finding. An unthemed kit is the most recognizable generated look: the page wears the kit's identity instead of its own. Set the tokens from the concept's palette, type and form."+designException,
 			designRule("design.kit")),
 		rule("design.defaults", "Several generator-default design signals combining on one page",
-			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified.",
+			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified. Declared concept faces and validation settings affect the signal count; pass --project <folder> to pair built output with that context.",
 			designDefaultsRule),
 		// copy
 		rule("copy.tells", "Visible copy avoids the stock phrases and dash habit of generated text",
@@ -261,14 +263,14 @@ func DefaultRules() []Rule {
 			copyMachineRule),
 
 		rule("copy.placeholder", "No template filler, starter text or starter image is left in the page",
-			"Warns for lorem ipsum, TODO, TBD and FIXME markers, \"your headline here\" and [insert …] filler in visible text, alternative text, the title and description metadata; and, once the starter page of lfm init has been replaced, for its starter description, social image alt text and social image. Filler shipped reads as an unfinished or generated page, and search and share previews show it first. Replace each with the real content.",
+			"Warns for lorem ipsum, TODO, TBD and FIXME markers, \"your headline here\" and [insert …] filler in visible text, alternative text, the title and description metadata; and, once the starter page of lfm init has been replaced, for its starter description, social image alt text and social image. Filler shipped reads as an unfinished or generated page, and search and share previews show it first. Replace each with the real content. Code elements and filename tokens are excluded.",
 			placeholderRule),
 
 		rule("copy.actions", "Links and buttons say what happens, not just \"Learn more\"",
 			"Warns for links, buttons and summaries whose whole name is a generic label such as \"Learn more\", \"Click here\", \"Get started\", \"Submit\", \"Mehr erfahren\" or \"Absenden\"; longer names that include such words pass. Visitors scanning the page and assistants choosing an action cannot tell what these do or cost. Name the next step and its outcome, and say when it leads to payment.",
 			actionsRule),
 		rule("concept.fidelity", "The page uses the typefaces, palette, imagery and phrases concept.md declares",
-			"Once the starter page is replaced and the project has a concept.md, every font family on the page (also through var() tokens) must be declared in its Type table and every declared one used; every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading; the page must show as many distinct images as the Imagery table plans, minus rows waiting on Open:; the Copy section's Use: phrases must appear and its Avoid: phrases must not, outside quotations. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
+			"Once the starter page is replaced and the project has a concept.md, every font family on the page (also through var() tokens) must be declared in its Type table and every declared one used; every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading; the page must show as many distinct images as the Imagery table plans, minus rows waiting on Open:; the Copy section's Use: phrases must appear (simple s/es/ed/ing inflections of the final word also count on English pages) and its Avoid: phrases must not, outside quotations. Only leading quoted phrases on Avoid lines are banned; explanation text and evidence IDs end the list. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
 			conceptFidelityRule, "needs concept.md"),
 	}
 }

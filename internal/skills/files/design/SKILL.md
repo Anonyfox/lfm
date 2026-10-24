@@ -106,6 +106,10 @@ Work through the sections in order; each builds on the one before.
     shows with reduced motion.
 13. **Copy.** The buyers' own words to use, the tone, and the words to avoid, each citing voices. Write the
     exact phrases as `Use: "…"` and `Avoid: "…"` lines; `lfm compile` holds the page to them.
+    Only the leading quoted list is banned on an Avoid line; explanation text or IDs
+    end the list. `Avoid: "body search"; say "FTS5 search"` bans only "body search".
+    On English pages, simple s/es/ed/ing forms of the final Use word count too;
+    other languages keep exact word forms and show near-match hints.
 
 For a hub that routes to other pages and sells nothing itself, the next step is a named link per product page with ItemList JSON-LD; Offer and BuyAction stay on the product pages.
 

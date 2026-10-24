@@ -20,6 +20,8 @@ import (
 // with a non-empty data-design-reason are exempt: the reason documents the decision.
 // See guides/ui-ux.md#generator-defaults.
 
+const standaloneDesignContext = " Compile reads concept.md declared faces and build.validation settings; pass --project <folder> to use the same project context."
+
 const designGuide = "guides/ui-ux.md#generator-defaults"
 
 var (
@@ -71,6 +73,9 @@ func (d *Document) designDiagnostic(s designSignal) Diagnostic {
 		if s.css.file != "" {
 			x.Location = diagnostic.At(strings.TrimPrefix(s.css.file, "./"), s.css.raw, s.css.offset)
 		}
+	}
+	if d.Options.Concept == nil && s.rule == "design.mono" {
+		x.Hint += standaloneDesignContext
 	}
 	x.Reference = designGuide
 	return x
@@ -1445,6 +1450,9 @@ func designDefaultsRule(d *Document) []Diagnostic {
 		msg += fmt.Sprintf(" %d further signals are justified by data-design-reason.", f.justified)
 	}
 	x := d.Whole(Warning, msg, "Decide palette, type, shape, motion and layout from the subject in the brief; keep each listed pattern only with a reason. Weak signals alone never warn.")
+	if d.Options.Concept == nil {
+		x.Hint += standaloneDesignContext
+	}
 	x.Reference = designGuide
 	return []Diagnostic{x}
 }

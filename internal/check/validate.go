@@ -103,7 +103,7 @@ func Run(doc *Document, rules []Rule, overrides map[string]Severity) Report {
 			report.Diagnostics = append(report.Diagnostics, diagnostic)
 		}
 	}
-	summary := diagnostic.Summarize(report.Diagnostics)
+	summary := diagnostic.Summarize(groupShellFindings(report.Diagnostics))
 	report.Diagnostics = summary.Diagnostics
 	report.Errors = summary.Errors
 	report.Warnings = summary.Warnings
