@@ -395,6 +395,7 @@ func TestLocalEscapedName(t *testing.T) {
 func TestPoolDeterminismAndOverlap(t *testing.T) {
 	for _, count := range []int{16, 60, 300} {
 		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			var inFlight, maxInFlight atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/" {
 					if r.Header.Get("Accept") != "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8" {
@@ -407,16 +408,19 @@ func TestPoolDeterminismAndOverlap(t *testing.T) {
 					return
 				}
 				if count == 16 {
-					time.Sleep(100 * time.Millisecond)
+					now := inFlight.Add(1)
+					for peak := maxInFlight.Load(); now > peak && !maxInFlight.CompareAndSwap(peak, now); peak = maxInFlight.Load() {
+					}
+					time.Sleep(50 * time.Millisecond)
+					inFlight.Add(-1)
 				} else if count == 60 {
 					time.Sleep(time.Duration(rand.IntN(20)) * time.Millisecond)
 				}
 				fmt.Fprint(w, "const x=1;")
 			}))
 			defer server.Close()
-			start := time.Now()
 			a := load(t, server.URL)
-			if count == 16 && time.Since(start) > 350*time.Millisecond {
+			if count == 16 && maxInFlight.Load() < 2 {
 				t.Fatal("workers did not overlap")
 			}
 			b := load(t, server.URL)
