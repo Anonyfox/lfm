@@ -114,9 +114,9 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `perf.fonts` | Warnings: missing/invalid family/src/display/range, source-format mismatches, no known WOFF2 source, preload CORS/type/selection conflicts and >2 font preloads. Typography choices are preserved. |
 | `perf.font-assets` | Warnings: bounded container failures/inspection limits; >128 KiB per retained font, >256 KiB total, >8 MiB declared SFNT size. No glyph/payload sanitization or proven download count. |
 | `perf.viewport` | Warnings: missing/duplicate viewport or disabled zoom |
-| `perf.budgets` | Warnings: total inline + file CSS >20 KiB, JS >50 KiB, media >3000 KiB, video >8000 KiB, first-section media >400 KiB, >1,500 elements, depth >32 |
+| `perf.budgets` | Warnings: total inline + file CSS >20 KiB, JS >50 KiB, images >3000 KiB, video >8000 KiB, first-section media >400 KiB, >1,500 elements, depth >32 |
 | `design.media` | Warnings: an immersive concept has an outermost content section without image, video, canvas, non-icon SVG or CSS background image. Main headings group content when sections are absent. |
-| `perf.video` | Warnings: eager video below the first content section or autoplay missing playsinline; ux.media checks muted. Use a poster, preload=none and IntersectionObserver. |
+| `perf.video` | Warnings: eager video below the first content section or autoplay missing playsinline; ux.media checks muted. Drop autoplay below the first section; use muted playsinline, a poster, preload=none and IntersectionObserver. |
 | `design.ground` | Errors: warm-light page grounds, paper/parchment images, SVG noise and ruled full-cover textures. No design-reason exemption. |
 | `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH) and Bootstrap primary blue, gradients whose colored stops are all violet/blue/pink. Unused custom properties stay quiet; colors referenced through var(), including indirect references, count. Rainbow/iridescent gradients and lone terracotta stay quiet. |
 | `design.gradient-text` | Warnings: text filled by a gradient through `background-clip:text` (CSS or Tailwind classes). Image-filled text is not flagged. |

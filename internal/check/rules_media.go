@@ -161,8 +161,8 @@ func eagerVideoRule(d *Document) []Diagnostic {
 		}
 		auto := HasAttr(n, "autoplay")
 		preload := strings.ToLower(Attr(n, "preload"))
-		if !first[n] && (preload == "auto" || auto && (preload != "none" && preload != "metadata" || Attr(n, "poster") == "")) {
-			issues = append(issues, d.At(n, Warning, "Video below the first content section loads eagerly or autoplays without a poster.", "Use preload=\"none\" with a poster and start/pause with IntersectionObserver; see the implementation skill's short video loop pattern."))
+		if !first[n] && (preload == "auto" || auto) {
+			issues = append(issues, d.At(n, Warning, "Video below the first content section downloads at page load.", "Drop autoplay, set preload=\"none\" and a poster, and play it from an IntersectionObserver; see the implementation skill's video loop."))
 		}
 		// ux.media already reports missing muted.
 		if auto && !HasAttr(n, "playsinline") {
@@ -202,9 +202,10 @@ func mediaBytes(d *Document) (media, video, first int) {
 		if !ok {
 			return
 		}
-		all[key] = size
 		if isVideo {
 			videos[key] = size
+		} else {
+			all[key] = size
 		}
 		if inFirst {
 			paint[key] = size
@@ -219,11 +220,11 @@ func mediaBytes(d *Document) (media, video, first int) {
 		case "img":
 			add(Attr(n, "src"), false, inFirst)
 		case "video":
-			add(Attr(n, "poster"), false, inFirst)
-			add(Attr(n, "src"), true, inFirst && !strings.EqualFold(Attr(n, "preload"), "none"))
+			add(Attr(n, "poster"), false, firstNodes[n])
+			add(Attr(n, "src"), true, inFirst && (HasAttr(n, "autoplay") || strings.EqualFold(Attr(n, "preload"), "auto")))
 		case "source":
 			if n.Parent != nil && n.Parent.Data == "video" {
-				add(Attr(n, "src"), true, inFirst && !strings.EqualFold(Attr(n.Parent, "preload"), "none"))
+				add(Attr(n, "src"), true, inFirst && (HasAttr(n.Parent, "autoplay") || strings.EqualFold(Attr(n.Parent, "preload"), "auto")))
 			}
 		}
 		if n.Data == "img" || n.Data == "source" && n.Parent != nil && n.Parent.Data == "picture" {

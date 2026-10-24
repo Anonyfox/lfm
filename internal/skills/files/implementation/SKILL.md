@@ -114,9 +114,9 @@ photograph and film (cited in [[.ConceptFile]]), not from stock aesthetics. Then
 **Motion.** Follow the concept's `Intensity` (absent means restrained): restrained builds one orchestrated
 moment plus feedback; balanced a few moments; immersive media in every section and several moments, scroll
 scenes included. Patterns, not section types:
-- Video loop: `muted loop playsinline autoplay`, a sized `poster`, no audio, WebM (AV1) plus MP4 (H.264)
-  sources, `preload="none"` below the first screen (`metadata` on it), played and paused by an
-  IntersectionObserver; reduced motion shows the poster. Captions or a text equivalent when it informs.
+- Video loop: below the first screen, no autoplay: `muted loop playsinline preload="none"`, a sized
+  poster, no audio, WebM plus MP4; IntersectionObserver plays and pauses it. On the first screen autoplay
+  is fine. Reduced motion shows the poster. Captions or a text equivalent when it informs.
 - Scroll scene: `animation-timeline: view()` inside `@supports` and `prefers-reduced-motion: no-preference`,
   or IntersectionObserver class toggles; transform and opacity only; the end state is the default.
 - Image sequence: a few WebP/AVIF frames drawn to canvas on scroll, fetched only near the viewport, over a
@@ -182,7 +182,7 @@ Run `lfm compile --release`. In headless Chrome it records runtime errors and sc
 screen at [[.Screens]].
 It reports a first screen without heading or control, empty stretches, sideways scrolling, covered, tiny
 or low-contrast text, split values, motion that ignores reduced motion and text missing without
-JavaScript. It saves every frame; the `frames` line names the folder and, from the second run on, the
+JavaScript. It saves frames in the user cache; the `frames` line names the folder and, from run two, the
 frames that changed. Then review by looking:
 
 1. **Frames.** The first time, open every frame in order at full size, phone first; afterwards the changed

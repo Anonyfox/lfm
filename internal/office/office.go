@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/Anonyfox/lfm/internal/scratch"
 )
 
 // Find locates LibreOffice's soffice: LFM_SOFFICE (a path, or none to
@@ -44,11 +46,11 @@ func Missing(err error) bool { return errors.Is(err, errNotFound) }
 // every file LibreOffice wrote, by name. A private profile keeps parallel
 // runs and the user's own LibreOffice apart.
 func Convert(ctx context.Context, soffice string, files map[string][]byte, filter string) (map[string][]byte, error) {
-	dir, err := os.MkdirTemp("", "lfm-office-")
+	dir, err := scratch.Dir("office")
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(dir)
+	defer scratch.Remove(dir)
 	out := filepath.Join(dir, "out")
 	args := []string{"-env:UserInstallation=file://" + filepath.ToSlash(filepath.Join(dir, "profile")), "--headless", "--norestore",
 		"--convert-to", filter, "--outdir", out}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -14,6 +15,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestScreensCoverPhoneLaptopAndDesktop(t *testing.T) {
@@ -118,10 +120,10 @@ func TestResetFramesClearsOnlyOldFrames(t *testing.T) {
 	}
 }
 
-func TestFramesAndReportsLiveInTempPerProject(t *testing.T) {
+func TestFramesAndReportsLiveInCachePerProject(t *testing.T) {
 	t.Parallel()
 	a, b := FramesPath("/projects/a"), FramesPath("/projects/b")
-	if a == b || a != FramesPath("/projects/a") || filepath.Dir(a) != filepath.Clean(os.TempDir()) || !strings.HasPrefix(filepath.Base(a), "lfm-frames-") {
+	if a == b || a != FramesPath("/projects/a") || filepath.Dir(a) != filepath.Join(os.Getenv("XDG_CACHE_HOME"), "lfm", "frames") {
 		t.Fatalf("%q %q", a, b)
 	}
 	if ReportPath("/projects/a") == a || !strings.HasSuffix(ReportPath("/projects/a"), ".json") {
@@ -458,4 +460,37 @@ func serve(h http.Handler, r *http.Request) *httptest.ResponseRecorder {
 
 func httpGet(h http.Handler, url string) *httptest.ResponseRecorder {
 	return serve(h, newRequest("GET", url, nil))
+}
+
+func TestReviewArtifactPathsPruneAgeAndCount(t *testing.T) {
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	for _, pathFor := range []func(string) string{FramesPath, ReportPath} {
+		stale := pathFor("stale")
+		if filepath.Ext(stale) == ".json" {
+			if err := os.WriteFile(stale, nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		date := time.Now().Add(-31 * 24 * time.Hour)
+		if err := os.Chtimes(stale, date, date); err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < 130; i++ {
+			path := pathFor(fmt.Sprint(i))
+			if filepath.Ext(path) == ".json" {
+				if err := os.WriteFile(path, nil, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		latest := pathFor("129")
+		if _, err := os.Stat(stale); !os.IsNotExist(err) {
+			t.Fatalf("stale artifact remains: %v", err)
+		}
+		entries, err := os.ReadDir(filepath.Dir(latest))
+		if err != nil || len(entries) != 128 {
+			t.Fatalf("artifacts: %d %v", len(entries), err)
+		}
+	}
 }

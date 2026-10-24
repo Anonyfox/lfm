@@ -104,9 +104,9 @@ func TestAssetsMode(t *testing.T) {
 
 func TestLoadBudgets(t *testing.T) {
 	p := newProject(t)
-	write(t, p.Root, ConfigFile, strings.Replace(validConfig, `"data"`, `"build":{"validation":{"budgets":{"cssKiB":80,"elements":3000,"mediaKiB":4000,"videoKiB":9000,"firstScreenKiB":500}}},"data"`, 1))
+	write(t, p.Root, ConfigFile, strings.Replace(validConfig, `"data"`, `"build":{"validation":{"budgets":{"cssKiB":80,"elements":3000,"imageKiB":4000,"videoKiB":9000,"firstScreenKiB":500}}},"data"`, 1))
 	l := Load(p, nil)
-	if b := l.Config.Build.Validation.Budgets; len(l.Problems) != 0 || b.CSSKiB != 80 || b.Elements != 3000 || b.JSKiB != 0 || b.MediaKiB != 4000 || b.VideoKiB != 9000 || b.FirstScreenKiB != 500 {
+	if b := l.Config.Build.Validation.Budgets; len(l.Problems) != 0 || b.CSSKiB != 80 || b.Elements != 3000 || b.JSKiB != 0 || b.ImageKiB != 4000 || b.VideoKiB != 9000 || b.FirstScreenKiB != 500 {
 		t.Fatalf("%+v %+v", l.Problems, b)
 	}
 	problems := func(budgets string) string {
@@ -119,7 +119,7 @@ func TestLoadBudgets(t *testing.T) {
 	}
 	// The shape first, then the ranges a page may raise its budgets to.
 	for budgets, want := range map[string][]string{
-		`{"mediaKiB":-1,"videoKiB":1048577,"firstScreenKiB":-1}`: {"build.validation.budgets.mediaKiB", "build.validation.budgets.videoKiB", "build.validation.budgets.firstScreenKiB"},
+		`{"imageKiB":-1,"videoKiB":1048577,"firstScreenKiB":-1}`: {"build.validation.budgets.imageKiB", "build.validation.budgets.videoKiB", "build.validation.budgets.firstScreenKiB"},
 		`{"firstScreenKiB":"big"}`:                               {"build.validation.budgets.firstScreenKiB"},
 		`{"jsKiB":"big","fonts":3}`:                              {"build.validation.budgets.jsKiB", "build.validation.budgets.fonts"},
 		`{"cssKiB":-1,"depth":99999}`:                            {"build.validation.budgets.cssKiB", "build.validation.budgets.depth"},

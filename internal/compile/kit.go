@@ -11,10 +11,12 @@ import (
 	"sync"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
+	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/office"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/scratch"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -293,7 +295,7 @@ func (s sale) open(st *stock, result *Result, editions []string, preview func(i 
 // exactly these bytes with this lfm and this LibreOffice, or run's fresh
 // result, kept for next time. Opening them takes seconds a release with
 // unchanged files does not need. The verdicts live beside the release
-// frames in the system temp directory; only successful runs are kept.
+// frames in the user cache; only successful runs are kept.
 func remembered[T any](soffice, kind string, files [][]byte, run func() (T, error)) (T, error) {
 	h := sha256.New()
 	fmt.Fprintf(h, "%s\x00%s\x00%s\x00", kind, buildid.Writer(), soffice)
@@ -306,7 +308,9 @@ func remembered[T any](soffice, kind string, files [][]byte, run func() (T, erro
 		fmt.Fprintf(h, "%d\x00", len(f))
 		h.Write(f)
 	}
-	path := filepath.Join(os.TempDir(), "lfm-libreoffice", hex.EncodeToString(h.Sum(nil))[:32]+".json")
+	path := filepath.Join(cache.Dir("libreoffice"), hex.EncodeToString(h.Sum(nil))[:32]+".json")
+	cache.Touch(path)
+	cache.Prune(filepath.Dir(path))
 	var out T
 	if raw, err := os.ReadFile(path); err == nil && json.Unmarshal(raw, &out) == nil {
 		return out, nil
@@ -317,14 +321,15 @@ func remembered[T any](soffice, kind string, files [][]byte, run func() (T, erro
 	}
 	if raw, err := json.Marshal(out); err == nil && os.MkdirAll(filepath.Dir(path), 0o755) == nil {
 		// A rename makes the verdict appear whole to a parallel release.
-		if tmp, err := os.CreateTemp(filepath.Dir(path), ".verdict-*"); err == nil {
+		if tmp, err := scratch.File(filepath.Dir(path), ".verdict-*"); err == nil {
 			_, werr := tmp.Write(raw)
 			if tmp.Close() == nil && werr == nil {
 				os.Rename(tmp.Name(), path)
 			}
-			os.Remove(tmp.Name())
+			scratch.Remove(tmp.Name())
 		}
 	}
+	cache.Prune(filepath.Dir(path))
 	return out, nil
 }
 

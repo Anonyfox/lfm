@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
+	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/scratch"
 )
 
 // CacheKey includes the complete served artifact and the tools and settings that
@@ -90,7 +92,7 @@ var userCacheDir = os.UserCacheDir
 func cacheDir() string {
 	dir, err := userCacheDir()
 	if err != nil {
-		return ""
+		dir = os.TempDir()
 	}
 	return filepath.Join(dir, "lfm", "release")
 }
@@ -109,6 +111,7 @@ func ReadCache(key string, value any) time.Time {
 	if json.Unmarshal(raw, &entry) != nil || entry.Date.IsZero() || time.Since(entry.Date) > 30*24*time.Hour || json.Unmarshal(entry.Value, value) != nil {
 		return time.Time{}
 	}
+	cache.Touch(filepath.Join(dir, key+".json"))
 	return entry.Date
 }
 
@@ -129,11 +132,11 @@ func WriteCache(key string, value any) {
 	if os.MkdirAll(dir, 0o755) != nil {
 		return
 	}
-	f, err := os.CreateTemp(dir, ".audit-*")
+	f, err := scratch.File(dir, ".audit-*")
 	if err != nil {
 		return
 	}
-	defer os.Remove(f.Name())
+	defer scratch.Remove(f.Name())
 	if _, err = f.Write(raw); err != nil {
 		f.Close()
 		return
@@ -144,25 +147,7 @@ func WriteCache(key string, value any) {
 	if os.Rename(f.Name(), filepath.Join(dir, key+".json")) != nil {
 		return
 	}
-	entries, _ := os.ReadDir(dir)
-	type file struct {
-		name string
-		date time.Time
-	}
-	var files []file
-	for _, entry := range entries {
-		if filepath.Ext(entry.Name()) == ".json" {
-			if info, e := entry.Info(); e == nil {
-				files = append(files, file{entry.Name(), info.ModTime()})
-			}
-		}
-	}
-	slices.SortFunc(files, func(a, b file) int { return b.date.Compare(a.date) })
-	for i, entry := range files {
-		if i >= 128 || time.Since(entry.date) > 30*24*time.Hour {
-			_ = os.Remove(filepath.Join(dir, entry.name))
-		}
-	}
+	cache.Prune(dir)
 }
 
 type cachedAudit struct {
@@ -174,6 +159,8 @@ func cachedAuditRun(ctx context.Context, target Target, root string, run func(co
 	key := CacheKey(ctx, target, root)
 	var entry cachedAudit
 	if date := ReadCache(key, &entry); !date.IsZero() && completeAudit(entry.Result) {
+		FramesPath(root)
+		ReportPath(root)
 		entry.Result.Diagnostics = entry.Diagnostics
 		entry.Result.Reused = date.Format(time.RFC3339)
 		return entry.Result

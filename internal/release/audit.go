@@ -20,7 +20,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/scratch"
 )
 
 const LighthouseSetup = "Install Node >=22.19 and run npm install -g lighthouse@13.5.0 once; ensure lighthouse is in PATH (or set LFM_LIGHTHOUSE to its executable). Builds never install/download tools."
@@ -212,7 +214,7 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	defer closeTarget()
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
-	profile, err := os.MkdirTemp("", "lfm-lighthouse-chrome-")
+	profile, err := scratch.Dir("lighthouse-chrome")
 	if err != nil {
 		r.Reason = err.Error()
 		r.Hint = "Ensure the system temporary directory is writable."
@@ -265,13 +267,13 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	if parsed != nil && target.URL != "" {
 		parsed.Scope = target.auditScope()
 	}
-	// Persist raw detail in the system temp directory, one file per project.
+	// Persist raw detail in the user cache directory, one file per project.
 	// Atomic rename replaces an existing symlink rather than following it.
 	report := ReportPath(root)
-	file, err := os.CreateTemp(filepath.Dir(report), "lfm-lighthouse-*.json")
+	file, err := scratch.File(filepath.Dir(report), ".report-*.json")
 	if err == nil {
 		name := file.Name()
-		defer os.Remove(name)
+		defer scratch.Remove(name)
 		_, err = file.Write(stdout.Bytes())
 		closeErr := file.Close()
 		if err == nil {
@@ -287,6 +289,7 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	if err != nil {
 		r.Warnings = append(r.Warnings, "Full report could not be saved: "+err.Error())
 	} else {
+		cache.Prune(filepath.Dir(report))
 		r.Report = report
 	}
 	if parseErr != nil {
@@ -571,22 +574,16 @@ func auditItems(raw json.RawMessage) []json.RawMessage {
 }
 
 // ReportPath is where the complete Lighthouse JSON of a project is kept: the
-// system temp directory, outside the project and its deployable output.
+// user cache, outside the project and its deployable output.
 func ReportPath(root string) string {
 	sum := sha256.Sum256([]byte(root))
-	return filepath.Join(os.TempDir(), fmt.Sprintf("lfm-lighthouse-%x.json", sum[:6]))
+	dir := cache.Dir("lighthouse")
+	path := filepath.Join(dir, fmt.Sprintf("%x.json", sum[:6]))
+	cache.Touch(path)
+	cache.Prune(dir)
+	_ = os.MkdirAll(dir, 0o755)
+	return path
 }
 
-// removeProfile deletes a browser profile folder. Chrome's helper processes
-// can still write into it for a moment after the browser closed, so removal
-// is retried briefly before it counts as failed.
-func removeProfile(dir string) error {
-	var err error
-	for attempt := 0; attempt < 10; attempt++ {
-		if err = os.RemoveAll(dir); err == nil {
-			return nil
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return err
-}
+// removeProfile retries removal while browser helpers release their files.
+func removeProfile(dir string) error { return scratch.Remove(dir) }

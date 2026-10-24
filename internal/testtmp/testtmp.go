@@ -1,12 +1,14 @@
 // Package testtmp gives a package's tests a temp directory of their own:
-// release frames, Chrome profiles and Lighthouse reports land in the system
-// temp directory by design, and test projects get a new root every run.
+// working files and caches stay isolated from the user.
 package testtmp
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/Anonyfox/lfm/internal/scratch"
 )
 
 // Main runs the tests with color disabled and TMPDIR inside a fresh directory,
@@ -14,26 +16,23 @@ import (
 func Main(m *testing.M, setup ...func(string) error) {
 	os.Unsetenv("FORCE_COLOR")
 	os.Setenv("NO_COLOR", "1")
-	// /tmp before the system temp directory: esbuild reads every directory
-	// above a project on each build, and a macOS user temp directory can
-	// hold a hundred thousand entries that slow every compile tenfold.
-	dir, err := os.MkdirTemp("/tmp", "lfm-tests-")
-	if err != nil {
-		dir, err = os.MkdirTemp("", "lfm-tests-")
-	}
+	scratch.Start()
+	dir, err := scratch.Dir("tests")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	os.Setenv("TMPDIR", dir)
+	os.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
+	os.Setenv("HOME", dir)
 	for _, fixture := range setup {
 		if err := fixture(dir); err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.RemoveAll(dir)
+			scratch.Cleanup()
 			os.Exit(1)
 		}
 	}
 	code := m.Run()
-	os.RemoveAll(dir)
+	scratch.Cleanup()
 	os.Exit(code)
 }

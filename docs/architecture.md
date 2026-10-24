@@ -42,6 +42,7 @@ one package per responsibility, each testable on its own.
 | `paper` | The paper sizes editable files print on, and which a language prints on by default. |
 | `buildid` | The identity of the running lfm build, part of every built file's key, so an upgrade rebuilds files but keeps prints. |
 | `htmlx`, `jsonsrc`, `diagnostic` | Shared node helpers, JSON source locations, and the finding format. |
+| `cache`, `scratch` | Bounded persistent artifacts and owned temporary working directories. |
 | `release` | Headless Chrome for critical CSS, the runtime probe and the frame-by-frame layout audit, and Lighthouse. |
 | `serve` | The preview server, the polling watcher and live reload. |
 | `golden`, `testtmp`, `testproject` | For tests only: manifests of whole outputs held to `testdata/golden` (`LFM_UPDATE_GOLDEN=1` rewrites them), a temp directory of their own for browser-backed tests, and a project per deliverable for the compile and report tests. |

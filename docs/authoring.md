@@ -357,26 +357,28 @@ need captions or an equivalent text explanation.
 
 `design.media` checks outermost content sections for immersive concepts. Without sections it groups
 main content at h1/h2 headings; nav and footer are excluded. `perf.video` checks video loading and
-autoplay attributes. `perf.budgets` counts known referenced file bytes once: media includes video,
-video is also counted separately, and the first section approximates the first screen. Lazy images
-and preload=none video bytes are excluded from that first-screen total; posters still count. Unknown
-remote sizes are skipped. See [budget configuration](config.md).
+autoplay attributes. `perf.budgets` counts known referenced file bytes once per budget: images,
+posters, srcset candidates and CSS backgrounds use `imageKiB` (3000); video sources use `videoKiB`
+(8000). The first section approximates the first screen, with `firstScreenKiB` (400). Lazy images
+are excluded from that total; video sources count only with autoplay or preload=auto. Posters still
+count. Unknown remote sizes are skipped. See [budget configuration](config.md).
 
 ### Short video loop
 
-No audio track; AV1/WebM plus H.264 MP4. Preload none below the first screen,
-metadata on the first. Observe to start/pause and honor the pause button. Before playback, check reduced
-motion: disable autoplay, pause and overlay the static poster; handle preference changes too.
+No audio track; AV1/WebM plus H.264 MP4. Below the first screen, omit autoplay and use
+muted loop playsinline with preload=none and a sized poster. Autoplay is fine on the first screen.
+Observe to start/pause and honor the pause button. Before playback, check reduced motion: disable
+autoplay, pause and overlay the static poster; handle preference changes too.
 
 ```html
-<video muted loop playsinline autoplay preload="none" poster="work.webp" width="960" height="640">
+<video muted loop playsinline preload="none" poster="work.webp" width="960" height="640">
 <source src="work.webm" type='video/webm; codecs="av01.0.05M.08"'><source src="work.mp4" type="video/mp4"></video>
 <script type="module">
 const reduced = matchMedia('(prefers-reduced-motion: reduce)'); let userPaused = false; // wire the pause button
 const observer = new IntersectionObserver(es => es.forEach(({target:v,isIntersecting}) => {
   if (isIntersecting && !reduced.matches && !userPaused) v.play().catch(() => {}); else v.pause();
 }));
-document.querySelectorAll("video").forEach(v => { v.autoplay=false; v.pause(); if (!reduced.matches) observer.observe(v) });
+document.querySelectorAll("video").forEach(v => { v.pause(); if (!reduced.matches) observer.observe(v) });
 </script>
 ```
 

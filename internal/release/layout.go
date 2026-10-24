@@ -18,6 +18,8 @@ import (
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
+
+	"github.com/Anonyfox/lfm/internal/cache"
 )
 
 //go:embed layout.js
@@ -64,11 +66,16 @@ type LayoutFinding struct {
 // tell the next run which frames show something new.
 const signaturesFile = "signatures.json"
 
-// FramesPath is the screenshot folder of a project, in the system temp
+// FramesPath is the screenshot folder of a project, in the user cache
 // directory like the Lighthouse report, so the project tree stays clean.
 func FramesPath(root string) string {
 	sum := sha256.Sum256([]byte(root))
-	return filepath.Join(os.TempDir(), fmt.Sprintf("lfm-frames-%x", sum[:6]))
+	dir := cache.Dir("frames")
+	path := filepath.Join(dir, fmt.Sprintf("%x", sum[:6]))
+	_ = os.MkdirAll(path, 0o755)
+	cache.Touch(path)
+	cache.Prune(dir)
+	return path
 }
 
 type frameState struct {

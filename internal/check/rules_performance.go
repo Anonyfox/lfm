@@ -232,9 +232,9 @@ func budgetsRule(d *Document) []Diagnostic {
 	}{
 		{"CSS (inline + files)", "cssKiB", d.Stats.CSSBytes + d.Stats.ExternalCSSBytes - d.Options.CriticalCSSBytes, or(b.CSSKiB, 20), 1024, kib, "Remove unused styles and dependencies; file packing changes scheduling, not total CSS bytes."},
 		{"JavaScript (inline + files)", "jsKiB", d.Stats.JSBytes + d.Stats.ExternalJSBytes, or(b.JSKiB, 50), 1024, kib, "Inspect dependencies and startup work; moving code to a file does not remove its CPU cost."},
-		{"Media files", "mediaKiB", media, or(b.MediaKiB, 3000), 1024, kib, "Compress images and shorten loops; only known referenced file sizes count."},
+		{"Image files", "imageKiB", media, or(b.ImageKiB, 3000), 1024, kib, "Compress images; only known referenced file sizes count."},
 		{"Video files", "videoKiB", video, or(b.VideoKiB, 8000), 1024, kib, "Shorten and re-encode video loops."},
-		{"First-screen media", "firstScreenKiB", first, or(b.FirstScreenKiB, 400), 1024, kib, "Use a smaller first-section image or poster and defer video with preload=none."},
+		{"First-screen media", "firstScreenKiB", first, or(b.FirstScreenKiB, 400), 1024, kib, "Use a smaller first-section image or poster and drop autoplay and defer video with preload=none."},
 		{"DOM elements", "elements", d.Stats.Elements, or(b.Elements, 1500), 1, plain, "Reduce repeated markup or inspect rendering costs on a representative phone."},
 		{"DOM depth", "depth", d.Stats.MaxDepth, or(b.Depth, 32), 1, plain, "Flatten unnecessary wrappers; this is an advisory budget, not an HTML validity limit."},
 	} {

@@ -176,7 +176,7 @@ file is created, and a second compile waits and says so. Nothing is written into
 `output/`, `distribution/` for deliverables with a listing, and, only while publishing, sibling `*.next-*`
 folders that the swap removes again.
 Ctrl-C stops a compile at once, Chrome and LibreOffice included; a stopped compile never publishes.
-LibreOffice's verdict on files it already opened is kept in the system temp directory, so a release of
+LibreOffice's verdict on files it already opened is kept in the user cache under `lfm/`, so a release of
 unchanged documents, decks or workbooks does not open them again.
 
 ## Release
@@ -195,7 +195,7 @@ unchanged documents, decks or workbooks does not open them again.
    exceptions and missing files are reported. Then the page is scrolled by half a screen at a time at 390×844,
    1280×680 and 1440×900, each size in its own tab at the same time (the book's prints and layout check run
    alongside); finite animations settle, looping ones pause at their start, and every frame is
-   saved as a screenshot in the system temp directory. The report prints the folder and, from the second run
+   saved as a screenshot in the user cache under `lfm/`. The report prints the folder and, from the second run
    on, the frames whose content changed. `release.layout` reports a first screen without a legible heading or
    any control, stretches without legible content, sideways scrolling, text a pinned layer always covers,
    text under 9 px, text under the WCAG contrast minimum on a certain flat ground, numbers split from their
@@ -211,8 +211,8 @@ unchanged documents, decks or workbooks does not open them again.
    FCP 1.8 s, speed index 3.4 s and CLS 0.1. CLS details name shifting elements and scores
    when Lighthouse supplies them. Zero-weight diagnostics are informational. URL-bearing
    third-party rows are informational and name their hosts; mixed audits warn for first-party
-   rows only. Scores and findings are reported; the complete JSON is saved in the system
-   temp directory. Audits of what the static host
+   rows only. Scores and findings are reported; the complete JSON is saved in the
+   user cache under `lfm/lighthouse/`. Audits of what the static host
    decides (cache lifetimes, HTTPS, latency) are listed as host settings instead of warnings. Text goes out
    gzip-compressed, as every common static host sends it, so the metrics describe the page visitors get;
    the report's host line gives the text as sent and as built, and about how much later a phone gets it
@@ -244,3 +244,9 @@ An unchanged artifact reuses its critical CSS decision, runtime/layout result an
 report gives the original audit date. Changing any served byte or tool version requires a fresh audit.
 Live URLs checked with `lfm check --release` always run fresh audits. Cache failures do not block a build;
 entries expire after 30 days and at most 128 are kept.
+
+Review frames, Lighthouse reports and LibreOffice verdicts live under the user cache in
+`lfm/frames/<project-hash>/`, `lfm/lighthouse/<project-hash>.json` and `lfm/libreoffice/`. Each category
+keeps at most 128 entries and removes entries unused for 30 days. If the user cache cannot be located,
+lfm uses the system temp directory. Working directories are removed on exit; startup removes owned
+scratch older than six hours.

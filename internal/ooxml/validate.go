@@ -5,17 +5,19 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/Anonyfox/lfm/internal/scratch"
 )
 
 // Validate runs Microsoft's Open XML SDK over the files, as Office reads
 // them, and returns its findings. dll is the built validator (see the
 // validator folder); tests pass LFM_OOXML_VALIDATOR.
 func Validate(dll string, files map[string][]byte) (string, error) {
-	dir, err := os.MkdirTemp("", "lfm-ooxml-")
+	dir, err := scratch.Dir("ooxml")
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(dir)
+	defer scratch.Remove(dir)
 	args := []string{dll}
 	for name, data := range files {
 		path := filepath.Join(dir, filepath.Base(name))

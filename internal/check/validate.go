@@ -66,7 +66,7 @@ type Options struct {
 
 // Budgets are a page's advisory sizes for perf.budgets; zero keeps the
 // default.
-type Budgets struct{ MediaKiB, VideoKiB, FirstScreenKiB, CSSKiB, JSKiB, Elements, Depth int }
+type Budgets struct{ ImageKiB, VideoKiB, FirstScreenKiB, CSSKiB, JSKiB, Elements, Depth int }
 
 type Report struct {
 	Stage       string       `json:"stage,omitempty"`

@@ -24,7 +24,7 @@ reduced motion and wire the button to playback state, including the observer's c
 <section aria-labelledby="process">
   <h2 id="process">Cut along the grain</h2>
   <p>The blade follows the grain; stop before the shoulder and finish with a chisel.</p>
-  <video muted loop playsinline autoplay preload="none" poster="process.webp" width="960" height="640">
+  <video muted loop playsinline preload="none" poster="process.webp" width="960" height="640">
     <source src="process.webm" type='video/webm; codecs="av01.0.05M.08"'>
     <source src="process.mp4" type="video/mp4">
   </video>

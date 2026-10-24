@@ -4,8 +4,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 - Concepts support restrained, balanced and immersive motion intensity; existing concepts stay restrained.
 - Design and implementation skills plan media per immersive section and describe video loops, scroll scenes and image sequences with reduced-motion fallbacks.
+- compile, check and release no longer leave scratch in the temp directory: working folders are cleaned on exit, stale owned scratch is pruned after six hours, and review artifacts and LibreOffice verdicts use bounded user caches.
 - `design.media` warns about media-less immersive sections; `perf.video` warns about eager video and incomplete autoplay attributes.
-- `perf.budgets` adds configurable total media, video and first-screen media budgets.
+- `perf.budgets` adds configurable image (3000 KiB), video (8000 KiB) and first-screen media (400 KiB) budgets; only autoplay or preload=auto video sources count toward the first screen.
 - The reference example documentation includes an immersive variant.
 
 ## 0.1.10 (2026-10-24)

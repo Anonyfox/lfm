@@ -43,8 +43,8 @@ func TestVideoLoading(t *testing.T) {
 		want  int
 	}{
 		{`autoplay muted playsinline`, false, 1},
-		{`autoplay muted playsinline preload=none poster=a`, false, 0},
-		{`autoplay muted playsinline preload=metadata poster=a`, false, 0},
+		{`autoplay muted playsinline preload=none poster=a`, false, 1},
+		{`autoplay muted playsinline preload=metadata poster=a`, false, 1},
 		{`autoplay muted playsinline preload=none`, false, 1},
 		{`preload=auto`, false, 1},
 		{`controls preload=none`, false, 0},
@@ -77,13 +77,13 @@ func TestMediaBudgets(t *testing.T) {
 		t.Fatal(err)
 	}
 	media, video, first := mediaBytes(d)
-	if media != 1500<<10 || video != 900<<10 || first != 300<<10 {
+	if media != 600<<10 || video != 900<<10 || first != 300<<10 {
 		t.Fatalf("%d %d %d", media, video, first)
 	}
 	if got := budgetsRule(d); len(got) != 0 {
 		t.Fatal(got)
 	}
-	d.Options.Budgets = Budgets{MediaKiB: 1000, VideoKiB: 800, FirstScreenKiB: 200}
+	d.Options.Budgets = Budgets{ImageKiB: 500, VideoKiB: 800, FirstScreenKiB: 200}
 	if got := budgetsRule(d); len(got) != 3 {
 		t.Fatal(got)
 	}
@@ -93,7 +93,7 @@ func TestMediaBudgets(t *testing.T) {
 		t.Fatal(got)
 	}
 	assets["v.mp4"] = make([]byte, 8001<<10)
-	if got := budgetsRule(d); len(got) != 3 {
+	if got := budgetsRule(d); len(got) != 2 {
 		t.Fatal(got)
 	}
 }
@@ -136,5 +136,44 @@ func TestImmersiveLinkedStyles(t *testing.T) {
 	media, _, first := mediaBytes(d)
 	if media != 200 || first != 200 {
 		t.Fatalf("%d %d", media, first)
+	}
+}
+
+func TestFirstScreenVideoBytes(t *testing.T) {
+	for _, attrs := range []struct {
+		value string
+		eager bool
+	}{
+		{"", false},
+		{"preload=none", false},
+		{"preload=metadata", false},
+		{"preload=auto", true},
+		{"autoplay preload=none", true},
+		{"autoplay preload=metadata", true},
+		{"autoplay", true},
+	} {
+		for _, source := range []bool{false, true} {
+			video := "<video poster=p.webp " + attrs.value
+			if source {
+				video += "><source src=v.mp4></video>"
+			} else {
+				video += " src=v.mp4></video>"
+			}
+			d, err := Parse([]byte("<main><section>"+video+"</section></main>"), Options{Assets: map[string][]byte{"p.webp": make([]byte, 100), "v.mp4": make([]byte, 4000<<10)}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			image, videoBytes, first := mediaBytes(d)
+			want := 100
+			if attrs.eager {
+				want += 4000 << 10
+			}
+			if image != 100 || videoBytes != 4000<<10 || first != want {
+				t.Fatalf("%s source=%v: %d %d %d", attrs.value, source, image, videoBytes, first)
+			}
+			if !attrs.eager && len(budgetsRule(d)) != 0 {
+				t.Fatalf("deferred video charged to image budget: %v", budgetsRule(d))
+			}
+		}
 	}
 }

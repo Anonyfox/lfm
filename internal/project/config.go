@@ -155,7 +155,7 @@ type Validation struct {
 // Budgets are a page's advisory sizes, which perf.budgets warns past; a
 // field left out keeps lfm's default.
 type Budgets struct {
-	MediaKiB       int `json:"mediaKiB"`
+	ImageKiB       int `json:"imageKiB"`
 	VideoKiB       int `json:"videoKiB"`
 	FirstScreenKiB int `json:"firstScreenKiB"`
 	CSSKiB         int `json:"cssKiB"`
@@ -170,7 +170,7 @@ var budgetRanges = []struct {
 	value func(Budgets) int
 	max   int
 }{
-	{"mediaKiB", func(b Budgets) int { return b.MediaKiB }, 1048576},
+	{"imageKiB", func(b Budgets) int { return b.ImageKiB }, 1048576},
 	{"videoKiB", func(b Budgets) int { return b.VideoKiB }, 1048576},
 	{"firstScreenKiB", func(b Budgets) int { return b.FirstScreenKiB }, 1048576},
 	{"cssKiB", func(b Budgets) int { return b.CSSKiB }, 10240},

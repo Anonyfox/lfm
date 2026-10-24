@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Anonyfox/lfm/internal/cli"
+	"github.com/Anonyfox/lfm/internal/scratch"
 )
 
 // Set at release time via -ldflags "-X main.version=... -X main.commit=... -X main.date=...".
@@ -18,7 +19,13 @@ var (
 	date    = "unknown"
 )
 
-func main() {
+func main() { os.Exit(run()) }
+
+func run() int {
+	scratch.Start()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	defer scratch.Cleanup()
 	if info, ok := debug.ReadBuildInfo(); ok && version == "dev" {
 		if info.Main.Version != "" && info.Main.Version != "(devel)" {
 			version = info.Main.Version // go install, or go build in a checkout
@@ -32,11 +39,5 @@ func main() {
 			}
 		}
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	// The first signal cancels the running command; restoring the default
-	// handler lets a second one end the process at once.
-	go func() { <-ctx.Done(); stop() }()
-	code := cli.Run(ctx, cli.Env{Stdout: os.Stdout, Stderr: os.Stderr, Build: cli.Build{Version: version, Commit: commit, Date: date}}, os.Args[1:])
-	stop()
-	os.Exit(code)
+	return cli.Run(ctx, cli.Env{Stdout: os.Stdout, Stderr: os.Stderr, Build: cli.Build{Version: version, Commit: commit, Date: date}}, os.Args[1:])
 }
