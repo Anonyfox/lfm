@@ -28,7 +28,7 @@ func assertIndexedSelector(t testing.TB, selector string) {
 }
 
 func TestIndexedSelectorsAgree(t *testing.T) {
-	for _, s := range []string{"xÄ", `.a\a0 b`, "*", `:contains("Text")`, `:matches("Text")`, `:contains("")`, "div", "DIV", "linearGradient", "#App", "#app", "#dup", ".a", ".a.b", ".group .b", "main > div.a > span.b", "div + div.b", "div ~ p.a", ".md\\:flex", ".w-1\\/2", ".a\\+b", `.\61 `, `#\41 pp`, `.a[data-label="a.b #c > d ] ("]`, `[data-label="a.b #c > d ] ("]`, `[data-other="x'y"].a`, ".a:not(.b)", ":not(.x)", ":is(.a,.b)", ":where(.a,.b)", ".a:is(.a,.b)", ".a:not(:is(.x,.y))", "div:has(> .b)", "div:nth-child(2)", "[data-label]", ":root", ":empty", "svg|linearGradient", "*|div", "|div", ".a\n>\t.b", ".a\r.b", ".a\f.b"} {
+	for _, s := range []string{".missing .b", ".group > .a .c", ".missing + .b .c", ".group > div + div .c", ".group :is(.a,.b) .c", ".group :not(.missing) .c", "#App .b", "#app .b", "MAIN > DIV .c", ".md\\:flex .c", ".a\\+b .c", ".group .b ", "xÄ", `.a\a0 b`, "*", `:contains("Text")`, `:matches("Text")`, `:contains("")`, "div", "DIV", "linearGradient", "#App", "#app", "#dup", ".a", ".a.b", ".group .b", "main > div.a > span.b", "div + div.b", "div ~ p.a", ".md\\:flex", ".w-1\\/2", ".a\\+b", `.\61 `, `#\41 pp`, `.a[data-label="a.b #c > d ] ("]`, `[data-label="a.b #c > d ] ("]`, `[data-other="x'y"].a`, ".a:not(.b)", ":not(.x)", ":is(.a,.b)", ":where(.a,.b)", ".a:is(.a,.b)", ".a:not(:is(.x,.y))", "div:has(> .b)", "div:nth-child(2)", "[data-label]", ":root", ":empty", "svg|linearGradient", "*|div", "|div", ".a\n>\t.b", ".a\r.b", ".a\f.b"} {
 		t.Run(s, func(t *testing.T) { assertIndexedSelector(t, s) })
 	}
 	for _, s := range splitSelectors(`.a::before, .b::after, .group > .md\:flex:hover`) {

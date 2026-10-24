@@ -20,7 +20,7 @@ are confined to the folder, including symlinks. Absolute resource URLs on the
 canonical origin map into the folder; other remote files are listed as not inspected.
 
 Limits: 8 MiB for the page and each file, 512 KiB read per image, 32 MiB total,
-256 inspected files, eight concurrent requests, ten seconds per request and thirty
+512 inspected files, eight concurrent requests, ten seconds per request and thirty
 seconds for the static read. A subresource exceeding a limit is truncated or listed
 as not inspected. The page exceeding its limit is unreadable. Image byte sizes use
 Content-Length when available. A truncated file's hash covers only its inspected bytes.
@@ -68,3 +68,6 @@ The page is first in files; other files are sorted by name. Remote names are abs
 URLs; local names are folder-relative slash paths. Local status is zero. Exit codes:
 0 means no errors (warnings allowed), 1 means errors or an unreadable page, 2 means a
 usage error. An unreadable page with --json produces `{"error": "…", "next": {…}}`.
+
+Resources are discovered in parallel waves. File-count admission follows discovery order;
+truncation at the shared byte limit may depend on response timing.

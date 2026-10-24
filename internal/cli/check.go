@@ -36,12 +36,11 @@ type checkResult struct {
 }
 
 func pageRules(browser bool) ([]check.Rule, []skippedRule) {
-	reasons := map[string]string{"links.declared": "needs lfm.json urls", "jsonld.block": "lfm convention: one compiler-generated block", "commerce.discovery": "needs declared offers in lfm.json", "commerce.structured-data": "needs declared offers in lfm.json", "concept.fidelity": "needs concept.md"}
 	rules := []check.Rule{}
 	skipped := []skippedRule{}
 	for _, rule := range check.DefaultRules() {
-		if rule.Project {
-			skipped = append(skipped, skippedRule{rule.ID, reasons[rule.ID]})
+		if rule.Project != "" {
+			skipped = append(skipped, skippedRule{rule.ID, rule.Project})
 		} else {
 			rules = append(rules, rule)
 		}

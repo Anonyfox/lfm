@@ -38,7 +38,7 @@ func TestRobotsHeader(t *testing.T) {
 func TestProjectRuleMetadata(t *testing.T) {
 	var ids []string
 	for _, rule := range DefaultRules() {
-		if rule.Project {
+		if rule.Project != "" {
 			ids = append(ids, rule.ID)
 		}
 	}

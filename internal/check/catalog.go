@@ -4,9 +4,12 @@ import (
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 )
 
-func rule(id, summary, help string, check func(*Document) []Diagnostic) Rule {
-	project := id == "links.declared" || id == "jsonld.block" || id == "commerce.discovery" || id == "commerce.structured-data" || id == "concept.fidelity"
-	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help, Project: project}, Check: check}
+func rule(id, summary, help string, check func(*Document) []Diagnostic, project ...string) Rule {
+	var reason string
+	if len(project) > 0 {
+		reason = project[0]
+	}
+	return Rule{RuleInfo: diagnostic.RuleInfo{ID: id, Summary: summary, Help: help, Project: reason}, Check: check}
 }
 
 const designException = " Deliberate? Keep it and add data-design-reason=\"why this subject needs it\" on the element or an ancestor."
@@ -21,7 +24,7 @@ func DefaultRules() []Rule {
 			linksSyntaxRule),
 		rule("links.declared", "Every rendered link destination matches a named URL in lfm.json urls",
 			"After rendering, each href, src, srcset, social URL and JSON-LD URL is resolved like a browser would and compared with the declared urls; anything else is an error, except same-page #fragment links, whose targets html.references checks. This catches destinations assembled in partials or expressions that bypass the registry. Declare the complete URL, including deliberate query or fragment variants, under urls and render it; set this rule to warn only if the product deliberately builds destinations at render time.",
-			linksDeclaredRule),
+			linksDeclaredRule, "needs lfm.json urls"),
 		rule("links.behavior", "Links are crawlable, resources are HTTPS and download links can work",
 			"Warns for navigation that relies on a click handler or role instead of an href, javascript: or bare # placeholder links, href on elements that are not links, HTTP resources on an HTTPS page, download attributes pointing at another origin, and full page URLs whose fragment matches no element. Crawlers and keyboard users cannot follow handler-only links, and browsers block or ignore the others. Use <a href> for navigation and <button> for actions, serve resources over HTTPS, and point fragments at existing IDs.",
 			linksBehaviorRule),
@@ -52,7 +55,7 @@ func DefaultRules() []Rule {
 		// jsonld
 		rule("jsonld.block", "Structured data comes only from the one compiler-generated JSON-LD block",
 			"Errors when the template contains handwritten application/ld+json scripts or more than one JSON-LD block. Scattered blocks drift from config and contradict each other in search results. Declare structured data under jsonld in lfm.json, using @graph or a top-level array for multiple entities, and delete the handwritten scripts.",
-			jsonldBlockRule),
+			jsonldBlockRule, "lfm convention: one compiler-generated block"),
 		rule("jsonld.structure", "The JSON-LD block expands cleanly under offline JSON-LD processing",
 			"Errors when the block is not an object or array, exceeds depth 128 or 100,000 values, has invalid keyword shapes or value objects, or the processor cannot analyze it. Search engines ignore structured data they cannot process, so rich results and assistant answers lose these facts. Fix the reported keyword or nesting in lfm.json jsonld; valid JSON can still be invalid JSON-LD.",
 			jsonldRule("jsonld.structure")),
@@ -69,10 +72,10 @@ func DefaultRules() []Rule {
 			commerceRule("commerce.checkout")),
 		rule("commerce.discovery", "Declared offers show a checkout link, a fixed price and its Schema.org Offer",
 			"Warns when an offer's checkout URL never appears as an initially usable <a href> (it is missing, hidden, inert, in a template or aria-disabled), when a fixed price is not written with its currency in the initial text, or when a fixed-price offer has no identifiable Offer in the JSON-LD. Buyers need a direct path to pay, and search engines need the Offer to show the price. Render an anchor to urls[checkoutUrlKey] outside hidden views and describe the offer in lfm.json jsonld with the same sku.",
-			commerceRule("commerce.discovery")),
+			commerceRule("commerce.discovery"), "needs declared offers in lfm.json"),
 		rule("commerce.structured-data", "JSON-LD Offer prices and BuyAction targets agree with the declared offers",
 			"Errors for a negative Offer price, a price that differs from the same offer's amountMinor in the same currency, and a BuyAction target that is not public HTTPS; warnings for incomplete or ambiguous price facts, another currency, or a missing or different action target. Search results that show one price while checkout charges another cost trust and can break merchant policies. Derive the JSON-LD price and target from the same config values as the offer.",
-			commerceRule("commerce.structured-data")),
+			commerceRule("commerce.structured-data"), "needs declared offers in lfm.json"),
 		rule("commerce.secrets", "No Stripe secret, restricted or webhook keys in config or published files",
 			"Errors when a value shaped like a Stripe sk_, rk_ or whsec_ secret appears in lfm.json or data, the final HTML, or an emitted JS, CSS, JSON, SVG or text file; the value itself is redacted in the report. Anyone can read a published key and charge, refund or read your account. Remove it from the page, browser data and bundled code, keep it on the server, and rotate the key in Stripe; public pk_ keys and object IDs are fine.",
 			commerceSecretsRule),
@@ -263,6 +266,6 @@ func DefaultRules() []Rule {
 			actionsRule),
 		rule("concept.fidelity", "The page uses the typefaces, palette, imagery and phrases concept.md declares",
 			"Once the starter page is replaced and the project has a concept.md, every font family on the page (also through var() tokens) must be declared in its Type table and every declared one used; every CSS color must be a declared palette color, a close tint of one, or translucent black or white for shading; the page must show as many distinct images as the Imagery table plans, minus rows waiting on Open:; the Copy section's Use: phrases must appear and its Avoid: phrases must not, outside quotations. Drift between concept and page is how a researched direction decays back into defaults during implementation. Change the page to match the concept, or update the concept with the reason when the decision itself changed.",
-			conceptFidelityRule),
+			conceptFidelityRule, "needs concept.md"),
 	}
 }

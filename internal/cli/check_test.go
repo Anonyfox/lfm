@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -55,7 +57,7 @@ func TestCheckCLI(t *testing.T) {
 	if code, out, _ := run(t, "help", "check"); code != 0 || !strings.Contains(out, "framework") || !strings.Contains(out, "--release") {
 		t.Fatal(code, out)
 	}
-	if code, out, _ := run(t, "rules", "links.declared"); code != 0 || !strings.Contains(out, "Needs an lfm project; lfm check skips it.") {
+	if code, out, _ := run(t, "rules", "links.declared"); code != 0 || !strings.Contains(out, "Needs an lfm project (needs lfm.json urls); lfm check skips it.") {
 		t.Fatal(code, out)
 	}
 }
@@ -85,8 +87,22 @@ func TestCheckSkipped(t *testing.T) {
 		if len(skipped) != want {
 			t.Fatal(skipped)
 		}
+		for _, r := range check.DefaultRules() {
+			if r.Project == "" {
+				continue
+			}
+			found := false
+			for _, skip := range skipped {
+				if skip.Rule == r.ID && skip.Reason == r.Project {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("missing project requirement for %s", r.ID)
+			}
+		}
 		for _, r := range rules {
-			if r.Project {
+			if r.Project != "" {
 				t.Fatal(r.ID)
 			}
 		}
@@ -165,5 +181,16 @@ func TestCheckReleaseBrowser(t *testing.T) {
 				t.Fatalf("%d: %s %s", code, out, errs)
 			}
 		})
+	}
+}
+
+func TestCheckInterruptExit(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { cancel(); <-r.Context().Done() }))
+	defer server.Close()
+	var out, errs bytes.Buffer
+	code := Run(ctx, Env{Stdout: &out, Stderr: &errs}, []string{"check", server.URL})
+	if code != 130 || !strings.Contains(errs.String(), "interrupted") {
+		t.Fatalf("%d %s", code, &errs)
 	}
 }

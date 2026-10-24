@@ -89,3 +89,18 @@ func TestFontBudgetsDedupAndRuleOverrides(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestFontPreloadStylesheetRelativeURL(t *testing.T) {
+	raw := []byte(`<!doctype html><html><head><link rel="stylesheet" href="/_next/static/chunks/a.css"><link rel="preload" as="font" crossorigin href="/_next/static/media/x.woff2"></head><body></body></html>`)
+	for _, page := range []string{"", "https://vercel.com/products/"} {
+		d, err := Parse(raw, Options{File: "products/index.html", URL: page, Stylesheets: map[string][]byte{"/_next/static/chunks/a.css": []byte(`@font-face{font-family:Test;src:url(../media/x.woff2) format("woff2");font-display:swap}`)}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, issue := range analyzeFonts(d) {
+			if strings.Contains(issue.Message, "no matching src") {
+				t.Fatal(issue)
+			}
+		}
+	}
+}

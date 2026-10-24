@@ -3,6 +3,7 @@ package check
 import (
 	"crypto/sha256"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 
@@ -64,6 +65,17 @@ func analyzeFonts(d *Document) []Diagnostic {
 			return i
 		}
 		return fontcheck.Info{Unknown: "external or dynamically supplied font; not fetched"}
+	}
+	pageBase := &url.URL{Scheme: "https", Host: "page.invalid", Path: "/" + strings.TrimPrefix(d.Options.File, "/")}
+	if u, err := url.Parse(d.Options.URL); err == nil && u.IsAbs() {
+		pageBase = u
+	}
+	resolve := func(raw string, base *url.URL) string {
+		u, err := url.Parse(raw)
+		if err != nil {
+			return raw
+		}
+		return base.ResolveReference(u).String()
 	}
 	faceRefs := map[string][]fontcheck.Face{}
 	unknownCSS := false
@@ -138,7 +150,15 @@ func analyzeFonts(d *Document) []Diagnostic {
 					problems = append(problems, "empty font source URL")
 					continue
 				}
-				faceRefs[s.URL] = append(faceRefs[s.URL], f)
+				sheetBase := pageBase
+				if file != "" {
+					u, err := url.Parse(file)
+					if err == nil {
+						sheetBase = pageBase.ResolveReference(u)
+					}
+				}
+				key := resolve(s.URL, sheetBase)
+				faceRefs[key] = append(faceRefs[key], f)
 				i := infoFor(s.URL)
 				if i.Format == "woff2" || strings.HasPrefix(strings.ToLower(s.Format), "woff2") {
 					woff2 = true
@@ -171,7 +191,7 @@ func analyzeFonts(d *Document) []Diagnostic {
 			continue
 		}
 		if !strings.EqualFold(Attr(n, "as"), "font") {
-			if len(faceRefs[Attr(n, "href")]) > 0 {
+			if len(faceRefs[resolve(Attr(n, "href"), pageBase)]) > 0 {
 				x := d.At(n, Warning, "Font source preload has as="+short(Attr(n, "as"))+"; CSS font reuse requires as=font.", "Use as=font for CSS font preloads, or keep another destination deliberately for a separate JavaScript fetch. Authored request behavior is preserved.")
 				x.Rule = "perf.fonts"
 				issues = append(issues, x)
@@ -191,7 +211,7 @@ func analyzeFonts(d *Document) []Diagnostic {
 		if kind := Attr(n, "type"); kind != "" && i.Format != "" && !fontMIMECompatible(kind, i.Format) {
 			problems = append(problems, fmt.Sprintf("type=%q disagrees with inspected %s; preload may be skipped", short(kind), i.Format))
 		}
-		if faces := faceRefs[ref]; len(faces) > 0 {
+		if faces := faceRefs[resolve(ref, pageBase)]; len(faces) > 0 {
 			for _, f := range faces {
 				local := false
 				for _, s := range f.Sources {

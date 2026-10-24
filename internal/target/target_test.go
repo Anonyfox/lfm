@@ -2,7 +2,10 @@ package target
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/Anonyfox/lfm/internal/check"
 )
 
 const pageHTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Test</title><link rel="canonical" href="https://example.org/"></head><body><main><h1>Test page</h1></main></body></html>`
@@ -254,6 +259,12 @@ func TestTimeouts(t *testing.T) {
 				lim.request = 100 * time.Millisecond
 			}
 			r, err := read(context.Background(), s.URL, "test", lim)
+			if whole {
+				if !errors.Is(err, context.DeadlineExceeded) || !strings.Contains(err.Error(), "check timed out after 200ms") {
+					t.Fatal(err)
+				}
+				return
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -363,5 +374,124 @@ func TestLocalEscapedName(t *testing.T) {
 	r := load(t, filepath.Join(dir, "100% complete.html"))
 	if r.Options.File != "100% complete.html" {
 		t.Fatal(r.Options.File)
+	}
+}
+
+func TestPoolDeterminismAndOverlap(t *testing.T) {
+	for _, count := range []int{16, 60, 300} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/" {
+					if r.Header.Get("Accept") != "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8" {
+						t.Error("page Accept")
+					}
+					w.Header().Set("Content-Type", "text/html")
+					for i := 0; i < count; i++ {
+						fmt.Fprintf(w, "<script src=/r%d.js></script>", i)
+					}
+					return
+				}
+				if count == 16 {
+					time.Sleep(100 * time.Millisecond)
+				} else if count == 60 {
+					time.Sleep(time.Duration(rand.IntN(20)) * time.Millisecond)
+				}
+				fmt.Fprint(w, "const x=1;")
+			}))
+			defer server.Close()
+			start := time.Now()
+			a := load(t, server.URL)
+			if count == 16 && time.Since(start) > 350*time.Millisecond {
+				t.Fatal("workers did not overlap")
+			}
+			b := load(t, server.URL)
+			aj, _ := json.Marshal(a)
+			bj, _ := json.Marshal(b)
+			if string(aj) != string(bj) || !reflect.DeepEqual(a.Options, b.Options) {
+				t.Fatal("completion order changed results")
+			}
+			if count == 60 {
+				var rules []check.Rule
+				for _, rule := range check.DefaultRules() {
+					if rule.Project == "" {
+						rules = append(rules, rule)
+					}
+				}
+				ar, _ := json.Marshal(check.Run(a.Document, rules, nil))
+				br, _ := json.Marshal(check.Run(b.Document, rules, nil))
+				if string(ar) != string(br) {
+					t.Fatal("completion order changed diagnostics")
+				}
+			}
+			if len(a.Files) != count+1 {
+				t.Fatal(len(a.Files))
+			}
+		})
+	}
+}
+func TestCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { cancel(); <-r.Context().Done() }))
+	defer server.Close()
+	_, err := Read(ctx, server.URL, "test")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+}
+func TestStartupLinks(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			fmt.Fprint(w, "asset")
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		for _, rel := range []string{"preconnect", "dns-prefetch", "prefetch", "prerender", "stylesheet", "icon", "apple-touch-icon", "preload", "modulepreload", "manifest"} {
+			fmt.Fprintf(w, "<link rel=%s href=/%s>", rel, rel)
+		}
+	}))
+	defer server.Close()
+	result := load(t, server.URL)
+	if len(result.Files) != 7 {
+		t.Fatal(result.Files)
+	}
+}
+
+func TestDiscoveryWaves(t *testing.T) {
+	var wave0, wave1 atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/":
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, `<link rel="stylesheet" href="/a.css"><script src="/b.js"></script><video poster="/poster.png"></video>`)
+		case "/a.css":
+			time.Sleep(20 * time.Millisecond)
+			wave0.Add(1)
+			fmt.Fprint(w, `@import "/import.css"; @font-face{font-family:A;src:url(/a.woff2)}`)
+		case "/b.js", "/poster.png":
+			wave0.Add(1)
+		case "/import.css":
+			if wave0.Load() != 3 {
+				t.Error("import started before page resources finished")
+			}
+			time.Sleep(20 * time.Millisecond)
+			wave1.Add(1)
+			fmt.Fprint(w, `@font-face{font-family:B;src:url(/b.woff2)}`)
+		case "/a.woff2":
+			if wave0.Load() != 3 {
+				t.Error("font started before page resources finished")
+			}
+			wave1.Add(1)
+		case "/b.woff2":
+			if wave1.Load() != 2 {
+				t.Error("imported font started before wave 1 finished")
+			}
+		default:
+			t.Error(r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	result := load(t, server.URL)
+	if len(result.Files) != 7 {
+		t.Fatal(result.Files)
 	}
 }

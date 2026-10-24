@@ -133,11 +133,13 @@ type elementIndex struct {
 	elements           []*html.Node
 	nodes              []*html.Node
 	keys               map[string]selectorKey
+	ancestors          map[*html.Node]uint64
 }
 
 func newElementIndex(elements []*html.Node) *elementIndex {
-	x := &elementIndex{elements: elements, keys: map[string]selectorKey{}, ids: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
+	x := &elementIndex{ancestors: make(map[*html.Node]uint64, len(elements)), elements: elements, keys: map[string]selectorKey{}, ids: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
 	for _, n := range elements {
+		x.ancestors[n] = x.ancestors[n.Parent] | nodeKeys(n)
 		x.tags[n.Data] = append(x.tags[n.Data], n)
 		seenID, seenClass := map[string]bool{}, map[string]bool{}
 		for _, a := range n.Attr {
@@ -169,6 +171,7 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 	key, ok := x.keys[selector]
 	if !ok {
 		key.kind, key.name = keySelector(selector)
+		key.ancestors = ancestorKeys(selector)
 		x.keys[selector] = key
 	}
 	switch kind, name := key.kind, key.name; kind {
@@ -198,7 +201,11 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 		}
 	}
 	var out []*html.Node
+	required := key.ancestors
 	for _, n := range candidates {
+		if required != 0 && x.ancestors[n.Parent]&required != required {
+			continue
+		}
 		if sel.Match(n) {
 			out = append(out, n)
 		}
@@ -207,8 +214,9 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 }
 
 type selectorKey struct {
-	kind byte
-	name string
+	ancestors uint64
+	kind      byte
+	name      string
 }
 
 // keySelector reads only top-level simple selectors in the rightmost compound.
@@ -704,3 +712,78 @@ func firstFamily(v string) string {
 type okColor = color.Color
 
 func colorsIn(v string) []okColor { return color.Parse(v) }
+
+// keyBits is a compact membership filter: collisions allow extra matches,
+// while a missing bit proves a required ancestor cannot be present.
+func keyBits(kind byte, name string) uint64 {
+	h := uint64(kind)
+	for i := 0; i < len(name); i++ {
+		h = (h ^ uint64(name[i])) * 1099511628211
+	}
+	return uint64(1) << (h & 63)
+}
+func nodeKeys(n *html.Node) uint64 {
+	if n.Type != html.ElementNode {
+		return 0
+	}
+	bits := keyBits('t', asciiLower(n.Data))
+	for _, a := range n.Attr {
+		if a.Key == "id" {
+			bits |= keyBits('#', a.Val)
+		}
+		if a.Key == "class" {
+			for c := range strings.FieldsFuncSeq(a.Val, func(r rune) bool { return r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f' }) {
+				bits |= keyBits('.', c)
+			}
+		}
+	}
+	return bits
+}
+
+// ancestorKeys accepts only simple compounds and descendant/child combinators.
+// Unsupported syntax disables the filter for the entire selector.
+func ancestorKeys(selector string) uint64 {
+	selector = strings.TrimSpace(selector)
+	lexer := css.NewLexer(parse.NewInputString(selector))
+	var required, compound uint64
+	var dot bool
+	for {
+		typ, raw := lexer.Next()
+		switch typ {
+		case css.ErrorToken:
+			return required
+		case css.WhitespaceToken:
+			required |= compound
+			compound = 0
+			dot = false
+		case css.DelimToken:
+			switch string(raw) {
+			case ">":
+				required |= compound
+				compound = 0
+				dot = false
+			case ".":
+				dot = true
+			case "*":
+				dot = false
+			default:
+				return 0
+			}
+		case css.HashToken:
+			compound |= keyBits('#', selectorIdent(string(raw[1:])))
+			dot = false
+		case css.IdentToken:
+			kind := byte('t')
+			name := selectorIdent(string(raw))
+			if dot {
+				kind = '.'
+			} else {
+				name = asciiLower(name)
+			}
+			compound |= keyBits(kind, name)
+			dot = false
+		default:
+			return 0
+		}
+	}
+}

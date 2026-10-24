@@ -32,7 +32,7 @@ const (
 	fileLimit      = 8 << 20
 	imageLimit     = 512 << 10
 	totalLimit     = 32 << 20
-	fileCount      = 256
+	fileCount      = 512
 	parallelism    = 8
 	requestTimeout = 10 * time.Second
 	runTimeout     = 30 * time.Second
@@ -93,6 +93,7 @@ type reader struct {
 	origin  *url.URL
 	lim     limits
 	version string
+	budget  *byteBudget
 }
 
 // Read performs GETs for URLs, or confined disk reads for local targets.
@@ -100,11 +101,19 @@ func Read(ctx context.Context, argument, version string) (Result, error) {
 	return read(ctx, argument, version, defaultLimits)
 }
 
-func read(ctx context.Context, argument, version string, lim limits) (Result, error) {
+func read(ctx context.Context, argument, version string, lim limits) (result Result, retErr error) {
+	caller := ctx
 	ctx, cancel := context.WithTimeout(ctx, lim.run)
 	defer cancel()
+	defer func() {
+		if caller.Err() != nil {
+			retErr = fmt.Errorf("check interrupted: %w", caller.Err())
+		} else if ctx.Err() != nil {
+			retErr = fmt.Errorf("check timed out after %s: %w", lim.run, ctx.Err())
+		}
+	}()
 	r := &reader{ctx: ctx, lim: lim, version: version}
-	result := Result{Redirects: []string{}, Files: []File{}}
+	result = Result{Redirects: []string{}, Files: []File{}}
 	var u *url.URL
 	var err error
 	if urlcheck.Scheme(argument) != "" {
@@ -123,7 +132,7 @@ func read(ctx context.Context, argument, version string, lim limits) (Result, er
 		u.User = nil
 		u.Fragment = ""
 		r.remote = true
-		transport := &http.Transport{Proxy: nil, DialContext: (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext, ForceAttemptHTTP2: true, MaxResponseHeaderBytes: 1 << 20, MaxIdleConns: 16, MaxIdleConnsPerHost: 8, IdleConnTimeout: 30 * time.Second, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: lim.request}
+		transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DialContext: (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext, ForceAttemptHTTP2: true, MaxResponseHeaderBytes: 1 << 20, MaxIdleConns: 16, MaxIdleConnsPerHost: 8, IdleConnTimeout: 30 * time.Second, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: lim.request}
 		defer transport.CloseIdleConnections()
 		r.client = &http.Client{Transport: transport, Timeout: lim.request}
 	} else {
@@ -210,6 +219,16 @@ func read(ctx context.Context, argument, version string, lim limits) (Result, er
 	all := map[string]fetched{u.String(): page}
 	seen := map[string]bool{u.String(): true, base.String(): true}
 	var queue, bindings []resource
+	startupLinks := map[string]bool{}
+	for _, n := range doc.Elements {
+		if n.Data == "link" {
+			for _, rel := range []string{"stylesheet", "icon", "apple-touch-icon", "preload", "modulepreload", "manifest"} {
+				if hasWord(check.Attr(n, "rel"), rel) {
+					startupLinks[check.Attr(n, "href")] = true
+				}
+			}
+		}
+	}
 	add := func(raw, kind string, base *url.URL, depth int) {
 		v, e := url.Parse(strings.TrimSpace(raw))
 		if e != nil || raw == "" || strings.HasPrefix(raw, "#") {
@@ -245,7 +264,7 @@ func read(ctx context.Context, argument, version string, lim limits) (Result, er
 		}
 	}
 	for _, ref := range urlcheck.AllReferences(page.body) {
-		if !ref.Resource || ref.Tag == "video" || ref.Tag == "audio" || ref.Tag == "source" || ref.Tag == "iframe" || ref.Attribute == "srcset" || ref.Attribute == "imagesrcset" {
+		if (ref.Tag == "link" && !startupLinks[ref.Value]) || !ref.Resource || (ref.Tag == "video" && ref.Attribute != "poster") || ref.Tag == "audio" || ref.Tag == "source" || ref.Tag == "iframe" || ref.Attribute == "srcset" || ref.Attribute == "imagesrcset" {
 			continue
 		}
 		kind := "asset"
@@ -283,48 +302,36 @@ func read(ctx context.Context, argument, version string, lim limits) (Result, er
 			}
 		}
 	}
-	total := len(page.body)
+	budget := &byteBudget{remaining: max(0, lim.total-len(page.body))}
+	budget.ready = sync.NewCond(&budget.mu)
+	r.budget = budget
+	identity, _ := url.Parse(result.Identity)
 	artifacts := map[string][]byte{}
 	for start := 0; start < len(queue); {
-		end := start
-		reserved := 0
-		for end < len(queue) && end-start < lim.parallel {
-			cap := lim.file
-			if queue[end].kind == "image" {
-				cap = lim.image
-			}
-			if end > start && reserved+cap > lim.total-total {
-				break
-			}
-			reserved += cap
-			end++
-		}
+		// Discovery appends only after the entire wave completes. Queue order
+		// determines file-count admission; byte-limit truncation can depend on timing.
+		end := len(queue)
 		batch := queue[start:end]
 		results := make([]fetched, len(batch))
 		jobs := make(chan int)
 		var wg sync.WaitGroup
-		// Allocate deterministic byte allowances before launching concurrent reads.
-		allowances := make([]int, len(batch))
-		remaining := max(0, lim.total-total)
-		for i, item := range batch {
-			cap := lim.file
-			if item.kind == "image" {
-				cap = lim.image
-			}
-			if start+i+1 >= lim.count {
-				continue
-			}
-			allowances[i] = min(cap, remaining)
-			remaining -= allowances[i]
-		}
 		for w := 0; w < min(lim.parallel, len(batch)); w++ {
 			wg.Go(func() {
 				for i := range jobs {
-					if allowances[i] == 0 {
+					if start+i+1 >= lim.count {
 						results[i] = fetched{File: File{Name: r.name(batch[i].u), Error: "not inspected: file count or total byte limit reached"}}
 						continue
 					}
-					results[i] = r.fetch(batch[i], allowances[i])
+					cap := lim.file
+					if batch[i].kind == "image" {
+						cap = lim.image
+					}
+					cap = budget.allowance(cap)
+					if cap == 0 {
+						results[i] = fetched{File: File{Name: r.name(batch[i].u), Error: "not inspected: file count or total byte limit reached"}}
+						continue
+					}
+					results[i] = r.fetch(batch[i], cap)
 				}
 			})
 		}
@@ -337,7 +344,6 @@ func read(ctx context.Context, argument, version string, lim limits) (Result, er
 			item := batch[i]
 			result.Files = append(result.Files, f.File)
 			all[item.u.String()] = f
-			total += len(f.body)
 			if f.Error != "" {
 				continue
 			}
@@ -356,7 +362,6 @@ func read(ctx context.Context, argument, version string, lim limits) (Result, er
 			}
 			// Sharing resolves within the page identity; other origins retain
 			// absolute keys for file-content checks without path collisions.
-			identity, _ := url.Parse(result.Identity)
 			key := item.u.String()
 			if sameOrigin(item.u, base) || sameOrigin(item.u, identity) {
 				key = name
@@ -486,6 +491,9 @@ func (r *reader) fetch(item resource, cap int) fetched {
 			f.Error = err.Error()
 			return f
 		}
+		if item.kind == "page" {
+			req.Header.Set("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8")
+		}
 		req.Header.Set("User-Agent", "lfm/"+r.version+" (+https://lfm.cash)")
 		response, err := client.Do(req)
 		if err != nil {
@@ -530,12 +538,17 @@ func (r *reader) fetch(item resource, cap int) fetched {
 		size = stat.Size()
 		body = file
 	}
-	raw, err := io.ReadAll(io.LimitReader(body, int64(cap)+1))
+	var input io.Reader = body
+	shared := &budgetReader{Reader: body, budget: r.budget}
+	if r.budget != nil {
+		input = shared
+	}
+	raw, err := io.ReadAll(io.LimitReader(input, int64(cap)))
 	if err != nil {
 		f.Error = err.Error()
 		return f
 	}
-	f.Truncated = len(raw) > cap
+	f.Truncated = shared.exhausted || len(raw) >= cap && (size < 0 || size > int64(cap))
 	raw = raw[:min(len(raw), cap)]
 	f.body = raw
 	f.Bytes = len(raw)
@@ -608,4 +621,52 @@ func confinedPath(base, reference string) bool {
 		}
 	}
 	return true
+}
+
+// byteBudget shares the actual read budget across workers. Only a read-sized
+// chunk is claimed while I/O is in flight; unused bytes are returned immediately.
+type byteBudget struct {
+	mu        sync.Mutex
+	remaining int
+	pending   int
+	ready     *sync.Cond
+}
+type budgetReader struct {
+	io.Reader
+	budget    *byteBudget
+	exhausted bool
+}
+
+func (r *budgetReader) Read(p []byte) (int, error) {
+	r.budget.mu.Lock()
+	for r.budget.remaining == 0 && r.budget.pending > 0 {
+		r.budget.ready.Wait()
+	}
+	allowance := min(len(p), 32<<10, r.budget.remaining)
+	r.budget.remaining -= allowance
+	if allowance > 0 {
+		r.budget.pending++
+	}
+	r.budget.mu.Unlock()
+	if allowance == 0 {
+		r.exhausted = true
+		return 0, io.EOF
+	}
+	n, err := r.Reader.Read(p[:allowance])
+	r.budget.mu.Lock()
+	r.budget.remaining += allowance - n
+	r.budget.pending--
+	r.budget.ready.Broadcast()
+	r.budget.mu.Unlock()
+	return n, err
+}
+
+// allowance snapshots the remaining budget without reserving a file allowance.
+func (b *byteBudget) allowance(cap int) int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	for b.remaining == 0 && b.pending > 0 {
+		b.ready.Wait()
+	}
+	return min(cap, b.remaining)
 }
