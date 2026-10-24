@@ -123,3 +123,30 @@ func TestUnfinishedBookPublishesThePresalePage(t *testing.T) {
 		t.Fatalf("next chapter %+v", next)
 	}
 }
+
+func TestInvalidBookKindUsesBookConfigRule(t *testing.T) {
+	for _, kind := range []string{"poetry", ""} {
+		t.Run(kind, func(t *testing.T) {
+			dir := bookProject(t)
+			changeConfig(t, dir, func(c map[string]any) {
+				c["deliverables"].(map[string]any)["book"].(map[string]any)["kind"] = kind
+			})
+			r, err := Compile(context.Background(), dir, Options{})
+			if err == nil {
+				t.Fatal("invalid kind compiled")
+			}
+			found := false
+			for _, d := range r.Validation.Diagnostics {
+				if d.Path == "deliverables.book.kind" {
+					found = true
+					if d.Rule != book.RuleConfig || d.Location.File != "lfm.json" || d.Location.Line < 1 || !strings.Contains(d.Message, "deliverables.book.kind") {
+						t.Fatal(d)
+					}
+				}
+			}
+			if !found {
+				t.Fatal(r.Validation.Diagnostics)
+			}
+		})
+	}
+}

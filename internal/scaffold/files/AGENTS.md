@@ -4,7 +4,7 @@ An lfm project: one sales page, compiled by the `lfm` CLI into `output/`.
 
 ## Start here
 
-Run `lfm skills install` once. It puts the research, design, implementation, book, printable, spreadsheet, document and deck skills where your
+Run `lfm skills install` once. It puts the research, design, implementation, book, fiction, printable, spreadsheet, document and deck skills where your
 agent loads them (`.agents/skills`, or `.claude/skills` under Claude Code); run it again after
 updating lfm. Compile never writes skill files; run its printed `lfm skills install` command to update
 older copies. Without installed skills, `lfm skills <topic>` prints the one you need.
@@ -52,7 +52,8 @@ Every page goes through three phases, each with its own skill:
 
 - Never skip a phase: a page built without research and a concept is the typical generated page.
 - A book the page sells is written with the book skill (`lfm skills book`): its own concept, then one
-  chapter at a time; `lfm compile` builds it and publishes it behind an unlisted download page.
+  chapter at a time; `lfm compile` builds it and publishes it behind an unlisted download page. A novel or
+  story collection sets `"kind": "fiction"` and is planned and written with `lfm skills fiction`.
 - A printable the page sells is built with the printable skill (`lfm skills printable`): one template of
   fixed-size pages, rendered for every paper size and variant.
 - A spreadsheet the page sells is built with the spreadsheet skill (`lfm skills spreadsheet`): one

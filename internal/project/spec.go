@@ -85,7 +85,8 @@ var Spec = []Field{
 	{Path: "build.validation.budgets.depth", Kind: Int, Default: "32", Doc: "How deep the DOM nests.", Checked: "perf.budgets", Example: `40`},
 	{Path: "deliverables", Kind: Object, Doc: "What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, slide decks, and two or more of them together as a bundle."},
 
-	{Path: "deliverables.book", Kind: Object, Doc: "A book in deliverables/book, written with `lfm skills book`."},
+	{Path: "deliverables.book", Kind: Object, Doc: "A book in deliverables/book, written with `lfm skills book`, or `lfm skills fiction` for fiction."},
+	{Path: "deliverables.book.kind", Kind: String, Default: "nonfiction", Checked: "book.config", Doc: "nonfiction (default) or fiction: fiction swaps the concept format and turns off the research minimums and the nonfiction value and readability checks.", Example: `"fiction"`, Values: []string{"nonfiction", "fiction"}},
 	{Path: "deliverables.book.author", Kind: String, Required: true, Doc: "The name on the cover.", Example: `"Lena Brot"`},
 	{Path: "deliverables.book.sell", Kind: String, Values: []string{"page", "shops", "bundle"}, Default: "page", Doc: sellDoc, Example: `"page"`},
 	{Path: "deliverables.book.path", Kind: String, Checked: "book.config", Doc: pathDoc, Example: `"k3x9m2q7w8e4r5t6y1u0"`},

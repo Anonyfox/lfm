@@ -235,7 +235,7 @@ func TestSkillsInstallPicksTheFolderAgentsRead(t *testing.T) {
 	}
 	// Claude Code gets its own folder; the first install stays where it is.
 	code, out, _ = runWith(t, map[string]string{"CLAUDECODE": "1"}, "skills", "install", dir)
-	if code != 0 || !strings.Contains(out, "all 8 skills are current") || strings.Contains(out, ".claude/skills for") {
+	if code != 0 || !strings.Contains(out, "all 9 skills are current") || strings.Contains(out, ".claude/skills for") {
 		t.Fatalf("existing: %d %q", code, out)
 	}
 	fresh := t.TempDir()
@@ -274,7 +274,7 @@ func TestCompileNamesTheNextPhase(t *testing.T) {
 		Next   next
 		Skills []skills.Copy
 	}
-	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 8 {
+	if err := json.Unmarshal([]byte(out), &got); code != 0 || err != nil || got.Next.Phase != "research" || got.Next.Skill != "lfm-research" || len(got.Skills) != 9 {
 		t.Fatalf("json: %d %v %+v", code, err, got)
 	}
 	if code, _, errs := run(t, "compile", t.TempDir()); code != 1 || !strings.Contains(errs, "not an lfm project") || !strings.Contains(errs, "lfm init") {

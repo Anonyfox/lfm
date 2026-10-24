@@ -26,13 +26,29 @@ var Sections = []concept.SectionSpec{
 	{Name: "Devices"},
 	{Name: "Cases", Optional: true},
 	{Name: "Chapters"},
+	{Name: "Matter", Optional: true},
 	{Name: "Imagery"},
 	{Name: "Look"},
 	{Name: "Qualities", Optional: true},
 	{Name: "Changelog", Optional: true},
 }
 
-// Columns of the two tables.
+// FictionSections describe a story plan.
+var FictionSections = []concept.SectionSpec{
+	{Name: "Reader"}, {Name: "Premise"}, {Name: "Cast"}, {Name: "World"},
+	{Name: "Arc"}, {Name: "Hooks"}, {Name: "Voice"}, {Name: "Chapters"},
+	{Name: "Matter", Optional: true}, {Name: "Imagery"}, {Name: "Look"},
+	{Name: "Qualities", Optional: true}, {Name: "Changelog", Optional: true},
+}
+
+// Matter is one unnumbered front or back part.
+type Matter struct {
+	Part, Place, File string
+	Line              int
+	Exists            bool
+}
+
+// Columns of the tables.
 var (
 	ChapterColumns = []string{"#", "Title", "Job", "Beats", "Words", "File"}
 	ImageColumns   = []string{"Image", "Chapter", "Job", "Art direction", "File"}
@@ -50,6 +66,7 @@ var Trims = map[string][2]float64{
 
 // Chapter is one planned chapter.
 type Chapter struct {
+	Status string `json:"status"`
 	N      int    `json:"n"`
 	Title  string `json:"title"`
 	Job    string `json:"job"`
@@ -69,12 +86,18 @@ type Objection struct {
 
 // Image is one planned image.
 type Image struct {
+	Open                                bool
 	Name, Chapter, Job, Direction, File string
 	Line                                int
 }
 
 // Plan is what the concept decided, as the compiler uses it.
 type Plan struct {
+	Kind        string
+	Cast        []string
+	POV, Tense  string
+	Matter      []Matter
+	CoverOpen   bool
 	Name        string // working name from the title line
 	Title       string
 	Subtitle    string
@@ -119,13 +142,14 @@ func quotedPhrases(text string) []string {
 }
 
 type conceptChecker struct {
-	add    func(rule string, line int, message, hint string)
-	voices map[string]research.Voice
-	peers  map[string]bool
+	add     func(rule string, line int, message, hint string)
+	voices  map[string]research.Voice
+	peers   map[string]bool
+	fiction bool
 }
 
 // checkConcept parses the concept and returns the plan it describes.
-func checkConcept(text string, voices *research.Voices, competitors *research.Competitors, add func(rule string, line int, message, hint string)) Plan {
+func checkConcept(text string, voices *research.Voices, competitors *research.Competitors, add func(rule string, line int, message, hint string), kind string) Plan {
 	c := conceptChecker{add: add, voices: map[string]research.Voice{}, peers: map[string]bool{}}
 	if voices != nil {
 		for _, v := range voices.Entries {
@@ -137,16 +161,28 @@ func checkConcept(text string, voices *research.Voices, competitors *research.Co
 			c.peers[fmt.Sprintf("P%03d", p.ID)] = true
 		}
 	}
-	d, problems := concept.ParseFormat(text, "# Book: ", "<working name>", Sections)
+	c.fiction = kind == "fiction"
+	if !c.fiction {
+		kind = "nonfiction"
+	}
+	specs := Sections
+	if c.fiction {
+		specs = FictionSections
+	}
+	d, problems := concept.ParseFormat(text, "# Book: ", "<working name>", specs)
 	for _, p := range problems {
 		add(RuleConcept, p.Line, p.Message, p.Hint)
 	}
-	plan := Plan{Name: d.Title, Text: text}
+	plan := Plan{Name: d.Title, Text: text, Kind: kind}
 	c.scope(d, &plan)
 	c.objections(d, &plan)
 	c.hooks(d, &plan)
 	c.voice(d, &plan)
 	c.chapters(d, &plan)
+	c.matter(d, &plan)
+	if c.fiction {
+		c.story(d, &plan)
+	}
 	planned := map[int]bool{}
 	for _, ch := range plan.Chapters {
 		planned[ch.N] = true
@@ -161,7 +197,7 @@ func checkConcept(text string, voices *research.Voices, competitors *research.Co
 	c.evidence(d)
 	for _, sec := range d.Order {
 		for _, l := range sec.Lines {
-			if _, question, ok := strings.Cut(l.Text, "Open: "); ok && strings.TrimSpace(question) != "" {
+			if _, question, ok := strings.Cut(l.Text, "Open:"); ok && strings.TrimSpace(question) != "" {
 				question, _, _ = strings.Cut(question, "|")
 				add(RuleOpen, l.N, "Open question in "+sec.Name+": "+preview(question), "Get the answer from the owner or a source, then replace the line with the decision.")
 			}
@@ -217,7 +253,7 @@ func (c conceptChecker) scope(d concept.Document, plan *Plan) {
 	if reader != nil {
 		notFor, _ := reader.Field("Not for")
 		c.need(reader, notFor != "", "Reader has no \"Not for:\" line.", "Name who this book is not for; a book for everyone helps nobody in particular.")
-		c.need(reader, len(concept.Citations(reader.Text())) > 0, "Reader cites no voice.", "Describe the reader from what readers wrote, citing their IDs.")
+		c.need(reader, c.fiction || len(concept.Citations(reader.Text())) > 0, "Reader cites no voice.", "Describe the reader from what readers wrote, citing their IDs.")
 	}
 	if promise != nil {
 		wont, _ := promise.Field("Won't cover")
@@ -241,12 +277,12 @@ func (c conceptChecker) hooks(d concept.Document, plan *Plan) {
 		return
 	}
 	title, line := s.Field("Title")
-	plan.Title = strings.Trim(concept.StripCitations(title), "\"“” ")
-	subtitle, _ := s.Field("Subtitle")
-	plan.Subtitle = strings.Trim(concept.StripCitations(subtitle), "\"“” ")
+	plan.Title = c.hookValue(title, line)
+	subtitle, subline := s.Field("Subtitle")
+	plan.Subtitle = c.hookValue(subtitle, subline)
 	opening, _ := s.Field("Opening")
 	c.need(s, plan.Title != "", "Hooks has no \"Title:\" line.", "Write the book's title as Title: \"…\".")
-	c.need(s, plan.Subtitle != "", "Hooks has no \"Subtitle:\" line.", "Write the subtitle as Subtitle: \"…\"; it carries the promise in the reader's words.")
+	c.need(s, c.fiction || plan.Subtitle != "", "Hooks has no \"Subtitle:\" line.", "Write the subtitle as Subtitle: \"…\"; it carries the promise in the reader's words.")
 	c.need(s, opening != "", "Hooks has no \"Opening:\" line.", "Decide the first page: the scene, question or claim the book opens with.")
 	if line > 0 && len([]rune(plan.Title)) > 80 {
 		c.add(RuleConcept, line, "The title runs over 80 characters.", "Shorten it; the subtitle can carry the rest.")
@@ -270,7 +306,7 @@ func (c conceptChecker) voice(d concept.Document, plan *Plan) {
 			plan.Avoid = append(plan.Avoid, quotedPhrases(text)...)
 		}
 	}
-	c.need(s, len(plan.Use) > 0, "Voice has no Use: \"…\" phrase.", "Write the readers' own phrases the book uses as Use: \"…\" lines, citing their voices.")
+	c.need(s, c.fiction || len(plan.Use) > 0, "Voice has no Use: \"…\" phrase.", "Write the readers' own phrases the book uses as Use: \"…\" lines, citing their voices.")
 	c.need(s, len(plan.Avoid) > 0, "Voice has no Avoid: \"…\" phrase.", "Write the words the book must not use as Avoid: \"…\" lines.")
 }
 
@@ -279,18 +315,33 @@ func (c conceptChecker) chapters(d concept.Document, plan *Plan) {
 	if s == nil {
 		return
 	}
-	rows, header := s.Table(ChapterColumns)
+	columns := append(append([]string{}, ChapterColumns...), "Status")
+	rows, header := s.Table(columns)
+	if !header {
+		columns = ChapterColumns
+		rows, header = s.Table(columns)
+	}
 	if !header {
 		c.add(RuleConcept, s.Line, "Chapters needs a table with the columns "+strings.Join(ChapterColumns, " | ")+".", "Plan every chapter as one row.")
 		return
 	}
-	titles, jobs, files := map[string]int{}, map[string]int{}, map[string]int{}
+	titles, files := map[string]int{}, map[string]int{}
+	jobs := map[string][]int{}
+	firstJob := map[string]Chapter{}
+	var jobOrder []string
 	for i, row := range rows {
-		if len(row.Cells) != len(ChapterColumns) {
-			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter row has %d cells; the table has %d columns.", len(row.Cells), len(ChapterColumns)), "Fill every column; write \"none\" only in Beats.")
+		if len(row.Cells) != len(columns) {
+			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter row has %d cells; the table has %d columns.", len(row.Cells), len(columns)), "Fill every column; write \"none\" only in Beats.")
 			continue
 		}
 		ch := Chapter{Title: strings.TrimSpace(row.Cells[1]), Job: concept.StripCitations(row.Cells[2]), Beats: row.Cells[3], File: path.Clean(linkTarget(row.Cells[5])), Line: row.N}
+		ch.Status = "draft"
+		if len(row.Cells) == 7 && strings.TrimSpace(row.Cells[6]) != "" {
+			ch.Status = strings.TrimSpace(row.Cells[6])
+		}
+		if ch.Status != "draft" && ch.Status != "done" && ch.Status != "planned" {
+			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d has invalid Status %q.", i+1, ch.Status), "Use planned, draft or done.")
+		}
 		if n, err := strconv.Atoi(strings.TrimSpace(row.Cells[0])); err != nil || n != i+1 {
 			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter number %q should be %d.", row.Cells[0], i+1), "Number the chapters 1, 2, 3 in reading order.")
 		}
@@ -306,12 +357,18 @@ func (c conceptChecker) chapters(d concept.Document, plan *Plan) {
 			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d repeats the title of chapter %d.", ch.N, prev), "Give each chapter its own title.")
 		}
 		titles[strings.ToLower(ch.Title)] = ch.N
-		if len(strings.Fields(ch.Job)) < MinJobWords {
-			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d has no job.", ch.N), "Write what the reader can do after it: choose, diagnose, calculate, practice, avoid…")
-		} else if prev, dup := jobs[strings.ToLower(ch.Job)]; dup {
-			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d has the same job as chapter %d.", ch.N, prev), "Merge the two chapters or give each a distinct job.")
+		n := len(strings.Fields(ch.Job))
+		if n == 0 {
+			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d has no job.", ch.N), "Write the chapter's job in at least 4 words.")
+		} else if n < MinJobWords {
+			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d's job %q is too short to plan from (%d words, write at least 4).", ch.N, ch.Job, n), "Describe what this chapter does.")
 		}
-		jobs[strings.ToLower(ch.Job)] = ch.N
+		key := strings.ToLower(ch.Job)
+		if _, ok := jobs[key]; !ok {
+			jobOrder = append(jobOrder, key)
+			firstJob[key] = ch
+		}
+		jobs[key] = append(jobs[key], ch.N)
 		switch {
 		case !strings.HasPrefix(ch.File, ChaptersDir+"/") || path.Ext(ch.File) != ".md" || strings.Count(ch.File, "/") != 1:
 			c.add(RuleConcept, row.N, fmt.Sprintf("Chapter %d's file %q is not chapters/<name>.md.", ch.N, ch.File), "Link the chapter file as [name](chapters/01-name.md).")
@@ -322,6 +379,18 @@ func (c conceptChecker) chapters(d concept.Document, plan *Plan) {
 			files[ch.File] = ch.N
 		}
 		plan.Chapters = append(plan.Chapters, ch)
+	}
+	for _, job := range jobOrder {
+		ns := jobs[job]
+		if job == "" || len(ns) < 2 {
+			continue
+		}
+		names := make([]string, len(ns))
+		for i, n := range ns {
+			names[i] = strconv.Itoa(n)
+		}
+		label := strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
+		c.add(RuleConcept, firstJob[job].Line, fmt.Sprintf("Chapters %s share the job %q.", label, firstJob[job].Job), "Give each chapter a distinct job.")
 	}
 	if len(rows) < MinChapters {
 		c.add(RuleConcept, s.Line, fmt.Sprintf("The plan has %d chapters; a book needs at least %d.", len(rows), MinChapters), "Split the promise into the steps the reader needs.")
@@ -344,7 +413,14 @@ func (c conceptChecker) imagery(d concept.Document, plan *Plan) {
 			continue
 		}
 		img := Image{Name: row.Cells[0], Chapter: row.Cells[1], Job: strings.ToLower(strings.TrimSpace(row.Cells[2])), Direction: row.Cells[3], File: path.Clean(linkTarget(row.Cells[4])), Line: row.N}
-		if strings.Contains(row.Cells[4], "Open:") {
+		img.Open = strings.Contains(strings.Join(row.Cells, " "), "Open:")
+		if img.Job == "cover" {
+			plan.CoverOpen = img.Open
+			if linkCell.MatchString(row.Cells[4]) || (img.File != "." && !strings.Contains(row.Cells[4], "Open:")) {
+				plan.Cover = img.File
+			}
+		}
+		if img.Open {
 			plan.Images = append(plan.Images, img)
 			continue
 		}
@@ -356,7 +432,7 @@ func (c conceptChecker) imagery(d concept.Document, plan *Plan) {
 		}
 		plan.Images = append(plan.Images, img)
 	}
-	c.need(s, plan.Cover != "", "Imagery plans no cover.", "Add a row whose Job is cover: the image readers see in the store and their library.")
+	c.need(s, plan.Cover != "" || plan.CoverOpen, "Imagery plans no cover.", "Add a row whose Job is cover: the image readers see in the store and their library.")
 }
 
 func imageExt(p string) bool {
@@ -389,7 +465,7 @@ func (c conceptChecker) look(d concept.Document, plan *Plan) {
 }
 
 func (c conceptChecker) evidence(d concept.Document) {
-	if len(c.voices) == 0 && len(c.peers) == 0 {
+	if !c.fiction && len(c.voices) == 0 && len(c.peers) == 0 {
 		c.add(RuleEvidence, 1, "The book concept has no research to stand on.", "Collect research first (lfm skills research), including the books readers already compare.")
 		return
 	}
@@ -409,6 +485,9 @@ func (c conceptChecker) evidence(d concept.Document) {
 			}
 		}
 	}
+	if c.fiction {
+		return
+	}
 	if want := min(MinVoices, len(c.voices)); len(voices) < want {
 		c.add(RuleEvidence, 1, fmt.Sprintf("The book concept cites %d distinct voices; cite at least %d.", len(voices), want), "Ground the reader, promise, hooks and chapters in what readers wrote.")
 	}
@@ -427,4 +506,80 @@ func preview(s string) string {
 
 func at(file string, line int, rule string, sev diagnostic.Severity, message, hint string) diagnostic.Diagnostic {
 	return diagnostic.Diagnostic{Rule: rule, Severity: sev, Location: diagnostic.Location{File: file, Line: line, Column: 1}, Message: message, Hint: hint}
+}
+
+func (c conceptChecker) hookValue(value string, line int) string {
+	value = strings.TrimSpace(value)
+	for _, pair := range [][2]string{{"\"", "\""}, {"“", "”"}, {"„", "“"}, {"‘", "’"}, {"'", "'"}} {
+		if !strings.HasPrefix(value, pair[0]) {
+			continue
+		}
+		rest := strings.TrimPrefix(value, pair[0])
+		if i := strings.Index(rest, pair[1]); i >= 0 {
+			tail := strings.TrimSpace(rest[i+len(pair[1]):])
+			if tail != "" {
+				c.add(RuleConcept, line, "Text after the quoted title is ignored: "+tail, "Move notes to an Open: line.")
+			}
+			return rest[:i]
+		}
+	}
+	return strings.Trim(concept.StripCitations(value), "\"“” ")
+}
+
+func (c conceptChecker) story(d concept.Document, plan *Plan) {
+	for _, name := range []string{"Premise", "World", "Arc"} {
+		s := d.Sections[name]
+		c.need(s, s != nil && strings.TrimSpace(s.Text()) != "", name+" is empty.", "Write the story's "+strings.ToLower(name)+".")
+	}
+	if s := d.Sections["Premise"]; s != nil {
+		plan.Description = s.Text()
+	}
+	if s := d.Sections["Cast"]; s != nil {
+		for _, item := range s.Items() {
+			name, role, ok := strings.Cut(item.Text, ":")
+			if !ok || strings.TrimSpace(role) == "" {
+				c.add(RuleConcept, item.N, "Cast needs Name: role and want.", "Give each cast member a name, role and want.")
+				continue
+			}
+			name, _, _ = strings.Cut(strings.TrimSpace(name), " (")
+			if name != "" {
+				plan.Cast = append(plan.Cast, strings.TrimSpace(name))
+			}
+		}
+		c.need(s, len(plan.Cast) > 0, "Cast lists no names.", "Add at least one Name: role and want item.")
+	}
+	s := d.Sections["Voice"]
+	if s != nil {
+		plan.POV, _ = s.Field("POV")
+		plan.Tense, _ = s.Field("Tense")
+	}
+	c.need(s, plan.POV != "", "Voice has no POV: field.", "State the point of view.")
+	c.need(s, plan.Tense != "", "Voice has no Tense: field.", "State the narrative tense.")
+}
+
+func (c conceptChecker) matter(d concept.Document, plan *Plan) {
+	s := d.Sections["Matter"]
+	if s == nil {
+		return
+	}
+	rows, header := s.Table([]string{"Part", "Place", "File"})
+	c.need(s, header, "Matter needs Part | Place | File columns.", "Plan each unnumbered part as a row.")
+	if !header {
+		return
+	}
+	for _, row := range rows {
+		if strings.Contains(strings.Join(row.Cells, " "), "Open:") {
+			continue
+		}
+		if len(row.Cells) != 3 {
+			c.add(RuleConcept, row.N, "Matter row needs three cells.", "Fill Part, Place and File.")
+			continue
+		}
+		m := Matter{Part: row.Cells[0], Place: row.Cells[1], File: path.Clean(linkTarget(row.Cells[2])), Line: row.N}
+		if m.Part == "" || (m.Place != "front" && m.Place != "back") || !strings.HasPrefix(m.File, "matter/") || strings.Count(m.File, "/") != 1 || path.Ext(m.File) != ".md" {
+			c.add(RuleConcept, row.N, "Matter needs a part, front or back, and matter/<name>.md.", "Fill the part name, place and file link.")
+			continue
+		}
+		plan.Matter = append(plan.Matter, m)
+	}
 }

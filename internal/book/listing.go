@@ -277,6 +277,7 @@ func checkListing(text string, plan Plan, offer *Price, language string, report 
 				add(s.Line, "AI has no \"Statement:\" line.", "Write one sentence in the book's language for the copyright page saying what AI did and with which tools.")
 			}
 			for _, tool := range strings.Split(l.AITools, ",") {
+				tool, _, _ = strings.Cut(tool, " (")
 				if tool = strings.TrimSpace(tool); tool != "" && l.AIStatement != "" && !strings.Contains(strings.ToLower(l.AIStatement), strings.ToLower(tool)) {
 					add(s.Line, fmt.Sprintf("The AI statement does not name %s.", tool), "tolino requires every tool named in the imprint.")
 				}
@@ -285,8 +286,12 @@ func checkListing(text string, plan Plan, offer *Price, language string, report 
 	}
 	for _, sec := range d.Order {
 		for _, ln := range sec.Lines {
-			if _, question, ok := strings.Cut(ln.Text, "Open: "); ok && strings.TrimSpace(question) != "" {
-				report(RuleOpen, ln.N, "Open question in the listing's "+sec.Name+": "+preview(question), "Get the answer from the owner, then replace the line with the decision.")
+			if _, question, ok := strings.Cut(ln.Text, "Open:"); ok && (strings.TrimSpace(question) != "" || (sec.Name == "AI" && strings.Contains(ln.Text, "Statement:"))) {
+				hint := "Get the answer from the owner, then replace the line with the decision."
+				if strings.Contains(ln.Text, "Statement:") {
+					hint += " The AI Statement would be printed in the book."
+				}
+				report(RuleOpen, ln.N, "Open question in the listing's "+sec.Name+": "+preview(question), hint)
 			}
 		}
 	}

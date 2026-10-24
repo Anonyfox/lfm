@@ -154,7 +154,8 @@ starter page is replaced, the page is held to its palette, typefaces and planned
 
 A project can ship a book alongside the page. Its folder is `deliverables/book/`, and `lfm skills book`
 prints the whole process: a book research batch, the concept, one chapter at a time, the finished files,
-delivery after payment and the store packages.
+delivery after payment and the store packages. Fiction sets `"kind": "fiction"` in `deliverables.book`
+and follows `lfm skills fiction` for its concept and chapters; [book.md](book.md) lists what each kind checks.
 
 ```text
 deliverables/book/

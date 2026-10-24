@@ -88,10 +88,6 @@ warning  book.concept  deliverables/book/concept.md:7:1
          Promise has no "Before:" and "After:" lines.
          fix: State the change in observable terms: what the reader does or has before the book
               and after it. Every chapter's job adds up to it.
-warning  book.concept  deliverables/book/concept.md:33:1
-         Imagery plans no cover.
-         fix: Add a row whose Job is cover: the image readers see in the store and their
-              library.
 warning  book.copy  deliverables/book/concept.md:20:1
          The book never says "nail polish", which the Voice uses.
          fix: Use the readers' phrase where it fits, or change the Voice when the decision
@@ -109,7 +105,7 @@ warning  book.open  deliverables/book/concept.md:36:1
          fix: Get the answer from the owner or a source, then replace the line with the
               decision.
 
-✓ <project> compiled → output/ in <duration>, 27 warnings
+✓ <project> compiled → output/ in <duration>, 26 warnings
   index.html   1.2 KiB     604 B gzip · CSS 98 B · JS 46 B
   3 assets     727 B       favicon.png, share-3f93c132da0c.png, sitemap.xml
   book         The Weekend Starter · 3 of 3 chapters · 945 of 900 words

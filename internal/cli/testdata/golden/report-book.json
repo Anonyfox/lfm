@@ -311,18 +311,6 @@
         "hint": "State the change in observable terms: what the reader does or has before the book and after it. Every chapter's job adds up to it."
       },
       {
-        "rule": "book.concept",
-        "severity": "warn",
-        "location": {
-          "file": "deliverables/book/concept.md",
-          "line": 33,
-          "column": 1,
-          "offset": 0
-        },
-        "message": "Imagery plans no cover.",
-        "hint": "Add a row whose Job is cover: the image readers see in the store and their library."
-      },
-      {
         "rule": "book.copy",
         "severity": "warn",
         "location": {
@@ -372,7 +360,7 @@
       }
     ],
     "errors": 0,
-    "warnings": 27
+    "warnings": 26
   },
   "published": true,
   "assets": [
@@ -425,6 +413,7 @@
     "name": "The Weekend Starter",
     "chapters": [
       {
+        "status": "draft",
         "n": 1,
         "title": "Why starters die",
         "job": "Diagnose why the last starter died",
@@ -433,6 +422,7 @@
         "written": true
       },
       {
+        "status": "draft",
         "n": 2,
         "title": "A week that feeds itself",
         "job": "Plan feedings around a working week",
@@ -441,6 +431,7 @@
         "written": true
       },
       {
+        "status": "draft",
         "n": 3,
         "title": "The first loaf",
         "job": "Bake one loaf and judge its crumb",
@@ -449,6 +440,7 @@
         "written": true
       }
     ],
+    "planned": 0,
     "written": 3,
     "words": 945,
     "targetWords": 900,
@@ -462,7 +454,7 @@
     "sell": "page"
   },
   "errors": 0,
-  "warnings": 27,
+  "warnings": 26,
   "durationMs": 0,
   "next": {
     "phase": "research",

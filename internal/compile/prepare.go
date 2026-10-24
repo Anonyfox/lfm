@@ -79,7 +79,12 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 				related = append(related, source)
 			}
 		}
-		issues = append(issues, diagnostic.Diagnostic{Rule: "config.invalid", Severity: diagnostic.Error, Location: at, Path: problem.Path, Related: related, Message: problem.Err.Error(), Hint: configHint(problem)})
+		rule := "config.invalid"
+		// Enum fields with a rule owner keep that rule for schema findings too.
+		if field, ok := project.Lookup(problem.Path); ok && len(field.Values) > 0 && field.Checked != "" {
+			rule = field.Checked
+		}
+		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Error, Location: at, Path: problem.Path, Related: related, Message: problem.Err.Error(), Hint: configHint(problem)})
 	}
 	helpers := newHelpers(p)
 	options := templatecheck.Options{Entry: entryTemplate, Values: values, Files: files, Sources: sources, BrowserData: c.Build.BrowserData, Rules: c.Build.Validation.Rules, Funcs: helpers.functions(false)}

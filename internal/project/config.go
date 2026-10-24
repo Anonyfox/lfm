@@ -108,6 +108,7 @@ type PrintableConfig struct {
 // BookConfig is deliverables.book: the facts of the book that are not creative
 // decisions, and the unlisted folder its files are served from.
 type BookConfig struct {
+	Kind     string   `json:"kind"`
 	Author   string   `json:"author"`
 	Language string   `json:"language"`
 	Path     string   `json:"path"`

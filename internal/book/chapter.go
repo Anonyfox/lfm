@@ -342,6 +342,12 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 		issues = append(issues, at(file, line, rule, diagnostic.Warning, message, hint))
 	}
 	_, p := parseChapter(src)
+	if ch.Status == "planned" {
+		return p, nil
+	}
+	if plan.Kind == "fiction" {
+		checkOutline(ch, p, plan, warn)
+	}
 
 	// structure
 	var tops []heading
@@ -458,14 +464,16 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 		if b.quote {
 			continue
 		}
-		for _, re := range bookTells {
-			if m := re.FindString(b.text); m != "" {
-				warn(RuleCopy, b.line, fmt.Sprintf("%q is a stock line of generated nonfiction.", m), "Start with the thing itself; the reader does not need it announced or framed.")
-				break
+		if plan.Kind != "fiction" {
+			for _, re := range bookTells {
+				if m := re.FindString(b.text); m != "" {
+					warn(RuleCopy, b.line, fmt.Sprintf("%q is a stock line of generated nonfiction.", m), "Start with the thing itself; the reader does not need it announced or framed.")
+					break
+				}
 			}
-		}
-		if m := unsourced.FindString(b.text); m != "" && !b.link {
-			warn(RuleCopy, b.line, fmt.Sprintf("%q makes a claim without a source in the paragraph.", m), "Link the study, survey or source where the claim is made, name it, or cut the claim.")
+			if m := unsourced.FindString(b.text); m != "" && !b.link {
+				warn(RuleCopy, b.line, fmt.Sprintf("%q makes a claim without a source in the paragraph.", m), "Link the study, survey or source where the claim is made, name it, or cut the claim.")
+			}
 		}
 	}
 	questions, firstSentences := 0, 0
@@ -478,7 +486,7 @@ func checkChapter(ch Chapter, src []byte, plan Plan, cfg Config, exists func(boo
 			questions++
 		}
 	}
-	if questions >= 3 && float64(questions) > 0.2*float64(firstSentences) {
+	if plan.Kind != "fiction" && questions >= 3 && float64(questions) > 0.2*float64(firstSentences) {
 		warn(RuleCopy, 1, fmt.Sprintf("%d paragraphs open with a question.", questions), "Answer instead of asking; keep a question where the reader would really ask it.")
 	}
 	openers := map[string][]int{}
@@ -539,4 +547,29 @@ func containsPhrase(text, phrase string) bool {
 // outside reports whether a cleaned book-relative path leaves the book folder.
 func outside(rel string) bool {
 	return rel == ".." || strings.HasPrefix(rel, "../") || path.IsAbs(rel)
+}
+
+// hasCastName matches a name and its English or German possessive.
+func hasCastName(text, name string) bool {
+	re, err := regexp.Compile(`(?:^|[^\p{L}\p{N}_])` + regexp.QuoteMeta(check.Straight(name)) + `(?:s|'s|’s)?(?:$|[^\p{L}\p{N}_])`)
+	return err == nil && re.MatchString(text)
+}
+
+var plannedHook = regexp.MustCompile(`Hook:\s*(?:"([^"]+)"|„([^“]+)“|“([^”]+)”)`)
+
+func checkOutline(ch Chapter, p prose, plan Plan, warn func(string, int, string, string)) {
+	text := strings.Join(blockTexts(p), " ")
+	for _, name := range plan.Cast {
+		if hasCastName(ch.Job+" "+ch.Beats, name) && !hasCastName(text, name) {
+			warn(RuleChapter, 1, fmt.Sprintf("The outline names %s for chapter %d; the chapter never mentions %s.", name, ch.N, name), "Follow the outline or update the chapter row.")
+		}
+	}
+	if m := plannedHook.FindStringSubmatch(ch.Beats); m != nil {
+		hook := check.Straight(m[1] + m[2] + m[3])
+		words := strings.Fields(text)
+		ending := strings.Join(words[max(0, len(words)-300):], " ")
+		if !strings.Contains(ending, strings.Join(strings.Fields(hook), " ")) {
+			warn(RuleChapter, 1, fmt.Sprintf("The planned hook %q is not in the chapter's ending.", hook), "Use the planned hook in the last 300 words or update the outline.")
+		}
+	}
 }

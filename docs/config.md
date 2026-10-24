@@ -50,7 +50,8 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.validation.budgets.elements` | integer | 1500 | Elements in the page's DOM. Example: `3000`. Checked by `perf.budgets`. |
 | `build.validation.budgets.depth` | integer | 32 | How deep the DOM nests. Example: `40`. Checked by `perf.budgets`. |
 | `deliverables` | object |  | What buyers receive besides the page: a book, a printable, a spreadsheet, a set of editable documents, slide decks, and two or more of them together as a bundle. |
-| `deliverables.book` | object |  | A book in deliverables/book, written with `lfm skills book`. |
+| `deliverables.book` | object |  | A book in deliverables/book, written with `lfm skills book`, or `lfm skills fiction` for fiction. |
+| `deliverables.book.kind` | nonfiction | fiction | nonfiction | nonfiction (default) or fiction: fiction swaps the concept format and turns off the research minimums and the nonfiction value and readability checks. Example: `"fiction"`. Checked by `book.config`. |
 | `deliverables.book.author` | string | required | The name on the cover. Example: `"Lena Brot"`. |
 | `deliverables.book.sell` | page | shops | bundle | page | How buyers get the files: page = your checkout redirects to an unlisted download page (needs path); shops = Etsy, Gumroad, Amazon and others deliver, the page's offer links to the listing; bundle = only inside deliverables.bundle. Example: `"page"`. |
 | `deliverables.book.path` | string |  | The unlisted download folder, at least 16 lowercase letters, digits or hyphens; needed when sell is page. It is the only lock on the files; a compile without it prints a fresh one. Example: `"k3x9m2q7w8e4r5t6y1u0"`. Checked by `book.config`. |

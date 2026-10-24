@@ -20,8 +20,11 @@ func FuzzConceptAndListing(f *testing.F) {
 				}
 			}
 		}
-		plan := checkConcept(concept, nil, nil, within(concept))
+		plan := checkConcept(concept, nil, nil, within(concept), "nonfiction")
 		checkListing(listing, plan, nil, "de", within(listing))
+		fiction := checkConcept(concept, nil, nil, within(concept), "fiction")
+		_, prose := parseChapter([]byte(listing))
+		checkOutline(Chapter{Job: concept, Beats: concept}, prose, fiction, within(listing))
 	})
 }
 

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/deliver"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
@@ -23,6 +24,7 @@ type Summary struct {
 	Concept  bool      `json:"concept"`
 	Title    string    `json:"name,omitempty"`
 	Chapters []Chapter `json:"chapters,omitempty"`
+	Planned  int       `json:"planned"`
 	Written  int       `json:"written"`
 	Words    int       `json:"words"`
 	Target   int       `json:"targetWords"`
@@ -36,10 +38,15 @@ type Summary struct {
 	Sell     string    `json:"sell"`               // page, shops or bundle
 }
 
-// Next returns the first unwritten chapter, or nil.
+// Next returns the first unwritten active chapter, then the first planned chapter.
 func (s Summary) Next() *Chapter {
 	for i := range s.Chapters {
-		if !s.Chapters[i].Exists {
+		if s.Chapters[i].Status != "planned" && !s.Chapters[i].Exists {
+			return &s.Chapters[i]
+		}
+	}
+	for i := range s.Chapters {
+		if s.Chapters[i].Status == "planned" {
 			return &s.Chapters[i]
 		}
 	}
@@ -70,6 +77,9 @@ func Present(p project.Project) bool {
 // Check reads the book of the project. configured tells whether lfm.json has
 // deliverables.book; site is the page URL the download path hangs off.
 func Check(p project.Project, cfg Config, configured bool, offers map[string]*Price, site string, voices *research.Voices, competitors *research.Competitors) Report {
+	if cfg.Kind == "" {
+		cfg.Kind = "nonfiction"
+	}
 	r := Report{Config: cfg, Sources: map[string][]byte{}}
 	// Config findings name the lfm.json key they are about; the compiler
 	// resolves it to its line.
@@ -105,6 +115,10 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 			errorAt("deliverables.book.isbn", RuleConfig, "The ebook and the paperback share one ISBN.", "Every edition needs its own ISBN.")
 		}
 	}
+	if cfg.Kind != "fiction" && cfg.Kind != "nonfiction" {
+		configOK = false
+		errorAt("deliverables.book.kind", RuleConfig, "deliverables.book.kind must be nonfiction or fiction.", "Choose nonfiction or fiction.")
+	}
 	r.Summary.Sell = deliver.Sell(cfg.Sell)
 	if configOK && r.Summary.Sell == deliver.SellPage {
 		r.Summary.URL = strings.TrimSuffix(site, "/") + "/" + cfg.Path + "/"
@@ -117,7 +131,7 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 	r.Summary.Concept = true
 	r.Plan = checkConcept(string(raw), voices, competitors, func(rule string, line int, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, at(ConceptFile, line, rule, diagnostic.Warning, message, hint))
-	})
+	}, cfg.Kind)
 	r.Summary.Title = r.Plan.Title
 
 	var sources sync.Mutex // chapters are checked side by side
@@ -149,6 +163,9 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 	for i, ch := range r.Plan.Chapters {
 		wg.Go(func() {
 			c := &results[i]
+			if ch.Status == "planned" {
+				return
+			}
 			if c.src, c.err = p.Read(Dir + "/" + ch.File); c.err == nil {
 				ch.Exists = true
 				c.pr, c.issues = checkChapter(ch, c.src, r.Plan, cfg, exists)
@@ -160,6 +177,11 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 	var texts []chapterText
 	for i, ch := range r.Plan.Chapters {
 		r.Summary.Target += ch.Words
+		if ch.Status == "planned" {
+			r.Summary.Planned++
+			r.Summary.Chapters = append(r.Summary.Chapters, ch)
+			continue
+		}
 		if c := results[i]; c.err == nil {
 			ch.Exists = true
 			r.Sources[ch.File] = c.src
@@ -171,17 +193,23 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 		}
 		r.Summary.Chapters = append(r.Summary.Chapters, ch)
 	}
-	r.Summary.Complete = len(r.Plan.Chapters) >= MinChapters && r.Summary.Written == len(r.Plan.Chapters)
+	r.Summary.Complete = len(r.Plan.Chapters) >= MinChapters && r.Summary.Planned == 0 && r.Summary.Written == len(r.Plan.Chapters)
+	for _, ch := range r.Summary.Chapters {
+		if ch.Status != "draft" && ch.Status != "done" {
+			r.Summary.Complete = false
+		}
+	}
 	repetition(texts, func(file string, line int, message, hint string) {
-		r.Diagnostics = append(r.Diagnostics, at(file, line, RuleValue, diagnostic.Warning, message, hint))
+		r.Diagnostics = append(r.Diagnostics, at(file, line, repetitionRule(cfg.Kind), diagnostic.Warning, message, hint))
 	})
-	if r.Summary.Complete {
+	if r.Summary.Complete && cfg.Kind != "fiction" {
 		for i, phrase := range r.Plan.Use {
 			if !containsPhrase(string(all), phrase) {
 				r.Diagnostics = append(r.Diagnostics, at(ConceptFile, r.Plan.UseLines[i], RuleCopy, diagnostic.Warning, fmt.Sprintf("The book never says %q, which the Voice uses.", phrase), "Use the readers' phrase where it fits, or change the Voice when the decision changed."))
 			}
 		}
 	}
+	r.checkMatter(exists)
 	r.checkImages(exists)
 	styleOK := true
 	if raw, err := p.Read(Dir + "/" + StyleFile); err == nil {
@@ -195,6 +223,14 @@ func Check(p project.Project, cfg Config, configured bool, offers map[string]*Pr
 		r.Listing = checkListing(string(raw), r.Plan, offers[cfg.Offer], cfg.Language, func(rule string, line int, message, hint string) {
 			r.Diagnostics = append(r.Diagnostics, at(ListingFile, line, rule, diagnostic.Warning, message, hint))
 		})
+		if cfg.Kind == "fiction" {
+			listingText := strings.Join(append([]string{r.Listing.Description, r.Listing.Short, r.Listing.BackCover}, append(r.Listing.Keywords, r.Listing.Tags...)...), "\n")
+			for i, phrase := range r.Plan.Use {
+				if !containsPhrase(listingText, phrase) {
+					r.Diagnostics = append(r.Diagnostics, at(ConceptFile, r.Plan.UseLines[i], RuleCopy, diagnostic.Warning, fmt.Sprintf("The listing never says %q, which the Voice uses.", phrase), "Use the phrase in the listing or update the Voice."))
+				}
+			}
+		}
 	} else if r.Summary.Complete {
 		r.Diagnostics = append(r.Diagnostics, at(ConceptFile, 1, RuleListing, diagnostic.Warning, "The book has no listing.md for the stores.",
 			"Write deliverables/book/listing.md as the lfm-book skill shows: descriptions, keywords, categories, prices and AI use, which lfm renders for every channel."))
@@ -216,6 +252,12 @@ func (r *Report) checkImages(exists func(string) bool) {
 		}
 	}
 	for _, img := range r.Plan.Images {
+		if img.Open {
+			if imageExt(img.File) {
+				exists(img.File)
+			}
+			continue
+		}
 		if img.File == "" || img.File == "." || !imageExt(img.File) {
 			continue
 		}
@@ -263,5 +305,33 @@ func (r *Report) checkFonts() {
 		r.Diagnostics = append(r.Diagnostics, at(ConceptFile, max(1, r.Plan.LookLine), RuleFonts, diagnostic.Warning,
 			fmt.Sprintf("The %s face %q is not embedded; the book would print in a fallback.", f.role, strings.TrimSpace(strings.Split(f.stack, ",")[0])),
 			"Add its font files under deliverables/book/fonts with an @font-face rule in deliverables/book/book.css, or name a face that is embedded."))
+	}
+}
+
+func repetitionRule(kind string) string {
+	if kind == "fiction" {
+		return RuleCopy
+	}
+	return RuleValue
+}
+
+func (r *Report) checkMatter(exists func(string) bool) {
+	for i := range r.Plan.Matter {
+		m := &r.Plan.Matter[i]
+		m.Exists = exists(m.File)
+		if !m.Exists {
+			r.Diagnostics = append(r.Diagnostics, at(ConceptFile, m.Line, RuleConcept, diagnostic.Warning, "Matter file "+m.File+" does not exist yet.", "Write the file or mark the row Open:."))
+			continue
+		}
+		src := r.Sources[m.File]
+		_, p := parseChapter(src)
+		if len(p.headings) == 0 || p.headings[0].level != 1 || !strings.EqualFold(strings.TrimSpace(p.headings[0].text), strings.TrimSpace(check.Straight(m.Part))) {
+			r.Diagnostics = append(r.Diagnostics, at(Dir+"/"+m.File, 1, RuleChapter, diagnostic.Warning, fmt.Sprintf("Matter does not start with %q.", "# "+m.Part), "Open the file with its planned part heading."))
+		}
+		for _, phrase := range r.Plan.Avoid {
+			if i := strings.Index(strings.ToLower(check.Straight(string(src))), strings.ToLower(check.Straight(phrase))); i >= 0 {
+				r.Diagnostics = append(r.Diagnostics, at(Dir+"/"+m.File, newLines(src).at(i), RuleCopy, diagnostic.Warning, fmt.Sprintf("The matter says %q, which the Voice avoids.", phrase), "Replace the phrase or update the Voice."))
+			}
+		}
 	}
 }

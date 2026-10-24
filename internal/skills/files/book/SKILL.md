@@ -12,6 +12,7 @@ from what readers actually wrote, is planned in one lean file, and is written on
 the whole plan in view. `lfm compile` checks the plan, every chapter and the finished files, and publishes
 them at an unlisted address that only paying buyers receive. The same compile prepares every store in
 `[[.Book.Distribution]]/`: the book's files once, and per store a guide naming its uploads and fields.
+Fiction (`"kind": "fiction"`) uses `lfm skills fiction` for the plan and chapters, then phases 4 to 6.
 
 ## Rules that always hold
 
@@ -19,8 +20,7 @@ them at an unlisted address that only paying buyers receive. The same compile pr
    changes, change [[.Book.Concept]] first, with a Changelog line, then the chapters.
 2. **Real or nothing.** Every case, number, study, quote and name is true and traceable to the research,
    the owner or a source you opened, linked where the reader can check it. A missing fact becomes an
-   `Open:` line for the owner, never a plausible guess. Research voices shape the book; quote a person
-   only with their permission.
+   `Open:` line for the owner, never a plausible guess. Quote a research voice only with their permission.
 3. **One piece at a time, the whole in mind.** Before each chapter, reread Reader, Promise, Big idea,
    Voice and Devices, the chapter's row, the end of the previous chapter and the next row.
 4. **0 errors, 0 warnings.** Fix a `book.copy` finding by rewriting around the concrete thing it stands
@@ -41,9 +41,8 @@ them at an unlisted address that only paying buyers receive. The same compile pr
   reviews praise and complain about.
 - Create `[[.Book.Dir]]/` and add to `lfm.json`:
   `"deliverables": {"book": {"author": "…", "path": "…", "offer": "…"}}`, and the publisher as
-  `"seller": {"name": "…", "imprint": "…"}`. The compile error for a missing entry prints a fresh path of at
-  least [[.Book.MinPath]] characters: the only lock on the files. `lfm help config deliverables.book` lists
-  every option with its default.
+  `"seller": {"name": "…", "imprint": "…"}`. A compile without one prints a fresh path of at least [[.Book.MinPath]]
+  characters: the only lock on the files. `lfm help config deliverables.book` lists every option.
 - The Next line reaches the book once the page's phases are clean; start earlier when the owner asks.
 
 ## Phase 1: the concept
@@ -113,9 +112,12 @@ Work through it in order:
    artifact a reader would screenshot, the bridge. Let each chapter's material choose its shape: one long
    case, a before and after, a decision path, a single annotated example; neighbours differ. Word targets
    from [[.Book.MinWords]] to [[.Book.MaxWords]]; chapters must land within [[.Book.Tolerance]]% of them.
-8. **Imagery**: a cover and only images with a job (a diagram that explains, a photo that proves), art
+   An optional seventh column, Status, is planned, draft or done; planned chapters skip prose checks.
+8. **Matter** (optional, after Chapters): `| Part | Place | File |` rows, Place front or back, File a
+   link to `matter/<name>.md` that starts with `# <Part>`: a foreword, acknowledgements, about the author.
+9. **Imagery**: a cover and only images with a job (a diagram that explains, a photo that proves), art
    direction from what readers photograph. Cells that wait for the owner say `Open:`.
-9. **Look**: trim, typefaces you can embed, one accent color.
+10. **Look**: trim, typefaces you can embed, one accent color.
 
 Then reread it as the writer of chapter 4 would. Could each chapter be written from its row alone? Does
 any job repeat? Would the promise still hold with a competitor's name on the cover? Is anything planned
@@ -182,8 +184,7 @@ Once every chapter exists, read the book in one pass with fresh eyes, as its har
   blog posts, the expert in the field, the skeptic of the promise. Fix what each would quote.
 - **The five-star line**: the sentence a happy reader quotes when recommending the book. If there is
   none, the book lacks its core; sharpen the chapter that should carry it.
-- **The owner's read**: ask the owner to read the first, a middle and the last chapter. Taste and voice
-  are theirs to judge.
+- **The owner's read**: the owner reads the first, a middle and the last chapter and judges taste and voice.
 
 ## Phase 4: cover, images and the finished files
 
@@ -197,8 +198,7 @@ Once every chapter exists, read the book in one pass with fresh eyes, as its har
   page; `lfm compile --release` prints the PDF and paperback with Chrome, which later compiles reuse while
   the book is unchanged, and checks the layout at phone width and in print.
 - Open the PDF and look at every page: cover, title page, contents, each chapter opening, every image
-  and table, the page breaks. Open the EPUB in a reader when you can. Fix what you see in the chapter
-  or `book.css`, compile again.
+  and table, the page breaks. Open the EPUB in a reader when you can. Fix what you see, compile again.
 
 ## Phase 5: delivery
 
@@ -238,7 +238,7 @@ Once every chapter exists, write [[.Book.Listing]], the texts every store asks f
 ## AI
 Text: <none | assisted | generated>
 Images: <none | assisted | generated>
-Tools: <the AI tools used>
+Tools: <the AI tool names, each optionally with its model in parentheses>
 Statement: <one sentence in the book's language for the copyright page: what AI did, with which tools>
 ```
 

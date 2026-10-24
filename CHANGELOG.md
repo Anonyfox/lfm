@@ -1,5 +1,12 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.12 (unreleased)
+
+- `deliverables.book.kind: fiction` with its own concept (premise, cast, world, arc, POV, tense) and the `lfm-fiction` skill; research minimums, value and readability checks stay nonfiction-only.
+- Chapters take an optional Status column (planned, draft, done); planned chapters skip prose checks. A Matter table plans front and back matter.
+- Quoted book titles ignore trailing notes; AI statements match tool names without model suffixes.
+- Open imagery rows reserve covers and wait for the owner without missing-image findings.
+
 ## 0.1.11 (2026-10-24)
 
 - Concepts support restrained, balanced and immersive motion intensity; existing concepts stay restrained.

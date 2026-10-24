@@ -177,7 +177,7 @@ type Skill struct {
 }
 
 // lifecycle orders the skills as a project uses them; others follow by name.
-var lifecycle = []string{"research", "design", "implementation", "book", "printable", "spreadsheet", "document", "deck"}
+var lifecycle = []string{"research", "design", "implementation", "book", "fiction", "printable", "spreadsheet", "document", "deck"}
 
 func rank(topic string) int {
 	for i, t := range lifecycle {

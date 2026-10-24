@@ -27,7 +27,7 @@ func checkBook(p project.Project, loaded project.Loaded, commerce commercecheck.
 	configured := c.Deliverables.Book != nil
 	if configured {
 		b := c.Deliverables.Book
-		cfg = book.Config{Author: b.Author, Language: b.Language, Path: b.Path, Offer: b.Offer, Formats: b.Formats,
+		cfg = book.Config{Kind: b.Kind, Author: b.Author, Language: b.Language, Path: b.Path, Offer: b.Offer, Formats: b.Formats,
 			Publisher: c.Seller.Name, Imprint: c.Seller.Imprint, Paper: b.Paper, ISBNEbook: b.ISBN.Ebook, ISBNPaperback: b.ISBN.Paperback, Sell: b.Sell}
 	}
 	if cfg.Language == "" {

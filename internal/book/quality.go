@@ -549,6 +549,7 @@ const (
 // qualityChecks reports what the profile shows. RuleCopy is for prose that
 // reads generated, RuleValue for chapters that give the reader too little.
 func qualityChecks(q quality, p prose, plan Plan, language, author string, warn func(rule string, line int, message, hint string)) {
+	fiction := plan.Kind == "fiction"
 	lang := langOf(language)
 	bl, known := bookLangOf(language)
 	if q.words < minWordsForQuality {
@@ -593,7 +594,7 @@ func qualityChecks(q quality, p prose, plan Plan, language, author string, warn 
 	if len(q.participles) >= minParticiples && per1000(len(q.participles)) > participlesPer1000 {
 		warn(RuleCopy, q.participles[0], fmt.Sprintf("%d sentences end in \", highlighting …\" or a similar clause.", len(q.participles)), "State the consequence as its own sentence, with the fact that shows it.")
 	}
-	if len(q.hedges) > maxHedges {
+	if !fiction && len(q.hedges) > maxHedges {
 		warn(RuleCopy, q.hedges[0], fmt.Sprintf("%d hedged promises (\"may help\", \"kann helfen\").", len(q.hedges)), "Commit: say when it works and when it does not.")
 	}
 	for _, line := range q.emoji {
@@ -601,7 +602,7 @@ func qualityChecks(q quality, p prose, plan Plan, language, author string, warn 
 		break
 	}
 	declared := strings.ToLower(plan.Text + " " + author)
-	if !bl.composite.MatchString(strings.Join(blockTexts(p), " ")) {
+	if !fiction && !bl.composite.MatchString(strings.Join(blockTexts(p), " ")) {
 		seen := map[string]bool{}
 		for _, s := range q.stock {
 			if seen[s.text] || strings.Contains(declared, strings.ToLower(s.text)) {
@@ -626,69 +627,74 @@ func qualityChecks(q quality, p prose, plan Plan, language, author string, warn 
 		}
 		warn(RuleMachine, line, check.MachineMessage("this chapter", r)+fmt.Sprintf(" The passage from line %d reads most generated.", line), check.MachineHint(r))
 	}
-	if q.ending != "" {
+	if !fiction && q.ending != "" {
 		warn(RuleCopy, q.endingLine, "The chapter "+q.ending+".", "End on the last useful move or on the open question the next chapter answers; readers skip recaps and pep talks.")
 	}
 
 	// value
-	if q.opening != "" {
-		warn(RuleValue, q.openingLine, "The chapter "+q.opening+".", "Open inside a moment: who, where, when and what went wrong, in the first two sentences; or with one surprising number and its source.")
-	}
-	if p.external == 0 {
-		warn(RuleValue, 1, "The chapter names no source a reader can check.", "Link at least one real source next to the claim it supports: a study, a book, a practitioner, the research voice it comes from.")
-	}
-	for i, v := range q.vague {
-		if i == 2 {
-			break
+	if len(q.artifacts) > 0 {
+		rule, a := RuleValue, q.artifacts[0]
+		if fiction {
+			rule = RuleCopy
 		}
-		warn(RuleValue, v.line, fmt.Sprintf("%q attributes a claim to nobody in particular.", v.text), "Name and link the source, or say it as your own claim and show why.")
+		warn(rule, a.line, fmt.Sprintf("%q is left over from a chat tool.", a.text), "Delete it, or replace it with the real source link.")
 	}
-	for _, a := range q.artifacts {
-		warn(RuleValue, a.line, fmt.Sprintf("%q is left over from a chat tool.", a.text), "Replace it with the real source link.")
-		break
-	}
-	floor := bl.specificsFloor
-	if known {
-		if per1000(q.specifics) < floor {
-			warn(RuleValue, 1, fmt.Sprintf("%.1f names, numbers and quotes per 1000 words; generic advice starts below %.0f.", per1000(q.specifics), floor), "Add the case, the figure, the date, the words someone actually said.")
-		} else if q.thinWindow > 0 {
-			warn(RuleValue, q.thinWindow, "400 words in a row without a name, number or quote.", "Climb down the ladder: after each general claim, the concrete instance within two sentences.")
+	if !fiction {
+		if q.opening != "" {
+			warn(RuleValue, q.openingLine, "The chapter "+q.opening+".", "Open inside a moment: who, where, when and what went wrong, in the first two sentences; or with one surprising number and its source.")
 		}
-	}
-	if q.firstValue > firstValueWords {
-		warn(RuleValue, q.openingLine, fmt.Sprintf("The reader waits %d words for the first thing to use: a step, a list, an amount, an instruction.", q.firstValue), "Move a concrete step, number or example up, or cut the preamble.")
-	}
-	if q.firstValue < 0 {
-		warn(RuleValue, 1, "The chapter offers nothing to use: no step, list, table, amount or instruction.", "Give the reader one thing to do or decide with real numbers, even in a story chapter.")
-	} else if q.valueGap > valueGapWords {
-		warn(RuleValue, q.gapLine, fmt.Sprintf("%d words pass without anything to use.", q.valueGap), "Cut the stretch or put the step, example or number it is building up to inside it.")
+		if p.external == 0 {
+			warn(RuleValue, 1, "The chapter names no source a reader can check.", "Link at least one real source next to the claim it supports: a study, a book, a practitioner, the research voice it comes from.")
+		}
+		for i, v := range q.vague {
+			if i == 2 {
+				break
+			}
+			warn(RuleValue, v.line, fmt.Sprintf("%q attributes a claim to nobody in particular.", v.text), "Name and link the source, or say it as your own claim and show why.")
+		}
+		floor := bl.specificsFloor
+		if known {
+			if per1000(q.specifics) < floor {
+				warn(RuleValue, 1, fmt.Sprintf("%.1f names, numbers and quotes per 1000 words; generic advice starts below %.0f.", per1000(q.specifics), floor), "Add the case, the figure, the date, the words someone actually said.")
+			} else if q.thinWindow > 0 {
+				warn(RuleValue, q.thinWindow, "400 words in a row without a name, number or quote.", "Climb down the ladder: after each general claim, the concrete instance within two sentences.")
+			}
+		}
+		if q.firstValue > firstValueWords {
+			warn(RuleValue, q.openingLine, fmt.Sprintf("The reader waits %d words for the first thing to use: a step, a list, an amount, an instruction.", q.firstValue), "Move a concrete step, number or example up, or cut the preamble.")
+		}
+		if q.firstValue < 0 {
+			warn(RuleValue, 1, "The chapter offers nothing to use: no step, list, table, amount or instruction.", "Give the reader one thing to do or decide with real numbers, even in a story chapter.")
+		} else if q.valueGap > valueGapWords {
+			warn(RuleValue, q.gapLine, fmt.Sprintf("%d words pass without anything to use.", q.valueGap), "Cut the stretch or put the step, example or number it is building up to inside it.")
+		}
 	}
 	share := float64(q.nominal) / float64(q.words)
 	limit := bl.nominalShare
-	if known && share > limit {
+	if !fiction && known && share > limit {
 		warn(RuleCopy, 1, fmt.Sprintf("%.1f%% of the words are abstract nouns (%s).", share*100, strings.Join(q.nominalTop, ", ")), "Turn them back into verbs with someone doing them.")
 	}
 	if q.paragraphs >= minParagraphsShape {
-		if float64(q.oneLiners) > oneLinerShare*float64(q.paragraphs) {
+		if !fiction && float64(q.oneLiners) > oneLinerShare*float64(q.paragraphs) {
 			warn(RuleCopy, 1, fmt.Sprintf("%d of %d paragraphs are a single short sentence.", q.oneLiners, q.paragraphs), "Merge one-line punches into the paragraphs they conclude; a book is not a feed.")
 		}
 		switch {
 		case q.paragraphMean > maxParagraphMean:
 			warn(RuleCopy, 1, fmt.Sprintf("Paragraphs average %.0f words; on a phone that is a wall.", q.paragraphMean), "Break paragraphs where the thought turns.")
-		case q.paragraphMean < minParagraphMean:
+		case !fiction && q.paragraphMean < minParagraphMean:
 			warn(RuleCopy, 1, fmt.Sprintf("Paragraphs average %.0f words.", q.paragraphMean), "Let paragraphs develop a thought; join the ones that only continue the previous one.")
 		case q.paragraphCV < uniformParagraphs:
 			warn(RuleCopy, 1, fmt.Sprintf("Paragraphs barely vary in length (variation %.2f).", q.paragraphCV), "Let a key case run long and a turn stand short.")
 		}
 	}
-	if q.sentences > 0 && per1000(q.fragments) > fragmentsPer1000 && q.fragments >= 15 {
+	if !fiction && q.sentences > 0 && per1000(q.fragments) > fragmentsPer1000 && q.fragments >= 15 {
 		warn(RuleCopy, 1, fmt.Sprintf("%d sentences of four words or fewer.", q.fragments), "Fragments land when rare; join most of them to the sentence they belong to.")
 	}
 	if q.sections >= 4 && q.sectionCV < uniformSections {
 		warn(RuleCopy, 1, fmt.Sprintf("All %d sections have nearly the same length (variation %.2f).", q.sections, q.sectionCV), "Give each section the length its material needs.")
 	}
 	if known && q.reading.words > 0 {
-		if q.readability < q.readLow || q.readability > q.readHigh {
+		if !fiction && (q.readability < q.readLow || q.readability > q.readHigh) {
 			band := fmt.Sprintf("above %.0f", q.readLow)
 			if q.readHigh < 1000 {
 				band = fmt.Sprintf("between %.0f and %.0f", q.readLow, q.readHigh)
@@ -701,7 +707,7 @@ func qualityChecks(q quality, p prose, plan Plan, language, author string, warn 
 			warn(RuleCopy, 1, fmt.Sprintf("Readability (%s) %.0f; mass-market nonfiction reads %s.", strings.TrimSuffix(q.readLabel, " (negated)"), value, band),
 				"Split long sentences and prefer shorter words; keep the main point in the main clause.")
 		}
-		if lang == "de" && q.wstf > maxWSTF {
+		if !fiction && lang == "de" && q.wstf > maxWSTF {
 			warn(RuleCopy, 1, fmt.Sprintf("Wiener Sachtextformel %.1f; above %.0f reads as hard.", q.wstf, maxWSTF), "Kürzere Sätze, weniger lange Wörter, Verben statt Substantive.")
 		}
 		if q.meanSentence > bl.maxSentence {
