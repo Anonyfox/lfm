@@ -368,7 +368,11 @@ func TestTemplateHelp(t *testing.T) {
 }
 
 func TestCompileNeverRefreshesSkills(t *testing.T) {
-	base := t.TempDir()
+	// The note names resolved paths; macOS temp dirs sit behind a symlink.
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	root := filepath.Join(base, "project")
 	run(t, "init", root)
 	folder := filepath.Join(root, skills.AgentsDir)
