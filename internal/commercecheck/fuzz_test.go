@@ -73,7 +73,7 @@ func FuzzIdentity(f *testing.F) {
 // Property: Checkout findings are complete and never echo query values or
 // secret-shaped text from the URL.
 func FuzzCheckout(f *testing.F) {
-	for _, seed := range []string{"https://buy.stripe.com/ABC123?utm_source=x&prefilled_email=fox%40example.com", "http://buy.stripe.com/ABC", "https://checkout.stripe.com/c/pay/cs_live_ABC", "https://buy.stripe.com/ABC?x=%ZZ", "https://10.0.0.1/x#y", "https://buy.stripe.com/test_ABC?locale=de&locale=en"} {
+	for _, seed := range []string{"https://buy.stripe.com/REPLACE_PLINK", "https://example.org/pay", "https://buy.stripe.com/YOUR_LINK", "https://buy.stripe.com/ABC123?utm_source=x&prefilled_email=fox%40example.com", "http://buy.stripe.com/ABC", "https://checkout.stripe.com/c/pay/cs_live_ABC", "https://buy.stripe.com/ABC?x=%ZZ", "https://10.0.0.1/x#y", "https://buy.stripe.com/test_ABC?locale=de&locale=en"} {
 		f.Add(seed, "custom_fields[0]", "private-answer")
 	}
 	f.Fuzz(func(t *testing.T, raw, name, value string) {

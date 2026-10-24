@@ -3,7 +3,7 @@ package release
 import (
 	"context"
 	"fmt"
-	"net/http/httptest"
+	"net"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -24,12 +24,14 @@ func ImagePlacement(ctx context.Context, page []byte, assets map[string][]byte) 
 	if err != nil {
 		return nil, err
 	}
-	server := httptest.NewServer(Handler(page, assets))
+	server, err := localServer(Handler(page, assets), net.Listen)
+	if err != nil {
+		return nil, err
+	}
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
+	opts := BrowserOptions(path)
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	defer cancelAlloc()
 	tab, cancelTab := chromedp.NewContext(alloc)

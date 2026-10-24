@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"image/png"
 	"mime"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,6 +93,12 @@ func browserCandidates() []string {
 	return candidates
 }
 
+// BrowserOptions configures an isolated browser without background services.
+func BrowserOptions(path string) []chromedp.ExecAllocatorOption {
+	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
+	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
+}
+
 // Analyze observes static first paint at several widths, unions visible rules,
 // then verifies both critical-only and critical+full rendering at every width.
 // The original full CSS is never purged. Ambiguous/unstable pages retain it inline.
@@ -102,12 +108,14 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	if err != nil {
 		return result, err
 	}
-	server := httptest.NewServer(Handler(page, assets))
+	server, err := localServer(Handler(page, assets), net.Listen)
+	if err != nil {
+		return result, err
+	}
 	defer server.Close()
 	ctx, abort := context.WithCancelCause(ctx)
 	defer abort(nil)
-	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
+	opts := BrowserOptions(path)
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	defer cancelAlloc()
 	browser, cancelBrowser := chromedp.NewContext(alloc)

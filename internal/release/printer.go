@@ -3,6 +3,7 @@ package release
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -42,19 +43,21 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 		return nil, err
 	}
 	p := &Printer{slots: make(chan struct{}, tabs)}
-	p.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	p.server, err = localServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		job, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		if h, ok := p.jobs.Load(job); ok {
 			http.StripPrefix("/"+job, h.(http.Handler)).ServeHTTP(w, r)
 			return
 		}
 		http.NotFound(w, r)
-	}))
+	}), net.Listen)
+	if err != nil {
+		return nil, err
+	}
 	// No deadline on the browser itself: a large release prints for longer
 	// than any fixed limit; each tab has its own.
 	ctx, cancel := context.WithCancel(ctx)
-	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
+	opts := BrowserOptions(path)
 	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, cancelBrowser := chromedp.NewContext(alloc)
 	p.stop = func() { cancelBrowser(); cancelAlloc(); cancel(); p.server.Close() }

@@ -37,6 +37,9 @@ func Checkout(raw string) []URLFinding {
 		return []URLFinding{{true, "Checkout destination must be an absolute HTTPS URL without credentials or whitespace.", "Reference the actual reusable hosted Stripe URL through urls; a Product/Price/Payment Link ID is not a URL."}}
 	}
 	host := strings.ToLower(u.Hostname())
+	if urlcheck.Placeholder(raw) {
+		return []URLFinding{{false, "Placeholder checkout link.", "Paste the real Payment Link URL from Stripe into the named checkout URL."}}
+	}
 	if !urlcheck.PublicURL(strings.SplitN(raw, "#", 2)[0]) {
 		add(true, "Checkout destination is not a public browser URL.", "Use a public Stripe/custom checkout hostname; local/private addresses, malformed hosts and credentials cannot serve public buyers. DNS and live state still require deployment checks.")
 	}

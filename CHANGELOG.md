@@ -2,6 +2,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## 0.1.8 (unreleased)
 
+- Match styles faster on pages with large stylesheets.
+- Report an unavailable local port during release checks instead of panicking.
+- Identify placeholder checkout links and point to the real Stripe Payment Link.
 - Release critical-CSS analysis bounds each browser step with a precise error, without a shared deadline that rejects progressing builds on loaded machines.
 
 ## 0.1.7 (2026-10-23)

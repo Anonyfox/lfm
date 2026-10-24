@@ -3,7 +3,8 @@ package release
 import (
 	"context"
 	"fmt"
-	"net/http/httptest"
+	"net"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -33,13 +34,19 @@ type RuntimeResult struct {
 // The same tab then walks the page frame by frame at every review screen
 // (auditLayout); frames is the screenshot folder, "" for none.
 func AuditRuntime(ctx context.Context, page []byte, assets map[string][]byte, path, frames string) *RuntimeResult {
+	return auditRuntime(ctx, page, assets, path, frames, net.Listen)
+}
+
+func auditRuntime(ctx context.Context, page []byte, assets map[string][]byte, path, frames string, listen func(string, string) (net.Listener, error)) *RuntimeResult {
 	start := time.Now()
 	r := &RuntimeResult{Status: "skipped", Scope: "390x844 initial navigation with application JS; 250 ms settle; no user journeys or simulated mobile performance scores; external traffic/mutations blocked."}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
-	server := httptest.NewUnstartedServer(nil)
-	origin := "http://" + server.Listener.Addr().String()
-	server.Config.Handler = AuditHandler(page, assets, origin)
-	server.Start()
+	server, err := localServerWithOrigin(func(origin string) http.Handler { return AuditHandler(page, assets, origin) }, listen)
+	if err != nil {
+		r.Reason = err.Error()
+		r.Hint = LocalPortSetup
+		return r
+	}
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()

@@ -8,7 +8,7 @@ import (
 func TestCheckoutVariantsAndParameters(t *testing.T) {
 	for _, raw := range []string{
 		"https://buy.stripe.com/ABC123", "https://book.stripe.com/ABC123", "https://donate.stripe.com/ABC123",
-		"https://payments.example.com/custom-stripe-route?future=allowed",
+		"https://payments.merchant.com/custom-stripe-route?future=allowed",
 		"https://buy.stripe.com/ABC123?utm_source=my_campaign&client_reference_id=order_123&prefilled_email=fox%40example.com&prefilled_promo_code=SAVE10&locale=de&prefilled_amount=4900",
 	} {
 		if issues := Checkout(raw); len(issues) != 0 {

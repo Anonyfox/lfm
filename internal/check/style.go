@@ -130,21 +130,29 @@ func (d *Document) styles() *styleModel {
 // with the full selector, instead of every element for every rule.
 type elementIndex struct {
 	ids, classes, tags map[string][]*html.Node
+	elements           []*html.Node
+	nodes              []*html.Node
+	keys               map[string]selectorKey
 }
 
 func newElementIndex(elements []*html.Node) *elementIndex {
-	x := &elementIndex{ids: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
+	x := &elementIndex{elements: elements, keys: map[string]selectorKey{}, ids: map[string][]*html.Node{}, classes: map[string][]*html.Node{}, tags: map[string][]*html.Node{}}
 	for _, n := range elements {
-		x.tags[strings.ToLower(n.Data)] = append(x.tags[strings.ToLower(n.Data)], n)
+		x.tags[n.Data] = append(x.tags[n.Data], n)
+		seenID, seenClass := map[string]bool{}, map[string]bool{}
 		for _, a := range n.Attr {
 			switch a.Key {
 			case "id":
-				x.ids[a.Val] = append(x.ids[a.Val], n)
+				if !seenID[a.Val] {
+					x.ids[a.Val] = append(x.ids[a.Val], n)
+					seenID[a.Val] = true
+				}
 			case "class":
-				seen := map[string]bool{}
-				for _, c := range strings.Fields(a.Val) {
-					if !seen[c] {
-						seen[c] = true
+				for c := range strings.FieldsFuncSeq(a.Val, func(r rune) bool {
+					return r == ' ' || r == '\t' || r == '\r' || r == '\n' || r == '\f'
+				}) {
+					if !seenClass[c] {
+						seenClass[c] = true
 						x.classes[c] = append(x.classes[c], n)
 					}
 				}
@@ -158,7 +166,12 @@ func newElementIndex(elements []*html.Node) *elementIndex {
 // cascadia.QueryAll(root, sel).
 func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel) []*html.Node {
 	var candidates []*html.Node
-	switch kind, name := keySelector(selector); kind {
+	key, ok := x.keys[selector]
+	if !ok {
+		key.kind, key.name = keySelector(selector)
+		x.keys[selector] = key
+	}
+	switch kind, name := key.kind, key.name; kind {
 	case '#':
 		candidates = x.ids[name]
 	case '.':
@@ -166,7 +179,23 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 	case 't':
 		candidates = x.tags[name]
 	default:
-		return cascadia.QueryAll(root, sel)
+		candidates = x.elements
+		// Cascadia's nonstandard text pseudo-classes can also match text nodes.
+		// Preserve QueryAll semantics for these selectors with one shared preorder.
+		serialized := sel.String()
+		if strings.Contains(serialized, ":contains") || strings.Contains(serialized, ":matches") {
+			if x.nodes == nil {
+				var visit func(*html.Node)
+				visit = func(n *html.Node) {
+					for c := n.FirstChild; c != nil; c = c.NextSibling {
+						x.nodes = append(x.nodes, c)
+						visit(c)
+					}
+				}
+				visit(root)
+			}
+			candidates = x.nodes
+		}
 	}
 	var out []*html.Node
 	for _, n := range candidates {
@@ -177,81 +206,74 @@ func (x *elementIndex) match(root *html.Node, selector string, sel cascadia.Sel)
 	return out
 }
 
-// keySelector returns the id ('#'), class ('.') or tag ('t') that every match
-// of the selector's rightmost compound must carry, or 0 when there is none or
-// the compound uses syntax this scan does not read (escapes, namespaces,
-// nesting). Ids win over classes over tags, being rarer.
+type selectorKey struct {
+	kind byte
+	name string
+}
+
+// keySelector reads only top-level simple selectors in the rightmost compound.
+// The CSS lexer keeps escaped delimiters and quoted attribute values intact;
+// requirements inside functional pseudo-classes never become mandatory keys.
 func keySelector(selector string) (byte, string) {
-	depth, start := 0, 0
-	for i := len(selector) - 1; i >= 0; i-- {
-		switch c := selector[i]; c {
-		case ')', ']':
-			depth++
-		case '(', '[':
-			depth--
-		case ' ', '>', '+', '~', '\t', '\n':
-			if depth == 0 {
-				start = i + 1
-				i = -1
-			}
-		}
-	}
-	compound := selector[start:]
-	if compound == "" || strings.ContainsAny(compound, "\\|&") {
-		return 0, ""
-	}
+	lexer := css.NewLexer(parse.NewInputString(selector))
 	var id, class, tag string
-	ident := func(i int) (string, int) {
-		j := i
-		for j < len(compound) {
-			c := compound[j]
-			if c == '-' || c == '_' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= 0x80 {
-				j++
-				continue
-			}
+	depth := 0
+	var previous css.TokenType
+	namespace := false
+	reset := func() { id, class, tag = "", "", ""; previous = css.ErrorToken; namespace = false }
+	for {
+		typ, raw := lexer.Next()
+		if typ == css.ErrorToken {
 			break
 		}
-		return compound[i:j], j
-	}
-	for i := 0; i < len(compound); {
-		switch c := compound[i]; {
-		case c == '#' || c == '.':
-			name, j := ident(i + 1)
-			if c == '#' && id == "" {
-				id = name
-			} else if c == '.' && class == "" {
-				class = name
+		if depth > 0 {
+			switch typ {
+			case css.FunctionToken, css.LeftParenthesisToken, css.LeftBracketToken:
+				depth++
+			case css.RightParenthesisToken, css.RightBracketToken:
+				depth--
 			}
-			if j == i+1 {
-				return 0, ""
+			continue
+		}
+		switch typ {
+		case css.FunctionToken, css.LeftParenthesisToken, css.LeftBracketToken:
+			depth++
+		case css.WhitespaceToken:
+			reset()
+			continue
+		case css.DelimToken:
+			switch string(raw) {
+			case ">", "+", "~":
+				reset()
+				continue
+			case "|":
+				namespace = true
 			}
-			i = j
-		case c == '[' || c == ':':
-			// skip attribute selectors and pseudo-classes with their arguments
-			depth := 0
-			for i < len(compound) {
-				switch compound[i] {
-				case '[', '(':
-					depth++
-				case ']', ')':
-					depth--
+		case css.CommaToken:
+			return 0, ""
+		case css.HashToken:
+			if id == "" {
+				id = selectorIdent(string(raw[1:]))
+			}
+		case css.IdentToken:
+			if previous == css.DelimToken {
+				if class == "" {
+					class = selectorIdent(string(raw))
 				}
-				i++
-				if depth == 0 && i < len(compound) && (compound[i] == '#' || compound[i] == '.' || compound[i] == '[' || compound[i] == ':') {
-					break
-				}
-			}
-		case c == '*':
-			i++
-		default:
-			if i != 0 {
-				return 0, ""
-			}
-			tag, i = ident(0)
-			if tag == "" {
-				return 0, ""
+			} else if previous == css.ErrorToken {
+				tag = selectorIdent(string(raw))
 			}
 		}
+		// Only a dot can introduce a class identifier. Other delimiters suppress
+		// tag extraction without making the next identifier a class.
+		if typ == css.DelimToken && string(raw) != "." {
+			previous = css.ColonToken
+		} else {
+			previous = typ
+		}
+	}
+	if namespace {
+		tag = ""
 	}
 	switch {
 	case id != "":
@@ -259,9 +281,64 @@ func keySelector(selector string) (byte, string) {
 	case class != "":
 		return '.', class
 	case tag != "":
-		return 't', strings.ToLower(tag)
+		return 't', asciiLower(tag)
 	}
 	return 0, ""
+}
+
+// selectorIdent decodes CSS escapes with the same code point and whitespace
+// handling as Cascadia. It is called only for lexer-recognized identifiers.
+func selectorIdent(s string) string {
+	if !strings.Contains(s, `\`) {
+		return s
+	}
+	var out strings.Builder
+	for i := 0; i < len(s); {
+		if s[i] != '\\' {
+			out.WriteByte(s[i])
+			i++
+			continue
+		}
+		i++
+		start := i
+		for i < len(s) && i < start+6 && (s[i] >= '0' && s[i] <= '9' || s[i] >= 'a' && s[i] <= 'f' || s[i] >= 'A' && s[i] <= 'F') {
+			i++
+		}
+		if i > start {
+			v, _ := strconv.ParseUint(s[start:i], 16, 32)
+			out.WriteRune(rune(v))
+			if i < len(s) {
+				switch s[i] {
+				case '\r':
+					i++
+					if i < len(s) && s[i] == '\n' {
+						i++
+					}
+				case ' ', '\t', '\n', '\f':
+					i++
+				}
+			}
+		} else if i < len(s) {
+			out.WriteByte(s[i])
+			i++
+		}
+	}
+	return out.String()
+}
+
+func asciiLower(s string) string {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 'A' && s[i] <= 'Z' {
+			b := []byte(s)
+			for j := i; j < len(b); j++ {
+				if b[j] >= 'A' && b[j] <= 'Z' {
+					b[j] += 'a' - 'A'
+				}
+			}
+			return string(b)
+		}
+	}
+	return s
 }
 
 func readRules(raw []byte) []*cssRule {

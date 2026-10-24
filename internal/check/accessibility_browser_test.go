@@ -3,8 +3,6 @@ package check
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/release"
@@ -36,20 +34,23 @@ func TestBrowserAccessibleNamesAndNativeFocus(t *testing.T) {
 <fieldset disabled><legend>Group <input id=legend aria-label=Legend></legend><input id=disabled aria-label=Disabled></fieldset>
 <div aria-hidden=true><button id=hidden-control>Focusable but excluded</button></div>
 <div inert><button id=inert-control>Inactive</button></div></body></html>`
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte(raw))
-	}))
-	defer server.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 	defer cancel()
-	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	opts = append(opts, chromedp.ExecPath(path))
+	opts := release.BrowserOptions(path)
 	allocator, stop := chromedp.NewExecAllocator(ctx, opts...)
 	defer stop()
 	tab, closeTab := chromedp.NewContext(allocator)
 	defer closeTab()
-	if _, err := chromedp.Run(tab, chromedp.Navigate(server.URL)); err != nil {
+	// Start Chrome before installing the fixture. Navigation waits for loader
+	// lifecycle events; this fixture only needs a completed local document.
+	if err := chromedp.Do(tab); err != nil {
+		t.Fatal(err)
+	}
+	fixture, _ := json.Marshal(raw)
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.open();document.write(`+string(fixture)+`);document.close();true`)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := chromedp.Run(tab, chromedp.Poll[bool](`document.readyState === "complete" && !!document.getElementById("inert-control")`)); err != nil {
 		t.Fatal(err)
 	}
 	d, _ := Parse([]byte(raw), Options{})

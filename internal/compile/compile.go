@@ -467,7 +467,9 @@ func (b *builder) optimize(doc *html.Node, result *Result) error {
 		result.Release = &release.Result{}
 	}
 	result.Release.Reason = "Critical CSS skipped: " + err.Error()
-	if _, unavailable := release.BrowserPath(); unavailable == nil {
+	// Without Chrome or a local port the audit reports the one release.browser
+	// finding; a second notice here would repeat it.
+	if _, unavailable := release.BrowserPath(); unavailable == nil && !errors.Is(err, release.ErrLocalPort) {
 		b.notice("release.css", result.Release.Reason, "The complete CSS was kept. Check Chrome startup and page rendering, then compile with --release again.")
 	}
 	return nil

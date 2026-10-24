@@ -190,7 +190,7 @@ func (a *Analyzer) Inspect(raw string) Result {
 	if strings.Contains(trimmed, "&amp;") {
 		add(diagnostic.Warning, "URL appears HTML-escaped before templating.", "Store raw & in JSON. html/template performs HTML escaping; pre-escaping changes query parameter names.")
 	}
-	if strings.Contains(raw, "{{") || strings.Contains(raw, "}}") || strings.Contains(raw, "${") {
+	if templatePlaceholder(raw) {
 		add(diagnostic.Error, "URL still contains a template placeholder.", "Store the actual destination in config; config strings are not recursively templated.")
 	}
 	u, err := a.Resolve(raw)

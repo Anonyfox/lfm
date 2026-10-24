@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"math"
 	"mime"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
 	"os/exec"
@@ -76,6 +76,10 @@ type AuditFinding struct {
 }
 
 func Audit(ctx context.Context, page []byte, assets map[string][]byte, root string) *AuditResult {
+	return audit(ctx, page, assets, root, net.Listen)
+}
+
+func audit(ctx context.Context, page []byte, assets map[string][]byte, root string, listen func(string, string) (net.Listener, error)) *AuditResult {
 	var t texts
 	r := &AuditResult{Delivery: t.delivery(page, assets)}
 	warn := func(rule, message, hint string) {
@@ -93,7 +97,7 @@ func Audit(ctx context.Context, page []byte, assets map[string][]byte, root stri
 		}
 		return r
 	}
-	r.Runtime = AuditRuntime(ctx, page, assets, browser, FramesPath(root))
+	r.Runtime = auditRuntime(ctx, page, assets, browser, FramesPath(root), listen)
 	if r.Runtime.Status != "ok" {
 		warn("release.browser", "Runtime navigation check skipped: "+r.Runtime.Reason, r.Runtime.Hint)
 	}
@@ -186,10 +190,12 @@ func runLighthouse(ctx context.Context, page []byte, assets map[string][]byte, b
 	// Chrome's proxy sends ALL HTTP(S), including loopback, through this deny-by-
 	// default artifact server. It never forwards requests. HTTPS CONNECT, outside
 	// origins, mutations and WebSocket upgrades are rejected. No user profile.
-	server := httptest.NewUnstartedServer(nil)
-	origin := "http://" + server.Listener.Addr().String()
-	server.Config.Handler = AuditHandler(page, assets, origin)
-	server.Start()
+	server, err := localServerWithOrigin(func(origin string) http.Handler { return AuditHandler(page, assets, origin) }, net.Listen)
+	if err != nil {
+		r.Reason = err.Error()
+		r.Hint = LocalPortSetup
+		return r
+	}
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
