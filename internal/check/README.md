@@ -117,8 +117,8 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `perf.budgets` | Warnings: total inline + file CSS >20 KiB, JS >50 KiB, images >3000 KiB, video >8000 KiB, first-section media >400 KiB, >1,500 elements, depth >32 |
 | `design.media` | Warnings: consecutive paragraphs exceed 300 words without a heading, list, table, figure, blockquote, details, form or media between them; immersive concepts also need media in each content section. Main headings group content when sections are absent. Templates, nav, footer and hidden text are excluded. Legal pages can disable the rule with build.validation.rules. |
 | `perf.video` | Warnings: eager video below the first content section or autoplay missing playsinline; ux.media checks muted. Drop autoplay below the first section; use muted playsinline, a poster, preload=none and IntersectionObserver. |
-| `design.ground` | Errors: warm-light page grounds, paper/parchment images, SVG noise and ruled full-cover textures. No design-reason exemption. |
-| `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH) and Bootstrap primary blue, gradients whose colored stops are all violet/blue/pink. Unused custom properties stay quiet; colors referenced through var(), including indirect references, count. Rainbow/iridescent gradients and lone terracotta stay quiet. |
+| `design.ground` | Errors: warm-light backgrounds on any element, paper/parchment images, SVG noise and ruled full-cover textures, torn/zigzag/perforated gradient edges in backgrounds or masks. No design-reason exemption. |
+| `design.palette` | Warnings: stock Tailwind indigo/violet/purple accents (v3 hex and v4 OKLCH) and Bootstrap primary blue. Error: gradients with a violet stop whose colored stops are all violet/blue/pink. Unused custom properties stay quiet; colors referenced through var(), including indirect references, count. Rainbow/iridescent gradients and lone terracotta stay quiet. |
 | `design.gradient-text` | Warnings: text filled by a gradient through `background-clip:text` (CSS or Tailwind classes). Image-filled text is not flagged. |
 | `design.glow` | Warnings: two or more heavily blurred (≥24px) round or radial decorative shapes; zero-offset colored glows on three or more elements. A single orb or glow only feeds `design.defaults`. |
 | `design.eyebrows` | Warnings: a short uppercase label, tracked or small (or named eyebrow/kicker/overline), directly before an h1–h3. Labels containing digits or currency (time, step, price) only feed `design.defaults`. |
@@ -328,4 +328,4 @@ computed accessible names, browser API behavior, network resources and live Core
 Web Vitals require additional checks. Inert template content is excluded from
 active metadata/ID/reference/name checks. No network request is made.
 
-`design.ground` reports errors for warm-light page backgrounds and paper/noise/ruled textures on grounds or full-cover overlays. It uses the default light CSS cascade and has no `data-design-reason` exemption. See [page checks](../../docs/check.md).
+`design.ground` reports errors for warm-light backgrounds on any element, paper/noise/ruled textures on grounds or full-cover overlays, and torn, zigzag or perforated gradient edges. It uses the default light CSS cascade and has no `data-design-reason` exemption. See [page checks](../../docs/check.md).

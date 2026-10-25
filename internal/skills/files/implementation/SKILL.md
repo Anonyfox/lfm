@@ -251,4 +251,4 @@ Pair a built target with `lfm check <url> --project <dir> --json` to include pro
 Use `lfm check --project <dir> --json` to check output/ against current source without publishing.
 Release checks require installed Chrome and Lighthouse plus loopback sockets. Timing findings
 use up to three measurements; review informational diagnostics and third-party rows separately.
-Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-whites and paper, parchment or notebook decoration fail `design.ground`; `data-design-reason` does not exempt it.
+Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-white backgrounds on any element and paper, parchment, notebook or receipt decoration, including torn, zigzag or perforated edges, fail `design.ground`; `data-design-reason` does not exempt it.

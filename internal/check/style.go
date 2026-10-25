@@ -565,6 +565,8 @@ func shorthandFor(short, prop string) bool {
 		return prop == "font-family" || prop == "font-size" || prop == "font-weight" || prop == "font-style"
 	case "background":
 		return prop == "background-image" || prop == "background-color"
+	case "mask", "-webkit-mask":
+		return prop == short+"-image"
 	}
 	return false
 }

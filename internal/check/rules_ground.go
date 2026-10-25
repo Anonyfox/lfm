@@ -62,18 +62,22 @@ func groundRule(d *Document) []Diagnostic {
 			break
 		}
 	}
+	reported := map[string]bool{}
 	inspect := func(n *html.Node, model *styleModel, selector string, ground bool) {
 		if n.Namespace != "" || !d.designVisible(n) {
 			return
 		}
-		if ground {
-			v := model.value(n, "background-color")
-			// Gradient stops are images, not the background colour of a shorthand.
-			for _, c := range color.Parse(withoutGradientImages(v)) {
-				if color.WarmLightGround(c) {
-					c = c.Over(color.FromSRGB(1, 1, 1, 1))
-					out = append(out, d.At(n, Error, fmt.Sprintf("%s has prohibited warm-light ground %s (OKLCH %.3f %.4f %.1f°).", selector, c.Hex(), c.L, c.Chroma(), c.Hue()), groundHint))
-				}
+		// Rule 14 bans warm off-white backgrounds anywhere on the page, not only
+		// on the ground: cards, bands and panels count too. Gradient stops are
+		// images, not the background colour of a shorthand.
+		for _, c := range color.Parse(withoutGradientImages(model.value(n, "background-color"))) {
+			if !color.WarmLightGround(c) {
+				continue
+			}
+			c = c.Over(color.FromSRGB(1, 1, 1, 1))
+			if key := selector + " " + c.Hex(); !reported[key] {
+				reported[key] = true
+				out = append(out, d.At(n, Error, fmt.Sprintf("%s has prohibited warm-light background %s (OKLCH %.3f %.4f %.1f°).", selector, c.Hex(), c.L, c.Chroma(), c.Hue()), groundHint))
 			}
 		}
 		if ground || fullCover(model, n, grounds) {
@@ -84,6 +88,16 @@ func groundRule(d *Document) []Diagnostic {
 			}
 			if groundTexture(image, size, model.value(n, "background-repeat"), d.Options.Assets) {
 				out = append(out, d.At(n, Error, selector+" has prohibited paper, parchment or notebook ground texture.", groundHint))
+			}
+		}
+		for _, layer := range []string{"background", "mask", "-webkit-mask"} {
+			image := layer + "-image"
+			if layer == "background" {
+				image = "background-image"
+			}
+			if paperEdge(model.value(n, image), model.value(n, layer+"-size"), model.value(n, layer+"-repeat")) {
+				out = append(out, d.At(n, Error, selector+" has a prohibited torn, zigzag or perforated edge.", groundHint))
+				break
 			}
 		}
 	}
@@ -118,6 +132,137 @@ func groundRule(d *Document) []Diagnostic {
 		}
 	}
 	return out
+}
+
+// paperEdge reports small gradient tiles repeated along one axis: diagonal
+// hard-stop teeth (a torn or zigzag edge) or radial dots and scallops (a
+// perforation or stamp edge). Both are the receipt and ticket motif of
+// paper-style pages; dashed rules and broad bands are not matched.
+func paperEdge(image, size, repeat string) bool {
+	lower := strings.ToLower(image)
+	if !strings.Contains(lower, "gradient(") {
+		return false
+	}
+	sizes, repeats := splitSelectors(strings.ToLower(size)), splitSelectors(strings.ToLower(repeat))
+	for i, layer := range splitSelectors(lower) {
+		radial := strings.HasPrefix(layer, "radial-gradient(")
+		if !radial && !strings.HasPrefix(layer, "linear-gradient(") {
+			continue
+		}
+		end := closingParen(layer)
+		if end < 0 {
+			continue
+		}
+		args, rest := splitSelectors(layer[strings.IndexByte(layer, '(')+1:end]), layer[end+1:]
+		tile, axis := "", rest
+		if _, after, ok := strings.Cut(rest, "/"); ok {
+			tile = after
+		} else if i < len(sizes) {
+			tile = sizes[i]
+		}
+		if i < len(repeats) {
+			axis += " " + repeats[i]
+		}
+		if !oneAxisRepeat(axis) || !smallTile(tile) {
+			continue
+		}
+		if radial || len(args) > 2 && diagonal(args[0]) && hardStop(args[1:]) {
+			return true
+		}
+	}
+	return false
+}
+
+func closingParen(s string) int {
+	depth := 0
+	for i, c := range s {
+		switch c {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func oneAxisRepeat(v string) bool {
+	if strings.Contains(v, "repeat-x") || strings.Contains(v, "repeat-y") {
+		return true
+	}
+	f := strings.Fields(v)
+	for i := 1; i < len(f); i++ {
+		if f[i-1] == "repeat" && f[i] == "no-repeat" || f[i-1] == "no-repeat" && f[i] == "repeat" {
+			return true
+		}
+	}
+	return false
+}
+
+// smallTile is true when both tile dimensions are absolute lengths of at most 32 px.
+func smallTile(v string) bool {
+	f := strings.Fields(v)
+	if len(f) == 0 {
+		return false
+	}
+	if len(f) > 2 {
+		f = f[:2]
+	}
+	for _, x := range f {
+		if px := lengthPx(x); px <= 0 || px > 32 {
+			return false
+		}
+	}
+	return true
+}
+
+var diagonalAngle = regexp.MustCompile(`^(-?[0-9]*\.?[0-9]+)deg$`)
+
+func diagonal(v string) bool {
+	v = strings.Join(strings.Fields(v), " ")
+	if m := diagonalAngle.FindStringSubmatch(v); m != nil {
+		a, _ := strconv.ParseFloat(m[1], 64)
+		return math.Abs(math.Mod(math.Abs(a), 90)-45) < 1
+	}
+	switch v {
+	case "to top left", "to top right", "to bottom left", "to bottom right", "to left top", "to right top", "to left bottom", "to right bottom":
+		return true
+	}
+	return false
+}
+
+// hardStop is true when a colour stop does not advance past the one before it
+// in the same unit.
+func hardStop(stops []string) bool {
+	previous, unit := 0.0, ""
+	for _, stop := range stops {
+		f := strings.Fields(stop)
+		if len(f) < 2 {
+			continue
+		}
+		v, u := f[len(f)-1], "length"
+		position := lengthPx(v)
+		if strings.HasSuffix(v, "%") {
+			p, err := strconv.ParseFloat(strings.TrimSuffix(v, "%"), 64)
+			if err != nil {
+				continue
+			}
+			position, u = p, "%"
+		} else if position == 0 && v != "0" {
+			continue
+		}
+		if v == "0" && unit != "" {
+			u = unit
+		}
+		if u == unit && position <= previous {
+			return true
+		}
+		previous, unit = position, u
+	}
+	return false
 }
 
 func fullCover(m *styleModel, n *html.Node, grounds map[*html.Node]bool) bool {

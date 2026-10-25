@@ -198,33 +198,73 @@ func TestCheckInterruptExit(t *testing.T) {
 	}
 }
 
-// A linked stylesheet must reach the shared ground rule when checking a
-// prebuilt folder, without compile or project configuration supplying facts.
-func TestCheckFolderRejectsCreamWithBrickAccent(t *testing.T) {
-	dir := t.TempDir()
-	raw := strings.Replace(checkHTML, "</head>", `<link rel="stylesheet" href="styles.css"></head>`, 1)
-	for name, contents := range map[string]string{
-		"index.html": raw,
-		"styles.css": `:root{--ground:#F4EFE6;--accent:#8F3A26}body{background:var(--ground);color:var(--accent)}`,
+// Each banned design must stop both compile and check of the built page, from
+// a linked stylesheet, with an error from the rule that owns it.
+// testdata/prohibited/receipt.css is the torn-edge receipt lfm.cash used until 0.1.12.
+func TestProhibitedDesignsFailCompileAndCheck(t *testing.T) {
+	receipt, err := os.ReadFile(filepath.Join("testdata", "prohibited", "receipt.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ name, css, body, rule, message string }{
+		{"warm ground in a custom property", `:root{--paper:#faf7f0}body{background:var(--paper)}`, "", "design.ground", "#faf7f0"},
+		{"warm card in a custom property", `:root{--sand:#f1ebdd}.card{background:var(--sand)}`, `<div class="card"><p>Card</p></div>`, "design.ground", "#f1ebdd"},
+		{"torn receipt", string(receipt), `<article class="tape"><p class="row total"><span>Sales today</span><span>$0.00</span></p><p class="tear"></p></article>`, "design.ground", "edge"},
+		{"violet gradient", `.hero{background:linear-gradient(135deg,#7c3aed,#4f46e5)}`, `<section class="hero"><p>Hero</p></section>`, "design.palette", "violet"},
 	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(contents), 0644); err != nil {
-			t.Fatal(err)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			hasError := func(stage, out string) {
+				t.Helper()
+				var result checkResult
+				if err := json.Unmarshal([]byte(out), &result); err != nil {
+					t.Fatalf("%s: %v: %s", stage, err, out)
+				}
+				for _, d := range result.Validation.Diagnostics {
+					if d.Rule == tc.rule && d.Severity == check.Error && strings.Contains(strings.ToLower(d.Message), tc.message) {
+						return
+					}
+				}
+				t.Fatalf("%s: no %s error mentioning %q: %s", stage, tc.rule, tc.message, out)
+			}
+
+			project := t.TempDir()
+			if _, err := scaffold.Create(project); err != nil {
+				t.Fatal(err)
+			}
+			template := filepath.Join(project, "index.html.tmpl")
+			raw, err := os.ReadFile(template)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name, contents := range map[string]string{
+				template: strings.Replace(string(raw), "</main>", tc.body+"</main>", 1),
+				filepath.Join(project, "assets/styles/main.css"): tc.css,
+			} {
+				if err := os.WriteFile(name, []byte(contents), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			code, out, errs := run(t, "compile", project, "--json")
+			if code == 0 {
+				t.Fatalf("compile passed: %s %s", out, errs)
+			}
+			hasError("compile", out)
+
+			built := t.TempDir()
+			page := strings.Replace(checkHTML, "</head>", `<link rel="stylesheet" href="styles.css"></head>`, 1)
+			page = strings.Replace(page, "</main>", tc.body+"</main>", 1)
+			for name, contents := range map[string]string{"index.html": page, "styles.css": tc.css} {
+				if err := os.WriteFile(filepath.Join(built, name), []byte(contents), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			code, out, errs = run(t, "check", built, "--json")
+			if code != 1 {
+				t.Fatalf("check exit %d: %s %s", code, out, errs)
+			}
+			hasError("check", out)
+		})
 	}
-	code, out, errs := run(t, "check", dir, "--json")
-	var result checkResult
-	if err := json.Unmarshal([]byte(out), &result); err != nil {
-		t.Fatalf("%v: %s %s", err, out, errs)
-	}
-	if code != 1 {
-		t.Fatalf("exit %d: %s %s", code, out, errs)
-	}
-	for _, d := range result.Validation.Diagnostics {
-		if d.Rule == "design.ground" && d.Severity == check.Error && strings.Contains(strings.ToLower(d.Message), "#f4efe6") {
-			return
-		}
-	}
-	t.Fatalf("missing design.ground error for cream ground: %s", out)
 }
 
 func TestCheckProjectTargetsAndStaleOutput(t *testing.T) {

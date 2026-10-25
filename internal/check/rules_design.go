@@ -43,6 +43,7 @@ var (
 type designSignal struct {
 	rule, kind string
 	strong     bool
+	blocking   bool // an error instead of a warning
 	node       *html.Node
 	css        *cssRule
 	message    string
@@ -67,9 +68,13 @@ func designRule(id string) func(*Document) []Diagnostic {
 }
 
 func (d *Document) designDiagnostic(s designSignal) Diagnostic {
-	x := d.At(s.node, Warning, s.message, s.hint+" Deliberate? Keep it and add data-design-reason=\"…\" on the element, or set build.validation.rules."+s.rule+".")
+	severity := Warning
+	if s.blocking {
+		severity = Error
+	}
+	x := d.At(s.node, severity, s.message, s.hint+" Deliberate? Keep it and add data-design-reason=\"…\" on the element, or set build.validation.rules."+s.rule+".")
 	if s.node == nil && s.css != nil {
-		x = d.At(s.css.sheet, Warning, x.Message, x.Hint)
+		x = d.At(s.css.sheet, severity, x.Message, x.Hint)
 		if s.css.file != "" {
 			x.Location = diagnostic.At(strings.TrimPrefix(s.css.file, "./"), s.css.raw, s.css.offset)
 		}
@@ -422,7 +427,7 @@ func (a *designAnalysis) palette() {
 				if purple > 0 && foreign == 0 && len(cols) >= 2 {
 					gradientHit = true
 					if a.once("purple gradient") {
-						a.add(designSignal{rule: "design.palette", kind: "violet gradient", strong: true, css: r, message: fmt.Sprintf("Violet/purple gradient on `%s`: the most recognized generated-page color move.", r.selector), hint: "Use a flat, subject-derived color or a gradient that depicts something real (light, material, sky)."})
+						a.add(designSignal{rule: "design.palette", kind: "violet gradient", strong: true, blocking: true, css: r, message: fmt.Sprintf("Violet/purple gradient on `%s`: the most recognized generated-page color move.", r.selector), hint: "Use a flat, subject-derived color or a gradient that depicts something real (light, material, sky)."})
 					}
 				}
 			}

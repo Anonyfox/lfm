@@ -45,6 +45,13 @@ func TestGroundRule(t *testing.T) {
 		{"small fixed", ".overlay{position:fixed;width:10px;height:10px;background:url(noise.svg)}", `<aside class="overlay"></aside>`, 0},
 		{"small pseudo", ".badge::before{background:url(paper.svg)}", `<span class="badge">x</span>`, 0},
 		{"noise", "body{background:url('data:image/svg+xml,%3Csvg%3E%3CfeTurbulence/%3E%3C/svg%3E')}", "", 1},
+		{"warm card", ".card{background:#f1ebdd}", `<div class="card">x</div><div class="card">y</div>`, 1},
+		{"torn edge", ".tear{background:linear-gradient(-45deg,transparent 50%,#fff 50%) 0 0/12px 12px repeat-x}", `<p class="tear"></p>`, 1},
+		{"zigzag mask", ".tear{mask:linear-gradient(to bottom right,#000 50%,transparent 0) 0 0/1rem 1rem repeat-x}", `<p class="tear"></p>`, 1},
+		{"stamp edge", ".slip::before{content:'';background:radial-gradient(circle at 7px 5px,#fff 3.5px,#999 4px,transparent 4.5px) -1px 0/14px 10px repeat-x}", `<div class="slip">x</div>`, 1},
+		{"dashed rule", ".rule{background:linear-gradient(to right,#888 55%,transparent 0) 0 50%/0.6rem 2px repeat-x}", `<p class="rule"></p>`, 0},
+		{"broad stripes", ".band{background:linear-gradient(45deg,#000 50%,#fff 50%) 0 0/200px 200px repeat-x}", `<p class="band">x</p>`, 0},
+		{"soft diagonal", ".band{background:linear-gradient(45deg,#000,#fff) 0 0/12px 12px repeat-x}", `<p class="band">x</p>`, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := `<!doctype html><html><head><style>` + tc.css + `</style></head><body>` + tc.html + `</body></html>`

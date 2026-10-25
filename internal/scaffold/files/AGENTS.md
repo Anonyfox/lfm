@@ -70,4 +70,4 @@ Every page goes through three phases, each with its own skill:
 - The page must compile with 0 errors and 0 warnings. Silence a design check only with
   `data-design-reason="…"` naming the real reason.
 
-Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-whites and paper, parchment or notebook decoration fail `design.ground`; `data-design-reason` does not exempt it.
+Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-white backgrounds on any element and paper, parchment, notebook or receipt decoration, including torn, zigzag or perforated edges, fail `design.ground`; `data-design-reason` does not exempt it.
