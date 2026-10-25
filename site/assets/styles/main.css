@@ -1,4 +1,5 @@
-/* The receipt lfm.cash prints. Palette, type and form come from concept.md. */
+/* The till lfm.cash runs: a white counter, black panels and the display that still reads $0.00.
+   Palette, type and form come from concept.md. */
 
 @font-face {
   font-family: "Martian Mono";
@@ -17,19 +18,20 @@
 }
 
 :root {
-  --paper: #f1f3f0;
-  --counter: #e2e5e1;
-  --ink: #18191c;
-  --faded: #4b4f55;
+  --ground: #ffffff;
+  --ink: #15171a;
+  --muted: #4b5058;
+  --hairline: #c9ced4;
   --red: #c0141b;
-  --perforation: #8b8f94;
+  --glass: #0f1513;
+  --glow: #46f0a0;
 
-  --print: "Martian Mono", ui-monospace, monospace;
+  --mono: "Martian Mono", ui-monospace, monospace;
   --read: "Atkinson Hyperlegible Next", system-ui, sans-serif;
 
-  --tape: 35rem;
-  --pad: clamp(1.1rem, 4vw, 2rem);
-  --tooth: 0.7rem;
+  --column: 42rem;
+  --pad: clamp(1rem, 4vw, 2rem);
+  --frame: 3px;
 }
 
 *,
@@ -39,7 +41,7 @@
 }
 
 html {
-  background: var(--counter);
+  background: var(--ground);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;
 }
@@ -53,113 +55,94 @@ main {
   padding: clamp(0.75rem, 4vw, 3rem) clamp(0.5rem, 3vw, 2rem) 4rem;
 }
 
-/* Paper */
+/* Panels: framed screens of the till, each headed by a black key strip. */
 
-.tape {
-  position: relative;
-  max-width: var(--tape);
+.panel {
+  max-width: var(--column);
   margin: 0 auto;
-  padding: 0.5rem var(--pad) 0.25rem;
-  background: var(--paper);
+  padding: 0 var(--pad) 1.25rem;
+  border: var(--frame) solid var(--ink);
 }
 
-.tape + .tape,
-.nodm + .tape {
-  margin-top: 2.25rem;
+.panel + .panel,
+.nodm + .panel {
+  margin-top: 2rem;
 }
 
-.tape-top {
-  padding-top: clamp(1.5rem, 5vw, 2.5rem);
+.panel > h2:first-child {
+  margin: 0 calc(-1 * var(--pad)) 1.25rem;
+  padding: 0.7rem var(--pad);
+  color: var(--ground);
+  background: var(--ink);
 }
 
-/* Torn edges: a row of paper teeth below each tape, and the matching notch on top. */
-.tear {
-  height: var(--tooth);
-  margin: 1.5rem calc(-1 * var(--pad)) calc(-0.25rem - var(--tooth));
-  background: linear-gradient(-45deg, transparent 50%, var(--paper) 50%) 0 0 / var(--tooth) var(--tooth) repeat-x,
-    linear-gradient(45deg, transparent 50%, var(--paper) 50%) 0 0 / var(--tooth) var(--tooth) repeat-x;
+.panel-top {
+  padding-top: clamp(1rem, 4vw, 1.75rem);
 }
 
-.tear-in {
-  margin: calc(-0.5rem - var(--tooth)) calc(-1 * var(--pad)) 1rem;
-  background: linear-gradient(-135deg, transparent 50%, var(--paper) 50%) 0 0 / var(--tooth) var(--tooth) repeat-x,
-    linear-gradient(135deg, transparent 50%, var(--paper) 50%) 0 0 / var(--tooth) var(--tooth) repeat-x;
-}
+/* Type */
 
-/* Print */
-
-.store,
+.brand,
 .row,
 h1,
 h2,
+.display,
 .prompt,
-.stamp,
-.void-stamp,
+.badge,
+.void-badge,
 .nodm,
 code,
 pre,
 label,
 button {
-  font-family: var(--print);
+  font-family: var(--mono);
 }
 
-.store {
+.brand {
   margin: 0;
-  text-align: center;
-  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-size: clamp(1.4rem, 5.5vw, 1.9rem);
   font-weight: 800;
   font-stretch: 112.5%;
   letter-spacing: 0.04em;
+}
+
+.till {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: var(--frame) solid var(--ink);
+}
+
+.till .row {
+  gap: 1.5rem;
+  margin: 0;
 }
 
 .row {
   display: flex;
   justify-content: space-between;
   align-items: first baseline;
+  gap: 1rem;
   margin: 0;
   font-size: 0.8125rem;
   line-height: 1.5;
 }
 
-.row > span {
-  min-width: 0;
-  background: var(--paper);
-}
-
-.row > span:first-child {
-  padding-right: 0.6ch;
-}
-
 .row > span:last-child {
-  padding-left: 0.6ch;
   text-align: right;
-}
-
-/* Dot leaders between label and value, as receipts align them: the dots run along the first
-   line, and each span's paper hides them behind its text. */
-.items .row,
-.row.total {
-  background: radial-gradient(circle, var(--perforation) 0.06rem, transparent 0.07rem) 0 calc(1lh - 0.42em) / 0.5rem 0.25rem repeat-x;
+  font-variant-numeric: tabular-nums;
 }
 
 .small {
-  color: var(--faded);
+  color: var(--muted);
   font-size: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.small > span {
-  background: none;
-}
-
-.rule {
-  height: 1.25rem;
-  margin: 0.75rem 0;
-  background: linear-gradient(to right, var(--perforation) 55%, transparent 0) 0 50% / 0.6rem 2px repeat-x;
 }
 
 h1 {
-  margin: 1rem 0 1.25rem;
+  margin: 1.25rem 0 1.25rem;
   font-size: clamp(1.9rem, 8.4vw, 2.75rem);
   line-height: 1.12;
   font-weight: 800;
@@ -170,10 +153,9 @@ h1 {
 
 h2 {
   margin: 0.5rem 0 1rem;
-  font-size: clamp(1.15rem, 4.6vw, 1.4rem);
-  line-height: 1.25;
+  font-size: clamp(1.05rem, 4.4vw, 1.3rem);
+  line-height: 1.3;
   font-weight: 750;
-  font-stretch: 100%;
   text-wrap: balance;
 }
 
@@ -182,38 +164,16 @@ h3 {
   font: 700 1.0625rem/1.4 var(--read);
 }
 
-.total {
-  margin: 0.75rem 0 1rem;
-  font-size: clamp(1.05rem, 4.4vw, 1.3rem);
-  font-weight: 800;
-  font-stretch: 112.5%;
-  text-transform: uppercase;
-}
-
-.red {
-  color: var(--red);
-}
-
-.nowrap {
-  white-space: nowrap;
-}
-
-.items {
-  margin: 0 0 0.25rem;
-  padding: 0;
-  list-style: none;
-}
-
-.items .row {
-  padding: 0.2rem 0;
-}
-
 p {
   margin: 0 0 1rem;
 }
 
 .lede {
   font-size: 1.125rem;
+}
+
+.red {
+  color: var(--red);
 }
 
 a {
@@ -231,23 +191,83 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* The display: the till's customer display, green digits behind dark glass. */
+
+.display {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1rem;
+  color: var(--glow);
+  background: var(--glass);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.digits {
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 700;
+  font-stretch: 112.5%;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Line items: label left, value right, a hairline between rows, the total under a heavy bar. */
+
+.items {
+  margin: 0 0 0.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.items .row,
+.findings li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.findings .row {
+  padding: 0;
+  border: 0;
+}
+
+.total {
+  margin: 0 0 1.25rem;
+  padding-top: 0.6rem;
+  border-top: var(--frame) solid var(--ink);
+  font-size: clamp(1rem, 4.2vw, 1.25rem);
+  font-weight: 800;
+  font-stretch: 112.5%;
+  text-transform: uppercase;
+}
+
+.total > span:last-child {
+  color: var(--red);
+}
+
+.rule-id {
+  margin: 0;
+  font: 400 0.75rem/1.4 var(--mono);
+  color: var(--muted);
+}
+
 code {
   font-size: 0.85em;
   overflow-wrap: anywhere;
 }
 
-/* Commands sit between printed equals rules and scroll sideways instead of breaking. */
+/* Commands sit in a framed block and scroll sideways instead of breaking. */
 pre {
   margin: 0 0 1rem;
-  padding: 0.85rem 0;
+  padding: 0.75rem 0.9rem;
   overflow-x: auto;
   font-size: 0.8125rem;
   line-height: 1.6;
-  background:
-    linear-gradient(var(--ink), var(--ink)) 0 0 / 100% 2px no-repeat,
-    linear-gradient(var(--ink), var(--ink)) 0 5px / 100% 2px no-repeat,
-    linear-gradient(var(--ink), var(--ink)) 0 100% / 100% 2px no-repeat,
-    linear-gradient(var(--ink), var(--ink)) 0 calc(100% - 5px) / 100% 2px no-repeat;
+  border-left: var(--frame) solid var(--ink);
 }
 
 pre code {
@@ -256,45 +276,59 @@ pre code {
   overflow-wrap: normal;
 }
 
+.steps {
+  margin: 0 0 1rem;
+  padding-left: 1.4rem;
+}
+
+.steps li {
+  margin-bottom: 0.5rem;
+}
+
 .steps pre {
   margin: 0.4rem 0 0;
 }
 
-/* The coupon: the prompt the visitor takes away. */
-
-.coupon {
-  margin: 1.5rem calc(-0.5 * var(--pad)) 0;
-  padding: 1.25rem calc(0.5 * var(--pad)) 0.5rem;
-  border: 2px dashed var(--ink);
+.notes {
+  margin: -0.5rem 0 1rem;
+  font-size: 0.9375rem;
 }
 
-.coupon h2 {
+/* The offer: the prompt the visitor takes away. */
+
+.offer {
+  margin: 0;
+  padding: 1rem;
+  border: var(--frame) solid var(--ink);
+}
+
+.offer h2 {
   margin-top: 0;
 }
 
-.printer label {
+.maker label {
   display: block;
   margin-bottom: 0.35rem;
   font-size: 0.8125rem;
 }
 
 .optional {
-  color: var(--faded);
+  color: var(--muted);
 }
 
-.printer input {
+.maker input {
   display: block;
   width: 100%;
   padding: 0.6rem 0.7rem;
   font: 400 1rem/1.4 var(--read);
   color: var(--ink);
-  background: var(--paper);
+  background: var(--ground);
   border: 2px solid var(--ink);
   border-radius: 0;
 }
 
-.printer input::placeholder {
-  color: var(--faded);
+.maker input::placeholder {
+  color: var(--muted);
   opacity: 1;
 }
 
@@ -302,7 +336,7 @@ button {
   padding: 0.65rem 0.9rem;
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--paper);
+  color: var(--ground);
   background: var(--ink);
   border: 2px solid var(--ink);
   border-radius: 0;
@@ -314,23 +348,20 @@ button:hover {
   border-color: var(--red);
 }
 
-/* The slip: the visitor's own little receipt with the prompt on it. */
-.slip {
+.readout {
   position: relative;
   margin: 1rem 0 0.75rem;
-  padding: 0.6rem 0 0.5rem;
-  overflow: hidden;
-  background:
-    linear-gradient(to right, var(--perforation) 55%, transparent 0) 0 0 / 0.6rem 2px repeat-x,
-    linear-gradient(to right, var(--perforation) 55%, transparent 0) 0 100% / 0.6rem 2px repeat-x;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
 }
 
-.slip-head,
-.slip-foot {
+.readout-head,
+.readout-foot {
   margin: 0.25rem 0;
 }
 
-.slip-head span:last-child {
+.readout-head span:last-child {
   overflow-wrap: anywhere;
 }
 
@@ -350,24 +381,22 @@ button:hover {
   color: var(--red);
 }
 
-.stamp {
+.badge {
   position: absolute;
-  right: 0.25rem;
-  top: 0.15rem;
+  right: 0;
+  top: 0.4rem;
   margin: 0;
   padding: 0.1rem 0.5rem;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--red);
-  border: 2px solid var(--red);
-  background: var(--paper);
-  transform: rotate(-6deg);
+  color: var(--ground);
+  background: var(--red);
   visibility: hidden;
 }
 
-.stamped .stamp {
+.copied .badge {
   visibility: visible;
 }
 
@@ -378,16 +407,17 @@ button:hover {
 }
 
 .trust {
-  margin: 0.85rem 0 0.5rem;
+  margin: 0.85rem 0 0;
   font-size: 0.9375rem;
 }
 
 /* The red strip: the ritual it answers. */
 
 .nodm {
-  margin: 2.25rem calc(-1 * clamp(0.5rem, 3vw, 2rem)) 0;
-  padding: 1.75rem var(--pad);
-  color: var(--paper);
+  max-width: var(--column);
+  margin: 2rem auto 0;
+  padding: 1.5rem var(--pad);
+  color: var(--ground);
   background: var(--red);
   text-align: center;
 }
@@ -395,7 +425,6 @@ button:hover {
 .nodm h2 {
   margin: 0 auto 0.5rem;
   max-width: 30rem;
-  font-size: clamp(1.05rem, 4.4vw, 1.35rem);
 }
 
 .nodm s {
@@ -404,8 +433,8 @@ button:hover {
 
 .nodm p {
   max-width: 30rem;
-  text-wrap: balance;
   margin: 0 auto;
+  text-wrap: balance;
   font-size: 0.9375rem;
 }
 
@@ -419,7 +448,7 @@ button:hover {
   position: relative;
   max-width: 17rem;
   margin: 0 auto;
-  border: 2px solid var(--ink);
+  border: var(--frame) solid var(--ink);
 }
 
 .shot img {
@@ -428,115 +457,81 @@ button:hover {
   height: auto;
 }
 
-.void-stamp {
+.void-badge {
   position: absolute;
-  right: -1.25rem;
+  left: 0;
+  right: 0;
   bottom: 1.5rem;
   margin: 0;
-  padding: 0.1rem 0.7rem;
-  font-size: 1.75rem;
+  padding: 0.2rem 0;
+  text-align: center;
+  font-size: 1.5rem;
   font-weight: 800;
   font-stretch: 112.5%;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--red);
-  background: var(--paper);
-  border: 4px solid var(--red);
-  transform: rotate(-12deg);
+  color: var(--ground);
+  background: var(--red);
 }
 
 .voided figcaption {
   margin-top: 0.5rem;
   text-align: center;
   font-size: 0.8125rem;
-  color: var(--faded);
-}
-
-.findings li {
-  padding: 0.25rem 0;
-}
-
-.findings .row {
-  padding: 0;
-}
-
-.rule-id {
-  margin: 0;
-  font: 400 0.75rem/1.4 var(--print);
-  color: var(--faded);
-}
-
-.steps {
-  margin: 0 0 1rem;
-  padding-left: 1.4rem;
-}
-
-.steps li {
-  margin-bottom: 0.5rem;
+  color: var(--muted);
 }
 
 .foot {
   margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--hairline);
 }
 
 .thanks {
-  margin: 1.25rem 0 0.5rem;
+  margin: 1.25rem 0 0;
   text-wrap: balance;
   text-align: center;
-  font: 700 0.875rem/1.5 var(--print);
+  font: 700 0.875rem/1.5 var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-/* Printing the prompt: the slip feeds out line by line. */
+/* Copying the prompt: the readout redraws line by line. */
 
-.feeding {
-  animation: feed var(--feed, 320ms) steps(var(--lines, 4), end);
+.refreshing {
+  animation: refresh var(--refresh, 320ms) steps(var(--lines, 4), end);
 }
 
-@keyframes feed {
+@keyframes refresh {
   from {
     clip-path: inset(0 0 100% 0);
-    transform: translateY(-0.5rem);
   }
   to {
     clip-path: inset(0 0 0 0);
-    transform: none;
   }
 }
 
 @media (max-width: 40rem) {
-  .tape-top {
-    padding-top: 1.1rem;
-  }
-
-  .tape-top .rule {
-    margin: 0.4rem 0;
-  }
-
   h1 {
-    margin: 0.6rem 0 0.75rem;
+    margin: 0.9rem 0 0.75rem;
   }
 
-  .tape-top .total {
-    margin: 0.5rem 0 0.6rem;
+  .display {
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 0.75rem;
   }
 
   .lede {
     font-size: 1.0625rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
-  .coupon {
-    margin-top: 1rem;
-    padding-top: 0.9rem;
+  .offer {
+    margin: 0 calc(-0.5 * var(--pad));
+    padding: 0.85rem;
   }
 
-  .coupon h2 {
-    margin-bottom: 0.6rem;
-  }
-
-  .slip {
+  .readout {
     margin: 0.7rem 0 0.6rem;
   }
 
@@ -546,55 +541,35 @@ button:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .feeding {
+  .refreshing {
     animation: none;
   }
 }
 
-/* A desktop till prints a wider slip: the headline as a poster on the left, the coupon on the
-   right, and line items beside their explanation further down. */
-/* A desktop till prints a wider first slip: the headline as a poster on the left, the coupon
-   on the right. The slips below keep one receipt column. */
+/* At desktop width only the first panel widens: the headline and display on the left, the offer
+   on the right. The panels below keep one column. */
 @media (min-width: 64rem) {
   main {
     padding-top: 2rem;
   }
 
-  .tape {
-    max-width: 42rem;
-  }
-
-  .tape-top {
+  .panel-top {
     max-width: 66rem;
-    padding: 1.75rem 3rem 0.25rem;
-  }
-
-  .tape-top .tear {
-    margin-left: -3rem;
-    margin-right: -3rem;
+    padding: 1.5rem 3rem 2rem;
   }
 
   .hero {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: 3.5rem;
+    gap: 3rem;
     align-items: start;
+    margin-top: 1.5rem;
   }
 
   h1 {
-    margin-top: 0.25rem;
+    margin-top: 0;
     font-size: clamp(3rem, 4.6vw, 4.25rem);
     line-height: 1.04;
-  }
-
-  .hero .coupon {
-    margin: 0.5rem 0 0;
-  }
-
-  .nodm {
-    max-width: 42rem;
-    margin-left: auto;
-    margin-right: auto;
   }
 
   .row {
@@ -606,6 +581,6 @@ button:hover {
   }
 
   .total {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 }

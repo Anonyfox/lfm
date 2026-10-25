@@ -7,7 +7,7 @@
   "social": {"x": "@AnonyfoxCom"},
   "socialImage": {
     "src": "assets/images/share.png",
-    "alt": "A receipt from LFM.CASH: in wide print, Nobody screenshots a dead product. Sales today $0.00 in red. Below: Sell it first. Build it when someone pays."
+    "alt": "LFM.CASH on white. A black till display reads Sales today $0.00 in green digits beside the headline Nobody screenshots a dead product. Below: Sell it first. Build it when someone pays."
   },
   "urls": {
     "repository": "https://github.com/Anonyfox/lfm",
@@ -24,7 +24,8 @@
     "grokBot": "https://x.ai/bot/HgpgiMSirsCBrsQpdLeDf",
     "analytics": "https://static.cloudflareinsights.com/beacon.min.js",
     "caseStudy": "https://lfm.cash/case-studies/two-product-pages/",
-    "news": "https://news.lfm.cash/"
+    "news": "https://news.lfm.cash/",
+    "newsInstall": "https://news.lfm.cash/?source=install"
   },
   "data": {
     "prompt": {
@@ -50,7 +51,7 @@
       "defaults": 8,
       "lowContrastMore": 9
     },
-    "receipt": {
+    "tally": {
       "voices": 151,
       "platforms": 7,
       "peers": 26,

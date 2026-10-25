@@ -21,36 +21,34 @@
 <body>
 <main>
 
-<article class="tape tape-top" aria-labelledby="headline">
+<article class="panel panel-top" aria-labelledby="headline">
   <header class="till">
-    <p class="store" data-design-reason="the till header of the receipt concept: store line and register above the headline">LFM.CASH</p>
+    <p class="brand" data-design-reason="the register header of the till display concept: store name and register above the headline">LFM.CASH</p>
     <p class="row small"><span>Register 01</span><span class="today">Open today</span></p>
   </header>
-  <p class="rule" aria-hidden="true"></p>
   <div class="hero">
     <div class="pitch">
       <h1 id="headline">Nobody screenshots a dead product.</h1>
-      <p class="row total"><span>Sales today</span><span class="red">$0.00</span></p>
+      <p class="display"><span>Sales today</span><span class="digits">$0.00</span></p>
       <p class="lede">So sell before you build. lfm gives your coding agent the process: your buyers' real posts first, then one checked page with your payment link. Build the product once someone pays.</p>
     </div>
 
-    <section class="coupon" aria-labelledby="coupon-h">
-      <h2 id="coupon-h">Paste this into your agent</h2>
-      <form id="printer" class="printer" action="#coupon-h">
+    <section class="offer" aria-labelledby="offer-h">
+      <h2 id="offer-h">Paste this into your agent</h2>
+      <form id="maker" class="maker" action="#offer-h">
         <label for="what">What do you sell? <span class="optional">(optional)</span></label>
         <input id="what" type="text" placeholder="{{.data.prompt.example}}" maxlength="60" autocomplete="off" spellcheck="false">
-        <div class="slip" id="slip">
-          <p class="row small slip-head"><span>Order</span><span id="slip-what">{{.data.prompt.fallback}}</span></p>
+        <div class="readout" id="readout">
+          <p class="row small readout-head"><span>Order</span><span id="readout-what">{{.data.prompt.fallback}}</span></p>
           <p class="prompt" id="prompt" aria-live="polite">Make a landing page for <span id="prompt-what">{{.data.prompt.fallback}}</span> with&nbsp;lfm: <span class="url">{{.data.prompt.skill}}</span></p>
-          <p class="row small slip-foot"><span>Sales today</span><span>$0.00</span></p>
-          <p class="stamp" aria-hidden="true">Copied</p>
+          <p class="row small readout-foot"><span>Sales today</span><span>$0.00</span></p>
+          <p class="badge" aria-hidden="true">Copied</p>
         </div>
         <button type="submit" class="copy" id="copy">Copy my prompt</button>
       </form>
       <p class="trust">Free, MIT license, no account. The link is a plain skill file: your agent installs one checksummed binary from the GitHub releases into ~/.local/bin, then runs lfm in a new project folder. <a href="assets/agents/SKILL.md">Read it first</a>. <a href="{{.urls.repository}}">Star on GitHub</a>.</p>
     </section>
   </div>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
 <section class="nodm" aria-labelledby="nodm-h">
@@ -58,9 +56,8 @@
   <p>No DM. The line above is the whole prompt. Your agent reads the rest from the link in it.</p>
 </section>
 
-<article class="tape" aria-labelledby="usual-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
-  <h2 id="usual-h">The usual receipt</h2>
+<article class="panel" aria-labelledby="usual-h">
+  <h2 id="usual-h">The usual tally</h2>
   <ul class="items">
     <li class="row"><span>Auth, billing, dashboard</span><span>done</span></li>
     <li class="row"><span>The feature nobody asked for</span><span>done</span></li>
@@ -70,11 +67,9 @@
   </ul>
   <p class="row total"><span>Sales</span><span class="red">$0.00</span></p>
   <p>Shipping got fast. The silence after launch did not: zero users, zero replies, $0. Building feels like progress because a build answers in seconds. A launch post answers in days, if at all, so the next feature always wins.</p>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
-<article class="tape" aria-labelledby="first-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="first-h">
   <h2 id="first-h">Sell it first. Build it when someone pays.</h2>
   <ul class="items">
     <li class="row"><span>Research</span><span>{{.data.minimums.voices}}+ real posts</span></li>
@@ -86,11 +81,9 @@
   <p class="row total"><span>Total</span><span class="red">a sale or a no</span></p>
   <p>Demand first, product second. Your agent collects what buyers actually write, at least {{.data.minimums.voices}} posts from {{.data.minimums.platforms}} platforms and {{.data.minimums.peers}} competing pages, decides the page from that evidence and builds it. You put your offer and a payment link on it and start with the sale: post where the research found your buyers, deliver the first orders by hand. Nobody pays, and you lost days instead of months. Someone pays, and you know what to build.</p>
   <p>One founder made $0 for 90 days because the buy buttons still opened a "payments coming soon" box. Remove the waitlist copy the day checkout works; lfm flags a checkout link that is missing or hidden.</p>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
-<article class="tape" aria-labelledby="after-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="after-h">
   <h2 id="after-h">After you paste</h2>
   <ul class="items">
     <li class="row"><span>Agent installs lfm</span><span>1 binary</span></li>
@@ -101,18 +94,16 @@
     <li class="row"><span>You upload output/</span><span>any host</span></li>
   </ul>
   <p class="row total"><span>Your part</span><span class="red">2 steps</span></p>
-  <p>The agent asks you only what you decide: the product, the price, how it is delivered and your legal pages. The research needs web access; the agent uses search, a browser or connectors when it has them and tells you what it could not reach. For this page that was {{.data.receipt.firstVoices}} posts and {{.data.receipt.firstPeers}} competing pages in {{.data.receipt.researchTime}}, with four readers in parallel.</p>
-  <p class="tear" aria-hidden="true"></p>
+  <p>The agent asks you only what you decide: the product, the price, how it is delivered and your legal pages. The research needs web access; the agent uses search, a browser or connectors when it has them and tells you what it could not reach. For this page that was {{.data.tally.firstVoices}} posts and {{.data.tally.firstPeers}} competing pages in {{.data.tally.researchTime}}, with four readers in parallel.</p>
 </article>
 
-<article class="tape" aria-labelledby="void-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="void-h">
   <h2 id="void-h">Rung up: the page your agent writes by default</h2>
   <p>We asked an agent with no research and no lfm for a landing page for a made-up Slack summarizer. One sentence in, one file out. Then lfm compiled it.</p>
   <figure class="voided">
     <div class="shot">
       <img src="assets/images/default-agent-page-480.webp" srcset="assets/images/default-agent-page-480.webp 480w, assets/images/default-agent-page-816.webp 816w" sizes="17rem" alt="The agent's page at phone width: a beige ground, the serif headline 147 replies. Three decisions. Read those. with the middle line in orange italics, a pill reading Works inside Slack above it and an orange trial button." width="480" height="1039">
-      <p class="void-stamp" aria-hidden="true">Void</p>
+      <p class="void-badge" aria-hidden="true">Void</p>
     </div>
     <figcaption>The agent's page at phone width, as it wrote it.</figcaption>
   </figure>
@@ -127,28 +118,24 @@
   </ul>
   <p class="row total"><span>output/</span><span class="red">not written</span></p>
   <p>{{.data.voided.errors}} error and {{.data.voided.warnings}} warnings from the first compile, plus the contrast finding of the browser audit. Each is printed with its fix, so your agent repairs them before anyone sees the page. Read <a href="{{.urls.proofReport}}">the full report</a> and <a href="{{.urls.proofSource}}">the agent's file</a>.</p>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
-<article class="tape" aria-labelledby="look-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="look-h">
   <h2 id="look-h">Won't it just make the lfm look?</h2>
   <ul class="items">
     <li class="row"><span>House style</span><span>none</span></li>
-    <li class="row"><span>This page</span><span>a till receipt</span></li>
-    <li class="row"><span>Why a receipt</span><span>buyers post their $0</span></li>
+    <li class="row"><span>This page</span><span>a till display</span></li>
+    <li class="row"><span>Why a till</span><span>buyers post their $0</span></li>
     <li class="row"><span>Colors the buyers mock</span><span>purple, beige</span></li>
     <li class="row"><span>Your buyers</span><span>your page</span></li>
   </ul>
   <p class="row total"><span>Look</span><span class="red">from the research</span></p>
-  <p>Every fix for AI slop turns into a look of its own once everyone installs it. lfm ships no style to copy. Each project decides its look in concept.md from its own research: what the buyers post and mock, what every competing page already does. The compiler then holds the page to those decisions. This page chose a receipt because builders keep posting their zeros; <a href="{{.urls.concept}}">its concept</a> shows every choice and the posts behind it.</p>
+  <p>Every fix for AI slop turns into a look of its own once everyone installs it. lfm ships no style to copy. Each project decides its look in concept.md from its own research: what the buyers post and mock, what every competing page already does. The compiler then holds the page to those decisions. This page chose a till display because builders keep posting their zeros; <a href="{{.urls.concept}}">its concept</a> shows every choice and the posts behind it.</p>
   <h3>What lfm does not do</h3>
   <p>It brings no traffic and hosts nothing. The research shows where your buyers talk; the page gives the visitors you send a clear way to pay. If every visitor already knows you, a plain page sells too, and lfm keeps that plain page fast, findable and correct.</p>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
-<article class="tape" aria-labelledby="file-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="file-h">
   <h2 id="file-h">Selling a file instead?</h2>
   <ul class="items">
     <li class="row"><span>Ebook</span><span>checked</span></li>
@@ -161,11 +148,9 @@
   <p>Etsy and Kindle are drowning in AI slop: patterns that don't knit, ebooks with errors on page two.</p>
   <p>If your page sells a file, your agent makes it too, and lfm checks it like the page: {{.data.fileRules}} more checks.</p>
   <p>A checked file still needs a buyer. One shop of AI printables got zero checkouts. Sell it first.</p>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
-<article class="tape" aria-labelledby="agents-h" id="agents">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="agents-h" id="agents">
   <h2 id="agents-h">If you are an agent</h2>
   <p>A page built with anything else can be checked with <code>lfm check &lt;url&gt; --json</code>.</p>
   <ol class="steps">
@@ -176,44 +161,39 @@
   </ol>
   <p><code>lfm compile --json</code> returns the same result as JSON, with <code>next.phase</code> and <code>next.skill</code>. Exit 0 means output/ was written. Also here: <a href="assets/agents/llms.txt">llms.txt</a>.</p>
   <p>On Grok Bot, add the <a href="{{.urls.grokBot}}">lfm.cash bot</a>: it installs lfm on its own computer and runs these steps, asking you only what you decide.</p>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
-<article class="tape" aria-labelledby="install-h" id="install">
-  <p class="tear tear-in" aria-hidden="true"></p>
+<article class="panel" aria-labelledby="install-h" id="install">
   <h2 id="install-h">Install it yourself</h2>
   <pre><code>{{.data.install.script}}</code></pre>
+  <p class="notes"><a href="{{.urls.newsInstall}}">Get release notes by email</a></p>
   <p>macOS and Linux, Intel and ARM. <a href="assets/agents/install.sh">The script</a> checks the download against the release checksums and puts one binary in ~/.local/bin, without sudo. With Go 1.26 or newer:</p>
   <pre><code>{{.data.install.go}}</code></pre>
   <p>Then, in a new folder:</p>
   <pre><code>lfm init my-page &amp;&amp; cd my-page
 lfm skills install
 lfm compile</code></pre>
-  <p>The skills land in .agents/skills for Codex, Cursor, OpenCode and GitHub Copilot, or .claude/skills for Claude Code. Chrome is optional for <code>lfm compile --release</code>, which scrolls the page at phone and desktop sizes and saves every frame. Docs: <a href="{{.urls.authoring}}">authoring a project</a>, source on <a href="{{.urls.repository}}">GitHub</a>. <a href="{{.urls.news}}">Release notes by email</a>.</p>
-  <p class="tear" aria-hidden="true"></p>
+  <p>The skills land in .agents/skills for Codex, Cursor, OpenCode and GitHub Copilot, or .claude/skills for Claude Code. Chrome is optional for <code>lfm compile --release</code>, which scrolls the page at phone and desktop sizes and saves every frame. Docs: <a href="{{.urls.authoring}}">authoring a project</a>, source on <a href="{{.urls.repository}}">GitHub</a>.</p>
 </article>
 
-<article class="tape" aria-labelledby="this-h">
-  <p class="tear tear-in" aria-hidden="true"></p>
-  <h2 id="this-h">This page's receipt</h2>
+<article class="panel" aria-labelledby="this-h">
+  <h2 id="this-h">This page's tally</h2>
   <ul class="items">
-    <li class="row"><span>Buyer posts</span><span>{{.data.receipt.voices}} from {{.data.receipt.platforms}} sites</span></li>
-    <li class="row"><span>Competing pages</span><span>{{.data.receipt.peers}}</span></li>
-    <li class="row"><span>Directions</span><span>{{.data.receipt.directions}}, 1 kept</span></li>
+    <li class="row"><span>Buyer posts</span><span>{{.data.tally.voices}} from {{.data.tally.platforms}} sites</span></li>
+    <li class="row"><span>Competing pages</span><span>{{.data.tally.peers}}</span></li>
+    <li class="row"><span>Directions</span><span>{{.data.tally.directions}}, 1 kept</span></li>
     <li class="row"><span>Checks</span><span>{{.data.rules}}, 0 warnings</span></li>
-    <li class="row"><span>Frames looked at</span><span>{{.data.receipt.frames}}</span></li>
-    <li class="row"><span>HTML</span><span>{{.data.receipt.html}} gzip</span></li>
-    <li class="row"><span>Fonts and images</span><span>{{.data.receipt.assets}}</span></li>
-    <li class="row"><span>Lighthouse</span><span>{{.data.receipt.lighthouse}}</span></li>
+    <li class="row"><span>Frames looked at</span><span>{{.data.tally.frames}}</span></li>
+    <li class="row"><span>HTML</span><span>{{.data.tally.html}} gzip</span></li>
+    <li class="row"><span>Fonts and images</span><span>{{.data.tally.assets}}</span></li>
+    <li class="row"><span>Lighthouse</span><span>{{.data.tally.lighthouse}}</span></li>
   </ul>
   <p class="row total"><span>Sales today</span><span class="red">$0.00</span></p>
   <p>lfm is free, so this total stays at zero. Yours does not have to. The <a href="{{.urls.voices}}">buyer posts</a>, the <a href="{{.urls.competitors}}">competitor pages</a> and the <a href="{{.urls.concept}}">concept</a> behind this page are in the repository. Case study: <a href="{{.urls.caseStudy}}">how our own coding agent shipped two paid pages with lfm</a>.</p>
   <footer class="foot">
-    <p class="rule" aria-hidden="true"></p>
     <p class="row small"><span>LFM: looking for more</span><span><a href="{{.urls.license}}">MIT license</a> · <a href="{{.urls.news}}">Release notes by email</a> · <a href="{{.urls.impressum}}" lang="de">Impressum</a> · <a href="{{.urls.privacy}}" lang="de">Datenschutz</a></span></p>
     <p class="thanks">Thank you. Come back with a sale.</p>
   </footer>
-  <p class="tear" aria-hidden="true"></p>
 </article>
 
 </main>

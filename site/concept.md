@@ -35,14 +35,14 @@ deck, and wonder whether lfm helps with that too; it is a side question, asked a
 ## Decision path
 1. What is this, and is it about my problem? → the first screen names the silence in the buyers' words and says in one sentence what lfm does about it.
 2. Can I try it now, without signing up? → the prompt, personalised and copyable on the first screen; pasting it into an agent is the whole start.
-3. Why would this get me buyers when the last launches did not? → the usual build receipt against the sell-first receipt: sell with a page and a payment link, build after someone pays.
+3. Why would this get me buyers when the last launches did not? → the usual build tally against the sell-first tally: sell with a page and a payment link, build after someone pays.
 4. Will it look and read like every other AI page? → the default agent page rung up by the compiler, its real findings, then the answer to "every fix converges".
 5. Does it work with my agent, and what does it cost? → the agent block and the install lines: free, MIT, one binary, the agents it runs with.
 6. What happens after I paste the prompt? → the agent installs lfm, researches buyers, writes the concept, builds and checks the page; you add your payment link and upload one folder.
-7. And if what I sell is a file? → one slip late on the tape: lfm builds and checks the ebook, printable, spreadsheet, documents or deck behind the same page, and the sell-first rule still holds.
+7. And if what I sell is a file? → one panel late on the page: lfm builds and checks the ebook, printable, spreadsheet, documents or deck behind the same page, and the sell-first rule still holds.
 
 ## Mechanism
-Chosen: a prompt printer. The visitor types what they sell; the receipt on the first screen reprints the sentence for their agent with it ("Make a landing page for my sourdough course with lfm: https://lfm.cash/SKILL.md") and copies it. Speed to first value is seconds, it answers the "Comment PROMPT" ritual by giving the prompt away, the effort is one field, nothing is claimed that the tool does not do, and a personalised receipt is worth screenshotting. V040 V044 V047 V055
+Chosen: a prompt display. The visitor types what they sell; the readout on the first screen shows the sentence for their agent with it ("Make a landing page for my sourdough course with lfm: https://lfm.cash/SKILL.md") and copies it. Speed to first value is seconds, it answers the "Comment PROMPT" ritual by giving the prompt away, the effort is one field, nothing is claimed that the tool does not do, and a personalised prompt is worth screenshotting. V040 V044 V047 V055
 Rejected: a live slop audit of a pasted URL: lfm is a local compiler, a static page cannot fetch other sites, and a fake score would break the trust the page argues for. V086
 Rejected: a before and after slider of a generic page and an lfm page: strong proof but slow, and one showcase page invites "so this is the lfm look". V058 V078
 Rejected: a quiz to spot the AI tells: shareable, but it delays the prompt and makes the visitor do work before any value. V018
@@ -53,9 +53,7 @@ Price: free, no account, no paid tier.
 Delivery: one install command or the agent installs it itself from https://lfm.cash/SKILL.md; it runs locally and writes one static output/ folder to upload anywhere.
 
 ## Facts
-- An 80 mm receipt roll prints 72 mm wide: 576 dots at 8 dots per mm, 203 dpi. https://www.zkteco.com/en/ThermalPrinterSeries/ZKP8005
-- The standard receipt character, Font A, is a 12 by 24 dot cell, 48 characters per line on 80 mm paper; totals print in double width. https://www.datecs-polska.pl/files/Instrukcje_Obslugi/Drukarki/EP2000/ep-2000.pdf
-- Two-colour receipt printers print black and red, red to flag what changed. https://www.levata.com/epson-tm-t88iv-restick-receipt-printers
+- A till's customer display, such as Epson's DM-D110, shows 20 columns by 2 lines of 5 by 7 dot characters in vacuum fluorescent green (505 nm). https://www.barcodesinc.com/media/pdf/Epson/dmd110.pdf
 - A reel of a Claude-built site reached 176,973 views and its comments are nearly all "Prompt". V047
 - One builder counted 9 commitments out of 42 cold messages before building. V052
 - A product earned $0 in 90 days because its pricing buttons still opened a pre-launch modal. V051
@@ -76,8 +74,8 @@ Delivery: one install command or the agent installs it itself from https://lfm.c
 | Axis | Market | Voices | Chosen |
 | --- | --- | --- | --- |
 | Opening | headline and button over a product demo, or a prompt box that builds after sign-up P001 P002 P003 P004 P011 | the prompt is the thing they beg for, and a page is judged in three seconds V040 V044 V047 V023 | the buyers' silence as the headline and their own copyable prompt on the first screen, no product UI |
-| Proof | logo strips, user counts, earnings screenshots P001 P002 P009 P010 P015 P016 | fake metrics and invented testimonials are tells; nobody shows the zero V020 V086 V005 V030 | proof by checks: the compiler's real findings on a default agent page and this page's own receipt; no logos, no counts |
-| Palette | dark grounds, warm off-white with near-black, one saturated purple or indigo P001 P002 P006 P009 P011 P018 | purple, beige and brown, neon, the same blue, dots all read as AI V040 V059 V067 V079 V083 V095 | cool receipt paper, thermal black and one receipt red |
+| Proof | logo strips, user counts, earnings screenshots P001 P002 P009 P010 P015 P016 | fake metrics and invented testimonials are tells; nobody shows the zero V020 V086 V005 V030 | proof by checks: the compiler's real findings on a default agent page and this page's own tally; no logos, no counts |
+| Palette | dark grounds, warm off-white with near-black, one saturated purple or indigo P001 P002 P006 P009 P011 P018 | purple, beige and brown, neon, the same blue, dots all read as AI V040 V059 V067 V079 V083 V095 | white, panel black, one red for totals, and the display's own green behind dark glass |
 | Promise | build anything, faster, in minutes P001 P002 P007 P010 | building is solved; the silence after launch is the problem V001 V003 V008 V054 V116 | sell first, build after someone pays |
 | Tone | aspirational platform voice or reassurance for non-technical owners P001 P005 P006 P007 | blunt, self-mocking, funny about their own zeros V002 V005 V030 V076 V116 | blunt and funny, honest about what lfm does not do |
 | Takeaway | nothing before sign-up, or a generated draft behind an account P001 P002 P008 P011 | they want the prompt without a DM and want to finally ship V047 V044 V055 | the prompt and the agent instructions, no email, no account |
@@ -97,8 +95,8 @@ Delivery: one install command or the agent installs it itself from https://lfm.c
   The counter only moves once the prompt is copied.
 4. No DM: the reel caption "Comment PROMPT and I'll DM you" struck through, followed by the prompt itself. V040 V047 → struck: its one line still works with any design skill swapped in.
   The whole page answers the ritual line by line.
-5. The first receipt: lfm.cash as a till; the page is the receipt it prints, sales today $0.00, the prompt printed as the coupon, the default agent page voided by its findings. V005 V030 V047 → chosen
-  The visitor reprints the receipt with their own product; the total stays $0.00 until they sell, and the build waits for that.
+5. The first receipt: lfm.cash as a till; the page is the slip it prints, sales today $0.00, the default agent page voided by its findings. V005 V030 V047 → struck: since 2026-10-25 paper and receipt styling is banned on every page, so the till keeps its display and loses the slip.
+  The visitor reprints the slip with their own product; the total stays $0.00 until they sell.
 6. Party finder: the MMO trade chat line "LFM need 1 more buyer", repeated until someone answers. V002 V117 → struck: a theme from the name, not from the voices; the in-joke excludes non-gamers.
   Chat timestamps show weeks of asking into silence.
 7. The research wall: a board of verbatim buyer posts behind the page. V035 V086 → struck: shows research voices as testimonials.
@@ -109,70 +107,73 @@ Delivery: one install command or the agent installs it itself from https://lfm.c
   The reveal explains how to remove the door on launch day.
 10. Weeks against days: a timeline scale of months building against two or three days of selling. V028 V090 → struck: a stat banner in disguise and slower than the prompt.
   The scale shrinks as the visitor scrolls.
+11. The till display: lfm.cash as a till whose customer display reads SALES TODAY $0.00; each section is a framed panel of the till, the prompt shows on its readout, the default agent page is voided by its findings. V005 V030 V047 → chosen
+  The visitor puts their own product on the readout; the display stays at $0.00 until they sell, and the build waits for that.
 
 ## Concept
-The page is the receipt lfm.cash prints. It opens like a till slip, store name LFM.CASH, date and a line
-reading SALES TODAY $0.00, then the headline in the buyers' own words: nobody screenshots a dead product.
-V005 V030 Below it, printed as the coupon, is the one sentence for the visitor's agent; they type what they
-sell, press print and the tape feeds out their own prompt to copy, the answer to every "Comment PROMPT"
-reel. V040 V047 Further down the same tape rings up two receipts. The usual one: weeks of building, total
-sales zero, the instant feedback of builds against the silence of launch. V002 V115 V117 The lfm one: real
-buyers first, a concept from their words, one checked page with a payment link, sold for a few days, then
-build only what someone paid for. V028 V052 V103 The default page an agent writes from one sentence is rung
-up next and voided line by line by the compiler's real findings, and the page says plainly why lfm has no
-house look: the look comes from each project's buyers, so it cannot converge. V058 V087 V108 The tape ends
-with a block for agents, the install lines and this page's own receipt: its research, concept and compile
-result, the zero total still waiting for the visitor's first sale. The red ink is used only where receipt
-printers use it: for the total and what changed.
+The page is the till lfm.cash runs. It opens on the register, store name LFM.CASH, date, and a customer
+display reading SALES TODAY $0.00 in green behind dark glass, then the headline in the buyers' own words:
+nobody screenshots a dead product. V005 V030 Beside it is the readout with the one sentence for the
+visitor's agent; they type what they sell, press copy and the readout redraws with their own prompt, the
+answer to every "Comment PROMPT" reel. V040 V047 Further down, framed panels ring up two tallies. The usual
+one: weeks of building, total sales zero, the instant feedback of builds against the silence of launch.
+V002 V115 V117 The lfm one: real buyers first, a concept from their words, one checked page with a payment
+link, sold for a few days, then build only what someone paid for. V028 V052 V103 The default page an agent
+writes from one sentence is rung up next and voided line by line by the compiler's real findings, and the
+page says plainly why lfm has no house look: the look comes from each project's buyers, so it cannot
+converge. V058 V087 V108 The page ends with a panel for agents, the install lines and this page's own tally:
+its research, concept and compile result, the zero total still waiting for the visitor's first sale. Red is
+used only for totals and what changed; green belongs to the display alone.
 
 ## Spine
-1. Receipt header: store line, date, SALES TODAY $0.00, the headline "Nobody screenshots a dead product." and one sentence on selling first with an agent. V005 V001 V028
-2. Prompt coupon: field for what you sell, the reprinted sentence for the agent, copy, plus "free, MIT, no account" and the install line for doing it yourself. V047 V044 V055
+1. Register: store line, date, the display with SALES TODAY $0.00, the headline "Nobody screenshots a dead product." and one sentence on selling first with an agent. V005 V001 V028
+2. Prompt readout: field for what you sell, the reprinted sentence for the agent, copy, plus "free, MIT, no account" and the install line for doing it yourself. V047 V044 V055
 3. No DM: the struck "Comment PROMPT and I'll DM you" and the line that the prompt above is the whole thing. V040 V044 V047
-4. The usual receipt: building items, sales zero, and why building feels like progress. V002 V003 V049 V115 V116 V117
-5. Sell first: the lfm receipt from research to a payment link, selling for days, building only after a sale, with the counts that make it concrete. V028 V052 V051 V014 V103
+4. The usual tally: building items, sales zero, and why building feels like progress. V002 V003 V049 V115 V116 V117
+5. Sell first: the lfm tally from research to a payment link, selling for days, building only after a sale, with the counts that make it concrete. V028 V052 V051 V014 V103
 6. Voided: the page an agent writes from one sentence, compiled by lfm, its real findings as voided line items. V018 V019 V020 V021 V086
 7. No house look: why the fixes converge, why lfm's look comes from each project's research, and the honest limits: lfm does not bring traffic, it finds where buyers talk and converts what you send. V058 V078 V087 V108 V033 V054 V026
-8. If you sell a file: one short slip, the files lfm builds and checks behind the page, rung up as line items, with the same rule: sell it first. Secondary; it adds no claim to the first screen. V142 V136 V140 V148 P023
+8. If you sell a file: one short panel, the files lfm builds and checks behind the page, rung up as line items, with the same rule: sell it first. Secondary; it adds no claim to the first screen. V142 V136 V140 V148 P023
 9. For agents: plain steps an agent can follow, readable by people too. V027
 10. Install: the commands, the agents it works with, what lands on disk. V018 V062
-11. This page's receipt: its own research counts, concept and compile result, links to the files, footer. V086
+11. This page's tally: its own research counts, concept and compile result, links to the files, footer. V086
 
 ## Palette
 | Role | Color | Source |
 | --- | --- | --- |
-| Receipt paper, the ground | #F1F3F0 | cool thermal paper, away from the beige and brown of AI pages V040 V079 |
-| Paper shade, the counter behind the tape | #E2E5E1 | the roll edge of a receipt; no dark grounds P002 P004 |
-| Thermal black, text | #18191C | receipt print V005 |
-| Faded print, secondary text | #4B4F55 | thermal print that has aged |
-| Receipt red, totals and changes | #C0141B | two-colour receipt printers print changes in red; never purple V067 V095 |
-| Perforation, rules only | #8B8F94 | dashed tear lines, never text |
+| Counter white, the ground | #FFFFFF | plain white, away from the beige and brown of AI pages V040 V079; no dark grounds P002 P004 |
+| Panel black, text, frames and key strips | #15171A | the till housing and its key labels V005 |
+| Muted, secondary text | #4B5058 | small register print |
+| Hairline, rules between line items | #C9CED4 | rows of a register list, never text |
+| Total red, totals and changes | #C0141B | the zero and what changed, the one accent; never purple V067 V095 |
+| Display glass, the customer display | #0F1513 | the dark window of a till display |
+| Display green, digits on the glass only | #46F0A0 | vacuum fluorescent green of till displays, used nowhere else |
 
 ## Type
 | Role | Family | Source |
 | --- | --- | --- |
-| Receipt print, headlines, totals, prompt | Martian Mono, ui-monospace, monospace | a wide-capable mono for the 12 by 24 dot receipt cell; its width axis gives the double-width totals receipts print |
+| Register type, headlines, totals, display, prompt | Martian Mono, ui-monospace, monospace | a wide-capable mono for the dot-matrix characters of a till display; its width axis gives the wide totals |
 | Reading text | Atkinson Hyperlegible Next, system-ui, sans-serif | built for legibility, answering "nicht mal ansatzweise barrierefrei" V036 |
 
 ## Form
-One paper tape about 48 characters wide, the width of a receipt line, centred on the paper-shade counter at
-desktop and edge to edge on a phone. At desktop width only the first slip widens, so the headline stands as
-a poster beside the coupon and the prompt is in the first screen; every slip below keeps the one column. Tape sections end in torn zigzag edges; rules are printed characters
-(dashes and equals signs), not borders. No rounded corners, no shadows, no cards, no icons. Line items are
-two columns, label left and value right with dot leaders, as receipts align them. The only full-width band
-is the red No DM strip. Double-width mono for the store line, totals and the headline; reading text sits in
-the tape at a comfortable size, never smaller than the receipt print.
+One column about 42rem wide on a white ground, edge to edge on a phone. Each section is a panel framed in a
+3px black line and headed by a black key strip carrying its heading in white mono. At desktop width only the
+first panel widens, so the headline and display stand beside the offer and the prompt is in the first
+screen; every panel below keeps the one column. No rounded corners, no shadows, no icons, no textures.
+Line items are two columns, label left and value right, with a hairline between rows and the total under a
+heavy bar. The only colour bands are the red No DM strip and the dark display glass. Wide mono for the store
+name, totals, display digits and the headline; reading text sits at a comfortable size.
 
 ## Imagery
 | Image | Job | Art direction | Source |
 | --- | --- | --- | --- |
-| Share preview | share preview | the top of the receipt on paper: LFM.CASH, SALES TODAY $0.00 in red, "Nobody screenshots a dead product." in double width, readable at thumbnail size V005 | rendered from the page's own receipt in headless Chrome |
-| The default agent page | proof | a phone-width screenshot of the page an agent wrote from one sentence, shown inside the voided receipt, untouched so the tells are visible V067 V018 | rendered from the one-shot page in headless Chrome |
+| Share preview | share preview | the register on white: LFM.CASH, the display reading SALES TODAY $0.00 in green, "Nobody screenshots a dead product." in wide mono, readable at thumbnail size V005 | rendered from assets/share/card.html in headless Chrome |
+| The default agent page | proof | a phone-width screenshot of the page an agent wrote from one sentence, shown inside the voided panel, untouched so the tells are visible V067 V018 | rendered from the one-shot page in headless Chrome |
 
 ## Motion
-Moment: pressing print feeds the tape: the coupon reprints line by line like a thermal printer, about 40 ms a line, and stops on a torn edge.
-Feedback: copy stamps COPIED in red on the coupon and the button says to paste it into the agent; the voided findings stay static.
-Reduced motion: the coupon updates at once and the stamp appears without movement; nothing else on the page moves.
+Moment: pressing copy redraws the readout line by line like a till display refreshing, about 60 ms a line.
+Feedback: copy shows COPIED in red on the readout and the button says to paste it into the agent; the voided findings stay static.
+Reduced motion: the readout updates at once and the badge appears without movement; nothing else on the page moves.
 
 ## Copy
 - Use: "Nobody screenshots a dead product" V005
@@ -189,12 +190,12 @@ Reduced motion: the coupon updates at once and the stamp appears without movemen
 - Blunt, short sentences in English; joke about the zero, never about the visitor. V002 V005 V030
 - Every number on the page is real and checked: from the research, the compiler or this page's own build. V086
 - Say what lfm does not do: it brings no traffic and hosts nothing. V033 V054
-- The file slip says the same about files: a checked file still needs a buyer, so the sale comes first. V142 V144
+- The file panel says the same about files: a checked file still needs a buyer, so the sale comes first. V142 V144
 - Never quote a research voice with a name or as praise; their words shape the copy, they are not testimonials. V020
 
 ## Qualities
 - The hero: the buyers' own headline, SALES TODAY $0.00 in red, and the prompt on the first screen with no account.
-- The usual receipt's line items and TOTAL A SALE OR A NO: specific, funny about the zero, never about the visitor.
+- The usual tally's line items and TOTAL A SALE OR A NO: specific, funny about the zero, never about the visitor.
 - Honesty and agent-readability: what lfm does not do, the agent block with --json and exit codes, red only for totals and errors.
 
 ## Changelog
@@ -202,3 +203,4 @@ Reduced motion: the coupon updates at once and the stamp appears without movemen
 - 2026-10-18: first concept from the batch of 2026-10-18.
 - 2026-10-18: after an independent review of the first build: desktop widens only the first slip; added the after-you-paste receipt (decision path step 6), the trust line at the copy button, findings in plain words, and the house-look answer rung up as a receipt. No research changed.
 - 2026-10-19: grow from the batch of 2026-10-19 (31 voices, 6 peers on the digital goods lfm now builds). Depth, not shift: one new slip (spine 8, decision path 7) for visitors who sell a file, late on the tape and without a claim on the first screen; new voice observations, buyer sentence, facts and copy rules; check count updated to 109. Axes, direction, palette, type, form, motion and qualities unchanged: the new peers lead with platform-scale promises and purple, which the chosen positions already answer, and their gap (no file shown passing a check) is the existing proof-by-checks axis.
+- 2026-10-25: the receipt look goes: paper and receipt styling (torn edges, perforations, off-white paper grounds) is now banned on every page. Direction 5 struck, direction 11 chosen: the same till, seen through its customer display instead of its printed slip. New palette, form, motion and imagery; the receipt printer facts replaced by the till display fact. Copy and claims unchanged apart from the tally wording. No research changed.

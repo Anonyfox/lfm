@@ -1,4 +1,4 @@
-/* A quiet paper article using the lfm.cash palette and typefaces. */
+/* A plain framed article using the lfm.cash palette and typefaces. */
 
 @font-face {
   font-family:  "Martian Mono";
@@ -20,8 +20,8 @@
   box-sizing: border-box;
 }
 html {
-  background: #e2e5e1;
-  color: #18191c;
+  background: #ffffff;
+  color: #15171a;
 }
 body {
   margin: 0;
@@ -36,9 +36,7 @@ nav,footer {
 main {
   max-width: 50rem;
   margin: auto;
-  background: #f1f3f0;
-  border-top: 2px dashed #8b8f94;
-  border-bottom: 2px dashed #8b8f94;
+  border: 3px solid #15171a;
   padding: 2.5rem 2rem;
 }
 h1 {
