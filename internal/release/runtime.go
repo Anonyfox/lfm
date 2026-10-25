@@ -155,7 +155,9 @@ func auditRuntime(ctx context.Context, target Target, path, frames string, liste
 
 func startAuditBrowser(ctx context.Context, path, proxy, profile string) (context.Context, func(), error) {
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	opts = append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-component-update", true))
+	// chromedp gives up on Chrome's DevTools URL after 20s, which a loaded
+	// machine can exceed; wait as long as any other browser step instead.
+	opts = append(opts, chromedp.ExecPath(path), chromedp.WSURLReadTimeout(browserStepTimeout), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-component-update", true))
 	if proxy != "" {
 		opts = append(opts, chromedp.ProxyServer(proxy), chromedp.Flag("proxy-bypass-list", "<-loopback>"))
 	} else {

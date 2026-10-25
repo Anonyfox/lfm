@@ -250,6 +250,9 @@ func keySelector(selector string) (byte, string) {
 			if typ == css.DelimToken && string(raw) == "|" && depth == 1 {
 				attr = "-" // namespaced attribute: no key
 			}
+			if typ == css.DelimToken && string(raw) == "!" && depth == 1 {
+				attr = "-" // Cascadia's [attr!=value] also matches elements without attr: no key
+			}
 			previous = typ
 			switch typ {
 			case css.FunctionToken, css.LeftParenthesisToken, css.LeftBracketToken:

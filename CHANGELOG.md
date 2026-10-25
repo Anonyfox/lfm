@@ -10,6 +10,8 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - Quoted book titles ignore trailing notes; AI statements match tool names without model suffixes.
 - Open imagery rows reserve covers and wait for the owner; a missing cover gets one store warning.
 - Book reports say "1 chapter" for a one-chapter book.
+- Style checks match `[attr!=value]` selectors, which also select elements without the attribute, against every element instead of only those carrying it.
+- Release audit browsers wait up to 45 s for Chrome to start, like other browser steps, instead of chromedp's 20 s default.
 - CI on every Linux push runs the race tests in four parallel groups and every fuzz target, at full fuzz time, in eight parallel shards; a push checks in about 5 minutes instead of 10, with the same tests, race checks, coverage uploads and fuzz targets. macOS tests run on release tags and manual runs.
 - Release tags skip the release workflow's own test run only after a fully green CI run on the tagged commit.
 
