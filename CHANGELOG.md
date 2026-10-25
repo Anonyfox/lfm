@@ -1,5 +1,19 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.13 (2026-10-25)
+
+- `design.ground` checks the background colour of every element, not only the page ground: a warm
+  off-white card, panel or section on a white page now fails `lfm compile` and `lfm check`.
+- `design.ground` fails torn, zigzag and perforated edges: gradient tiles of 32 px or less repeated
+  along one axis, made of diagonal hard-stop teeth or radial dots, in a background, mask or
+  `-webkit-mask`. Dashed rules, broad stripes and soft diagonals stay allowed.
+- `design.palette` reports gradients with a violet stop whose coloured stops are all violet, blue or
+  pink as an error instead of a warning. The stock accent colour warnings are unchanged.
+- One table-driven CLI test makes compile and check fail on four fixtures: `--paper:#faf7f0` on the
+  body, `--sand:#f1ebdd` on a card, the old lfm.cash receipt stylesheet and a violet gradient.
+- lfm.cash is a till display on white instead of a receipt, with a release notes link directly under
+  the install command; the case study uses the same frame.
+
 ## 0.1.12 (2026-10-25)
 
 - Books render front and back matter, publish complete files without a listing, and publish private previews of written chapters while the rest are planned.
