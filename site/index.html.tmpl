@@ -18,22 +18,13 @@
 <link rel="preload" href="assets/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin>
 {{style "assets/styles/main.css"}}
 </head>
-<body>
+<body data-design-reason="Mono is the till display register type and the HUD label face, declared in concept.md Type">
 <main>
-
-<article class="panel panel-top" aria-labelledby="headline">
-  <header class="till">
-    <p class="brand" data-design-reason="the register header of the till display concept: store name and register above the headline">LFM.CASH</p>
-    <p class="row small"><span>Register 01</span><span class="today">Open today</span></p>
-  </header>
-  <div class="hero">
-    <div class="pitch">
-      <h1 id="headline">Nobody screenshots a dead product.</h1>
-      <p class="display"><span>Sales today</span><span class="digits">$0.00</span></p>
-      <p class="lede">So sell before you build. lfm gives your coding agent the process: your buyers' real posts first, then one checked page with your payment link. Build the product once someone pays.</p>
-    </div>
-
-    <section class="offer" aria-labelledby="offer-h">
+<article class="hero-panel" aria-labelledby="headline">
+<header class="till"><p class="brand">LFM.CASH</p><p class="hud today">Open today</p></header>
+<div class="hero-grid"><div class="pitch"><h1 id="headline">Nobody screenshots a dead product.</h1><p class="lede">Sell before you build. Give your coding agent the prompt below: it researches buyers, builds your page, and lfm checks the page before you upload it.</p></div>
+<div class="showcase" aria-label="Real pages built with lfm">
+<figure class="screen devnews"><img src="assets/images/built/devnews-desktop-720.webp" srcset="assets/images/built/devnews-desktop-720.webp 720w, assets/images/built/devnews-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Dev News first screen: release notes arranged by project"><figcaption>dev-news.anonyfox.com · built with lfm</figcaption></figure><figure class="screen squad"><img src="assets/images/built/squad-desktop-720.webp" srcset="assets/images/built/squad-desktop-720.webp 720w, assets/images/built/squad-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Grok Bot Squad Kit product page first screen"><figcaption>lab.anonyfox.com/grok-bot-templates/ · built with lfm</figcaption></figure><figure class="screen sansslop"><img src="assets/images/built/sansslop-desktop-720.webp" srcset="assets/images/built/sansslop-desktop-720.webp 720w, assets/images/built/sansslop-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Sans Slop product page first screen"><figcaption>lab.anonyfox.com/sans-slop/ · built with lfm</figcaption></figure><figure class="phone"><img src="assets/images/built/sansslop-phone-390.webp" width="390" height="844" alt="Sans Slop first screen at phone width"><figcaption>built with lfm</figcaption></figure></div>    <div class="offer" aria-labelledby="offer-h">
       <h2 id="offer-h">Paste this into your agent</h2>
       <form id="maker" class="maker" action="#offer-h">
         <label for="what">What do you sell? <span class="optional">(optional)</span></label>
@@ -46,167 +37,31 @@
         </div>
         <button type="submit" class="copy" id="copy">Copy my prompt</button>
       </form>
-      <p class="trust">Free, MIT license, no account. The link is a plain skill file: your agent installs one checksummed binary from the GitHub releases into ~/.local/bin, then runs lfm in a new project folder. <a href="assets/agents/SKILL.md">Read it first</a>. <a href="{{.urls.repository}}">Star on GitHub</a>.</p>
-    </section>
-  </div>
-</article>
-
-<section class="nodm" aria-labelledby="nodm-h">
-  <h2 id="nodm-h"><s>Comment PROMPT and I'll DM you.</s></h2>
-  <p>No DM. The line above is the whole prompt. Your agent reads the rest from the link in it.</p>
-</section>
-
-<div class="pair tally-pair">
-<article class="panel" aria-labelledby="usual-h">
-  <h2 id="usual-h">The usual tally</h2>
-  <ul class="items">
-    <li class="row"><span>Auth, billing, dashboard</span><span>done</span></li>
-    <li class="row"><span>The feature nobody asked for</span><span>done</span></li>
-    <li class="row"><span>Landing page</span><span>night before</span></li>
-    <li class="row"><span>Launch post</span><span>sent</span></li>
-    <li class="row"><span>Replies</span><span>none</span></li>
-  </ul>
-  <p class="row total"><span>Sales</span><span class="red">$0.00</span></p>
-  <p>Shipping got fast. The silence after launch did not: zero users, zero replies, $0. Building feels like progress because a build answers in seconds. A launch post answers in days, if at all, so the next feature always wins.</p>
-</article>
-
-<article class="panel" aria-labelledby="first-h">
-  <h2 id="first-h">Sell it first. Build it when someone pays.</h2>
-  <ul class="items">
-    <li class="row"><span>Research</span><span>{{.data.minimums.voices}}+ real posts</span></li>
-    <li class="row"><span>Concept</span><span>every choice cited</span></li>
-    <li class="row"><span>Page</span><span>{{.data.rules}} checks</span></li>
-    <li class="row"><span>Payment link</span><span>yours</span></li>
-    <li class="row"><span>Selling</span><span>2 or 3 days</span></li>
-  </ul>
-  <p class="row total"><span>Total</span><span class="red">a sale or a no</span></p>
-  <p>Demand first, product second. Your agent collects what buyers actually write, at least {{.data.minimums.voices}} posts from {{.data.minimums.platforms}} platforms and {{.data.minimums.peers}} competing pages, decides the page from that evidence and builds it. You put your offer and a payment link on it and start with the sale: post where the research found your buyers, deliver the first orders by hand. Nobody pays, and you lost days instead of months. Someone pays, and you know what to build.</p>
-  <p>One founder made $0 for 90 days because the buy buttons still opened a "payments coming soon" box. Remove the waitlist copy the day checkout works; lfm flags a checkout link that is missing or hidden.</p>
-</article>
-
-</div>
-
-<article class="panel panel-wide" aria-labelledby="after-h">
-  <h2 id="after-h">After you paste</h2>
-  <ol class="items process">
-    <li class="row"><span>Agent installs lfm</span><span>1 binary</span></li>
-    <li class="row"><span>Agent reads buyers</span><span>{{.data.minimums.voices}}+ posts</span></li>
-    <li class="row"><span>Agent writes concept.md</span><span>cited</span></li>
-    <li class="row"><span>Agent builds the page</span><span>0 warnings</span></li>
-    <li class="row"><span>You add a payment link</span><span>Stripe</span></li>
-    <li class="row"><span>You upload output/</span><span>any host</span></li>
-  </ol>
-  <p class="row total"><span>Your part</span><span class="red">2 steps</span></p>
-  <p>The agent asks you only what you decide: the product, the price, how it is delivered and your legal pages. The research needs web access; the agent uses search, a browser or connectors when it has them and tells you what it could not reach. For this page that was {{.data.tally.firstVoices}} posts and {{.data.tally.firstPeers}} competing pages in {{.data.tally.researchTime}}, with four readers in parallel.</p>
-</article>
-
-<article class="panel panel-wide" aria-labelledby="void-h">
-  <h2 id="void-h">Rung up: the page your agent writes by default</h2>
-  <p>We asked an agent with no research and no lfm for a landing page for a made-up Slack summarizer. One sentence in, one file out. Then lfm compiled it.</p>
-  <div class="void-layout">
-  <figure class="voided">
-    <div class="shot">
-      <img src="assets/images/default-agent-page-480.webp" srcset="assets/images/default-agent-page-480.webp 480w, assets/images/default-agent-page-816.webp 816w" sizes="(min-width: 64rem) 22rem, (min-width: 29rem) 24rem, calc(100vw - 4rem)" alt="The agent's page at phone width: a beige ground, the serif headline 147 replies. Three decisions. Read those. with the middle line in orange italics, a pill reading Works inside Slack above it and an orange trial button." width="480" height="1039">
-      <p class="void-badge" aria-hidden="true">Void</p>
-    </div>
-    <figcaption>The agent's page at phone width, as it wrote it.</figcaption>
-  </figure>
-  <div class="void-report">
-  <ul class="items findings">
-    <li><p class="row"><span>Main button text</span><span class="red">{{.data.voided.buttonContrast}}</span></p><p class="rule-id">release.layout, and {{.data.voided.lowContrastMore}} more texts under 4.5:1</p></li>
-    <li><p class="row"><span>Label over every heading</span><span>×6</span></p><p class="rule-id">design.eyebrows</p></li>
-    <li><p class="row"><span>Pill badge over the headline</span><span>×1</span></p><p class="rule-id">design.hero</p></li>
-    <li><p class="row"><span>Italic accent, pills, blur</span><span>{{.data.voided.defaults}} tells</span></p><p class="rule-id">design.defaults: generator defaults combined</p></li>
-    <li><p class="row"><span>No canonical URL</span><span class="red">error</span></p><p class="rule-id">seo.metadata: search engines cannot tell which copy is the page</p></li>
-    <li><p class="row"><span>No share preview</span><span>×1</span></p><p class="rule-id">seo.social</p></li>
-    <li><p class="row"><span>Two links, one label</span><span>×1</span></p><p class="rule-id">a11y.link-purpose</p></li>
-  </ul>
-  <p class="row total"><span>output/</span><span class="red">not written</span></p>
-  <p>{{.data.voided.errors}} error and {{.data.voided.warnings}} warnings from the first compile, plus the contrast finding of the browser audit. Each is printed with its fix, so your agent repairs them before anyone sees the page. Read <a href="{{.urls.proofReport}}">the full report</a> and <a href="{{.urls.proofSource}}">the agent's file</a>.</p>
-  </div>
-  </div>
-</article>
-
-<article class="panel" aria-labelledby="look-h">
-  <h2 id="look-h">Won't it just make the lfm look?</h2>
-  <ul class="items">
-    <li class="row"><span>House style</span><span>none</span></li>
-    <li class="row"><span>This page</span><span>a till display</span></li>
-    <li class="row"><span>Why a till</span><span>buyers post their $0</span></li>
-    <li class="row"><span>Colors the buyers mock</span><span>purple, beige</span></li>
-    <li class="row"><span>Your buyers</span><span>your page</span></li>
-  </ul>
-  <p class="row total"><span>Look</span><span class="red">from the research</span></p>
-  <p>Every fix for AI slop turns into a look of its own once everyone installs it. lfm ships no style to copy. Each project decides its look in concept.md from its own research: what the buyers post and mock, what every competing page already does. The compiler then holds the page to those decisions. This page chose a till display because builders keep posting their zeros; <a href="{{.urls.concept}}">its concept</a> shows every choice and the posts behind it.</p>
-  <h3>What lfm does not do</h3>
-  <p>It brings no traffic and hosts nothing. The research shows where your buyers talk; the page gives the visitors you send a clear way to pay. If every visitor already knows you, a plain page sells too, and lfm keeps that plain page fast, findable and correct.</p>
-</article>
-
-<article class="panel" aria-labelledby="file-h">
-  <h2 id="file-h">Selling a file instead?</h2>
-  <ul class="items">
-    <li class="row"><span>Ebook</span><span>checked</span></li>
-    <li class="row"><span>Printable</span><span>checked</span></li>
-    <li class="row"><span>Spreadsheet</span><span>checked</span></li>
-    <li class="row"><span>Word document</span><span>checked</span></li>
-    <li class="row"><span>Slide deck</span><span>checked</span></li>
-  </ul>
-  <p class="row total"><span>Sales</span><span class="red">$0.00</span></p>
-  <p>Etsy and Kindle are drowning in AI slop: patterns that don't knit, ebooks with errors on page two.</p>
-  <p>If your page sells a file, your agent makes it too, and lfm checks it like the page: {{.data.fileRules}} more checks.</p>
-  <p>A checked file still needs a buyer. One shop of AI printables got zero checkouts. Sell it first.</p>
-</article>
-
-<div class="pair">
-<article class="panel" aria-labelledby="agents-h" id="agents">
-  <h2 id="agents-h">If you are an agent</h2>
-  <p>A page built with anything else can be checked with <code>lfm check &lt;url&gt; --json</code>.</p>
-  <ol class="steps">
-    <li>Read <a href="assets/agents/SKILL.md">SKILL.md</a> and follow it.</li>
-    <li>Install: <pre><code>{{.data.install.script}}</code></pre></li>
-    <li>Run <code>lfm init &lt;offer-name&gt;</code>, then <code>lfm skills install</code> inside it.</li>
-    <li>Run <code>lfm compile</code> after every change and do what its last line says until it says deploy.</li>
-  </ol>
-  <p><code>lfm compile --json</code> returns the same result as JSON, with <code>next.phase</code> and <code>next.skill</code>. Exit 0 means output/ was written. Also here: <a href="assets/agents/llms.txt">llms.txt</a>.</p>
-  <p>On Grok Bot, add the <a href="{{.urls.grokBot}}">lfm.cash bot</a>: it installs lfm on its own computer and runs these steps, asking you only what you decide.</p>
-</article>
-
-<article class="panel" aria-labelledby="install-h" id="install">
-  <h2 id="install-h">Install it yourself</h2>
-  <pre><code>{{.data.install.script}}</code></pre>
-  <p class="notes"><a href="{{.urls.newsInstall}}">Get release notes by email</a></p>
-  <p>macOS and Linux, Intel and ARM. <a href="assets/agents/install.sh">The script</a> checks the download against the release checksums and puts one binary in ~/.local/bin, without sudo. With Go 1.26 or newer:</p>
-  <pre><code>{{.data.install.go}}</code></pre>
-  <p>Then, in a new folder:</p>
-  <pre><code>lfm init my-page &amp;&amp; cd my-page
+<p class="trust">Free under MIT. No account. <a href="assets/agents/SKILL.md">Read it first</a> · <a href="{{.urls.repository}}">Star on GitHub</a></p></div>
+<figure class="terminal" id="terminal"><figcaption>01 / Agent default page · compile <button type="button" id="replay">Replay</button></figcaption>
+<pre><code><span class="command t1">$ lfm compile</span><span class="line t2">error    seo.metadata  page
+         Canonical URL is missing.
+warning  design.defaults  page
+         8 generator-default signals combine on this page; reported: eyebrow labels, hero badge;
+…
+oneshot-proj failed: 1 error, 15 warnings; output/ unchanged</span></code></pre>
+<p class="hud line t3">02 / Sans Slop live page · check</p>
+<pre><code><span class="command t3">$ lfm check https://lab.anonyfox.com/sans-slop/</span><span class="line t4">  8 files inspected; 0 errors, 0 warnings; 519 ms
+Next (done): no findings remain.</span></code></pre></figure></div></article>
+<section class="panel" aria-labelledby="compare-h"><h2 id="compare-h">One sentence in. What comes out?</h2><p>Different products. Drag to inspect the agent default and a page built with lfm.</p>
+<div class="compare" id="comparison"><img src="assets/images/built/sansslop-desktop-720.webp" srcset="assets/images/built/sansslop-desktop-720.webp 720w, assets/images/built/sansslop-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Sans Slop desktop product page: the researched output" loading="lazy"><div class="before"><img src="assets/images/built/default-desktop-720.webp" srcset="assets/images/built/default-desktop-720.webp 720w, assets/images/built/default-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Threadly desktop: the default agent page with a trial button and repeated heading labels" loading="lazy"><span class="void-badge">VOID</span></div><span class="divider" aria-hidden="true"></span></div>
+<div class="compare-labels hud"><span>Agent default · {{.data.voided.errors}} error, {{.data.voided.warnings}} warnings</span><span>Sans Slop, built with lfm · lfm check: 0 errors, 0 warnings</span></div>
+<label for="wipe">Compare pages: amount of agent default visible</label><input id="wipe" type="range" min="0" max="100" value="50" aria-controls="comparison"><output id="wipe-value" for="wipe" aria-live="polite">50% agent default</output>
+<ul class="chips"><li>Button contrast {{.data.voided.buttonContrast}}</li><li>{{.data.voided.lowContrastMore}} more low-contrast texts</li><li>{{.data.voided.defaults}} generator-default tells</li><li>6 heading labels</li><li>1 hero pill</li><li>Missing canonical</li><li>Missing share preview</li><li>Two links, one label</li></ul><p><a href="{{.urls.proofReport}}">Full report</a> · <a href="{{.urls.proofSource}}">Agent's file</a></p>
+<details><summary>What the counts mean</summary><dl><dt>Input</dt><dd>One sentence requesting Threadly, a made-up Slack summarizer. No research, skills or lfm.</dd><dt>Compile count</dt><dd>Five unused config fields from the project wrapper excluded here, included in the terminal.</dd><dt>Browser audit</dt><dd>Run after fixing the canonical link. Adds the contrast finding.</dd></dl></details></section>
+<section class="panel" aria-labelledby="tally-h"><h2 id="tally-h">Demand first, product second.</h2><div class="tallies"><div><h3>The usual tally</h3><svg viewBox="0 0 300 90" role="img" aria-label="Building fills the tally; sales remain zero"><path class="bar" d="M0 15H290M0 45H240M0 75H10" stroke="currentColor" stroke-width="16"/></svg><p>Auth + billing: done<br>Dashboard: done<br>Replies: none</p><strong class="total">Sales $0.00</strong></div><div><h3>Sell-first tally</h3><svg viewBox="0 0 300 90" role="img" aria-label="Research, checked page, then selling"><path class="bar" d="M0 15H90M0 45H170M0 75H290" stroke="currentColor" stroke-width="16"/></svg><p>{{.data.minimums.voices}}+ posts · {{.data.minimums.platforms}} platforms<br>{{.data.minimums.peers}} peers · {{.data.rules}} checks<br>Sell for 2 or 3 days</p><strong class="total">A sale or a no</strong></div></div><p>Building answers in seconds. A launch post answers in days, if at all. Zero users, zero replies, $0: start with the sale.</p><details><summary>Start with the sale</summary><ul><li>Post where the research found your buyers.</li><li>Deliver the first orders by hand.</li><li>No sale: days spent instead of months.</li><li>A sale: a product someone paid for.</li><li>Remove waitlist copy when checkout works. One founder left a pre-launch modal on the buy buttons for 90 days: $0.</li></ul></details></section>
+<section class="panel" aria-labelledby="after-h"><h2 id="after-h">After you paste</h2><svg class="diagram" viewBox="0 0 600 60" role="img" aria-label="Connected steps from research to sale"><path d="M10 30H590M10 10V50M125 10V50M240 10V50M355 10V50M470 10V50M590 10V50" fill="none" stroke="currentColor" stroke-width="3"/></svg><ol class="process"><li>Agent installs one binary.</li><li>Agent reads {{.data.minimums.voices}}+ buyer posts.</li><li>Agent writes a cited concept.</li><li>Agent builds; checks reach zero warnings.</li><li>You add your payment link.</li><li>You upload output/ to any host.</li></ol><details><summary>What the agent asks</summary><dl><dt>You decide</dt><dd>The product, price, delivery and legal pages.</dd><dt>Web access</dt><dd>Search, browser or connectors; the agent reports sources it cannot reach.</dd></dl></details></section>
+<section class="nodm" aria-labelledby="nodm-h"><h2 id="nodm-h"><s>Comment PROMPT and I'll DM you.</s></h2><svg class="diagram" viewBox="0 0 600 80" role="img" aria-label="A crossed-out direct message"><path d="M215 20H385V65H215ZM215 20L300 52L385 20M200 75L400 5" fill="none" stroke="currentColor" stroke-width="4"/></svg><p>No DM. Copy the prompt above.</p></section>
+<section class="panel" aria-labelledby="gallery-h"><h2 id="gallery-h">Pages lfm built</h2><div class="gallery"><figure><a href="{{.urls.sansslop}}"><img src="assets/images/built/sansslop-desktop-720.webp" srcset="assets/images/built/sansslop-desktop-720.webp 720w, assets/images/built/sansslop-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Sans Slop product page first screen" loading="lazy"><figcaption>Sans Slop</figcaption></a></figure><figure><a href="{{.urls.squad}}"><img src="assets/images/built/squad-desktop-720.webp" srcset="assets/images/built/squad-desktop-720.webp 720w, assets/images/built/squad-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Grok Bot Squad Kit product page first screen" loading="lazy"><figcaption>Grok Bot Squad Kit</figcaption></a></figure><figure><a href="{{.urls.devnews}}"><img src="assets/images/built/devnews-desktop-720.webp" srcset="assets/images/built/devnews-desktop-720.webp 720w, assets/images/built/devnews-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Dev News release notes homepage first screen" loading="lazy"><figcaption>Dev News · 43 pages</figcaption></a></figure><figure><a href="{{.urls.devnewsGo}}"><img src="assets/images/built/devnews-go-desktop-720.webp" srcset="assets/images/built/devnews-go-desktop-720.webp 720w, assets/images/built/devnews-go-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="Dev News Go release notes first screen" loading="lazy"><figcaption>Dev News / Go</figcaption></a></figure><figure><a href="{{.urls.caseStudy}}"><img src="assets/images/built/case-desktop-720.webp" srcset="assets/images/built/case-desktop-720.webp 720w, assets/images/built/case-desktop-1200.webp 1200w" sizes="(min-width: 64rem) 600px, 90vw" width="1200" height="750" alt="lfm case study first screen" loading="lazy"><figcaption>Two paid pages · case study</figcaption></a></figure></div><p>Product pages and a 43-page release-notes site. Open the case study for the agent’s work on the two paid pages.</p><details><summary>Won't it make the lfm look?</summary><p>AI slop has no single fix. Your buyers and competing pages decide the concept. <a href="{{.urls.concept}}">This concept</a> chose a till display from builders posting their $0.</p><p>lfm brings no traffic and hosts nothing.</p></details></section>
+<section class="panel" aria-labelledby="install-h" id="install"><h2 id="install-h">One binary. Your agent.</h2><svg class="diagram" viewBox="0 0 600 80" role="img" aria-label="One lfm binary produces a checked output folder"><g fill="none" stroke="currentColor" stroke-width="3"><path d="M10 10H180V70H10ZM200 40H390L375 25M390 40L375 55M410 20H460L475 10H590V70H410Z"/></g><g fill="currentColor" font-family="Martian Mono,monospace" font-size="18"><text x="65" y="47">lfm</text><text x="440" y="50">output/</text></g></svg><pre><code>{{.data.install.script}}</code></pre><p class="notes"><a href="{{.urls.newsInstall}}">Get release notes by email</a></p><p>Runs on macOS and Linux, on Intel and ARM. Codex, Claude Code, Cursor, OpenCode, GitHub Copilot.</p><details id="agents"><summary>Install details and agent instructions</summary><ol class="agent-steps"><li>Read <a href="assets/agents/SKILL.md">SKILL.md</a>.</li><li>Install with the <a href="assets/agents/install.sh">checksummed script</a> into ~/.local/bin, without sudo. Go 1.26+ alternative:<pre><code>{{.data.install.go}}</code></pre></li><li>Start a new project:<pre><code>lfm init my-page &amp;&amp; cd my-page
 lfm skills install
-lfm compile</code></pre>
-  <p>The skills land in .agents/skills for Codex, Cursor, OpenCode and GitHub Copilot, or .claude/skills for Claude Code. Chrome is optional for <code>lfm compile --release</code>, which scrolls the page at phone and desktop sizes and saves every frame. Docs: <a href="{{.urls.authoring}}">authoring a project</a>, source on <a href="{{.urls.repository}}">GitHub</a>.</p>
-</article>
-
-</div>
-
-<article class="panel" aria-labelledby="this-h">
-  <h2 id="this-h">This page's tally</h2>
-  <ul class="items">
-    <li class="row"><span>Buyer posts</span><span>{{.data.tally.voices}} from {{.data.tally.platforms}} sites</span></li>
-    <li class="row"><span>Competing pages</span><span>{{.data.tally.peers}}</span></li>
-    <li class="row"><span>Directions</span><span>{{.data.tally.directions}}, 1 kept</span></li>
-    <li class="row"><span>Checks</span><span>{{.data.rules}}, 0 warnings</span></li>
-    <li class="row"><span>Frames looked at</span><span>{{.data.tally.frames}}</span></li>
-    <li class="row"><span>HTML</span><span>{{.data.tally.html}} gzip</span></li>
-    <li class="row"><span>Fonts and images</span><span>{{.data.tally.assets}}</span></li>
-    <li class="row"><span>Lighthouse</span><span>{{.data.tally.lighthouse}}</span></li>
-  </ul>
-  <p class="row total"><span>Sales today</span><span class="red">$0.00</span></p>
-  <p>lfm is free, so this total stays at zero. Yours does not have to. The <a href="{{.urls.voices}}">buyer posts</a>, the <a href="{{.urls.competitors}}">competitor pages</a> and the <a href="{{.urls.concept}}">concept</a> behind this page are in the repository. Case study: <a href="{{.urls.caseStudy}}">how our own coding agent shipped two paid pages with lfm</a>.</p>
-  <footer class="foot">
-    <p class="row small"><span>LFM: looking for more</span><span><a href="{{.urls.license}}">MIT license</a> · <a href="{{.urls.news}}">Release notes by email</a> · <a href="{{.urls.impressum}}" lang="de">Impressum</a> · <a href="{{.urls.privacy}}" lang="de">Datenschutz</a></span></p>
-    <p class="thanks">Thank you. Come back with a sale.</p>
-  </footer>
-</article>
-
-</main>
+lfm compile</code></pre></li><li>Compile after every change; follow the last line until it says deploy.</li></ol><dl><dt>JSON</dt><dd><code>lfm compile --json</code>: next.phase and next.skill. Exit 0: output/ written.</dd><dt>Existing pages</dt><dd><code>lfm check &lt;url&gt; --json</code></dd><dt>Skills</dt><dd>.agents/skills for Codex, Cursor, OpenCode and GitHub Copilot; .claude/skills for Claude Code.</dd><dt>Browser audit</dt><dd>Optional Chrome for <code>--release</code>; scrolls phone and desktop layouts and saves frames.</dd></dl><p><a href="assets/agents/llms.txt">llms.txt</a> · <a href="{{.urls.authoring}}">Authoring</a> · <a href="{{.urls.grokBot}}">Grok Bot</a></p></details><div class="file-output"><h3>Selling a file?</h3><p>{{.data.fileRules}} file checks. A checked file still needs a buyer. Sell it first.</p><dl><dt>Ebooks</dt><dd>EPUB and print PDF</dd><dt>Printables</dt><dd>PDF per paper size</dd><dt>Spreadsheets</dt><dd>.xlsx, every formula computed</dd><dt>Documents</dt><dd>.docx, real Word styles</dd><dt>Decks</dt><dd>.pptx with speaker notes</dd><dt>Bundles</dt><dd>Several deliverables behind one page</dd></dl></div><div class="coverage"><h3>What gets checked</h3><dl><dt>Page</dt><dd>Metadata, share previews, links, structured data, keyboard access, contrast and performance budgets.</dd><dt>Design</dt><dd>The palette and type in your concept, generator defaults, missing media and repeated layout patterns.</dd><dt>Publishing</dt><dd>One static output/ folder. Errors leave the previous folder unchanged. Each finding names a rule and a fix.</dd><dt>Release audit</dt><dd>Chrome scrolls at 390×844, 1280×680 and 1440×900; runtime, layout and Lighthouse checks run before deployment.</dd><dt>Your files</dt><dd>Project: research, concept and page source<br>Host: your choice, upload output/<br>Binary: checksummed GitHub release<br>Skills: plain files, readable before installation<br>Account: none<br>License: MIT<br>Paid tier: none</dd></dl></div><details><summary>This page's research</summary><p>{{.data.tally.voices}} <a href="{{.urls.voices}}">buyer posts</a> from {{.data.tally.platforms}} sites; {{.data.tally.peers}} <a href="{{.urls.competitors}}">competing pages</a>; {{.data.tally.directions}} directions, one kept. lfm is free: sales today $0.00.</p></details></section>
+<footer><p>LFM: looking for more. <a href="{{.urls.license}}">MIT license</a> · <a href="{{.urls.news}}">Release notes by email</a> · <a href="{{.urls.impressum}}" lang="de">Impressum</a> · <a href="{{.urls.privacy}}" lang="de">Datenschutz</a></p><p>Thank you. Come back with a sale.</p></footer></main>
 {{script "assets/scripts/main.js"}}
 <!-- Cloudflare Web Analytics --><script defer src="{{.urls.analytics}}" data-cf-beacon='{"token": "81afba9a77be4013b2a34b34a8eb1189"}'></script><!-- End Cloudflare Web Analytics -->
 </body>

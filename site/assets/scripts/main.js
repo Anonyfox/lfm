@@ -69,3 +69,16 @@ form.addEventListener("submit", async (event) => {
 });
 
 document.querySelector(".today").textContent = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+const wipe = document.getElementById("wipe");
+wipe.addEventListener("input", () => {
+  document.getElementById("comparison").style.setProperty("--wipe", `${wipe.value}%`);
+  document.getElementById("wipe-value").textContent = `${wipe.value}% agent default`;
+});
+document.getElementById("replay").addEventListener("click", () => {
+  const terminal = document.getElementById("terminal");
+  const lines = terminal.querySelectorAll(".line, .command");
+  for (const line of lines) line.style.animation = "none";
+  void terminal.offsetWidth;
+  for (const line of lines) line.style.animation = "";
+});

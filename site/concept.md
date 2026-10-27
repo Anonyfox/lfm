@@ -44,7 +44,7 @@ deck, and wonder whether lfm helps with that too; it is a side question, asked a
 ## Mechanism
 Chosen: a prompt display. The visitor types what they sell; the readout on the first screen shows the sentence for their agent with it ("Make a landing page for my sourdough course with lfm: https://lfm.cash/SKILL.md") and copies it. Speed to first value is seconds, it answers the "Comment PROMPT" ritual by giving the prompt away, the effort is one field, nothing is claimed that the tool does not do, and a personalised prompt is worth screenshotting. V040 V044 V047 V055
 Rejected: a live slop audit of a pasted URL: lfm is a local compiler, a static page cannot fetch other sites, and a fake score would break the trust the page argues for. V086
-Rejected: a before and after slider of a generic page and an lfm page: strong proof but slow, and one showcase page invites "so this is the lfm look". V058 V078
+Rejected as the primary mechanism: a before and after slider delays the prompt and one showcase invites "so this is the lfm look". A supporting inspection slider now labels two different products and sits below a multi-project hero. V058 V078
 Rejected: a quiz to spot the AI tells: shareable, but it delays the prompt and makes the visitor do work before any value. V018
 
 ## Offer
@@ -141,11 +141,11 @@ used only for totals and what changed; green belongs to the display alone.
 ## Palette
 | Role | Color | Source |
 | --- | --- | --- |
-| Counter white, the ground | #FFFFFF | plain white, away from the beige and brown of AI pages V040 V079; no dark grounds P002 P004 |
+| Counter white, the ground | #FFFFFF | plain white, away from the beige and brown of AI pages V040 V079; the page ground stays white; the hero band is the till display glass P002 P004 |
 | Panel black, text, frames and key strips | #15171A | the till housing and its key labels V005 |
 | Muted, secondary text | #4B5058 | small register print |
 | Hairline, rules between line items | #C9CED4 | rows of a register list, never text |
-| Total red, totals and changes | #C0141B | the zero and what changed, the one accent; never purple V067 V095 |
+| Total red, totals and changes | #C0141B | the zero and what changed, reserved for totals and VOID; never purple V067 V095 |
 | Display glass, the customer display | #0F1513 | the dark window of a till display |
 | Display green, digits on the glass only | #46F0A0 | vacuum fluorescent green of till displays, used nowhere else |
 
@@ -156,26 +156,28 @@ used only for totals and what changed; green belongs to the display alone.
 | Reading text | Atkinson Hyperlegible Next, system-ui, sans-serif | built for legibility, answering "nicht mal ansatzweise barrierefrei" V036 |
 
 ## Form
-One column about 42rem wide on a white ground, edge to edge on a phone. Each section is a panel framed in a
-3px black line and headed by a black key strip carrying its heading in white mono. At desktop width the hero spans 66rem, with the headline and display beside the offer. The usual and
-sell-first tallies form a paired row with aligned totals; the agent and install panels form another paired
-row. The voided panel spans the same width with the screenshot beside its findings, as does the process
-panel with six numbered steps in a 3 by 2 grid. Other panels stay centred in one column. Phones stack all
-panels and steps. The red No DM band spans the viewport at every width. No rounded corners, no shadows, no icons, no textures.
-Line items are two columns, label left and value right, with a hairline between rows and the total under a
-heavy bar. The only colour bands are the red No DM strip and the dark display glass. Wide mono for the store
-name, totals, display digits and the headline; reading text sits at a comfortable size.
+White ground, black 3px panel frames, square controls. The dark hero band is the till's display glass, enlarged to hold real output beside the prompt. V005 V023 Desktop screenshots overlap with a phone in front; phone widths use a compact fanned stack above the prompt. Below, a same-size comparison is explicitly two different projects, not a claimed redesign. The tally uses two columns, the process a numbered rail, and the gallery a horizontal strip. Secondary detail folds into details. V058 V078
 
 ## Imagery
 | Image | Job | Art direction | Source |
 | --- | --- | --- | --- |
-| Share preview | share preview | the register on white: LFM.CASH, the display reading SALES TODAY $0.00 in green, "Nobody screenshots a dead product." in wide mono, readable at thumbnail size V005 | rendered from assets/share/card.html in headless Chrome |
-| The default agent page | proof | a phone-width screenshot of the page an agent wrote from one sentence, shown inside the voided panel, untouched so the tells are visible V067 V018 | rendered from the one-shot page in headless Chrome |
+| Hero and prompt | product proof | overlapping desktop first screens and phone first screen, domain HUD captions; terminal shows separate default compile and live Sans Slop check V023 V086 | assets/images/built/ and proof/default-agent-page.report.txt |
+| Comparison | inspect default versus researched output | same 1200×750 frame, keyboard range wipe; separate project labels V067 | built/default-desktop and built/sansslop-desktop |
+| Tallies | explain selling first | two SVG bar tallies, zero versus sale or no V028 | drawn from the process |
+| After you paste | explain handoff | SVG circuit rail connecting six numbered steps V055 | drawn from the process |
+| No DM | give prompt away | SVG crossed message path V047 | drawn from the ritual |
+| Pages lfm built | show no house look | real linked first screens for products, news and case study V058 | assets/images/built/ |
+| Install, files and agents | explain local output | SVG binary to output folder path V027 | drawn from compile lifecycle |
+| Share preview | share preview | existing till display on white V005 | assets/share/card.html |
 
 ## Motion
-Moment: pressing copy redraws the readout line by line like a till display refreshing, about 60 ms a line.
-Feedback: copy shows COPIED in red on the readout and the button says to paste it into the agent; the voided findings stay static.
-Reduced motion: the readout updates at once and the badge appears without movement; nothing else on the page moves.
+Intensity: immersive
+Intensity reason: buyers judge pages in seconds and distrust converging styles; several actual outputs must be inspectable immediately. V023 V058 V078
+Moment: headline glitches once for 560 ms, then stays readable.
+Moment: terminal types and reveals two explicitly captioned runs once over 4.8 seconds, ending on the live check success.
+Moment: screenshot stack settles into its fanned positions on entry; the tally bars extend and the process rail traces on scroll using view timelines.
+Feedback: copying refreshes the prompt and shows COPIED; range input clips the comparison immediately; Replay restarts only the terminal.
+Reduced motion: headline and screenshots show final positions, terminal shows all lines, tally bars and rail are complete; copying updates immediately and range clipping remains direct.
 
 ## Copy
 - Use: "Nobody screenshots a dead product" V005
@@ -201,6 +203,7 @@ Reduced motion: the readout updates at once and the badge appears without moveme
 - Honesty and agent-readability: what lfm does not do, the agent block with --json and exit codes, red only for totals and errors.
 
 ## Changelog
+- 2026-10-27: visual pass 2: real output leads on display glass; add labelled comparison, terminal runs, tally diagrams and process rail; fold secondary copy. White ground, type and red totals retained.
 - 2026-10-27: visual review: pair desktop panels, widen the voided proof and process steps, make the red band full bleed, wrap install commands, and bring case study figures and screenshots forward with a timeline rail.
 - 2026-10-23: add footer legal links, a plain GitHub star link beside Read it first, the @AnonyfoxCom social attribution and the fixed-URL verification file.
 - 2026-10-18: first concept from the batch of 2026-10-18.

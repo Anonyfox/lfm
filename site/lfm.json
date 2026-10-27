@@ -4,7 +4,9 @@
   "language": "en",
   "title": "lfm: sell it before you build it",
   "description": "A free CLI and skills that make your coding agent research real buyers, design from their words and ship one checked static page with a payment link, before you build the product.",
-  "social": {"x": "@AnonyfoxCom"},
+  "social": {
+    "x": "@AnonyfoxCom"
+  },
   "socialImage": {
     "src": "assets/images/share.png",
     "alt": "LFM.CASH on white. A black till display reads Sales today $0.00 in green digits beside the headline Nobody screenshots a dead product. Below: Sell it first. Build it when someone pays."
@@ -25,7 +27,11 @@
     "analytics": "https://static.cloudflareinsights.com/beacon.min.js",
     "caseStudy": "https://lfm.cash/case-studies/two-product-pages/",
     "news": "https://news.lfm.cash/",
-    "newsInstall": "https://news.lfm.cash/?source=install"
+    "newsInstall": "https://news.lfm.cash/?source=install",
+    "sansslop": "https://lab.anonyfox.com/sans-slop/",
+    "squad": "https://lab.anonyfox.com/grok-bot-templates/",
+    "devnews": "https://dev-news.anonyfox.com/",
+    "devnewsGo": "https://dev-news.anonyfox.com/go/"
   },
   "data": {
     "prompt": {
@@ -55,14 +61,7 @@
       "voices": 151,
       "platforms": 7,
       "peers": 26,
-      "firstVoices": 120,
-      "firstPeers": 20,
-      "directions": 10,
-      "frames": 51,
-      "lighthouse": "4 × 100",
-      "researchTime": "under an hour",
-      "html": "9 KB",
-      "assets": "under 140 KB"
+      "directions": 10
     }
   },
   "jsonld": {
