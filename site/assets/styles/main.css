@@ -30,6 +30,7 @@
   --read: "Atkinson Hyperlegible Next", system-ui, sans-serif;
 
   --column: 42rem;
+  --gutter: clamp(0.5rem, 3vw, 2rem);
   --pad: clamp(1rem, 4vw, 2rem);
   --frame: 3px;
 }
@@ -52,7 +53,7 @@ body {
 }
 
 main {
-  padding: clamp(0.75rem, 4vw, 3rem) clamp(0.5rem, 3vw, 2rem) 4rem;
+  padding: clamp(0.75rem, 4vw, 3rem) var(--gutter) 4rem;
 }
 
 /* Panels: framed screens of the till, each headed by a black key strip. */
@@ -65,7 +66,8 @@ main {
 }
 
 .panel + .panel,
-.nodm + .panel {
+.nodm + .panel,
+.pair + .panel {
   margin-top: 2rem;
 }
 
@@ -260,11 +262,12 @@ code {
   overflow-wrap: anywhere;
 }
 
-/* Commands sit in a framed block and scroll sideways instead of breaking. */
+/* Commands wrap within their framed block. */
 pre {
   margin: 0 0 1rem;
   padding: 0.75rem 0.9rem;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-size: 0.8125rem;
   line-height: 1.6;
   border-left: var(--frame) solid var(--ink);
@@ -273,7 +276,7 @@ pre {
 pre code {
   font-size: inherit;
   white-space: pre-wrap;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
 }
 
 .steps {
@@ -414,8 +417,7 @@ button:hover {
 /* The red strip: the ritual it answers. */
 
 .nodm {
-  max-width: var(--column);
-  margin: 2rem auto 0;
+  margin: 2rem calc(-1 * var(--gutter)) 0;
   padding: 1.5rem var(--pad);
   color: var(--ground);
   background: var(--red);
@@ -424,7 +426,8 @@ button:hover {
 
 .nodm h2 {
   margin: 0 auto 0.5rem;
-  max-width: 30rem;
+  white-space: nowrap;
+  font-size: clamp(0.6875rem, 3vw, 1.3rem);
 }
 
 .nodm s {
@@ -446,7 +449,7 @@ button:hover {
 
 .shot {
   position: relative;
-  max-width: 17rem;
+  max-width: 24rem;
   margin: 0 auto;
   border: var(--frame) solid var(--ink);
 }
@@ -546,8 +549,20 @@ button:hover {
   }
 }
 
-/* At desktop width only the first panel widens: the headline and display on the left, the offer
-   on the right. The panels below keep one column. */
+.pair {
+  display: grid;
+  gap: 2rem;
+  max-width: var(--column);
+  margin: 2rem auto 0;
+}
+
+.pair > .panel {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+/* Desktop pairs and wide proof and process panels share the hero's width. */
 @media (min-width: 64rem) {
   main {
     padding-top: 2rem;
@@ -582,5 +597,64 @@ button:hover {
 
   .total {
     font-size: 1.35rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .pair, .panel-wide {
+    max-width: 66rem;
+  }
+
+  .pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tally-pair > .panel {
+    display: grid;
+    grid-template-rows: 6.5rem 14rem auto auto;
+    align-content: start;
+  }
+
+  .tally-pair > .panel > p:last-child {
+    align-self: start;
+  }
+
+  .tally-pair .total {
+    font-size: 1.125rem;
+  }
+
+  .process {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem 1.5rem;
+    counter-reset: process;
+    margin-bottom: 1.5rem;
+  }
+
+  .process .row {
+    display: grid;
+    gap: 0.5rem;
+    counter-increment: process;
+  }
+
+  .process .row::before {
+    content: counter(process, decimal-leading-zero);
+    font-weight: 800;
+  }
+
+  .process .row > span:last-child {
+    text-align: left;
+    font-weight: 700;
+  }
+
+  .void-layout {
+    display: grid;
+    grid-template-columns: 22rem minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .shot {
+    max-width: 22rem;
   }
 }

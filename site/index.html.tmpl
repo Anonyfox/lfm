@@ -56,6 +56,7 @@
   <p>No DM. The line above is the whole prompt. Your agent reads the rest from the link in it.</p>
 </section>
 
+<div class="pair tally-pair">
 <article class="panel" aria-labelledby="usual-h">
   <h2 id="usual-h">The usual tally</h2>
   <ul class="items">
@@ -83,30 +84,34 @@
   <p>One founder made $0 for 90 days because the buy buttons still opened a "payments coming soon" box. Remove the waitlist copy the day checkout works; lfm flags a checkout link that is missing or hidden.</p>
 </article>
 
-<article class="panel" aria-labelledby="after-h">
+</div>
+
+<article class="panel panel-wide" aria-labelledby="after-h">
   <h2 id="after-h">After you paste</h2>
-  <ul class="items">
+  <ol class="items process">
     <li class="row"><span>Agent installs lfm</span><span>1 binary</span></li>
     <li class="row"><span>Agent reads buyers</span><span>{{.data.minimums.voices}}+ posts</span></li>
     <li class="row"><span>Agent writes concept.md</span><span>cited</span></li>
     <li class="row"><span>Agent builds the page</span><span>0 warnings</span></li>
     <li class="row"><span>You add a payment link</span><span>Stripe</span></li>
     <li class="row"><span>You upload output/</span><span>any host</span></li>
-  </ul>
+  </ol>
   <p class="row total"><span>Your part</span><span class="red">2 steps</span></p>
   <p>The agent asks you only what you decide: the product, the price, how it is delivered and your legal pages. The research needs web access; the agent uses search, a browser or connectors when it has them and tells you what it could not reach. For this page that was {{.data.tally.firstVoices}} posts and {{.data.tally.firstPeers}} competing pages in {{.data.tally.researchTime}}, with four readers in parallel.</p>
 </article>
 
-<article class="panel" aria-labelledby="void-h">
+<article class="panel panel-wide" aria-labelledby="void-h">
   <h2 id="void-h">Rung up: the page your agent writes by default</h2>
   <p>We asked an agent with no research and no lfm for a landing page for a made-up Slack summarizer. One sentence in, one file out. Then lfm compiled it.</p>
+  <div class="void-layout">
   <figure class="voided">
     <div class="shot">
-      <img src="assets/images/default-agent-page-480.webp" srcset="assets/images/default-agent-page-480.webp 480w, assets/images/default-agent-page-816.webp 816w" sizes="17rem" alt="The agent's page at phone width: a beige ground, the serif headline 147 replies. Three decisions. Read those. with the middle line in orange italics, a pill reading Works inside Slack above it and an orange trial button." width="480" height="1039">
+      <img src="assets/images/default-agent-page-480.webp" srcset="assets/images/default-agent-page-480.webp 480w, assets/images/default-agent-page-816.webp 816w" sizes="(min-width: 64rem) 22rem, (min-width: 29rem) 24rem, calc(100vw - 4rem)" alt="The agent's page at phone width: a beige ground, the serif headline 147 replies. Three decisions. Read those. with the middle line in orange italics, a pill reading Works inside Slack above it and an orange trial button." width="480" height="1039">
       <p class="void-badge" aria-hidden="true">Void</p>
     </div>
     <figcaption>The agent's page at phone width, as it wrote it.</figcaption>
   </figure>
+  <div class="void-report">
   <ul class="items findings">
     <li><p class="row"><span>Main button text</span><span class="red">{{.data.voided.buttonContrast}}</span></p><p class="rule-id">release.layout, and {{.data.voided.lowContrastMore}} more texts under 4.5:1</p></li>
     <li><p class="row"><span>Label over every heading</span><span>×6</span></p><p class="rule-id">design.eyebrows</p></li>
@@ -118,6 +123,8 @@
   </ul>
   <p class="row total"><span>output/</span><span class="red">not written</span></p>
   <p>{{.data.voided.errors}} error and {{.data.voided.warnings}} warnings from the first compile, plus the contrast finding of the browser audit. Each is printed with its fix, so your agent repairs them before anyone sees the page. Read <a href="{{.urls.proofReport}}">the full report</a> and <a href="{{.urls.proofSource}}">the agent's file</a>.</p>
+  </div>
+  </div>
 </article>
 
 <article class="panel" aria-labelledby="look-h">
@@ -150,6 +157,7 @@
   <p>A checked file still needs a buyer. One shop of AI printables got zero checkouts. Sell it first.</p>
 </article>
 
+<div class="pair">
 <article class="panel" aria-labelledby="agents-h" id="agents">
   <h2 id="agents-h">If you are an agent</h2>
   <p>A page built with anything else can be checked with <code>lfm check &lt;url&gt; --json</code>.</p>
@@ -175,6 +183,8 @@ lfm skills install
 lfm compile</code></pre>
   <p>The skills land in .agents/skills for Codex, Cursor, OpenCode and GitHub Copilot, or .claude/skills for Claude Code. Chrome is optional for <code>lfm compile --release</code>, which scrolls the page at phone and desktop sizes and saves every frame. Docs: <a href="{{.urls.authoring}}">authoring a project</a>, source on <a href="{{.urls.repository}}">GitHub</a>.</p>
 </article>
+
+</div>
 
 <article class="panel" aria-labelledby="this-h">
   <h2 id="this-h">This page's tally</h2>

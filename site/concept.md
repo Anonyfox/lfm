@@ -157,9 +157,11 @@ used only for totals and what changed; green belongs to the display alone.
 
 ## Form
 One column about 42rem wide on a white ground, edge to edge on a phone. Each section is a panel framed in a
-3px black line and headed by a black key strip carrying its heading in white mono. At desktop width only the
-first panel widens, so the headline and display stand beside the offer and the prompt is in the first
-screen; every panel below keeps the one column. No rounded corners, no shadows, no icons, no textures.
+3px black line and headed by a black key strip carrying its heading in white mono. At desktop width the hero spans 66rem, with the headline and display beside the offer. The usual and
+sell-first tallies form a paired row with aligned totals; the agent and install panels form another paired
+row. The voided panel spans the same width with the screenshot beside its findings, as does the process
+panel with six numbered steps in a 3 by 2 grid. Other panels stay centred in one column. Phones stack all
+panels and steps. The red No DM band spans the viewport at every width. No rounded corners, no shadows, no icons, no textures.
 Line items are two columns, label left and value right, with a hairline between rows and the total under a
 heavy bar. The only colour bands are the red No DM strip and the dark display glass. Wide mono for the store
 name, totals, display digits and the headline; reading text sits at a comfortable size.
@@ -199,6 +201,7 @@ Reduced motion: the readout updates at once and the badge appears without moveme
 - Honesty and agent-readability: what lfm does not do, the agent block with --json and exit codes, red only for totals and errors.
 
 ## Changelog
+- 2026-10-27: visual review: pair desktop panels, widen the voided proof and process steps, make the red band full bleed, wrap install commands, and bring case study figures and screenshots forward with a timeline rail.
 - 2026-10-23: add footer legal links, a plain GitHub star link beside Read it first, the @AnonyfoxCom social attribution and the fixed-URL verification file.
 - 2026-10-18: first concept from the batch of 2026-10-18.
 - 2026-10-18: after an independent review of the first build: desktop widens only the first slip; added the after-you-paste receipt (decision path step 6), the trust line at the copy button, findings in plain words, and the house-look answer rung up as a receipt. No research changed.

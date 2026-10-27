@@ -22,6 +22,15 @@
 <p>The maintainer of lfm runs an autonomous coding agent that builds and sells small digital products. On 23
 October 2026 it used lfm 0.1.7 for two sales pages, from <code>lfm init</code> to live. This page shows what
 lfm checked and what it caught, with numbers from the build logs and from the live pages.</p>
+<dl class="figures">
+<div><dt>First lfm init to both pages live</dt><dd>44 minutes</dd></div>
+<div><dt>Both release compiles</dt><dd>0 errors, 0 warnings</dd></div>
+<div><dt>Lighthouse mobile, both pages</dt><dd>100 / 100 / 100 / 100</dd></div>
+</dl>
+<div class="live-pages">
+<figure><img src="assets/images/sans-slop-live-640.webp" srcset="assets/images/sans-slop-live-400.webp 400w, assets/images/sans-slop-live-640.webp 640w, assets/images/sans-slop-live-1280.webp 1280w" sizes="(min-width: 64rem) 476px, calc(100vw - 64px)" width="1280" height="800" alt="Sans Slop live page: a copy editor’s proof with marked-up text and a red purchase button."><figcaption>Sans Slop. Live page, captured 23 October 2026.</figcaption></figure>
+<figure><img src="assets/images/grok-bot-templates-live-640.webp" srcset="assets/images/grok-bot-templates-live-400.webp 400w, assets/images/grok-bot-templates-live-640.webp 640w, assets/images/grok-bot-templates-live-1280.webp 1280w" sizes="(min-width: 64rem) 476px, calc(100vw - 64px)" width="1280" height="800" loading="lazy" alt="Grok Bot Squad Kit live page: a dispatch room layout with bot handoffs and a purchase offer."><figcaption>Grok Bot Squad Kit. Live page, captured 23 October 2026.</figcaption></figure>
+</div>
 <h2>What it shipped</h2>
 <ul>
 <li><a href="{{.urls.sansSlop}}">Sans Slop</a> (€29 launch price, €39 from 1 December 2026). A pack that
@@ -33,20 +42,18 @@ hard-list entries plus 54 watch words, and a 763-byte always-on core file. Its b
 Templates for running several Grok Bot bots with clear handoffs and approval stops: 12 bot blueprints, 16
 routine specs and 8 operating guides, plus an eight-question ban-risk check that runs in the browser.</li>
 </ul>
-<figure><img src="assets/images/sans-slop-live-640.webp" srcset="assets/images/sans-slop-live-400.webp 400w, assets/images/sans-slop-live-640.webp 640w, assets/images/sans-slop-live-1280.webp 1280w" sizes="(max-width: 800px) calc(100vw - 64px), 736px" width="1280" height="800" loading="lazy" alt="Sans Slop live page: a copy editor’s proof with marked-up text and a red purchase button."><figcaption>Sans Slop. Live page, captured 23 October 2026.</figcaption></figure>
-<figure><img src="assets/images/grok-bot-templates-live-640.webp" srcset="assets/images/grok-bot-templates-live-400.webp 400w, assets/images/grok-bot-templates-live-640.webp 640w, assets/images/grok-bot-templates-live-1280.webp 1280w" sizes="(max-width: 800px) calc(100vw - 64px), 736px" width="1280" height="800" loading="lazy" alt="Grok Bot Squad Kit live page: a dispatch room layout with bot handoffs and a purchase offer."><figcaption>Grok Bot Squad Kit. Live page, captured 23 October 2026.</figcaption></figure>
 <h2>Timeline</h2>
 <p>23 October 2026, CEST; from the git log and lfm’s compile logs.</p>
-<ul>
-<li>22:44 <code>lfm init</code> for Sans Slop</li>
-<li>22:45 <code>lfm init</code> for the Squad Kit</li>
-<li>22:58 first Sans Slop release compile: 4 warnings</li>
-<li>23:04 first Squad Kit release compile: 4 warnings</li>
-<li>23:05 Squad Kit release compile: 0 errors, 0 warnings</li>
-<li>23:13 Squad Kit live (commit time)</li>
-<li>23:21 Sans Slop release compile: 0 errors, 0 warnings</li>
-<li>about 23:25 Sans Slop live; 23:28 the commit that records it</li>
-</ul>
+<ol class="timeline">
+<li><span class="time">22:44</span><div><code>lfm init</code> for Sans Slop</div></li>
+<li><span class="time">22:45</span><div><code>lfm init</code> for the Squad Kit</div></li>
+<li><span class="time">22:58</span><div>first Sans Slop release compile: 4 warnings</div></li>
+<li><span class="time">23:04</span><div>first Squad Kit release compile: 4 warnings</div></li>
+<li><span class="time">23:05</span><div>Squad Kit release compile: 0 errors, 0 warnings</div></li>
+<li><span class="time">23:13</span><div>Squad Kit live (commit time)</div></li>
+<li><span class="time">23:21</span><div>Sans Slop release compile: 0 errors, 0 warnings</div></li>
+<li><span class="time">about 23:25</span><div>Sans Slop live; 23:28 the commit that records it</div></li>
+</ol>
 <p>44 minutes from the first <code>lfm init</code> to the commit that recorded both pages live. The agent
 handed the long writing and coding jobs to Codex CLI and reviewed the results; every page change went through
 <code>lfm compile</code> again.</p>

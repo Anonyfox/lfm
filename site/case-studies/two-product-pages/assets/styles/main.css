@@ -138,3 +138,91 @@ td {
     margin: 1rem auto;
   }
 }
+
+/* Measured figures and the live pages precede the detailed account. */
+.figures {
+  display: grid;
+  gap: 1.25rem;
+  margin: 2rem 0;
+  padding: 1.25rem 0;
+  border-top: 3px solid #15171a;
+  border-bottom: 3px solid #15171a;
+}
+.figures > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: .5rem;
+}
+.figures dt {
+  font-size: 16px;
+}
+.figures dd {
+  margin: 0;
+  font: 700 clamp(1.1rem, 4.5vw, 1.75rem)/1.4 "Martian Mono", monospace;
+}
+.live-pages {
+  display: grid;
+  gap: 1.5rem;
+}
+.live-pages figure {
+  margin: 0;
+  min-width: 0;
+}
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+}
+.timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 1rem;
+  margin: 0;
+  padding: 0 0 1.5rem 1.25rem;
+}
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .65rem;
+  width: 7px;
+  height: 7px;
+  background: #15171a;
+}
+.timeline li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: .65rem;
+  bottom: -.65rem;
+  border-left: 1px solid #15171a;
+}
+.time {
+  font: 400 .8em/2 "Martian Mono", monospace;
+}
+@media (min-width: 64rem) {
+  main, nav, footer {
+    max-width: 64rem;
+  }
+  article > p, article > ul, article > .timeline {
+    max-width: 46rem;
+  }
+  .figures {
+    grid-template-columns: 1fr 1.2fr 1.4fr;
+  }
+  .figures dd {
+    font-size: 1.25rem;
+    white-space: nowrap;
+  }
+  .live-pages {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 500px) {
+  .timeline li {
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: .5rem;
+    padding-left: 1rem;
+  }
+}
