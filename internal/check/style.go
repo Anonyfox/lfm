@@ -561,6 +561,8 @@ func (m *styleModel) declared(n *html.Node, prop string) (string, bool) {
 
 func shorthandFor(short, prop string) bool {
 	switch short {
+	case "padding":
+		return strings.HasPrefix(prop, "padding-")
 	case "font":
 		return prop == "font-family" || prop == "font-size" || prop == "font-weight" || prop == "font-style"
 	case "background":
@@ -577,6 +579,31 @@ func longhand(d cssDecl, prop string) string {
 		return d.value
 	}
 	switch d.prop {
+	case "padding":
+		fields := strings.Fields(d.value)
+		if len(fields) < 1 || len(fields) > 4 {
+			return ""
+		}
+		top, right, bottom, left := fields[0], fields[0], fields[0], fields[0]
+		if len(fields) > 1 {
+			right, left = fields[1], fields[1]
+		}
+		if len(fields) > 2 {
+			bottom = fields[2]
+		}
+		if len(fields) > 3 {
+			left = fields[3]
+		}
+		switch prop {
+		case "padding-top":
+			return top
+		case "padding-right":
+			return right
+		case "padding-bottom":
+			return bottom
+		case "padding-left":
+			return left
+		}
 	case "font":
 		v := d.value
 		if prop == "font-family" {

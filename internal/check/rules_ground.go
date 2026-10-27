@@ -67,11 +67,10 @@ func groundRule(d *Document) []Diagnostic {
 		if n.Namespace != "" || !d.designVisible(n) {
 			return
 		}
-		// Rule 14 bans warm off-white backgrounds anywhere on the page, not only
-		// on the ground: cards, bands and panels count too. Gradient stops are
-		// images, not the background colour of a shorthand.
+		// Cards, bands and panels count, but incidental or invisible paint does not.
+		// Gradient stops are images, not the colour layer of a shorthand.
 		for _, c := range color.Parse(withoutGradientImages(model.value(n, "background-color"))) {
-			if !color.WarmLightGround(c) {
+			if !color.WarmLightGround(c) || groundHidden(model, n) || !ground && !fullCover(model, n, grounds) && insignificantGround(model, n) {
 				continue
 			}
 			c = c.Over(color.FromSRGB(1, 1, 1, 1))
@@ -132,6 +131,153 @@ func groundRule(d *Document) []Diagnostic {
 		}
 	}
 	return out
+}
+
+// groundSurfaceArea provisionally separates small swatches from surfaces.
+// The requested Chrome DOMSnapshot calibration on dev-news, site/output and
+// ground fixtures is blocked by sandbox socket restrictions; see
+// /tmp/lfm-ground-measure/RESULT.md. Validate this value before release.
+const groundSurfaceArea = 256.0
+
+// insignificantGround is deliberately conservative: unresolved dimensions never
+// become zero. This filter applies only to colour, never textures or torn edges.
+func insignificantGround(m *styleModel, n *html.Node) bool {
+	w, wk := groundDimension(m, n, "width", "left", "right")
+	h, hk := groundDimension(m, n, "height", "top", "bottom")
+	position := m.value(n, "position")
+	if position == "absolute" || position == "fixed" {
+		for _, axis := range []struct {
+			sides []string
+			size  float64
+			known bool
+		}{
+			{[]string{"left", "right"}, w, wk}, {[]string{"top", "bottom"}, h, hk},
+		} {
+			for _, side := range axis.sides {
+				offset, ok := groundLength(m.value(n, side))
+				if ok && offset < 0 && (axis.known && -offset >= axis.size || !axis.known && offset <= -300) {
+					return true
+				}
+			}
+		}
+	}
+	clip := strings.ReplaceAll(strings.Join(strings.Fields(m.value(n, "clip")), ""), ",", " ")
+	if (position == "absolute" || position == "fixed") && strings.HasPrefix(clip, "rect(") && strings.HasSuffix(clip, ")") {
+		values := strings.FieldsFunc(m.value(n, "clip")[5:len(m.value(n, "clip"))-1], func(r rune) bool { return r == ',' || r == ' ' || r == '\t' || r == '\n' })
+		if len(values) == 4 {
+			t, tk := groundLength(values[0])
+			r, rk := groundLength(values[1])
+			b, bk := groundLength(values[2])
+			l, lk := groundLength(values[3])
+			if tk && rk && bk && lk && (r <= l || b <= t) {
+				return true
+			}
+		}
+	}
+	cp := strings.Join(strings.Fields(m.value(n, "clip-path")), "")
+	if cp == "inset(50%)" || cp == "circle(0)" || cp == "circle(0px)" {
+		return true
+	}
+	if wk && hk {
+		return w*h < groundSurfaceArea
+	}
+	return wk && w <= 4 || hk && h <= 4
+}
+
+func groundHidden(m *styleModel, n *html.Node) bool {
+	base := m
+	if m.origin != nil {
+		base = m.origin
+	}
+	// display and opacity suppress an entire subtree; visibility can be restored
+	// by a descendant, so use its nearest explicit value instead.
+	visibility := m.value(n, "visibility")
+	start := n.Parent
+	if m.origin != nil {
+		start = n
+	}
+	if m.value(n, "display") == "none" || zeroGroundOpacity(m.value(n, "opacity")) {
+		return true
+	}
+	for p := start; p != nil; p = p.Parent {
+		if p.Type != html.ElementNode {
+			continue
+		}
+		if base.value(p, "display") == "none" || zeroGroundOpacity(base.value(p, "opacity")) {
+			return true
+		}
+		if visibility == "" {
+			visibility = base.value(p, "visibility")
+		}
+	}
+	if visibility == "hidden" || visibility == "collapse" {
+		return true
+	}
+	return false
+}
+
+func zeroGroundOpacity(v string) bool {
+	if v == "" {
+		return false
+	}
+	f, err := strconv.ParseFloat(strings.TrimSuffix(v, "%"), 64)
+	return err == nil && f == 0
+}
+
+// Unlike lengthPx, this preserves the distinction between zero and unknown and
+// does not approximate functions containing percentages or viewport units.
+func groundLength(v string) (float64, bool) {
+	v = strings.ToLower(strings.TrimSpace(v))
+	if f, err := strconv.ParseFloat(v, 64); err == nil && f == 0 {
+		return 0, true
+	}
+	for _, unit := range []string{"px", "rem", "em", "pt"} {
+		if strings.HasSuffix(v, unit) {
+			f, err := strconv.ParseFloat(strings.TrimSuffix(v, unit), 64)
+			scale := 1.0
+			if unit == "em" || unit == "rem" {
+				scale = 16
+			} else if unit == "pt" {
+				scale = 4.0 / 3
+			}
+			return f * scale, err == nil && !math.IsNaN(f) && !math.IsInf(f, 0)
+		}
+	}
+	return 0, false
+}
+
+func groundDimension(m *styleModel, n *html.Node, dimension, first, second string) (float64, bool) {
+	size, known := groundLength(m.value(n, dimension))
+	if !known || size < 0 {
+		return 0, false
+	}
+	// min-size can enlarge a small declared width/height into a real panel.
+	if v := m.value(n, "min-"+dimension); v != "" && v != "auto" {
+		min, ok := groundLength(v)
+		if !ok {
+			return 0, false
+		}
+		size = math.Max(size, min)
+	}
+	padding := 0.0
+	for _, side := range []string{first, second} {
+		v := m.value(n, "padding-"+side)
+		if v == "" {
+			continue
+		}
+		p, ok := groundLength(v)
+		if !ok || p < 0 {
+			return 0, false
+		}
+		padding += p
+	}
+	if m.value(n, "box-sizing") == "border-box" {
+		// CSS cannot shrink a border-box below its padding.
+		size = math.Max(size, padding)
+	} else {
+		size += padding
+	}
+	return size, true
 }
 
 // paperEdge reports small gradient tiles repeated along one axis: diagonal

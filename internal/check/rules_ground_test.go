@@ -68,7 +68,53 @@ func TestGroundRule(t *testing.T) {
 	}
 }
 
+func TestGroundRuleIgnoresInsignificantElements(t *testing.T) {
+	for _, tc := range []struct {
+		name, css, html string
+		want            int
+	}{
+		{"off-screen skip link", `:root{--fg:#f2f0ec;--bg:#111}.skip{position:absolute;left:-999px;top:0;background:var(--fg);color:var(--bg);padding:.5rem .8rem;z-index:9}.skip:focus{left:.5rem}`, `<a class="skip" href="#main">Skip to content</a>`, 0},
+		{"thin pseudo marker", `li.cut::before{content:"";position:absolute;left:-3px;top:-4px;bottom:-4px;width:2px;background:#f2f0ec}`, `<ul><li class="cut">Item</li></ul>`, 0},
+		{"em swatch", `.hn-key{display:inline-block;width:.9em;height:.55em;margin:0 .3em 0 .6em;vertical-align:middle;background:#ffe6cf}`, `<span class="hn-key"></span>`, 0},
+		{"large panel", `.panel{width:40rem;min-height:20rem;background:#f5f0e6}`, `<section class="panel">Panel</section>`, 1},
+		{"cream body", `body{background:#f5f0e6}`, ``, 1},
+		{"opacity zero", `.x{opacity:0;background:#f5f0e6}`, `<span class="x">Hidden</span>`, 0},
+		{"hidden pseudo", `.x::before{content:"";visibility:hidden;background:#f5f0e6}`, `<span class="x"></span>`, 0},
+		{"hidden ancestor", `.x{display:none}.x span::before{content:"";background:#f5f0e6}`, `<div class="x"><span></span></div>`, 0},
+		{"clipped rect", `.x{position:absolute;clip:rect(1px,1px,1px,1px);background:#f5f0e6}`, `<span class="x">Hidden</span>`, 0},
+		{"clipped inset", `.x{clip-path:inset(50%);background:#f5f0e6}`, `<span class="x">Hidden</span>`, 0},
+		{"clipped circle", `.x{clip-path:circle(0);background:#f5f0e6}`, `<span class="x">Hidden</span>`, 0},
+		{"visually hidden", `.x{width:1px;height:1px;overflow:hidden;background:#f5f0e6}`, `<span class="x">Hidden</span>`, 0},
+		{"padding paints a panel", `.x{width:1px;height:1px;padding:2rem;background:#f5f0e6}`, `<span class="x">Panel</span>`, 1},
+		{"border box padding", `.x{box-sizing:border-box;width:1px;height:1px;padding:2rem;background:#f5f0e6}`, `<span class="x">Panel</span>`, 1},
+		{"unknown padding", `.x{width:1px;height:1px;padding:10%;background:#f5f0e6}`, `<span class="x">Panel</span>`, 1},
+		{"visible visibility override", `.x{visibility:hidden}.x span{visibility:visible;background:#f5f0e6}`, `<section class="x"><span>Panel</span></section>`, 1},
+		{"static clip has no effect", `.x{clip:rect(0,0,0,0);background:#f5f0e6}`, `<span class="x">Panel</span>`, 1},
+		{"padding longhand wins", `.x{width:1px;height:1px;padding:2rem;padding-left:0}`, `<span class="x" style="background:#f5f0e6">Panel</span>`, 1},
+		{"min size paints a panel", `.x{width:1px;height:1px;min-width:40rem;min-height:20rem;background:#f5f0e6}`, `<section class="x">Panel</section>`, 1},
+		{"unknown percentage", `.x{width:90%;height:50%;background:#f5f0e6}`, `<section class="x">Panel</section>`, 1},
+		{"unknown function", `.x{width:min(1px,90%);height:50%;background:#f5f0e6}`, `<section class="x">Panel</section>`, 1},
+		{"small main protected", `main{width:1px;height:1px;background:#f5f0e6}`, `<main>x</main>`, 1},
+		{"small wrapper protected", `.x{height:1px;background:#f5f0e6}`, `<div class="x">x</div>`, 1},
+		{"hidden body", `body{opacity:0;background:#f5f0e6}`, ``, 0},
+		{"ordinary card", `.card{background:#f1ebdd}`, `<div class="card">Card</div>`, 1},
+		{"threshold boundary", `.x{width:16px;height:16px;background:#f5f0e6}`, `<span class="x">x</span>`, 1},
+		{"below threshold", `.x{width:15px;height:16px;background:#f5f0e6}`, `<span class="x">x</span>`, 0},
+		{"partially off-screen", `.x{position:fixed;left:-5px;width:40rem;height:20rem;background:#f5f0e6}`, `<section class="x">Panel</section>`, 1},
+		{"texture unchanged", `.x{width:1px;height:1px;opacity:0;mask:linear-gradient(to bottom right,#000 50%,transparent 0) 0 0/1rem 1rem repeat-x}`, `<span class="x">x</span>`, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := checkRule(t, "design.ground", `<!doctype html><html><head><style>`+tc.css+`</style></head><body>`+tc.html+`</body></html>`)
+			if len(got) != tc.want {
+				t.Fatalf("want %d findings, got %+v", tc.want, got)
+			}
+		})
+	}
+}
+
 func FuzzGroundRule(f *testing.F) {
+	f.Add(`main{width:1px;height:1px;padding:2rem;clip:rect(1px,1px,1px,1px);background:#f5f0e6}`)
+	f.Add(`body::before{position:absolute;left:-999px;width:2px;visibility:hidden;opacity:0;background:#f5f0e6}`)
 	f.Add(`body{background:var(--ground,#faf7f2)}body::before{position:fixed;inset:0;background:url(noise.svg)}`)
 	f.Add(`body{background:url('data:image/svg+xml;base64,PHN2Zz48ZmVUdXJidWxlbmNlLz48L3N2Zz4=')}`)
 	f.Fuzz(func(t *testing.T, css string) {
