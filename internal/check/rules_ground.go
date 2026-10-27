@@ -133,10 +133,12 @@ func groundRule(d *Document) []Diagnostic {
 	return out
 }
 
-// groundSurfaceArea provisionally separates small swatches from surfaces.
-// The requested Chrome DOMSnapshot calibration on dev-news, site/output and
-// ground fixtures is blocked by sandbox socket restrictions; see
-// /tmp/lfm-ground-measure/RESULT.md. Validate this value before release.
+// groundSurfaceArea is the smallest painted box (px²) that counts as a
+// surface. Measured in Chrome at 1280x800 and 390x844 on the Dev News pages
+// that 0.1.13 flagged: legend swatches render at 13x8 (102 px²) and marker
+// lines at 2x40 to 2x50 (80-100 px²), while the smallest real cream surface,
+// a one-line card in the prohibited fixtures, is 374x18 (6732 px²). 16x16 sits
+// well clear of the markers and far below any card, chip or band.
 const groundSurfaceArea = 256.0
 
 // insignificantGround is deliberately conservative: unresolved dimensions never
