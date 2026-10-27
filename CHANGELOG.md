@@ -1,5 +1,16 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.14 (2026-10-27)
+
+- `design.ground` no longer fails elements nobody sees as a surface. The warm background-colour
+  check skips elements that are hidden (`display:none`, `visibility:hidden`, `opacity:0`), clipped
+  away (`clip:rect(...)` with no area, `clip-path:inset(50%)`), parked entirely off-screen (a skip
+  link at `left:-999px`) or smaller than 256 px², and lines with one known side of 4 px or less.
+  Sizes that cannot be resolved statically are never assumed small, and the page ground, `main` and
+  full-width wrappers are always checked. 0.1.13 failed 11 Dev News pages on a hidden skip link, a
+  2 px list marker and a 0.9em legend swatch; they pass again, and every cream card, panel and
+  ground fixture still fails.
+
 ## 0.1.13 (2026-10-25)
 
 - `design.ground` checks the background colour of every element, not only the page ground: a warm
