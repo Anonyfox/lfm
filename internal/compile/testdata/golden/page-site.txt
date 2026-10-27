@@ -10,7 +10,7 @@ devnews-desktop-720-1f001a7f0692.webp 17600 2e883f5566635cf7
 devnews-go-desktop-1200-9d98ea392fa7.webp 44700 df209b92ee4d1c80
 devnews-go-desktop-720-c738973a150b.webp 22654 71c3de0f9c2b28d4
 favicon.png 331 368d854ef4113f2b
-index.html 28815 7a97c6f8355887ca
+index.html 28846 d7aa9b66406218ed
 install.sh 3254 c3bbeb9be131c18f
 llms.txt 1217 c3c186cc643965e1
 martian-mono-ea2c8bdb5b02.woff2 38492 f9c1655c2c9d1ed5
