@@ -4,7 +4,7 @@ atkinson-hyperlegible-next-e1deada01936.woff2 33996 18b2a1a39a2fa298
 default-agent-page-480-f66ab9873604.webp 36360 1acd223dc4993c34
 default-agent-page-816-f82c2ddef511.webp 65950 5ff516e3b320427b
 favicon.png 331 368d854ef4113f2b
-index.html 24837 249eba3df86d11cb
+index.html 26038 826f4f7d1d5eff2a
 install.sh 3254 c3bbeb9be131c18f
 llms.txt 1217 c3c186cc643965e1
 martian-mono-ea2c8bdb5b02.woff2 38492 f9c1655c2c9d1ed5
