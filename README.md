@@ -13,6 +13,8 @@ ship one checked, fast landing page with a payment link.**
 curl -fsSL https://lfm.cash/install.sh | sh
 ```
 
+![lfm check flags a generated page (violet gradient, cream background, stock phrases), then passes lfm.cash with 0 errors and 0 warnings](docs/media/demo.gif)
+
 `lfm` is an agent-first page compiler. Your coding agent researches real buyers, writes a design
 concept from what they say, and builds one HTML template with its config and assets. `lfm` compiles that into a
 standalone static folder and refuses to ship a page that is broken, slow, inaccessible, invisible to
