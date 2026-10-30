@@ -3,12 +3,14 @@
 package office
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/scratch"
@@ -62,7 +64,15 @@ func Convert(ctx context.Context, soffice string, files map[string][]byte, filte
 		args = append(args, path)
 	}
 	cmd := exec.CommandContext(ctx, soffice, args...)
-	cmd.Env = append(os.Environ(), "LC_ALL=en_US.UTF-8")
+	// C.UTF-8 provides Unicode filenames without requiring a generated regional locale.
+	locale := "en_US.UTF-8"
+	if runtime.GOOS == "linux" {
+		locale = "C.UTF-8"
+	}
+	cmd.Env = append(os.Environ(), "LC_ALL="+locale)
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	cmd.Stderr = &output
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start LibreOffice: %w", err)
 	}
@@ -71,7 +81,7 @@ func Convert(ctx context.Context, soffice string, files map[string][]byte, filte
 	select {
 	case err := <-done:
 		if err != nil {
-			return nil, fmt.Errorf("LibreOffice: %w", err)
+			return nil, fmt.Errorf("LibreOffice: %w: %s", err, output.String())
 		}
 	case <-time.After(2 * time.Minute):
 		cmd.Process.Kill()

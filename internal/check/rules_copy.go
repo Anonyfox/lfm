@@ -25,15 +25,6 @@ func copyTellsRule(d *Document) []Diagnostic { return slopRule("copy.tells")(d) 
 // numbers ("13—14 Nov") are not counted.
 func ProseDashes(s string) int { return slop.Dashes(s) }
 
-func containsAny(s string, keys []string) bool {
-	for _, k := range keys {
-		if strings.Contains(s, k) {
-			return true
-		}
-	}
-	return false
-}
-
 // Straight is text with curly and modifier-letter apostrophes and quotes
 // made straight and no-break spaces plain, as every copy pattern is
 // written: writers, typographers and models mostly type the curly ones.

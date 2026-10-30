@@ -77,3 +77,24 @@ func FuzzMatch(f *testing.F) {
 		}
 	})
 }
+
+func TestSentenceRulesRequireProse(t *testing.T) {
+	for _, tc := range []struct {
+		name, id string
+		blocks   []string
+		want     int
+	}{
+		{"repeated prose", "copy.duplicate-sentence", []string{"The workbook includes 6 exercises for planning each week with your team.", "The workbook includes 6 exercises for planning each week with your team."}, 1},
+		{"different quantities", "copy.duplicate-sentence", []string{"The workbook includes 6 exercises for planning each week with your team.", "The workbook includes 9 exercises for planning each week with your team."}, 0},
+		{"citation labels", "copy.duplicate-sentence", []string{"Bundesministerium der Justiz und für Verbraucherschutz / Bundesamt für Justiz: JArbSchG § 8", "Bundesministerium der Justiz und für Verbraucherschutz / Bundesamt für Justiz: JArbSchG § 8"}, 0},
+		{"data rows", "copy.duplicate-sentence", []string{"The workbook includes six exercises · for planning each week with your team.", "The workbook includes six exercises · for planning each week with your team."}, 0},
+		{"label rhythm", "copy.rhythm", []string{strings.Repeat("Source label with five words\n", 6)}, 0},
+		{"interrupted rhythm", "copy.rhythm", []string{"We plan the next week. You write the first task. They make the next choice.", "Source label", "We check the final list. You start the next step. They read the last page."}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Match(tc.id, "en", tc.blocks, nil); len(got) != tc.want {
+				t.Fatalf("want %d, got %+v", tc.want, got)
+			}
+		})
+	}
+}

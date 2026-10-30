@@ -41,9 +41,11 @@ signals, not proof of authorship or factual inaccuracy.
 | `copy.vague-source` | any | warn | Studies show that it works. | Name and link the study or expert. |
 
 `copy.german-dash` excludes numeric ranges (`13—14`). `copy.duplicate-sentence`
-compares case-insensitive sentences of at least nine words within one document;
-it does not crawl a site or mask page-specific names. `copy.rhythm` requires six
-consecutive sentences of at least four words, whose lengths differ by at most one.
+compares case-insensitive sentences of at least nine words within one document,
+preserving numbers so different quantities remain distinct;
+it does not crawl a site or mask page-specific names. Both sentence rules require
+terminal punctuation after a letter and exclude unterminated labels, numeric data
+and middle-dot citation rows. `copy.rhythm` requires six consecutive sentences of at least four words, whose lengths differ by at most one.
 `copy.comma-chain` requires three subordinate clauses in one sentence.
 `copy.triad` matches adjective endings, not ordinary three-item inventories.
 `copy.unsourced-number` only matches population percentages, not prices, dates or

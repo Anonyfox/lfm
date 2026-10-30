@@ -60,6 +60,19 @@
         "hint": "Set url in lfm.json to the address the page will be served from; the canonical, share links and previews are built from it."
       },
       {
+        "rule": "copy.emoji",
+        "severity": "warn",
+        "location": {
+          "file": "index.html",
+          "line": 24,
+          "column": 9,
+          "offset": 3456
+        },
+        "element": "p.eyebrow",
+        "message": "An emoji can substitute decoration for a claim: \"🧮\".",
+        "hint": "Use words that state the meaning."
+      },
+      {
         "rule": "design.eyebrows",
         "severity": "warn",
         "location": {
@@ -89,7 +102,7 @@
       }
     ],
     "errors": 0,
-    "warnings": 3
+    "warnings": 4
   },
   "published": true,
   "assets": [
@@ -158,7 +171,7 @@
   },
   "starter": false,
   "errors": 0,
-  "warnings": 3,
+  "warnings": 4,
   "durationMs": 0,
   "next": {
     "phase": "research",

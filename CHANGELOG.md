@@ -2,6 +2,12 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- Copy sentence checks exclude unterminated source labels and data rows, and
+  preserve numbers when comparing repeated sentences.
+- LibreOffice conversion uses Linux’s built-in Unicode locale so sheet names
+  survive on systems without generated regional locales; conversion failures
+  include the application’s output.
+
 - New rules: shared DE/EN copy checks for contrast reveals, negative lists, empty
   superlatives, food filler, trailing clauses, adjective triads, chained commas,
   unattributed claims, emoji, German em dashes, duplicate sentences and uniform

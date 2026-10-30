@@ -161,7 +161,7 @@ func letterAtStart(s string) bool {
 
 var sentenceRE = regexp.MustCompile(`[^.!?\n]+[.!?]?`)
 var sourceRE = regexp.MustCompile(`(?i)quelle|laut |nach angaben|studie von|studie:|umfrage von|umfrage:|source|according to|https?://|\[[0-9]+\]`)
-var wordRE = regexp.MustCompile(`\p{L}+`)
+var sentenceWordRE = regexp.MustCompile(`[\p{L}\p{N}]+`)
 
 // Match runs one idea across blocks. All callers use these exact thresholds.
 func Match(id, lang string, blocks []string, allow []Allow) []Hit {
@@ -218,6 +218,7 @@ func match(id, lang string, texts []string) []Hit {
 	lengths := []int{}
 	for i, text := range texts {
 		if text == "" {
+			lengths = nil
 			continue
 		}
 		switch rule.Kind {
@@ -227,7 +228,13 @@ func match(id, lang string, texts []string) []Hit {
 			}
 		case "duplicate", "rhythm":
 			for _, sentence := range sentenceRE.FindAllString(text, -1) {
-				words := wordRE.FindAllString(sentence, -1)
+				// Labels and citation rows are not prose sentences.
+				sentence = strings.TrimSpace(sentence)
+				if !proseSentence(sentence) {
+					lengths = nil
+					continue
+				}
+				words := sentenceWordRE.FindAllString(sentence, -1)
 				n := len(words)
 				if rule.Kind == "duplicate" {
 					key := strings.Join(words, " ")
@@ -280,6 +287,16 @@ func match(id, lang string, texts []string) []Hit {
 		}
 	}
 	return hits
+}
+
+// proseSentence excludes unterminated labels, numeric data and citation rows.
+func proseSentence(s string) bool {
+	r := []rune(s)
+	if len(r) < 2 || strings.ContainsRune(s, '·') {
+		return false
+	}
+	last := r[len(r)-1]
+	return (last == '.' || last == '!' || last == '?') && unicode.IsLetter(r[len(r)-2])
 }
 
 func matchTells(texts []string, lang string) []Hit {
