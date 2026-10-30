@@ -184,7 +184,7 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 	r := checkResult{Target: p.args[0], Project: projectDir, Result: input, Validation: check.Report{Stage: "html", Diagnostics: []check.Diagnostic{}}, Skipped: skipped}
 	if readErr == nil {
 		if textTarget {
-			r.Validation = check.Text(input.Page, strings.EqualFold(filepath.Ext(p.args[0]), ".md"), input.Options)
+			r.Validation = check.CopyText(input.Page, strings.EqualFold(filepath.Ext(p.args[0]), ".md"), input.Options)
 		} else {
 			r.Validation = check.Run(doc, rules, overrides)
 		}

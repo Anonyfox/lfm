@@ -54,7 +54,7 @@ func TestCopyText(t *testing.T) {
 		{name: "severity", source: "Kulinarische Vielfalt.", lang: "de", levels: map[string]Severity{"copy.food-filler": Error}, rule: "copy.food-filler", line: 1, severity: Error},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			r := Text([]byte(tc.source), tc.md, Options{File: "copy.md", Language: tc.lang, CopyAllow: tc.allow, Rules: tc.levels})
+			r := CopyText([]byte(tc.source), tc.md, Options{File: "copy.md", Language: tc.lang, CopyAllow: tc.allow, Rules: tc.levels})
 			if tc.rule == "" {
 				if len(r.Diagnostics) != 0 {
 					t.Fatal(r)
@@ -75,7 +75,7 @@ func FuzzCopyText(f *testing.F) {
 			t.Skip()
 		}
 		for _, md := range []bool{false, true} {
-			r := Text([]byte(s), md, Options{})
+			r := CopyText([]byte(s), md, Options{})
 			for _, d := range r.Diagnostics {
 				if !strings.HasPrefix(d.Rule, "copy.") || d.Location.Line < 1 {
 					t.Fatal(d)

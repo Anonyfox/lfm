@@ -11,9 +11,9 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-// Text analyzes text or Markdown with the same engine and report as HTML.
+// CopyText analyzes text or Markdown with the same engine and report as HTML.
 // YAML-style front matter recognizes lang/language; other keys are ignored.
-func Text(raw []byte, markdown bool, options Options) Report {
+func CopyText(raw []byte, markdown bool, options Options) Report {
 	source := raw
 	offset := 0
 	if bytes.HasPrefix(source, []byte("---\n")) || bytes.HasPrefix(source, []byte("---\r\n")) {
