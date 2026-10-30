@@ -31,6 +31,11 @@ func TestSpecMatchesTheConfigStructs(t *testing.T) {
 				paths = append(paths, path)
 				walk(typ.Field(i).Type, path)
 			}
+		case reflect.Slice:
+			if typ.Elem().Kind() == reflect.Struct {
+				paths = append(paths, prefix+".*")
+				walk(typ.Elem(), prefix+".*")
+			}
 		case reflect.Map:
 			if typ.Elem().Kind() != reflect.Interface {
 				paths = append(paths, prefix+".*")

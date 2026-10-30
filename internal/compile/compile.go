@@ -288,7 +288,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		JSONLDGenerated: len(prepared.JSONLD) > 0, JSONLDSource: &prepared.JSONLDSource,
 		URL: c.URL, RenderedSource: prepared.HTML, InlineSources: b.inlineSources,
 		ExternalCSSBytes: result.Cost.ExternalCSSBytes, ExternalJSBytes: result.Cost.ExternalJSBytes,
-		Rules: c.Build.Validation.Rules, Images: result.Images, FontAssets: b.fonts,
+		Rules: c.Build.Validation.Rules, CopyAllow: c.Build.Validation.CopyAllow, Images: result.Images, FontAssets: b.fonts,
 		Budgets:          check.Budgets(c.Build.Validation.Budgets),
 		CriticalCSSBytes: criticalCopy(result.Release),
 		Stylesheets:      b.cssAssets(), Commerce: prepared.Commerce, Concept: facts,

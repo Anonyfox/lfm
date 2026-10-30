@@ -12,176 +12,18 @@ import (
 	"strings"
 
 	"github.com/Anonyfox/lfm/internal/aitext"
+	"github.com/Anonyfox/lfm/internal/slop"
 	"golang.org/x/net/html"
 )
 
 // ---------- copy.tells ----------
 
-// A tell is a stock phrase of generated copy. Each pattern is narrow enough that
-// a match is the phrase itself, not an ordinary use of one of its words: a
-// knitting page may say "seamless", it will not say "seamless experience".
-// Repeated constructions only count from their threshold on, because one use is
-// ordinary language and the habit is the tell. Every pattern names literal
-// keywords one of which any match contains, so the regular expression only
-// runs on the few text blocks that contain one.
-type tell struct {
-	min  int      // occurrences on the page before the construction counts
-	keys []string // lowercase literals, one of which every match contains
-	re   *regexp.Regexp
-}
-
-type tellSource struct {
-	min     int
-	keys    []string
-	pattern string
-}
-
-var copyTells = func() []tell {
-	sources := []tellSource{
-		{1, []string{"today"}, `in today'?s (?:fast[- ]paced|digital|modern|ever[- ](?:changing|evolving)|competitive|busy) (?:world|age|landscape|era|economy)`},
-		{1, []string{"ever"}, `in (?:an|the|this) ever[- ](?:evolving|changing) (?:world|landscape|field|market)`},
-		{1, []string{"unlock"}, `unlock (?:the (?:full )?(?:power|potential)|your (?:full |true )?potential)`},
-		{1, []string{"unleash"}, `unleash (?:the|your) (?:full )?(?:power|potential|creativity|inner)`},
-		{1, []string{"elevate"}, `elevate your (?:\w+ )?(?:game|experience|brand|business|skills|workflow|routine|style)`},
-		{1, []string{"next level"}, `take (?:your|it) (?:\w+ ){0,3}to the next level`},
-		{1, []string{"game"}, `game[- ]chang(?:er|ing)`},
-		{1, []string{"look no further"}, `look no further`},
-		{1, []string{"goodbye"}, `say goodbye to`},
-		{1, []string{"delv"}, `delv(?:e|es|ing) (?:into|deeper)`},
-		{1, []string{"testament"}, `(?:is|stands as|serves as) a testament to`},
-		{1, []string{"seamless"}, `seamless(?:ly)? (?:experience|integration|integrat\w+|workflow|journey|solution|blend)`},
-		{1, []string{"harness"}, `harness(?:es|ing)? the (?:full )?(?:power|potential)`},
-		{1, []string{"embark"}, `embark (?:on|upon) (?:a|an|your) (?:\w+ )?(?:journey|adventure|quest)`},
-		{1, []string{"navigat"}, `navigat(?:e|ing) the (?:complexities|intricacies|ins and outs)`},
-		{1, []string{"realm"}, `in the realm of`},
-		{1, []string{"note", "remember", "mention"}, `it'?s (?:important|worth|crucial|essential) to (?:note|remember|mention)`},
-		{1, []string{"whether"}, `whether you'?re an? [^.,;:!?]{1,30} or an?`},
-		{1, []string{"cutting"}, `cutting[- ]edge (?:technology|solutions?|tools?|platform|features?|ai)`},
-		{1, []string{"state"}, `state[- ]of[- ]the[- ]art (?:technology|solutions?|platform)`},
-		{1, []string{"the way you"}, `(?:revolutioni[sz]e|transform) the way you`},
-		{1, []string{"supercharge"}, `supercharge your`},
-		{1, []string{"empower"}, `empower(?:s|ing)? (?:you|your|businesses|teams|individuals) to`},
-		{1, []string{"we understand"}, `we understand (?:how|that) [^.!?]{0,40}(?:overwhelming|frustrating|stressful|daunting|challenging)`},
-		{1, []string{"nestled"}, `nestled (?:in|among|between) the`},
-		{1, []string{"tapestry"}, `(?:rich|vibrant|intricate) tapestry`},
-		{1, []string{"dive"}, `(?:let'?s|ready to) dive (?:in|into|deeper)`},
-		{1, []string{". no "}, `no (?:\w+)\. no (?:\w+)\. (?:just|only)`},
-		{1, []string{"heutigen"}, `in der heutigen (?:schnelllebigen |digitalen |modernen )?(?:welt|zeit)`},
-		{1, []string{"zeitalter"}, `im (?:digitalen|heutigen) zeitalter`},
-		{1, []string{"in der"}, `in einer (?:welt|zeit), in der`},
-		{1, []string{"tauchen"}, `tauchen sie (?:tiefer )?ein`},
-		{1, []string{"level", "stufe"}, `(?:auf das|aufs|auf ein|auf die) (?:nächste|neues|nächstes) (?:level|stufe)`},
-		{1, []string{"nahtlos"}, `nahtlos(?:e|en|er)? (?:integration|integriert|erlebnis|zusammenarbeit|übergang|einfügen)`},
-		{1, []string{"es ist"}, `es ist (?:wichtig|erwähnenswert|entscheidend) zu (?:beachten|erwähnen|wissen)`},
-		{1, []string{"oder"}, `ob (?:anfänger|einsteiger|neuling) oder (?:profi|experte|fortgeschrittene)`},
-		{1, []string{"entfesseln"}, `entfesseln sie`},
-		{1, []string{"potenzial"}, `(?:schöpfen sie|entfalten sie) (?:das|ihr) (?:volle[sn]? )?potenzial`},
-		{1, []string{". kein"}, `kein(?:e)? [a-zäöüß]+\. kein(?:e)? [a-zäöüß]+\. (?:nur|einfach|sondern)`},
-		{2, []string{"mühelos"}, `mühelos\p{L}*`},
-		{2, []string{"nahtlos"}, `nahtlos\p{L}*`},
-		{2, []string{"maßgeschneidert"}, `maßgeschneidert\p{L}*`},
-		{2, []string{"ganzheitlich"}, `ganzheitlich\p{L}*`},
-		{2, []string{"innovativ"}, `innovativ\p{L}*`},
-		{2, []string{"revolutionär"}, `revolutionär\p{L}*`},
-		{2, []string{"entdecken sie"}, `entdecken sie`},
-		{2, []string{"effortless"}, `effortless(?:ly)?`},
-		{2, []string{"revolutionary"}, `revolutionary`},
-		{2, []string{"holistic"}, `holistic`},
-		{2, []string{"not "}, `not (?:just|only|merely) (?:a |an |the )?[^.!?;:]{1,60}?[,;—–-]? but`},
-		{2, []string{"not "}, `(?:it'?s|this is|that'?s) not (?:just )?(?:about )?[^.!?;:]{1,50}?[.,;—–]\s*(?:it'?s|this is|that'?s)`},
-		{2, []string{"nicht nur"}, `nicht nur [^.!?;:]{1,60}?,? sondern (?:auch)?`},
-	}
-	out := make([]tell, len(sources))
-	for i, src := range sources {
-		out[i] = tell{src.min, src.keys, regexp.MustCompile(`(?i)\b(?:` + src.pattern + `)\b`)}
-	}
-	return out
-}()
-
-// minDashes and dashesPer100 bound em-dash density: four or more, and more than
-// one per hundred words. Human sales copy rarely reaches both.
-const minDashes, dashesPer100 = 4, 1.0
-
-func copyTellsRule(d *Document) []Diagnostic {
-	segments := copySegments(d)
-	type hit struct {
-		count int
-		first *html.Node
-		text  string
-	}
-	hits := make([]hit, len(copyTells))
-	dashes, words := 0, 0
-	var firstDash *html.Node
-	for _, s := range segments {
-		text := Straight(s.text)
-		lower := strings.ToLower(text)
-		words += len(strings.Fields(text))
-		if n := ProseDashes(text); n > 0 {
-			if firstDash == nil {
-				firstDash = s.node
-			}
-			dashes += n
-		}
-		for i, t := range copyTells {
-			if !containsAny(lower, t.keys) {
-				continue
-			}
-			for _, m := range t.re.FindAllString(text, -1) {
-				if hits[i].count == 0 {
-					hits[i].first, hits[i].text = s.node, m
-				}
-				hits[i].count++
-			}
-		}
-	}
-	var issues []Diagnostic
-	const hint = "Say the concrete thing instead: the fact, capability, situation or number it stands for. Quotes of real buyers inside <blockquote> or <q> are not checked."
-	for i, h := range hits {
-		if h.count == 0 || h.count < copyTells[i].min {
-			continue
-		}
-		phrase := strings.Join(strings.Fields(h.text), " ")
-		if r := []rune(phrase); len(r) > 60 {
-			phrase = string(r[:59]) + "…"
-		}
-		var message string
-		switch {
-		case copyTells[i].min > 1:
-			message = fmt.Sprintf("%q and %d more like it: a construction generated copy repeats.", phrase, h.count-1)
-		case h.count > 1:
-			message = fmt.Sprintf("%q appears %d times: a stock phrase of generated copy.", phrase, h.count)
-		default:
-			message = fmt.Sprintf("%q is a stock phrase of generated copy.", phrase)
-		}
-		issues = append(issues, d.At(h.first, Warning, message, hint))
-	}
-	if dashes >= minDashes && float64(dashes)*100 > dashesPer100*float64(words) {
-		issues = append(issues, d.At(firstDash, Warning, fmt.Sprintf("%d em dashes in %d words of copy: a density that reads as generated text.", dashes, words), "Recast most of them as two sentences, a comma, a colon or parentheses; keep the few where the break is the point."))
-	}
-	sort.SliceStable(issues, func(i, j int) bool { return issues[i].Location.Line < issues[j].Location.Line })
-	return issues
-}
+// copyTellsRule retains the established public ID and thresholds.
+func copyTellsRule(d *Document) []Diagnostic { return slopRule("copy.tells")(d) }
 
 // ProseDashes counts em dashes used as sentence breaks; ranges between
 // numbers ("13—14 Nov") are not counted.
-func ProseDashes(s string) int {
-	n := 0
-	for i := strings.Index(s, "—"); i >= 0; {
-		before, after := strings.TrimRight(s[:i], " "), strings.TrimLeft(s[i+len("—"):], " ")
-		if !(endsDigit(before) && startsDigit(after)) {
-			n++
-		}
-		next := strings.Index(s[i+len("—"):], "—")
-		if next < 0 {
-			break
-		}
-		i += len("—") + next
-	}
-	return n
-}
-
-func endsDigit(s string) bool   { return s != "" && s[len(s)-1] >= '0' && s[len(s)-1] <= '9' }
-func startsDigit(s string) bool { return s != "" && s[0] >= '0' && s[0] <= '9' }
+func ProseDashes(s string) int { return slop.Dashes(s) }
 
 func containsAny(s string, keys []string) bool {
 	for _, k := range keys {
@@ -237,7 +79,7 @@ func textSegments(d *Document, quotes, tables bool) []copySegment {
 			break
 		}
 	}
-	if body == nil {
+	if body == nil || skipCopy(body) {
 		return nil
 	}
 	var out []copySegment
@@ -287,7 +129,7 @@ func skipCopy(n *html.Node) bool {
 	case "script", "style", "template", "noscript", "blockquote", "q", "code", "pre", "kbd", "samp", "textarea", "select":
 		return true
 	}
-	return HasAttr(n, "hidden") || Attr(n, "aria-hidden") == "true" || HasAttr(n, "inert") || HasAttr(n, "data-design-reason")
+	return HasAttr(n, "hidden") || Attr(n, "aria-hidden") == "true" || HasAttr(n, "inert") || HasAttr(n, "data-design-reason") || HasAttr(n, "data-slop-skip")
 }
 
 // ---------- ux.reduced-motion ----------
@@ -719,7 +561,7 @@ func hiddenStartRule(d *Document) []Diagnostic {
 	}
 	m := d.styles()
 	for n := h1; n != nil && n.Type == html.ElementNode && n.Data != "body" && n.Data != "html"; n = n.Parent {
-		if HasAttr(n, "data-design-reason") {
+		if HasAttr(n, "data-design-reason") || HasAttr(n, "data-slop-skip") {
 			return nil
 		}
 		cause := ""
@@ -767,7 +609,7 @@ func actionsRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	seen := map[string]bool{}
 	for _, n := range d.activeNodes("a[href], button, input[type=submit], input[type=button], summary") {
-		if hidden(n) || HasAttr(n, "data-design-reason") {
+		if hidden(n) || HasAttr(n, "data-design-reason") || HasAttr(n, "data-slop-skip") {
 			continue
 		}
 		name := strings.ToLower(strings.Join(strings.Fields(Straight(d.controlName(n))), " "))
@@ -799,32 +641,11 @@ type TellHit struct {
 // FindTells applies the copy tells of copy.tells to plain prose segments, such
 // as the paragraphs of a book chapter, with the same thresholds.
 func FindTells(segments []string) []TellHit {
-	hits := make([]TellHit, len(copyTells))
-	for i := range hits {
-		hits[i].Segment = -1
-	}
-	for n, segment := range segments {
-		text := Straight(segment)
-		lower := strings.ToLower(text)
-		for i, t := range copyTells {
-			if !containsAny(lower, t.keys) {
-				continue
-			}
-			for _, m := range t.re.FindAllString(text, -1) {
-				if hits[i].Count == 0 {
-					hits[i].Segment, hits[i].Phrase = n, strings.Join(strings.Fields(m), " ")
-				}
-				hits[i].Count++
-			}
-		}
-	}
 	var out []TellHit
-	for i, h := range hits {
-		if h.Count == 0 || h.Count < copyTells[i].min {
-			continue
+	for _, h := range slop.Match("copy.tells", "any", segments, nil) {
+		if h.Phrase != "" {
+			out = append(out, TellHit{Segment: h.Block, Phrase: h.Phrase, Count: h.Count, Repeat: h.Repeat})
 		}
-		h.Repeat = copyTells[i].min > 1
-		out = append(out, h)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Segment < out[j].Segment })
 	return out

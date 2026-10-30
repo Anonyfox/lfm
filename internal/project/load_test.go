@@ -133,3 +133,34 @@ func TestLoadBudgets(t *testing.T) {
 		}
 	}
 }
+
+func TestCopyAllowConfig(t *testing.T) {
+	for _, tc := range []struct{ allow, path string }{
+		{`[{"rule":"copy.superlative","phrase":"Traumhaft Hotel","reason":"Registered name"}]`, ""},
+		{`[{"rule":"copy.superlative"}]`, "build.validation.copyAllow[0].reason"},
+		{`[{"rule":"copy.superlative","reason":"  "}]`, "build.validation.copyAllow[0].reason"},
+		{`[{"rule":"typo","reason":"Registered name"}]`, "build.validation.copyAllow[0].rule"},
+		{`[{"rule":"copy.superlative","reason":"Registered name","typo":true}]`, "build.validation.copyAllow[0].typo"},
+		{`["copy.superlative"]`, "build.validation.copyAllow[0]"},
+	} {
+		p := newProject(t)
+		config := strings.TrimSuffix(validConfig, "}") + `,"build":{"validation":{"copyAllow":` + tc.allow + `}}}`
+		write(t, p.Root, ConfigFile, config)
+		loaded := Load(p, nil)
+		if tc.path == "" {
+			if len(loaded.Problems) > 0 {
+				t.Fatal(loaded.Problems)
+			}
+			continue
+		}
+		found := false
+		for _, problem := range loaded.Problems {
+			if problem.Path == tc.path {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s: expected %s, got %+v", tc.allow, tc.path, loaded.Problems)
+		}
+	}
+}

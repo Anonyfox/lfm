@@ -31,7 +31,6 @@ func TestCopyTells(t *testing.T) {
 		"german beginner":   {`<p>Ob Anfänger oder Profi: hier wächst alles.</p>`, "stock phrase"},
 		"not just twice":    {`<p>Not just a planner, but a habit.</p><p>Not only fast, but kind.</p>`, "more like it"},
 		"not just once":     {`<p>Not just a planner, but a habit.</p>`, ""},
-		"its not its twice": {`<p>It's not a diet. It's a rota.</p><p>This is not a course, this is a kit.</p>`, "more like it"},
 		"nicht nur twice":   {`<p>Nicht nur schön, sondern auch nützlich.</p><p>Nicht nur Basilikum, sondern Minze.</p>`, "more like it"},
 		"nicht nur once":    {`<p>Nicht nur schön, sondern auch nützlich.</p>`, ""},
 		"mühelos twice":     {`<p>Mühelos backen.</p><p>Ein müheloser Start.</p>`, "more like it"},
@@ -252,7 +251,7 @@ func TestGenericActions(t *testing.T) {
 func TestCopyTellsReadEitherApostrophe(t *testing.T) {
 	for _, body := range []string{
 		`<p>In today's fast-paced world, planning is hard.</p>`,
-		`<p>It's not a diet. It's a rota.</p><p>This is not a course, this is a kit.</p>`,
+		`<p>Not just a diet, but a rota.</p><p>Not only a course, but a kit.</p>`,
 		`<p>Let's dive in and unlock your garden's full potential.</p>`,
 		`<p>Whether you're a beginner or a pro, you'll love it.</p>`,
 		`<p>Don't just plan. It's time to take your herbs to the next level.</p>`,

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -59,8 +60,8 @@ func pageRules(browser bool) ([]check.Rule, []skippedRule) {
 }
 
 var checkCommand = command{
-	name: "check", args: "[<url | folder | file.html>] [--project <dir>] [--release] [--json]",
-	summary: "Check any built page from a URL or disk",
+	name: "check", args: "[<url | folder | file.html | file.txt | file.md>] [--lang <tag>] [--project <dir>] [--release] [--json]",
+	summary: "Check a built page, plain text or Markdown",
 	details: `Checks any built page with the same rules compile runs on its own output,
 from any framework or host: HTML, links, SEO, sharing, accessibility, forms,
 performance, design defaults and copy. Rules that need an lfm project are
@@ -70,13 +71,16 @@ an in-memory compile of the current source to report stale files.
 
 An http(s) URL fetches the page and its embedded resources, including from
 localhost. A folder means index.html; a .html file uses its containing folder.
+A .txt or .md file runs only the shared copy rules; Markdown code and quotes are skipped.
+--lang overrides HTML or front-matter language; otherwise language is detected.
+Use --project to apply that project's copy policy to text too.
 Static checks execute nothing. --release adds runtime errors, the frame-by-frame
 layout walk and Lighthouse. Release needs installed Chrome and Lighthouse plus
 loopback sockets. For URLs the browser visits the real page and runs its JavaScript, including analytics. Files use a sealed artifact server.
 --json prints the same findings as the human report.
 Exit status: 0 with no errors (warnings allowed); 1 for findings with errors or
 an unreadable page; 2 for a mistake in the command line.`,
-	flags: []flagSpec{{name: "project", value: true, usage: "pair the built page with an lfm project"}, {name: "release", usage: "also run runtime, layout and Lighthouse checks"}, {name: "json", usage: "print the result as JSON instead of the report"}},
+	flags: []flagSpec{{name: "lang", value: true, usage: "override the copy language (BCP-47 tag)"}, {name: "project", value: true, usage: "pair the built page with an lfm project"}, {name: "release", usage: "also run runtime, layout and Lighthouse checks"}, {name: "json", usage: "print the result as JSON instead of the report"}},
 	run:   runCheck,
 }
 
@@ -106,7 +110,29 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 			p.args = []string{filepath.Join(projectDir, "output")}
 		}
 	}
-	input, err := target.Read(ctx, p.args[0], env.Build.Version)
+	textTarget := !strings.Contains(p.args[0], "://") && (strings.EqualFold(filepath.Ext(p.args[0]), ".txt") || strings.EqualFold(filepath.Ext(p.args[0]), ".md"))
+	if textTarget && p.has("release") {
+		return usageError("--release requires an HTML page")
+	}
+	var input target.Result
+	var err error
+	if textTarget {
+		f, openErr := os.Open(p.args[0])
+		err = openErr
+		if err == nil {
+			input.Page, err = io.ReadAll(io.LimitReader(f, (8<<20)+1))
+			closeErr := f.Close()
+			if err == nil {
+				err = closeErr
+			}
+			if len(input.Page) > 8<<20 {
+				err = fmt.Errorf("text target exceeds 8 MiB")
+			}
+		}
+		input.Options = check.Options{File: p.args[0], Language: p.flags["lang"]}
+	} else {
+		input, err = target.Read(ctx, p.args[0], env.Build.Version)
+	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return err
@@ -119,25 +145,49 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 	browser := p.has("release")
 	rules, skipped := pageRules(browser)
 	doc := input.Document
+	input.Options.Language = p.flags["lang"]
+	if doc != nil {
+		doc.Options.Language = p.flags["lang"]
+	}
+	if textTarget {
+		rules = nil
+		skipped = []skippedRule{{"page.*", "text targets run copy rules only"}}
+	}
 	var overrides map[string]diagnostic.Severity
 	if projectDir != "" && readErr == nil {
-		options, err := compile.ProjectCheckOptions(projectDir, input.Options)
+		var options check.Options
+		var err error
+		if textTarget {
+			options, err = compile.ProjectCopyOptions(projectDir, input.Options)
+		} else {
+			options, err = compile.ProjectCheckOptions(projectDir, input.Options)
+		}
 		if err != nil {
 			return err
 		}
-		doc, err = check.Parse(input.Page, options)
+		input.Options = options
+		if !textTarget {
+			doc, err = check.Parse(input.Page, options)
+		}
 		if err != nil {
 			return err
 		}
 		overrides = options.Rules
 		rules, skipped = check.DefaultRules(), nil
-		if !browser {
+		if !browser && !textTarget {
 			skipped = []skippedRule{{"release.*", "browser checks run with --release"}, {"lighthouse.*", "browser checks run with --release"}}
 		}
 	}
+	if textTarget {
+		skipped = []skippedRule{{"page.*", "text targets run copy rules only"}}
+	}
 	r := checkResult{Target: p.args[0], Project: projectDir, Result: input, Validation: check.Report{Stage: "html", Diagnostics: []check.Diagnostic{}}, Skipped: skipped}
 	if readErr == nil {
-		r.Validation = check.Run(doc, rules, overrides)
+		if textTarget {
+			r.Validation = check.Text(input.Page, strings.EqualFold(filepath.Ext(p.args[0]), ".md"), input.Options)
+		} else {
+			r.Validation = check.Run(doc, rules, overrides)
+		}
 	} else {
 		r.Validation.Diagnostics = append(r.Validation.Diagnostics, diagnostic.Diagnostic{Rule: "build.failed", Severity: diagnostic.Error, Location: diagnostic.Location{File: p.args[0], Line: 1, Column: 1}, Message: readErr.Error(), Hint: "Make the page readable at this target and check again."})
 	}
@@ -184,7 +234,7 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 	if doc != nil && doc.LoopbackPreview() {
 		r.Next.Notes = append(r.Next.Notes, "Loopback URL requirements are judged on the live URL: the declared public canonical origin is used where available; otherwise public-host and mixed-content findings for loopback URLs are deferred.")
 	}
-	if !browser {
+	if !browser && !textTarget {
 		r.Next.Notes = append(r.Next.Notes, "run with --release for runtime, layout and Lighthouse")
 	}
 	if p.has("json") {

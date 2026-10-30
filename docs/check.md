@@ -117,3 +117,12 @@ for example, `Avoid: "body search"; say "FTS5 search"` bans only "body search".
 `copy.placeholder` ignores code elements and filename tokens such as `TODO.md`.
 Ordinary `application/json` data is not treated as declared links; JSON-LD and
 supported sharing payloads still are.
+
+## Standalone copy
+
+`lfm check listing.txt --lang de --json` and `lfm check post.md` run the same
+[shared copy rules](copy-rules.md) as page checks. Markdown front matter can set
+`lang` or `language`; `--lang` overrides it or HTML `lang`, then detection is the
+fallback. Use `--project dir` for rule levels and reasoned phrase exceptions from
+that project's `lfm.json`. These targets skip page/browser checks and keep the same
+JSON report and error exit status. `--release` requires an HTML target.

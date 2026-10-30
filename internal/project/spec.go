@@ -12,12 +12,13 @@ type Kind string
 // Field kinds. A map holds keys of the author's choosing whose values the
 // field's "*" child describes; free holds anything, unchecked.
 const (
-	Object Kind = "object"
-	String Kind = "string"
-	Int    Kind = "integer"
-	List   Kind = "list"
-	Map    Kind = "map"
-	Free   Kind = "any"
+	Object  Kind = "object"
+	String  Kind = "string"
+	Int     Kind = "integer"
+	List    Kind = "list"
+	Objects Kind = "list of objects"
+	Map     Kind = "map"
+	Free    Kind = "any"
 )
 
 // Field is one key of lfm.json: its shape, its meaning and how it is
@@ -75,6 +76,11 @@ var Spec = []Field{
 	{Path: "build.validation", Kind: Object, Doc: "Rule levels and size budgets."},
 	{Path: "build.validation.rules", Kind: Map, Doc: "Per-rule levels; required rules stay errors. `lfm rules` lists them.", Example: `{"design.mono": "off"}`},
 	{Path: "build.validation.rules.*", Kind: String, Values: []string{"off", "warn", "error"}, Doc: "The level of this rule.", Example: `"warn"`},
+	{Path: "build.validation.copyAllow", Kind: Objects, Doc: "Copy exceptions with a required reason.", Example: `[{"rule":"copy.superlative","phrase":"Traumhaft Hotel","reason":"Registered name"}]`},
+	{Path: "build.validation.copyAllow.*", Kind: Object, Doc: "One justified copy exception."},
+	{Path: "build.validation.copyAllow.*.rule", Kind: String, Required: true, Doc: "An exact copy rule ID.", Example: `"copy.superlative"`},
+	{Path: "build.validation.copyAllow.*.phrase", Kind: String, Doc: "Case-insensitive literal phrase; omitted exempts the whole rule.", Example: `"Traumhaft Hotel"`},
+	{Path: "build.validation.copyAllow.*.reason", Kind: String, Required: true, Doc: "Required nonblank explanation for this exception.", Example: `"Registered name"`},
 	{Path: "build.validation.budgets", Kind: Object, Doc: "This page's advisory sizes, which perf.budgets warns past; raise one where the page has a reason to be larger instead of turning the rule off.", Checked: "perf.budgets", Example: `{"cssKiB": 80}`},
 	{Path: "build.validation.budgets.imageKiB", Kind: Int, Default: "3000", Doc: "Total referenced image, poster, srcset candidate and CSS background image bytes in KiB; unknown sizes are skipped.", Checked: "perf.budgets", Example: `6000`},
 	{Path: "build.validation.budgets.videoKiB", Kind: Int, Default: "8000", Doc: "Referenced video source bytes in KiB, counted separately from images.", Checked: "perf.budgets", Example: `16000`},

@@ -1,8 +1,8 @@
 # HTML quality gate
 
-`build.Run` calls `Analyze` on the final serialization buffer before writing
+`compile.Compile` calls `Analyze` on the final serialization buffer before writing
 `index.html` or replacing `output/`. Errors preserve the previous output; warnings
-ship with actionable diagnostics. `build` and every `serve` rebuild share this gate.
+ship with actionable diagnostics. `compile` and every `serve` rebuild share this gate.
 
 Parsing: [`x/net/html`](https://pkg.go.dev/golang.org/x/net/html).
 CSS selectors: [`Cascadia`](https://pkg.go.dev/github.com/andybalholm/cascadia).
@@ -138,7 +138,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
 | `design.kit` | Warnings: four or more custom properties with exact shadcn/ui default theme values (slate/zinc HSL, v4 oklch neutrals); two or three are weak. |
 | `design.defaults` | (A page without any imagery is one weak signal.) Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
-| `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and it's-not-it's constructions (German nicht nur … sondern from three), and ≥4 em dashes above one per hundred words. Quotations, code and data-design-reason subtrees are exempt. |
+| `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and it's-not-it's constructions (German nicht nur … sondern from two), and ≥4 em dashes above one per hundred words. Quotations, code and data-design-reason subtrees are exempt. |
 | `copy.machine` | Warning: at least 150 words of page prose outside table and role=table/grid subtrees (blocks of 20+ words) match the profile AI-text detectors flag, estimated by `internal/aitext` from burstiness, punctuation, lexical diversity, compression against model-written text, repeated phrasing and model habits; the finding names the habits measured. |
 | `copy.placeholder` | Warnings: lorem ipsum, TODO/TBD/FIXME (case-sensitive), "your … here" and [insert …] filler in text, alt, title and description metadata; after the starter page is replaced, the lfm init description, social alt text and share image. |
 | `copy.actions` | Warnings: a link, button or summary whose entire name is a generic label (learn more, click here, get started, submit, mehr erfahren, absenden…); one finding per label. |
@@ -329,3 +329,5 @@ Web Vitals require additional checks. Inert template content is excluded from
 active metadata/ID/reference/name checks. No network request is made.
 
 `design.ground` reports errors for warm-light backgrounds on any element, paper/noise/ruled textures on grounds or full-cover overlays, and torn, zigzag or perforated gradient edges. Warm background-colour findings exclude tiny elements (area below 256 px², or a lone known dimension at most 4 px), hidden, clipped and entirely off-screen elements; page grounds and full-cover wrappers remain protected from size and position exclusions. Unknown sizes are not assumed small. It uses the default light CSS cascade and has no `data-design-reason` exemption. See [page checks](../../docs/check.md).
+
+Copy rules share the embedded tables in `internal/slop` with text and Markdown checks. See [copy rules](../../docs/copy-rules.md) for IDs, defaults, exceptions and migration scope.

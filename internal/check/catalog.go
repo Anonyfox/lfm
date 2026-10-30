@@ -19,6 +19,10 @@ const designException = " Deliberate? Keep it and add data-design-reason=\"why t
 // DefaultRules is the final-HTML catalog in report order. Summary and Help are
 // the only description of each rule; `lfm rules <id>` prints them.
 func DefaultRules() []Rule {
+	return append(baseRules(), slopRules()...)
+}
+
+func baseRules() []Rule {
 	return []Rule{
 		rule("html.client-shell", "Client-rendered shells expose readable initial HTML",
 			"Warns when a module script and an empty body mount appear with at most three words and forty bytes of body text and no readable h1. Missing title, description, canonical, heading, main content and social fields are grouped here, retaining error severity when required metadata is absent. Search and sharing clients need initial HTML. Prerender or server-render content and head metadata; independent findings remain separate.", clientShellRule),
@@ -256,8 +260,8 @@ func DefaultRules() []Rule {
 			"Warns when four or more distinct generator-default signals appear including at least one reported finding, or five weaker ones; weak signals alone never warn individually. Individually defensible choices add up to a page visitors recognize as generated. Decide palette, type, shape, motion and layout from the subject and remove patterns you cannot justify. Mark each deliberate one with data-design-reason=\"…\"; the finding counts how many are justified. Declared concept faces and validation settings affect the signal count; pass --project <folder> to pair built output with that context.",
 			designDefaultsRule),
 		// copy
-		rule("copy.tells", "Visible copy avoids the stock phrases and dash habit of generated text",
-			"Warns for stock phrases of generated copy (\"in today's fast-paced world\", \"unlock the power\", \"look no further\", \"seamless experience\", \"tauchen Sie ein\", \"im digitalen Zeitalter\" and similar), for repeated \"not just X, but Y\" and \"it's not X, it's Y\" constructions, and for four or more em dashes at more than one per hundred words. Each pattern is narrow: ordinary uses of single words are not matched. Visitors recognize these phrases as unedited machine text. Replace each with the concrete fact or situation it stands for. Text in blockquote, q, code and subtrees with data-design-reason is not checked, so real buyer quotes stay verbatim.",
+		rule("copy.tells", "Visible copy avoids stock phrases and repeated sales constructions",
+			"Warns for narrow English and German stock phrases, repeated not-just-but and nicht-nur-sondern constructions from two uses, and four or more prose em dashes above one per hundred words outside German copy. Visitors recognize these as unedited machine text. Replace them with concrete facts; copy.reveal owns direct contrast reveals and copy.german-dash owns German em dashes. Quotations, code and subtrees with data-design-reason or data-slop-skip are exempt; see docs/copy-rules.md for justified configuration exceptions.",
 			copyTellsRule),
 
 		rule("copy.machine", "The page's prose would not be flagged by AI-text detectors",

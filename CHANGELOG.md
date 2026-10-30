@@ -1,5 +1,18 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- New rules: shared DE/EN copy checks for contrast reveals, negative lists, empty
+  superlatives, food filler, trailing clauses, adjective triads, chained commas,
+  unattributed claims, emoji, German em dashes, duplicate sentences and uniform
+  rhythm. These default to warnings; leaked generation instructions and workspace
+  paths are errors. `copy.tells` keeps its existing stock phrases and repeated
+  not-only threshold; direct reveals now use `copy.reveal`.
+- `lfm check` accepts `.txt` and `.md`, with the page report's JSON and exit status.
+  `--lang` overrides language; HTML lang and Markdown front matter precede detection.
+  `build.validation.copyAllow` requires a reason for phrase or rule exceptions;
+  HTML `data-slop-skip` exempts verbatim text. See [copy rules](docs/copy-rules.md).
+
 ## 0.1.14 (2026-10-27)
 
 - `design.ground` no longer fails elements nobody sees as a surface. The warm background-colour

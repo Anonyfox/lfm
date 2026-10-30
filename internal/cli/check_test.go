@@ -625,3 +625,40 @@ func TestCheckReleaseProjectBudgets(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckStandaloneCopy(t *testing.T) {
+	for _, tc := range []struct {
+		name, source string
+		args         []string
+		code         int
+		rule         string
+	}{
+		{"warn.txt", "Kulinarische Vielfalt.", []string{"--lang", "de"}, 0, "copy.food-filler"},
+		{"block.md", "---\nlang: en\n---\nAs an AI language model, I cannot answer.", nil, 1, "copy.internal-leak"},
+		{"quote.md", "> As an AI language model, I cannot answer.", nil, 0, ""},
+		{"frontmatter.md", "---\nlang: de\n---\nKulinarische Vielfalt.", nil, 0, "copy.food-filler"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			name := filepath.Join(t.TempDir(), tc.name)
+			if err := os.WriteFile(name, []byte(tc.source), 0600); err != nil {
+				t.Fatal(err)
+			}
+			args := append([]string{"check", name, "--json"}, tc.args...)
+			code, out, errs := run(t, args...)
+			var r checkResult
+			if err := json.Unmarshal([]byte(out), &r); err != nil {
+				t.Fatal(err, out, errs)
+			}
+			if code != tc.code || r.Next.Do == "" {
+				t.Fatal(code, out, errs)
+			}
+			if tc.rule != "" {
+				if len(r.Validation.Diagnostics) != 1 || r.Validation.Diagnostics[0].Rule != tc.rule {
+					t.Fatal(out)
+				}
+			} else if len(r.Validation.Diagnostics) != 0 {
+				t.Fatal(out)
+			}
+		})
+	}
+}

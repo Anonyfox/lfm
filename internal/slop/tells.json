@@ -1,0 +1,362 @@
+[
+  {
+    "min": 1,
+    "keys": [
+      "today"
+    ],
+    "pattern": "in today'?s (?:fast[- ]paced|digital|modern|ever[- ](?:changing|evolving)|competitive|busy) (?:world|age|landscape|era|economy)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "ever"
+    ],
+    "pattern": "in (?:an|the|this) ever[- ](?:evolving|changing) (?:world|landscape|field|market)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "unlock"
+    ],
+    "pattern": "unlock (?:the (?:full )?(?:power|potential)|your (?:full |true )?potential)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "unleash"
+    ],
+    "pattern": "unleash (?:the|your) (?:full )?(?:power|potential|creativity|inner)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "elevate"
+    ],
+    "pattern": "elevate your (?:\\w+ )?(?:game|experience|brand|business|skills|workflow|routine|style)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "next level"
+    ],
+    "pattern": "take (?:your|it) (?:\\w+ ){0,3}to the next level"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "game"
+    ],
+    "pattern": "game[- ]chang(?:er|ing)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "look no further"
+    ],
+    "pattern": "look no further"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "goodbye"
+    ],
+    "pattern": "say goodbye to"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "delv"
+    ],
+    "pattern": "delv(?:e|es|ing) (?:into|deeper)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "testament"
+    ],
+    "pattern": "(?:is|stands as|serves as) a testament to"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "seamless"
+    ],
+    "pattern": "seamless(?:ly)? (?:experience|integration|integrat\\w+|workflow|journey|solution|blend)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "harness"
+    ],
+    "pattern": "harness(?:es|ing)? the (?:full )?(?:power|potential)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "embark"
+    ],
+    "pattern": "embark (?:on|upon) (?:a|an|your) (?:\\w+ )?(?:journey|adventure|quest)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "navigat"
+    ],
+    "pattern": "navigat(?:e|ing) the (?:complexities|intricacies|ins and outs)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "realm"
+    ],
+    "pattern": "in the realm of"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "note",
+      "remember",
+      "mention"
+    ],
+    "pattern": "it'?s (?:important|worth|crucial|essential) to (?:note|remember|mention)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "whether"
+    ],
+    "pattern": "whether you'?re an? [^.,;:!?]{1,30} or an?"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "cutting"
+    ],
+    "pattern": "cutting[- ]edge (?:technology|solutions?|tools?|platform|features?|ai)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "state"
+    ],
+    "pattern": "state[- ]of[- ]the[- ]art (?:technology|solutions?|platform)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "the way you"
+    ],
+    "pattern": "(?:revolutioni[sz]e|transform) the way you"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "supercharge"
+    ],
+    "pattern": "supercharge your"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "empower"
+    ],
+    "pattern": "empower(?:s|ing)? (?:you|your|businesses|teams|individuals) to"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "we understand"
+    ],
+    "pattern": "we understand (?:how|that) [^.!?]{0,40}(?:overwhelming|frustrating|stressful|daunting|challenging)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "nestled"
+    ],
+    "pattern": "nestled (?:in|among|between) the"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "tapestry"
+    ],
+    "pattern": "(?:rich|vibrant|intricate) tapestry"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "dive"
+    ],
+    "pattern": "(?:let'?s|ready to) dive (?:in|into|deeper)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      ". no "
+    ],
+    "pattern": "no (?:\\w+)\\. no (?:\\w+)\\. (?:just|only)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "heutigen"
+    ],
+    "pattern": "in der heutigen (?:schnelllebigen |digitalen |modernen )?(?:welt|zeit)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "zeitalter"
+    ],
+    "pattern": "im (?:digitalen|heutigen) zeitalter"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "in der"
+    ],
+    "pattern": "in einer (?:welt|zeit), in der"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "tauchen"
+    ],
+    "pattern": "tauchen sie (?:tiefer )?ein"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "level",
+      "stufe"
+    ],
+    "pattern": "(?:auf das|aufs|auf ein|auf die) (?:nächste|neues|nächstes) (?:level|stufe)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "nahtlos"
+    ],
+    "pattern": "nahtlos(?:e|en|er)? (?:integration|integriert|erlebnis|zusammenarbeit|übergang|einfügen)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "es ist"
+    ],
+    "pattern": "es ist (?:wichtig|erwähnenswert|entscheidend) zu (?:beachten|erwähnen|wissen)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "oder"
+    ],
+    "pattern": "ob (?:anfänger|einsteiger|neuling) oder (?:profi|experte|fortgeschrittene)"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "entfesseln"
+    ],
+    "pattern": "entfesseln sie"
+  },
+  {
+    "min": 1,
+    "keys": [
+      "potenzial"
+    ],
+    "pattern": "(?:schöpfen sie|entfalten sie) (?:das|ihr) (?:volle[sn]? )?potenzial"
+  },
+  {
+    "min": 1,
+    "keys": [
+      ". kein"
+    ],
+    "pattern": "kein(?:e)? [a-zäöüß]+\\. kein(?:e)? [a-zäöüß]+\\. (?:nur|einfach|sondern)"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "mühelos"
+    ],
+    "pattern": "mühelos\\p{L}*"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "nahtlos"
+    ],
+    "pattern": "nahtlos\\p{L}*"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "maßgeschneidert"
+    ],
+    "pattern": "maßgeschneidert\\p{L}*"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "ganzheitlich"
+    ],
+    "pattern": "ganzheitlich\\p{L}*"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "innovativ"
+    ],
+    "pattern": "innovativ\\p{L}*"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "revolutionär"
+    ],
+    "pattern": "revolutionär\\p{L}*"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "entdecken sie"
+    ],
+    "pattern": "entdecken sie"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "effortless"
+    ],
+    "pattern": "effortless(?:ly)?"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "revolutionary"
+    ],
+    "pattern": "revolutionary"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "holistic"
+    ],
+    "pattern": "holistic"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "not "
+    ],
+    "pattern": "not (?:just|only|merely) (?:a |an |the )?[^.!?;:]{1,60}?[,;—–-]? but"
+  },
+  {
+    "min": 2,
+    "keys": [
+      "nicht nur"
+    ],
+    "pattern": "nicht nur [^.!?;:]{1,60}?,? sondern (?:auch)?"
+  }
+]

@@ -61,6 +61,7 @@ Make the core loop work with real content before any polish.
    contexts to partials with `{{template "case" (dict "root" $ "case" .)}}`; read `.root.urls`
    and `.case` inside. Guard optional paths directly with `{{with .data.note}}{{.}}{{end}}`
    or `{{if .data.note}}{{.data.note}}{{end}}`; absent, null and empty values are allowed there.
+   Copy checks use the shared DE/EN rules in `docs/copy-rules.md`; `lfm check file.txt` or `file.md` checks standalone copy, with `--lang` and `--project` for language and justified project policy. New rules warn for reveals, adjective triads, comma chains, vague claims, German em dashes, repeated sentences and rhythm; leaked generation instructions block. Use `data-slop-skip` for verbatim HTML and `build.validation.copyAllow` only with a reason.
    `copy.machine` excludes table and role=table/grid content and names up to three review passages with source locations and window-level signals;
    revise the named signal (rhythm or wording) while preserving factual content. `build.browserData` lists the config paths the script needs
    (`"data.check"`); the script reads the same shape back:
