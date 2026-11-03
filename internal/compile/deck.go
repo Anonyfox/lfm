@@ -310,7 +310,7 @@ func deckImages(pr *press, r *deck.Report, built []deck.Built, printKeys map[str
 	for i, plan := range names {
 		planned[i] = listingPlan{Name: plan.Name, Key: printKey("deck image "+plan.Name, basis, nil)}
 	}
-	return listingImages(pr, planned, func(*release.Printer) ([]listingPlan, map[string][]byte, error) {
+	return listingImages(pr, planned, r.GuideAssets(), func(*release.Printer) ([]listingPlan, map[string][]byte, error) {
 		if len(shots) == 0 {
 			return nil, nil, nil
 		}

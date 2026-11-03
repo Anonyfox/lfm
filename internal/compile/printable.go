@@ -174,7 +174,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 // and the image layouts are unchanged, rendered by a release otherwise.
 func printableImages(pr *press, r *printable.Report) []printable.Image {
 	covers := r.SizeCovers()
-	inputs := []byte{}
+	inputs := append([]byte{}, r.Editions[0].Doc...)
 	for _, ed := range covers {
 		inputs = append(inputs, ed.Doc...)
 	}
@@ -183,7 +183,7 @@ func printableImages(pr *press, r *printable.Report) []printable.Image {
 		planned = append(planned, listingPlan{Name: plan.Name, Doc: plan.Doc,
 			Key: printKey("listing image "+plan.Name, append(append([]byte{}, plan.Doc...), inputs...), r.Assets)})
 	}
-	return listingImages(pr, planned, func(printer *release.Printer) ([]listingPlan, map[string][]byte, error) {
+	return listingImages(pr, planned, r.Assets, func(printer *release.Printer) ([]listingPlan, map[string][]byte, error) {
 		// The plans show real pages: the first edition's and each size's cover.
 		shots := r.Shots()
 		pages := make([]int, len(shots))

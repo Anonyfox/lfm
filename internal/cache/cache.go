@@ -10,6 +10,9 @@ import (
 
 // Dir returns a cache category, falling back to the system temp directory.
 func Dir(category string) string {
+	if root := os.Getenv("LFM_CACHE_DIR"); root != "" {
+		return filepath.Join(root, category)
+	}
 	base, err := os.UserCacheDir()
 	if err != nil {
 		base = os.TempDir()

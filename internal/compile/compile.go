@@ -302,18 +302,6 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if result.Errors() > 0 {
 		return result, &Failure{Errors: result.Errors()}
 	}
-	// The audit loads only the page; it runs while deliverables are delivered.
-	var audit *release.AuditResult
-	auditDone := make(chan struct{})
-	if options.Release && result.PageNeeded() && ctx.Err() == nil {
-		go func() {
-			defer close(auditDone)
-			audit = release.Audit(ctx, release.Target{Page: page, Assets: b.sidecars()}, p.Root)
-		}()
-	} else {
-		close(auditDone)
-	}
-	defer func() { <-auditDone }() // never leave the browser running behind a return
 	// One stock for every deliverable: the last publish indexed once, one Chrome.
 	st := newStock(ctx, p, options.Release)
 	defer st.close()
@@ -329,7 +317,9 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
-		<-auditDone
+		// Timing probes run after delivery, without competing renders or Office work.
+		st.close()
+		audit := release.Audit(ctx, release.Target{Page: page, Assets: b.sidecars()}, p.Root)
 		result.Release.Audit = audit
 		if audit.Runtime != nil && audit.Runtime.Status != "ok" {
 			// A failed browser capability is reported once by the audit, even

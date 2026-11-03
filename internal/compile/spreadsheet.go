@@ -219,5 +219,5 @@ func spreadsheetImages(pr *press, plans []spreadsheet.ImagePlan) []spreadsheet.I
 		planned[i] = listingPlan{Name: plan.Name, Doc: plan.Doc, Key: printKey("spreadsheet image "+plan.Name, plan.Doc, nil)}
 	}
 	// The plans render the workbook's own HTML; no printer step comes first.
-	return listingImages(pr, planned, func(*release.Printer) ([]listingPlan, map[string][]byte, error) { return planned, nil, nil })
+	return listingImages(pr, planned, nil, func(*release.Printer) ([]listingPlan, map[string][]byte, error) { return planned, nil, nil })
 }

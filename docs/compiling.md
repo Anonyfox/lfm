@@ -252,3 +252,16 @@ Review frames, Lighthouse reports and LibreOffice verdicts live under the user c
 keeps at most 128 entries and removes entries unused for 30 days. If the user cache cannot be located,
 lfm uses the system temp directory. Working directories are removed on exit; startup removes owned
 scratch older than six hours.
+
+### Persisting release caches
+
+By default, lfm keeps browser renders, complete listing image sets, audit reports,
+layout frames and LibreOffice verdicts under `os.UserCacheDir()/lfm`.
+Set `LFM_CACHE_DIR` to an absolute directory to keep all these caches elsewhere.
+In CI, restore and save that directory between jobs, alongside any retained
+`output/` and `distribution/` folders. Keep it private to trusted build jobs:
+cache contents are trusted build artifacts. Missing, expired or unreadable entries
+are rebuilt; deleting the directory is safe. Each category retains at most 128
+recent entries, expiring after 30 days. Render keys include source bytes, assets,
+geometry, Chrome version and renderer version. Update the renderer or stage
+version when changing code that affects cached results.

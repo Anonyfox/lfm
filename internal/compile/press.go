@@ -257,6 +257,7 @@ func (st *stock) printerFor() (*release.Printer, error) {
 func (st *stock) close() {
 	if st.printer != nil {
 		st.printer.Close()
+		st.printer = nil
 	}
 }
 

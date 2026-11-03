@@ -71,3 +71,15 @@ func userCache(t *testing.T) string {
 	}
 	return dir
 }
+
+func TestCacheDirectoryOverride(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("LFM_CACHE_DIR", root)
+	for _, category := range []string{"release", "release-images", "release-pictures", "frames", "lighthouse", "libreoffice"} {
+		t.Run(category, func(t *testing.T) {
+			if got := Dir(category); got != filepath.Join(root, category) {
+				t.Fatal(got)
+			}
+		})
+	}
+}

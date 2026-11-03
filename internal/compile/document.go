@@ -151,21 +151,6 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 		r.Summary.Layout = strings.Join(append(checked, secondOpinions(document.Dir, document.RuleLayout, apps, w)...), " · ")
 	}
 
-	// The listing images show the real first pages, rendered in a release.
-	var shots []document.Shot
-	if st.release && pictures {
-		if printer, err := pr.printerFor(); err == nil {
-			for _, b := range built {
-				if b.Edition != r.Showcase() {
-					continue
-				}
-				pw, ph := document.PagePixels(b.Edition)
-				if png, err := printer.Picture(r.ShotDoc(b), fonts, pw, ph, 2); err == nil {
-					shots = append(shots, document.Shot{Key: b.Key, Title: b.Doc.Title, PNG: png})
-				}
-			}
-		}
-	}
 	var guides [][]byte
 	var images []document.Image
 	var wg sync.WaitGroup
@@ -173,7 +158,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 		guides = printGuides(pr, guideKeys, guideDocs, guideNames, fonts, document.Dir, document.RuleChannels, w)
 	})
 	if pictures {
-		wg.Go(func() { images = documentImages(pr, r, built, printKeys, shots) })
+		wg.Go(func() { images = documentImages(pr, r, built, printKeys, nil) })
 	}
 	wg.Wait()
 
@@ -243,6 +228,11 @@ func documentImages(pr *press, r *document.Report, built []document.Built, print
 		}
 	}
 	basis := []byte(strings.Join(keys, ",") + "|" + strings.Join(r.Facts(), "|"))
+	for _, b := range built {
+		if b.Edition == r.Showcase() {
+			basis = append(basis, r.ShotDoc(b)...)
+		}
+	}
 	names := r.Images(placeholder)
 	for _, plan := range names {
 		basis = append(basis, plan.Doc...)
@@ -251,7 +241,33 @@ func documentImages(pr *press, r *document.Report, built []document.Built, print
 	for i, plan := range names {
 		planned[i] = listingPlan{Name: plan.Name, Key: printKey("document image "+plan.Name, basis, nil)}
 	}
-	return listingImages(pr, planned, func(*release.Printer) ([]listingPlan, map[string][]byte, error) {
+	return listingImages(pr, planned, r.GuideAssets(), func(printer *release.Printer) ([]listingPlan, map[string][]byte, error) {
+		if len(shots) == 0 && pr.release {
+			rendered := make([]document.Shot, len(built))
+			var wg sync.WaitGroup
+			for i, b := range built {
+				if b.Edition != r.Showcase() {
+					continue
+				}
+				wg.Go(func() {
+					pw, ph := document.PagePixels(b.Edition)
+					if png, err := printer.Picture(r.ShotDoc(b), r.GuideAssets(), pw, ph, 2); err == nil {
+						rendered[i] = document.Shot{Key: b.Key, Title: b.Doc.Title, PNG: png}
+					}
+				})
+			}
+			wg.Wait()
+			for i, b := range built {
+				if b.Edition == r.Showcase() && rendered[i].PNG == nil {
+					return nil, nil, fmt.Errorf("render document showcase %s", b.Name)
+				}
+			}
+			for _, shot := range rendered {
+				if shot.PNG != nil {
+					shots = append(shots, shot)
+				}
+			}
+		}
 		if len(shots) == 0 {
 			return nil, nil, nil
 		}

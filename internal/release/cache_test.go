@@ -50,26 +50,26 @@ func TestArtifactAuditCache(t *testing.T) {
 	buildid.Writer = func() string { return previous() + "-upgraded" }
 	t.Cleanup(func() { buildid.Writer = previous })
 	cachedAuditRun(ctx, target, ".", run)
-	if calls != 4 {
-		t.Fatal("lfm version change reused audit", calls)
+	if calls != 3 {
+		t.Fatal("unrelated lfm upgrade invalidated audit", calls)
 	}
 	key := CacheKey(ctx, target, ".")
 	if err := os.WriteFile(filepath.Join(cacheDir(), key+".json"), []byte("corrupt"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cachedAuditRun(ctx, target, ".", run)
-	if calls != 5 {
+	if calls != 4 {
 		t.Fatal("corrupt entry reused audit", calls)
 	}
 	WriteCache(key, cachedAudit{Result: &AuditResult{}})
 	cachedAuditRun(ctx, target, ".", run)
-	if calls != 6 {
+	if calls != 5 {
 		t.Fatal("incomplete entry reused audit", calls)
 	}
 	target.URL = "https://example.com/"
 	cachedAuditRun(ctx, target, ".", run)
 	cachedAuditRun(ctx, target, ".", run)
-	if calls != 8 {
+	if calls != 7 {
 		t.Fatal("live URL reused audit", calls)
 	}
 }

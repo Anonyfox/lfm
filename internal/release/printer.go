@@ -22,17 +22,18 @@ import (
 // pays for one browser start however many PDFs it prints. It is safe for
 // concurrent use.
 type Printer struct {
-	browser context.Context
-	server  *httptest.Server
-	stop    func()
-	jobs    sync.Map // "/<n>/" -> http.Handler
-	next    atomic.Int64
-	slots   chan struct{} // open tabs; a release prints many files side by side
+	browser  context.Context
+	server   *httptest.Server
+	stop     func()
+	jobs     sync.Map // "/<n>/" -> http.Handler
+	next     atomic.Int64
+	identity string        // Chrome version, captured once at startup
+	slots    chan struct{} // open tabs; a release prints many files side by side
 }
 
 // tabs is how many tabs print at once: enough to keep the cores busy, few
 // enough that Chrome's memory stays bounded however many files a set has.
-var tabs = min(max(2, runtime.NumCPU()), 8)
+var tabs = min(max(1, runtime.NumCPU()), 4)
 
 // tabTime is how long one print or render may take once it has a tab.
 const tabTime = time.Minute
@@ -43,7 +44,7 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Printer{slots: make(chan struct{}, tabs)}
+	p := &Printer{slots: make(chan struct{}, tabs), identity: ImageIdentity(ctx)}
 	p.server, err = localServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		job, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		if h, ok := p.jobs.Load(job); ok {
@@ -256,6 +257,17 @@ func (p *Printer) Overflows(doc []byte, assets map[string][]byte, width, height 
 // PageImages renders pages (1-based) of a document of .page sections as PNGs
 // at scale device pixels per CSS pixel.
 func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height int64, scale float64, pages []int) ([][]byte, error) {
+	if err := p.browser.Err(); err != nil {
+		return nil, err
+	}
+	key := ""
+	if p.identity != "" {
+		key = imageKey(fmt.Sprintf("page-images-1/%v/%s", pages, p.identity), doc, assets, width, height, scale)
+	}
+	return cachedPageImages(key, len(pages), func() ([][]byte, error) { return p.pageImages(doc, assets, width, height, scale, pages) })
+}
+
+func (p *Printer) pageImages(doc []byte, assets map[string][]byte, width, height int64, scale float64, pages []int) ([][]byte, error) {
 	tab, done, err := p.load(doc, assets, width, height, scale, "print")
 	if err != nil {
 		return nil, err
@@ -283,6 +295,14 @@ func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height
 // Picture renders a document at width×height CSS pixels and scale as a PNG of
 // the viewport.
 func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height int64, scale float64) ([]byte, error) {
+	if err := p.browser.Err(); err != nil {
+		return nil, err
+	}
+	key := imageKey(p.identity, doc, assets, width, height, scale)
+	return cachedPicture(key, func() ([]byte, error) { return p.picture(doc, assets, width, height, scale) })
+}
+
+func (p *Printer) picture(doc []byte, assets map[string][]byte, width, height int64, scale float64) ([]byte, error) {
 	tab, done, err := p.load(doc, assets, width, height, scale, "screen")
 	if err != nil {
 		return nil, err

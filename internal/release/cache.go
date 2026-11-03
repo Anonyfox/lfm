@@ -9,12 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime/debug"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/scratch"
@@ -50,14 +48,8 @@ func CacheKey(ctx context.Context, target Target, root string) string {
 	if err != nil || light == "" {
 		return ""
 	}
-	identity := buildid.Writer()
-	if info, ok := debug.ReadBuildInfo(); ok {
-		for _, setting := range info.Settings {
-			if setting.Key == "-ldflags" {
-				identity += "\x00" + setting.Value
-			}
-		}
-	}
+	// Bump when audit rules, probes, optimization or their cached representation change.
+	const identity = "release-stages-2"
 	// Reports and saved layout frames belong to this artifact's location.
 	absolute, _ := filepath.Abs(root)
 	return artifactKey(target, identity+"\x00"+absolute, chrome, light)
@@ -90,6 +82,9 @@ type cacheEnvelope struct {
 var userCacheDir = os.UserCacheDir
 
 func cacheDir() string {
+	if root := os.Getenv("LFM_CACHE_DIR"); root != "" {
+		return filepath.Join(root, "release")
+	}
 	dir, err := userCacheDir()
 	if err != nil {
 		dir = os.TempDir()
@@ -99,7 +94,10 @@ func cacheDir() string {
 
 // ReadCache treats absent, obsolete and corrupt files as misses.
 func ReadCache(key string, value any) time.Time {
-	dir := cacheDir()
+	return readCache(cacheDir(), key, value)
+}
+
+func readCache(dir, key string, value any) time.Time {
 	if key == "" || dir == "" {
 		return time.Time{}
 	}
@@ -117,7 +115,10 @@ func ReadCache(key string, value any) time.Time {
 
 // WriteCache is best effort and atomic. Keep at most 128 recent entries.
 func WriteCache(key string, value any) {
-	dir := cacheDir()
+	writeCache(cacheDir(), key, value)
+}
+
+func writeCache(dir, key string, value any) {
 	if key == "" || dir == "" {
 		return
 	}

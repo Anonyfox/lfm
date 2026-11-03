@@ -1,5 +1,15 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Release compiles retain complete listing image sets and content-keyed Chrome pictures,
+  including images a bundle does not publish, and defer document showcase rendering until needed.
+  Independent listing pictures render in at most four tabs; runtime and Lighthouse audits run
+  after deliverable work so their timing measurements have no competing render load.
+- Audit/optimization and LibreOffice caches use stage versions rather than the whole binary
+  identity; editable file writers remain conservative.
+- Set `LFM_CACHE_DIR` to persist all lfm caches in a chosen directory, including in CI.
+
 ## 0.1.15 (2026-11-03)
 
 - Formula highlights (`"if": "=[.check]=\"prüfen\""`) keep their formula in the .xlsx. Every one was

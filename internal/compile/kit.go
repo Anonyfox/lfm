@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sync"
 
-	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
@@ -187,7 +187,21 @@ type listingPlan struct {
 // from the plans render gives (with what only a printer makes, such as
 // page rasters), 3000 × 2250 JPEGs under a megabyte. Without a release,
 // missing images leave the press pending.
-func listingImages(pr *press, planned []listingPlan, render func(*release.Printer) ([]listingPlan, map[string][]byte, error)) []deliver.Image {
+func listingImages(pr *press, planned []listingPlan, dependencies map[string][]byte, render func(*release.Printer) ([]listingPlan, map[string][]byte, error)) []deliver.Image {
+	setKey := ""
+	if pr.release {
+		setKey = listingSetKey(release.ImageIdentity(pr.ctx), planned, dependencies)
+	}
+	var saved []deliver.Image
+	if release.ReadImageCache(setKey, &saved) && len(saved) == len(planned) {
+		valid := true
+		for i, plan := range planned {
+			valid = valid && saved[i].Name == plan.Name && len(saved[i].Data) > 0
+		}
+		if valid {
+			return saved
+		}
+	}
 	var out []deliver.Image
 	all := true
 	for _, plan := range planned {
@@ -197,7 +211,7 @@ func listingImages(pr *press, planned []listingPlan, render func(*release.Printe
 			all = false
 		}
 	}
-	if all {
+	if all && !pr.release {
 		return out
 	}
 	pending := func() []deliver.Image {
@@ -219,23 +233,48 @@ func listingImages(pr *press, planned []listingPlan, render func(*release.Printe
 	for _, plan := range planned {
 		keys[plan.Name] = plan.Key
 	}
-	out = nil
-	for _, plan := range plans {
-		png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale)
-		if err != nil {
-			continue
-		}
-		key := keys[plan.Name]
-		if key == "" {
-			key = plan.Key
-		}
-		jpg, err := jpegUnder(png, 1<<20, key)
-		if err != nil {
-			continue
-		}
-		out = append(out, deliver.Image{Name: plan.Name, Data: jpg})
+	rendered := make([]deliver.Image, len(plans))
+	slots := make(chan struct{}, min(4, max(1, runtime.NumCPU())))
+	var wg sync.WaitGroup
+	for i, plan := range plans {
+		slots <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-slots }()
+			png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale)
+			if err != nil {
+				return
+			}
+			key := keys[plan.Name]
+			if key == "" {
+				key = plan.Key
+			}
+			jpg, err := jpegUnder(png, 1<<20, key)
+			if err == nil {
+				rendered[i] = deliver.Image{Name: plan.Name, Data: jpg}
+			}
+		})
 	}
+	wg.Wait()
+	out = nil
+	for _, img := range rendered {
+		if img.Data != nil {
+			out = append(out, img)
+		}
+	}
+	if len(out) == len(planned) {
+		release.WriteImageCache(setKey, out)
+	}
+
 	return out
+}
+
+func listingSetKey(identity string, planned []listingPlan, dependencies map[string][]byte) string {
+	var recipe []byte
+	for _, plan := range planned {
+		part, _ := json.Marshal(plan)
+		recipe = append(recipe, part...)
+	}
+	return release.ImageSetKey(identity, recipe, dependencies)
 }
 
 // Listing images are 1500 × 1125 CSS pixels at twice the density: the
@@ -292,13 +331,15 @@ func (s sale) open(st *stock, result *Result, editions []string, preview func(i 
 }
 
 // remembered is what LibreOffice found in files the last time it opened
-// exactly these bytes with this lfm and this LibreOffice, or run's fresh
+// exactly these bytes with this verifier and this LibreOffice, or run's fresh
 // result, kept for next time. Opening them takes seconds a release with
 // unchanged files does not need. The verdicts live beside the release
 // frames in the user cache; only successful runs are kept.
 func remembered[T any](soffice, kind string, files [][]byte, run func() (T, error)) (T, error) {
 	h := sha256.New()
-	fmt.Fprintf(h, "%s\x00%s\x00%s\x00", kind, buildid.Writer(), soffice)
+	// Bump when any cached Office verifier or its finding representation changes.
+	const verifierVersion = "office-verdict-1"
+	fmt.Fprintf(h, "%s\x00%s\x00%s\x00", kind, verifierVersion, soffice)
 	if real, err := filepath.EvalSymlinks(soffice); err == nil {
 		if info, err := os.Stat(real); err == nil {
 			fmt.Fprintf(h, "%s\x00%d\x00%d\x00", real, info.Size(), info.ModTime().UnixNano())
