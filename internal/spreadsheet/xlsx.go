@@ -358,7 +358,8 @@ func (s *styler) highlight(sheet, ref string, sp *spec, first string) error {
 		}
 		row, _ := strconv.Atoi(strings.TrimLeft(first, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
 		if m.cond != nil {
-			opts = append(opts, excelize.ConditionalFormatOptions{Type: "formula", Format: &id, Criteria: "=", Value: formula.PrintAt(m.cond, row)})
+			// excelize writes a formula rule's Criteria as the formula and ignores Value.
+			opts = append(opts, excelize.ConditionalFormatOptions{Type: "formula", Format: &id, Criteria: formula.PrintAt(m.cond, row)})
 			continue
 		}
 		criteria := map[string]string{"<": "<", ">": ">", "<=": "<=", ">=": ">=", "=": "==", "<>": "!="}[m.op]

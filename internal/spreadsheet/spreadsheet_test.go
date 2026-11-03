@@ -1,9 +1,13 @@
 package spreadsheet
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -263,5 +267,51 @@ func TestTortureUsesEveryFunction(t *testing.T) {
 		if f != "TODAY" && !strings.Contains(raw, f+"(") {
 			t.Errorf("testdata/torture/workbook.json never calls %s", f)
 		}
+	}
+}
+
+// TestFormulaHighlightsKeepTheirFormula holds a formula highlight to the
+// rule Excel reads: an expression with the formula, never an empty one,
+// which Excel answers with "We found a problem with some content".
+func TestFormulaHighlightsKeepTheirFormula(t *testing.T) {
+	raw := read(t, "testdata/budget/workbook.json")
+	edited := strings.Replace(raw, "\"if\": \"<0\",", "\"if\": \"=[.spent]>[.budget]\",", 1)
+	if edited == raw {
+		t.Fatal("the fixture's highlight did not change")
+	}
+	r := Check(fixture(t, "budget", map[string]string{WorkbookFile: edited}), testConfig, true, nil, "")
+	built, err := r.Build(func(string) []byte { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	rule := regexp.MustCompile(`<cfRule type="expression"[^>]*><formula>([^<]*)</formula>`)
+	files := 0
+	for _, b := range built {
+		if !strings.HasSuffix(b.Name, ".xlsx") {
+			continue
+		}
+		zr, err := zip.NewReader(bytes.NewReader(b.Data), int64(len(b.Data)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var formulas []string
+		for _, zf := range zr.File {
+			if !strings.HasPrefix(zf.Name, "xl/worksheets/") {
+				continue
+			}
+			rc, _ := zf.Open()
+			xml, _ := io.ReadAll(rc)
+			rc.Close()
+			for _, m := range rule.FindAllStringSubmatch(string(xml), -1) {
+				formulas = append(formulas, m[1])
+			}
+		}
+		if len(formulas) != 1 || formulas[0] != "D2&gt;C2" {
+			t.Errorf("%s: expression rules %q, want one D2>C2", b.Name, formulas)
+		}
+		files++
+	}
+	if files == 0 {
+		t.Fatal("no workbook was built")
 	}
 }
