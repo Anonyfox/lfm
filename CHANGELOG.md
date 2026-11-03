@@ -1,5 +1,12 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.15 (2026-11-03)
+
+- Formula highlights (`"if": "=[.check]=\"prüfen\""`) keep their formula in the .xlsx. Every one was
+  written as an empty rule (`<formula>=</formula>`), so Excel opened each workbook that had one with
+  "We found a problem with some content" and offered to repair it; LibreOffice and Numbers read the
+  files silently. Threshold highlights (`<0`, `>=100`) were never affected.
+
 ## 0.1.14 (2026-10-27)
 
 - `design.ground` no longer fails elements nobody sees as a surface. The warm background-colour
