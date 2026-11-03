@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
@@ -73,9 +72,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 	}
 	pr := s.open(st, result, keys, func(i int) []byte { return r.Preview(r.Editions[i]) }, r.PreviewAssets())
 
-	// Every print is keyed by what Chrome prints, every file by its inputs
-	// and the binary: an unchanged set reuses its complete ZIPs as they are,
-	// and a newer lfm writes the files anew but keeps the PDFs.
+	// Reuse complete ZIPs and keep print keys independent of the writer.
 	jobs := r.Jobs()
 	fonts, fontKey := r.GuideAssets(), r.Digest()
 	guideDocs := make([][]byte, len(r.Editions))
@@ -91,7 +88,6 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 		printKeys[b.Key] = printKey("document print", append(r.PrintDoc(b), fontKey...), nil)
 	}
 	zipKeys := make([]string, len(r.Editions))
-	reuse := !st.release
 	for i, e := range r.Editions {
 		parts := []string{buildid.Writer(), guideKeys[i]}
 		for _, b := range jobs {
@@ -100,17 +96,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 			}
 		}
 		zipKeys[i] = printKey("document zip "+e.Key, []byte(strings.Join(parts, ",")), nil)
-		reuse = reuse && pr.has(zipKeys[i])
 	}
-	pictures := pictured(r.Listing.Present, r.Summary.Sell)
-	if reuse {
-		var images []document.Image
-		if pictures {
-			images = documentImages(pr, r, jobs, printKeys, nil)
-		}
-		return finishDocument(r, result, out, w.out, s.page, func(i int) []byte { return pr.lookup(zipKeys[i]) }, images, pr.pending)
-	}
-
 	built, err := r.Build(func(key string) []byte { return pr.lookup(key) })
 	if err != nil {
 		return out, []diagnostic.Diagnostic{{Rule: document.RuleSource, Severity: diagnostic.Error, Location: diagnostic.Location{File: document.Dir, Line: 1, Column: 1}, Message: "The documents could not be written: " + err.Error(), Hint: "Fix what the error names, then compile again."}}
@@ -133,7 +119,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 			checked = []string{term.Plural(len(found), "layout finding")}
 		}
 		// LibreOffice, when present, opens the real files too; a release
-		// needs none of it. LFM_OFFICE, a switch for lfm's own tests, has
+		// reuses remembered verdicts on unchanged files. LFM_OFFICE, a switch for lfm's own tests, has
 		// Word on a Mac open every file too; it opens windows, so no user
 		// gets it.
 		apps := []opinion{libreOffice(func(soffice string) ([]finding, error) {
@@ -151,33 +137,12 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 		r.Summary.Layout = strings.Join(append(checked, secondOpinions(document.Dir, document.RuleLayout, apps, w)...), " · ")
 	}
 
-	// The listing images show the real first pages, rendered in a release.
-	var shots []document.Shot
-	if st.release && pictures {
-		if printer, err := pr.printerFor(); err == nil {
-			for _, b := range built {
-				if b.Edition != r.Showcase() {
-					continue
-				}
-				pw, ph := document.PagePixels(b.Edition)
-				if png, err := printer.Picture(r.ShotDoc(b), fonts, pw, ph, 2); err == nil {
-					shots = append(shots, document.Shot{Key: b.Key, Title: b.Doc.Title, PNG: png})
-				}
-			}
-		}
-	}
-	var guides [][]byte
 	var images []document.Image
-	var wg sync.WaitGroup
-	wg.Go(func() {
-		guides = printGuides(pr, guideKeys, guideDocs, guideNames, fonts, document.Dir, document.RuleChannels, w)
-	})
-	if pictures {
-		wg.Go(func() { images = documentImages(pr, r, built, printKeys, shots) })
+	guides := printGuides(pr, guideKeys, guideDocs, guideNames, fonts, document.Dir, document.RuleChannels, w)
+	if pictured(r.Listing.Present, r.Summary.Sell) {
+		images = documentImages(pr, r, built, printKeys)
 	}
-	wg.Wait()
 
-	zips := make([][]byte, len(r.Editions))
 	for i, e := range r.Editions {
 		complete := guides[i] != nil
 		for _, b := range built {
@@ -185,12 +150,30 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 				complete = false
 			}
 		}
-		zips[i], err = editionZip(pr, zipKeys[i], complete, func(key string) ([]byte, error) { return r.Zip(e, built, pdfs, guides[i], key) })
+		data, err := editionZip(pr, zipKeys[i], complete, func(key string) ([]byte, error) { return r.Zip(e, built, pdfs, guides[i], key) })
 		if err != nil {
 			w.add(document.Dir, document.RuleChannels, "The ZIP of "+e.Key+" could not be written: "+err.Error(), "Fix what the error names, then compile again.")
 		}
+		if data != nil {
+			out.add(deliver.File{Name: r.ZipName(e), Label: strings.ToUpper(e.Lang) + " · " + paper.Label(e.Paper), Note: r.FileNote(e)}, data)
+		}
 	}
-	return finishDocument(r, result, out, w.out, s.page, func(i int) []byte { return zips[i] }, images, pr.pending)
+	r.Summary.Pending = pr.pending
+	r.Summary.Images = len(images)
+	out.Images = images
+	r.Summary.Files = allFiles(out)
+	if ownStores(r.Listing.Present, r.Summary.Sell) {
+		dist, channels, found := document.Distribution(*r, out.Files, out.Data, images, pr.pending, time.Now().Format("2006-01-02"))
+		result.distribute("document", dist)
+		r.Summary.Channels = channels
+		w.out = append(w.out, found...)
+	} else {
+		result.distribute("document", map[string][]byte{})
+	}
+	if s.page {
+		downloadPage(result, r.Config.Path, document.DownloadPage(*r, out.Files), out)
+	}
+	return out, w.out
 }
 
 func documentFindings(in []document.Finding) []finding {
@@ -201,39 +184,8 @@ func documentFindings(in []document.Finding) []finding {
 	return out
 }
 
-// finishDocument publishes the editions' ZIPs, the shop packages and the
-// download page.
-func finishDocument(r *document.Report, result *Result, out shipped, issues []diagnostic.Diagnostic, pageSale bool, zip func(int) []byte, images []document.Image, pending bool) (shipped, []diagnostic.Diagnostic) {
-	for i, e := range r.Editions {
-		if data := zip(i); data != nil {
-			out.add(deliver.File{Name: r.ZipName(e), Label: strings.ToUpper(e.Lang) + " · " + paper.Label(e.Paper), Note: r.FileNote(e)}, data)
-		}
-	}
-	r.Summary.Pending = pending
-	r.Summary.Images = len(images)
-	out.Images = images
-	for _, f := range out.Files {
-		r.Summary.Files = append(r.Summary.Files, f.Name)
-	}
-	if ownStores(r.Listing.Present, r.Summary.Sell) {
-		dist, channels, found := document.Distribution(*r, out.Files, out.Data, images, pending, time.Now().Format("2006-01-02"))
-		result.distribute("document", dist)
-		r.Summary.Channels = channels
-		issues = append(issues, found...)
-	} else {
-		result.distribute("document", map[string][]byte{})
-	}
-	if pageSale {
-		downloadPage(result, r.Config.Path, document.DownloadPage(*r, out.Files), out)
-	}
-	return out, issues
-}
-
-// documentImages are the listing images: the plan with blank pages names
-// and keys them, a release renders them from the first pages printed.
-// They show the print layout, so they key on the prints: a newer lfm that
-// writes the files anew keeps them.
-func documentImages(pr *press, r *document.Report, built []document.Built, printKeys map[string]string, shots []document.Shot) []document.Image {
+// documentPlans retains the print-based keys and the listing layout order.
+func documentPlans(r *document.Report, built []document.Built, printKeys map[string]string) []listingPlan {
 	var keys []string
 	var placeholder []document.Shot
 	for _, b := range built {
@@ -249,16 +201,31 @@ func documentImages(pr *press, r *document.Report, built []document.Built, print
 	}
 	planned := make([]listingPlan, len(names))
 	for i, plan := range names {
-		planned[i] = listingPlan{Name: plan.Name, Key: printKey("document image "+plan.Name, basis, nil)}
+		planned[i] = listingPlan{Name: plan.Name, Doc: plan.Doc, Key: printKey("document image "+plan.Name, basis, nil)}
 	}
-	return listingImages(pr, planned, func(*release.Printer) ([]listingPlan, map[string][]byte, error) {
-		if len(shots) == 0 {
-			return nil, nil, nil
+	return planned
+}
+
+func documentImages(pr *press, r *document.Report, built []document.Built, printKeys map[string]string) []document.Image {
+	planned := documentPlans(r, built, printKeys)
+	return listingImages(pr, "document", r.Summary.Sell, planned, func(printer *release.Printer, missing []listingPlan) ([]listingPlan, map[string][]byte, error) {
+		var refs []document.Shot
+		var shots []picturePlan
+		for _, b := range built {
+			if b.Edition != r.Showcase() {
+				continue
+			}
+			marker := []byte(b.Key)
+			refs = append(refs, document.Shot{Key: b.Key, Title: b.Doc.Title, PNG: marker})
+			pw, ph := document.PagePixels(b.Edition)
+			shots = append(shots, picturePlan{marker, r.ShotDoc(b), pw, ph, 2})
 		}
 		var plans []listingPlan
-		for _, plan := range r.Images(shots) {
-			plans = append(plans, listingPlan{Name: plan.Name, Doc: plan.Doc})
+		for _, p := range r.Images(refs) {
+			plans = append(plans, listingPlan{Name: p.Name, Doc: p.Doc})
 		}
-		return plans, r.GuideAssets(), nil
+		assets := r.GuideAssets()
+		plans, err := captureShots(printer, plans, missing, assets, shots)
+		return plans, assets, err
 	})
 }

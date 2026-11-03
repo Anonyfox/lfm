@@ -16,24 +16,24 @@ type cachedOptimization struct {
 
 // Cache the optimization inputs, before critical splitting or image hints, so
 // the next identical compile does not need Chrome to reconstruct the final page.
-func (b *builder) optimizeCached(doc *html.Node, result *Result) error {
-	return b.optimizeWithCache(doc, result, b.optimize)
-}
-
 func (b *builder) optimizeWithCache(doc *html.Node, result *Result, run func(*html.Node, *Result) error) error {
 	var input bytes.Buffer
 	if err := html.Render(&input, doc); err != nil {
 		return err
 	}
 	assets := b.sidecars()
-	public, err := b.publicFiles()
+	public := b.public
+	var err error
+	if public == nil {
+		public, err = b.publicFiles()
+	}
 	if err != nil {
 		return err
 	}
 	for name, raw := range public {
 		assets[name] = raw
 	}
-	key := release.CacheKey(b.ctx, release.Target{Page: input.Bytes(), Assets: assets}, b.root)
+	key := release.CacheKey(b.ctx, release.Target{Page: input.Bytes(), Assets: assets, Tools: b.tools}, b.root)
 	if key != "" {
 		key += "-optimize"
 	}

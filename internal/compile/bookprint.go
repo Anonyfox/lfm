@@ -2,7 +2,6 @@ package compile
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/Anonyfox/lfm/internal/pdfx"
 
@@ -78,25 +77,22 @@ func (pr *press) paperback(r *book.Report, built book.Built) book.Printed {
 			printed.Spines[key] = book.LuluSpine(pages)
 		}
 	}
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	for key, spine := range printed.Spines {
-		wg.Go(func() {
-			// KDP prints spine text from 79 pages; narrower spines stay blank.
-			doc := built.CoverDocument(spine, pages >= 79)
-			wrap, err := pr.job(printKey("wrap", doc, built.PrintAssets), func(printer *release.Printer) ([]byte, error) {
-				return printer.Print(doc, built.PrintAssets, false)
-			})
-			mu.Lock()
-			defer mu.Unlock()
-			switch {
-			case err != nil:
-				printed.Problems = append(printed.Problems, "The "+key+" cover wrap could not be printed: "+err.Error())
-			case wrap != nil:
-				printed.Wraps[key] = wrap
-			}
+
+	for _, key := range book.Wraps(*r, pages) {
+		spine := printed.Spines[key]
+		// KDP prints spine text from 79 pages; narrower spines stay blank.
+		doc := built.CoverDocument(spine, pages >= 79)
+		wrap, err := pr.job(printKey("wrap", doc, built.PrintAssets), func(printer *release.Printer) ([]byte, error) {
+			return printer.Print(doc, built.PrintAssets, false)
 		})
+
+		switch {
+		case err != nil:
+			printed.Problems = append(printed.Problems, "The "+key+" cover wrap could not be printed: "+err.Error())
+		case wrap != nil:
+			printed.Wraps[key] = wrap
+		}
 	}
-	wg.Wait()
+
 	return printed
 }

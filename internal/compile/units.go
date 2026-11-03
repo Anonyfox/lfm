@@ -1,8 +1,6 @@
 package compile
 
 import (
-	"fmt"
-
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
 	"github.com/Anonyfox/lfm/internal/deck"
@@ -16,8 +14,10 @@ import (
 
 // unit is one deliverable of the project as a compile drives it: checked
 // beside the others, summarized in the result, held to its offer,
-// delivered after the page, gathered by the bundle.
+// delivered after the page, with one part for the bundle.
 type unit interface {
+	// part supplies ordered image plans, files, facts and the hero cover.
+	part() part
 	// summarize puts the unit's summary into the result.
 	summarize(*Result)
 	// sale names its lfm.json field, how it sells, its offer and its rule.
@@ -92,9 +92,8 @@ func (u *bookUnit) deliver(p project.Project, page []byte, st *stock, res *Resul
 }
 
 type printableUnit struct {
-	r      *printable.Report
-	out    shipped
-	images []printable.Image
+	r   *printable.Report
+	out shipped
 }
 
 func (u *printableUnit) summarize(res *Result) { res.Printable = &u.r.Summary }
@@ -107,7 +106,7 @@ func (u *printableUnit) sale(d project.Deliverables) (string, string, string, st
 }
 func (u *printableUnit) deliver(p project.Project, page []byte, st *stock, res *Result) []diagnostic.Diagnostic {
 	var found []diagnostic.Diagnostic
-	u.out, u.images, found = deliverPrintable(p, u.r, page, st, res)
+	u.out, found = deliverPrintable(p, u.r, page, st, res)
 	return found
 }
 
@@ -166,26 +165,4 @@ func (u *deckUnit) deliver(p project.Project, page []byte, st *stock, res *Resul
 	var found []diagnostic.Diagnostic
 	u.out, found = deliverDeck(p, u.r, page, st, res)
 	return found
-}
-
-// gather collects the delivered units for the bundle.
-func gather(units []unit) delivered {
-	var d delivered
-	for _, u := range units {
-		switch u := u.(type) {
-		case *bookUnit:
-			d.book, d.books = u.r, u.out
-		case *printableUnit:
-			d.printable, d.prints, d.printImages = u.r, u.out, u.images
-		case *spreadsheetUnit:
-			d.spreadsheet, d.grids = u.r, u.out
-		case *documentUnit:
-			d.document, d.docs = u.r, u.out
-		case *deckUnit:
-			d.deck, d.decks = u.r, u.out
-		default:
-			panic(fmt.Sprintf("compile: the bundle cannot gather a %T", u))
-		}
-	}
-	return d
 }

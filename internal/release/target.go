@@ -9,6 +9,8 @@ import (
 
 // Target selects a live URL or immutable artifact bytes for browser checks.
 type Target struct {
+	text   *texts
+	Tools  *ToolIdentity // shared by optimization and audit
 	URL    string
 	Page   []byte
 	Assets map[string][]byte
@@ -18,7 +20,7 @@ func (t Target) serve(listen func(string, string) (net.Listener, error)) (destin
 	if t.URL != "" {
 		return t.URL, "", func() {}, nil
 	}
-	server, err := localServerWithOrigin(func(origin string) http.Handler { return AuditHandler(t.Page, t.Assets, origin) }, listen)
+	server, err := localServerWithOrigin(func(origin string) http.Handler { return t.handler(origin) }, listen)
 	if err != nil {
 		return "", "", func() {}, err
 	}

@@ -17,7 +17,7 @@ import (
 func (b *builder) publicFiles() (map[string][]byte, error) {
 	dir, err := b.project.OptionalDir(project.PublicDir)
 	if err != nil || dir == "" {
-		return nil, err
+		return map[string][]byte{}, err
 	}
 	files := map[string][]byte{}
 	err = filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {

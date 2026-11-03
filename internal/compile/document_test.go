@@ -67,7 +67,7 @@ func TestDocumentsAreBuiltCheckedAndDelivered(t *testing.T) {
 		}
 	}
 	reused, err := Compile(context.Background(), dir, Options{Publish: true})
-	if err != nil || reused.Document.Pending || reused.Document.Images != result.Document.Images {
+	if err != nil || reused.Document.Pending || reused.Document.Images != result.Document.Images || !bytes.Equal(reused.Artifact[docPath+"/allotment-society-kit-en-a4.zip"], result.Artifact[docPath+"/allotment-society-kit-en-a4.zip"]) {
 		t.Fatalf("prints not reused: %v %+v", err, reused.Document)
 	}
 }

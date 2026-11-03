@@ -242,10 +242,16 @@ This also runs without `--release`; an unchanged card and its assets reuse the p
 
 Release optimization and audits are cached under the system user cache directory in `lfm/release/`.
 The keys include the served bytes, lfm build identity, Chrome and Lighthouse versions and audit settings.
-An unchanged artifact reuses its critical CSS decision, runtime/layout result and Lighthouse result; the
+Public files are read once per invocation; the finalized page and sidecars are fixed before delivery.
+Delivery finishes and its browser closes before the page audit begins. Bundle image slots are selected
+before rendering; each demanded image is reused independently. Units with their own stores retain their
+full image sets.
+
+An unchanged artifact reuses its critical CSS decision, complete runtime/layout result and Lighthouse result; the
 report gives the original audit date. Changing any served byte or tool version requires a fresh audit.
 Live URLs checked with `lfm check --release` always run fresh audits. Cache failures do not block a build;
-entries expire after 30 days and at most 128 are kept.
+tool-version failures are retried once and reported if a successful audit cannot be cached. Incomplete
+layout walks are never reused. Entries expire after 30 days and at most 128 are kept.
 
 Review frames, Lighthouse reports and LibreOffice verdicts live under the user cache in
 `lfm/frames/<project-hash>/`, `lfm/lighthouse/<project-hash>.json` and `lfm/libreoffice/`. Each category

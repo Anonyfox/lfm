@@ -35,6 +35,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/deck"
+	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
@@ -138,6 +139,7 @@ type emitted struct {
 // builder carries the state of the assemble stage. esbuild plugin callbacks
 // run concurrently, so shared maps are guarded by mu.
 type builder struct {
+	tools           *release.ToolIdentity
 	cards           map[string]string
 	ctx             context.Context // a cancelled compile stops its browsers
 	project         project.Project
@@ -252,17 +254,18 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		return result, err
 	}
 
+	if b.public, err = b.publicFiles(); err != nil {
+		return result, err
+	}
 	// 4. optimize
 	if options.Release && result.PageNeeded() {
-		if err := b.optimizeCached(doc, &result); err != nil {
+		b.tools = release.ResolveTools(ctx, p.Root)
+		if err := b.optimizeWithCache(doc, &result, b.optimize); err != nil {
 			return result, err
 		}
 	}
 
 	// 5. finalize
-	if b.public, err = b.publicFiles(); err != nil {
-		return result, err
-	}
 	var serialized bytes.Buffer
 	serialized.Grow(b.renderHint)
 	if err := html.Render(&serialized, doc); err != nil {
@@ -281,6 +284,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	}
 	result.Cost = measureCost(page, doc, b.files)
 	b.describe(&result, page)
+	auditAssets := b.sidecars()
 
 	// 6. verify: analyze the exact bytes that publish writes.
 	analysis, err := check.Analyze(page, check.Options{
@@ -302,24 +306,13 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if result.Errors() > 0 {
 		return result, &Failure{Errors: result.Errors()}
 	}
-	// The audit loads only the page; it runs while deliverables are delivered.
-	var audit *release.AuditResult
-	auditDone := make(chan struct{})
-	if options.Release && result.PageNeeded() && ctx.Err() == nil {
-		go func() {
-			defer close(auditDone)
-			audit = release.Audit(ctx, release.Target{Page: page, Assets: b.sidecars()}, p.Root)
-		}()
-	} else {
-		close(auditDone)
-	}
-	defer func() { <-auditDone }() // never leave the browser running behind a return
 	// One stock for every deliverable: the last publish indexed once, one Chrome.
 	st := newStock(ctx, p, options.Release)
 	defer st.close()
 	if !deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result) {
 		return result, &Failure{Errors: result.Errors()}
 	}
+	st.close()
 	if err := b.addPublic(&result); err != nil {
 		return result, err
 	}
@@ -329,7 +322,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
-		<-auditDone
+		audit := release.Audit(ctx, release.Target{Page: page, Assets: auditAssets, Tools: b.tools}, p.Root)
 		result.Release.Audit = audit
 		if audit.Runtime != nil && audit.Runtime.Status != "ok" {
 			// A failed browser capability is reported once by the audit, even
@@ -373,27 +366,23 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	return result, nil
 }
 
-// checkDeliverables checks every deliverable side by side, each reading only
+// checkDeliverables checks every deliverable in order, each reading only
 // its own folder, then the bundle of them and how each sells on the page.
 func checkDeliverables(in checking, result *Result) ([]unit, *bundle.Report, []diagnostic.Diagnostic) {
 	rules := in.loaded.Config.Build.Validation.Rules
-	units := make([]unit, len(kinds))
-	found := make([][]diagnostic.Diagnostic, len(kinds))
-	var wg sync.WaitGroup
-	for i, k := range kinds {
-		if k.present(in.p) {
-			wg.Go(func() { units[i], found[i] = k.check(in) })
-		}
-	}
-	wg.Wait()
+	var units []unit
 	var findings []diagnostic.Diagnostic
-	for i, u := range units {
+	for _, k := range kinds {
+		if !k.present(in.p) {
+			continue
+		}
+		u, found := k.check(in)
 		if u != nil {
+			units = append(units, u)
 			u.summarize(result)
 		}
-		findings = append(findings, diagnostic.Apply(found[i], rules)...)
+		findings = append(findings, diagnostic.Apply(found, rules)...)
 	}
-	units = slices.DeleteFunc(units, func(u unit) bool { return u == nil })
 	pack, bundleFindings := checkBundle(in.p, in.loaded, in.commerce)
 	if pack != nil {
 		result.Bundle = &pack.Summary
@@ -415,6 +404,38 @@ func checkDeliverables(in checking, result *Result) ([]unit, *bundle.Report, []d
 // deliverAll delivers each deliverable on its own, then the bundle of those
 // it holds, and stops at the first that leaves errors.
 func deliverAll(p project.Project, page []byte, units []unit, pack *bundle.Report, st *stock, rules map[string]diagnostic.Severity, result *Result) bool {
+	selected := map[string]part{}
+	if pack != nil && pack.Listing.Present {
+		for _, u := range units {
+			pt := u.part()
+			selected[pt.kind] = pt
+		}
+		counts := map[string]int{}
+		covers := 0
+		for _, kind := range pack.Summary.Units {
+			if selected[kind].cover != nil || len(selected[kind].plans) > 0 {
+				covers++
+			}
+		}
+		left := deliver.EtsyImages
+		if covers >= 2 {
+			left--
+		}
+		for round := 0; left > 0; round++ {
+			added := false
+			for _, kind := range pack.Summary.Units {
+				if round < len(selected[kind].plans) && left > 0 {
+					counts[kind]++
+					left--
+					added = true
+				}
+			}
+			if !added {
+				break
+			}
+		}
+		st.demand = counts
+	}
 	for _, u := range units {
 		if st.ctx.Err() != nil {
 			return true // cancelled: the compile ends without publishing
@@ -424,7 +445,26 @@ func deliverAll(p project.Project, page []byte, units []unit, pack *bundle.Repor
 		}
 	}
 	if pack != nil && len(pack.Summary.Units) >= 2 {
-		parts, accent, render := gather(units).parts(pack)
+		var parts []part
+		accent := ""
+		render := func(*release.Printer) (map[string][]byte, error) { return nil, nil }
+		for _, u := range units {
+			pt := u.part()
+			selected[pt.kind] = pt
+		}
+		for _, kind := range pack.Summary.Units {
+			pt, ok := selected[kind]
+			if !ok {
+				continue
+			}
+			parts = append(parts, pt)
+			if accent == "" {
+				accent = pt.accent
+			}
+			if pt.render != nil {
+				render = pt.render
+			}
+		}
 		return result.revalidate(result.Validation.Stage, deliverBundle(p, pack, parts, accent, page, st, result, render), rules)
 	}
 	return true

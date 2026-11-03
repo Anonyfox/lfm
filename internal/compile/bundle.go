@@ -9,18 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/bundle"
 	"github.com/Anonyfox/lfm/internal/commercecheck"
-	"github.com/Anonyfox/lfm/internal/deck"
 	"github.com/Anonyfox/lfm/internal/deliver"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
-	"github.com/Anonyfox/lfm/internal/document"
 	"github.com/Anonyfox/lfm/internal/jsonsrc"
 	"github.com/Anonyfox/lfm/internal/printable"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/spreadsheet"
 )
 
 // checkBundle checks deliverables.bundle against the deliverables it holds.
@@ -116,6 +112,9 @@ func saleFindings(commerce commercecheck.Facts, field, sell, offer, rule string)
 // group it when the bundle has more.
 type part struct {
 	kind, name string
+	accent     string
+	plans      []listingPlan
+	render     func(*release.Printer) (map[string][]byte, error)
 	files      shipped
 	facts      []string
 	groups     map[string][]string // ZIP name suffix -> files
@@ -245,122 +244,91 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 	return out, heroErr
 }
 
-// delivered are the units as compiled, for the bundle to gather.
-type delivered struct {
-	book                              *book.Report
-	printable                         *printable.Report
-	spreadsheet                       *spreadsheet.Report
-	document                          *document.Report
-	deck                              *deck.Report
-	books, prints, grids, docs, decks shipped
-	printImages                       []printable.Image
+func allFiles(s shipped) []string {
+	var names []string
+	for _, f := range s.Files {
+		names = append(names, f.Name)
+	}
+	return names
 }
 
-// parts are the bundle's units as it ships them, in the bundle's order, its
-// accent, and how a release renders the covers only a printer can draw.
-func (d delivered) parts(r *bundle.Report) ([]part, string, func(*release.Printer) (map[string][]byte, error)) {
-	var out []part
-	var accents []string
-	render := func(*release.Printer) (map[string][]byte, error) { return nil, nil }
-	firstImage := func(kind string, s shipped) (*bundle.Cover, []byte) {
-		if len(s.Images) == 0 {
-			return nil, nil
-		}
-		// A unit's first listing image is 3000 × 2250.
-		return &bundle.Cover{Name: kind + "-cover.jpg", Ratio: 4.0 / 3}, s.Images[0].Data
+func (u *bookUnit) part() part {
+	bk := u.r
+	kind := "book"
+	var formats []string
+	for _, f := range u.out.Files {
+		formats = append(formats, strings.ToUpper(strings.TrimPrefix(path.Ext(f.Name), ".")))
 	}
-	all := func(s shipped) []string {
-		var names []string
-		for _, f := range s.Files {
-			names = append(names, f.Name)
-		}
-		return names
-	}
-	for _, kind := range r.Summary.Units {
-		switch kind {
-		case "book":
-			bk := d.book
-			if bk == nil {
-				continue
-			}
-			var formats []string
-			for _, f := range d.books.Files {
-				formats = append(formats, strings.ToUpper(strings.TrimPrefix(path.Ext(f.Name), ".")))
-			}
-			pt := part{kind: kind, name: bk.Plan.Title, files: d.books, pending: bk.Summary.Pending,
-				facts:  []string{fmt.Sprintf("%s, %d chapters", strings.Join(formats, ", "), len(bk.Plan.Chapters))},
-				groups: map[string][]string{"ebook": all(d.books)}}
-			if cover := bk.Sources[bk.Plan.Cover]; cover != nil {
-				if cfg, _, err := image.DecodeConfig(bytes.NewReader(cover)); err == nil && cfg.Height > 0 {
-					pt.cover = &bundle.Cover{Name: "book-cover" + path.Ext(bk.Plan.Cover), Ratio: float64(cfg.Width) / float64(cfg.Height)}
-					pt.coverData = cover
-				}
-			}
-			out = append(out, pt)
-		case "printable":
-			pr := d.printable
-			if pr == nil {
-				continue
-			}
-			accents = append(accents, pr.Plan.Accent)
-			pt := part{kind: kind, name: pr.Plan.Name, files: d.prints, pending: pr.Summary.Pending, facts: printable.Facts(*pr), groups: map[string][]string{}}
-			for _, ed := range pr.Editions {
-				if d.prints.Data[pr.FileName(ed.Edition)] != nil {
-					pt.groups[ed.Edition.Size.Key] = append(pt.groups[ed.Edition.Size.Key], pr.FileName(ed.Edition))
-				}
-			}
-			pt.files.Images = d.printImages
-			if len(pr.Editions) > 0 {
-				first := pr.Editions[0]
-				pt.cover = &bundle.Cover{Name: "printable-cover.png", Ratio: first.Edition.Size.Width / first.Edition.Size.Height}
-				pt.coverKey = first.Doc
-				// The printable's first page is drawn by the printer.
-				render = func(printer *release.Printer) (map[string][]byte, error) {
-					raster, err := printer.PageImages(first.Doc, pr.Assets, mmPixels(first.Edition.Size.Width), mmPixels(first.Edition.Size.Height), printable.PageScale, []int{1})
-					if err != nil {
-						return nil, err
-					}
-					return map[string][]byte{"printable-cover.png": raster[0]}, nil
-				}
-			}
-			out = append(out, pt)
-		case "spreadsheet":
-			g := d.spreadsheet
-			if g == nil {
-				continue
-			}
-			accents = append(accents, g.Plan.Accent)
-			pt := part{kind: kind, name: g.Plan.Name, files: d.grids, pending: g.Summary.Pending, facts: g.Facts(), groups: map[string][]string{"spreadsheet": all(d.grids)}}
-			pt.cover, pt.coverData = firstImage(kind, d.grids)
-			out = append(out, pt)
-		case "document":
-			doc := d.document
-			if doc == nil {
-				continue
-			}
-			accents = append(accents, doc.Theme.Accent)
-			pt := part{kind: kind, name: doc.Plan.Name, files: d.docs, pending: doc.Summary.Pending, facts: doc.Facts(), groups: map[string][]string{"documents": all(d.docs)}}
-			pt.cover, pt.coverData = firstImage(kind, d.docs)
-			out = append(out, pt)
-		case "deck":
-			dk := d.deck
-			if dk == nil {
-				continue
-			}
-			accents = append(accents, dk.Theme.Accent)
-			pt := part{kind: kind, name: dk.Plan.Name, files: d.decks, pending: dk.Summary.Pending, facts: dk.Facts(), groups: map[string][]string{"decks": all(d.decks)}}
-			pt.cover, pt.coverData = firstImage(kind, d.decks)
-			out = append(out, pt)
-		default:
-			panic("compile: the bundle has no part for " + kind)
+	pt := part{kind: kind, name: bk.Plan.Title, files: u.out, pending: bk.Summary.Pending,
+		facts:  []string{fmt.Sprintf("%s, %d chapters", strings.Join(formats, ", "), len(bk.Plan.Chapters))},
+		groups: map[string][]string{"ebook": allFiles(u.out)}}
+	if cover := bk.Sources[bk.Plan.Cover]; cover != nil {
+		if cfg, _, err := image.DecodeConfig(bytes.NewReader(cover)); err == nil && cfg.Height > 0 {
+			pt.cover = &bundle.Cover{Name: "book-cover" + path.Ext(bk.Plan.Cover), Ratio: float64(cfg.Width) / float64(cfg.Height)}
+			pt.coverData = cover
 		}
 	}
-	accent := ""
-	for _, a := range accents {
-		if a != "" {
-			accent = a
-			break
+	return pt
+}
+
+func (u *printableUnit) part() part {
+	pr := u.r
+	kind := "printable"
+	pt := part{kind: kind, name: pr.Plan.Name, files: u.out, pending: pr.Summary.Pending, facts: printable.Facts(*pr), groups: map[string][]string{}}
+	for _, ed := range pr.Editions {
+		if u.out.Data[pr.FileName(ed.Edition)] != nil {
+			pt.groups[ed.Edition.Size.Key] = append(pt.groups[ed.Edition.Size.Key], pr.FileName(ed.Edition))
 		}
 	}
-	return out, accent, render
+	if len(pr.Editions) > 0 {
+		first := pr.Editions[0]
+		pt.cover = &bundle.Cover{Name: "printable-cover.png", Ratio: first.Edition.Size.Width / first.Edition.Size.Height}
+		pt.coverKey = first.Doc
+		// The printable's first page is drawn by the printer.
+		pt.render = func(printer *release.Printer) (map[string][]byte, error) {
+			raster, err := printer.PageImages(first.Doc, pr.Assets, mmPixels(first.Edition.Size.Width), mmPixels(first.Edition.Size.Height), printable.PageScale, []int{1})
+			if err != nil {
+				return nil, err
+			}
+			return map[string][]byte{"printable-cover.png": raster[0]}, nil
+		}
+	}
+	if pictured(pr.Listing.Present, pr.Summary.Sell) {
+		for _, plan := range pr.Images() {
+			pt.plans = append(pt.plans, listingPlan{Name: plan.Name, Doc: plan.Doc})
+		}
+	}
+	pt.accent = pr.Plan.Accent
+	return pt
+}
+
+func listingPart(pt part, group string, pictures bool) part {
+	if !pictures {
+		pt.plans = nil
+	}
+	pt.groups = map[string][]string{group: allFiles(pt.files)}
+	if len(pt.files.Images) > 0 {
+		pt.cover = &bundle.Cover{Name: pt.kind + "-cover.jpg", Ratio: 4.0 / 3}
+		pt.coverData = pt.files.Images[0].Data
+	}
+	return pt
+}
+
+func (u *spreadsheetUnit) part() part {
+	g := u.r
+	pt := part{kind: "spreadsheet", name: g.Plan.Name, files: u.out, pending: g.Summary.Pending, facts: g.Facts(), accent: g.Plan.Accent}
+	for _, p := range g.Images() {
+		pt.plans = append(pt.plans, listingPlan{Name: p.Name, Doc: p.Doc})
+	}
+	return listingPart(pt, "spreadsheet", pictured(g.Listing.Present, g.Summary.Sell))
+}
+
+func (u *documentUnit) part() part {
+	d := u.r
+	return listingPart(part{kind: "document", name: d.Plan.Name, files: u.out, pending: d.Summary.Pending, facts: d.Facts(), accent: d.Theme.Accent, plans: documentPlans(d, d.Jobs(), nil)}, "documents", pictured(d.Listing.Present, d.Summary.Sell))
+}
+
+func (u *deckUnit) part() part {
+	d := u.r
+	return listingPart(part{kind: "deck", name: d.Plan.Name, files: u.out, pending: d.Summary.Pending, facts: d.Facts(), accent: d.Theme.Accent, plans: deckPlans(d, d.Jobs(), nil)}, "decks", pictured(d.Listing.Present, d.Summary.Sell))
 }

@@ -25,91 +25,114 @@ func cacheTools(t *testing.T) {
 	t.Setenv("LFM_LIGHTHOUSE", tool)
 }
 
+func successfulAudit() *AuditResult {
+	return &AuditResult{Runtime: &RuntimeResult{Status: "ok", Layout: &LayoutResult{}}, Lighthouse: &LighthouseResult{Status: "ok"}}
+}
+
 func TestArtifactAuditCache(t *testing.T) {
 	cacheTools(t)
+	target := Target{Page: []byte("page"), Assets: map[string][]byte{"style.css": []byte("css")}}
 	calls := 0
 	run := func(context.Context, Target, string) *AuditResult {
 		calls++
-		return &AuditResult{Runtime: &RuntimeResult{Status: "ok"}, Lighthouse: &LighthouseResult{Status: "ok"}, Diagnostics: []diagnostic.Diagnostic{{Rule: "release.runtime", Severity: diagnostic.Warning, Message: "problem", Hint: "fix"}}}
+		r := successfulAudit()
+		r.Diagnostics = []diagnostic.Diagnostic{{Rule: "release.runtime", Severity: diagnostic.Warning, Message: "problem", Hint: "fix"}}
+		return r
 	}
-	target := Target{Page: []byte("page"), Assets: map[string][]byte{"style.css": []byte("css")}}
 	ctx := context.Background()
-	first := cachedAuditRun(ctx, target, ".", run)
-	second := cachedAuditRun(ctx, target, ".", run)
-	if calls != 1 || first.Reused != "" || second.Reused == "" || len(second.Diagnostics) != 1 {
-		t.Fatalf("%d %+v", calls, second)
+	for _, tc := range []struct {
+		name   string
+		change func()
+		want   int
+	}{
+		{"cold", func() {}, 1}, {"warm", func() {}, 1},
+		{"asset", func() { target.Assets["style.css"] = []byte("changed") }, 2},
+		{"page", func() { target.Page = []byte("changed") }, 3},
+		{"writer", func() {
+			previous := buildid.Writer
+			buildid.Writer = func() string { return previous() + " upgraded" }
+			t.Cleanup(func() { buildid.Writer = previous })
+		}, 4},
+		{"corrupt", func() {
+			_ = os.WriteFile(filepath.Join(cacheDir(), CacheKey(ctx, target, ".")+".json"), []byte("corrupt"), 0o644)
+		}, 5},
+		{"incomplete", func() { WriteCache(CacheKey(ctx, target, "."), cachedAudit{Result: &AuditResult{}}) }, 6},
+		{"remote", func() { target.URL = "https://example.com/" }, 7}, {"remote again", func() {}, 8},
+		{"unwritable", func() {
+			target.URL = ""
+			blocked := filepath.Join(t.TempDir(), "file")
+			_ = os.WriteFile(blocked, []byte("file"), 0o644)
+			userCacheDir = func() (string, error) { return blocked, nil }
+		}, 9},
+		{"unwritable again", func() {}, 10},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.change()
+			got := cachedAuditRun(ctx, target, ".", run)
+			if calls != tc.want || len(got.Diagnostics) != 1 || tc.name == "warm" && got.Reused == "" {
+				t.Fatalf("calls=%d result=%+v", calls, got)
+			}
+		})
 	}
-	target.Assets["style.css"] = []byte("changed")
-	cachedAuditRun(ctx, target, ".", run)
-	target.Page = []byte("changed")
-	cachedAuditRun(ctx, target, ".", run)
-	if calls != 3 {
-		t.Fatal("byte change reused audit", calls)
-	}
-	previous := buildid.Writer
-	buildid.Writer = func() string { return previous() + "-upgraded" }
-	t.Cleanup(func() { buildid.Writer = previous })
-	cachedAuditRun(ctx, target, ".", run)
-	if calls != 4 {
-		t.Fatal("lfm version change reused audit", calls)
-	}
-	key := CacheKey(ctx, target, ".")
-	if err := os.WriteFile(filepath.Join(cacheDir(), key+".json"), []byte("corrupt"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	cachedAuditRun(ctx, target, ".", run)
-	if calls != 5 {
-		t.Fatal("corrupt entry reused audit", calls)
-	}
-	WriteCache(key, cachedAudit{Result: &AuditResult{}})
-	cachedAuditRun(ctx, target, ".", run)
-	if calls != 6 {
-		t.Fatal("incomplete entry reused audit", calls)
-	}
-	target.URL = "https://example.com/"
-	cachedAuditRun(ctx, target, ".", run)
-	cachedAuditRun(ctx, target, ".", run)
-	if calls != 8 {
-		t.Fatal("live URL reused audit", calls)
-	}
-}
-
-func TestAuditCacheKeyVersionsAndCorruption(t *testing.T) {
-	cacheTools(t)
-	target := Target{Page: []byte("page")}
-	base := artifactKey(target, "lfm1", "chrome1", "lh1")
-	for _, key := range []string{artifactKey(target, "lfm2", "chrome1", "lh1"), artifactKey(target, "lfm1", "chrome2", "lh1"), artifactKey(target, "lfm1", "chrome1", "lh2")} {
+	base := artifactKey(target, "lfm", "chrome", "lh")
+	for _, key := range []string{artifactKey(target, "new", "chrome", "lh"), artifactKey(target, "lfm", "new", "lh"), artifactKey(target, "lfm", "chrome", "new")} {
 		if key == base {
-			t.Fatal("version did not change key")
+			t.Fatal("tool identity did not change key")
 		}
 	}
-	WriteCache(base, map[string]string{"ok": "yes"})
-	if err := os.WriteFile(filepath.Join(cacheDir(), base+".json"), []byte(`{"broken":`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	var got map[string]string
-	if !ReadCache(base, &got).IsZero() {
-		t.Fatal("corrupt cache accepted")
+}
+
+// A transient version failure must recover before a successful audit is keyed.
+func TestAuditVersionRecovery(t *testing.T) {
+	for _, tool := range []string{"LFM_CHROME", "LFM_LIGHTHOUSE"} {
+		for _, failure := range []string{"exit 1", "exit 0"} {
+			t.Run(tool+failure, func(t *testing.T) {
+				cacheTools(t)
+				script := filepath.Join(t.TempDir(), "tool")
+				counter := script + ".seen"
+				if err := os.WriteFile(script, []byte(fmt.Sprintf("#!/bin/sh\nif [ ! -e %q ]; then touch %q; %s; fi\necho stable-version\n", counter, counter, failure)), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				t.Setenv(tool, script)
+				calls := 0
+				run := func(context.Context, Target, string) *AuditResult { calls++; return successfulAudit() }
+				target := Target{Page: []byte("page")}
+				cachedAuditRun(context.Background(), target, ".", run)
+				second := cachedAuditRun(context.Background(), target, ".", run)
+				if calls != 1 || second.Reused == "" {
+					t.Fatalf("successful audit lost after version failure: calls=%d", calls)
+				}
+			})
+		}
 	}
 }
 
-func TestUnwritableAuditCacheIsOptional(t *testing.T) {
-	cacheTools(t)
-	blocked := filepath.Join(t.TempDir(), "file")
-	if err := os.WriteFile(blocked, []byte("file"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	userCacheDir = func() (string, error) { return blocked, nil }
-	calls := 0
-	run := func(context.Context, Target, string) *AuditResult {
-		calls++
-		return &AuditResult{Runtime: &RuntimeResult{Status: "ok"}, Lighthouse: &LighthouseResult{Status: "ok"}}
-	}
-	for range 2 {
-		cachedAuditRun(context.Background(), Target{Page: []byte("page")}, ".", run)
-	}
-	if calls != 2 {
-		t.Fatal("unwritable cache changed audit behavior", calls)
+func TestAuditLayoutCompletion(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		layout *LayoutResult
+		calls  int
+	}{
+		{"complete", &LayoutResult{}, 1},
+		{"missing", nil, 2},
+		{"stopped", &LayoutResult{Findings: []LayoutFinding{{Kind: "incomplete"}}}, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cacheTools(t)
+			calls := 0
+			run := func(context.Context, Target, string) *AuditResult {
+				calls++
+				r := successfulAudit()
+				r.Runtime.Layout = tc.layout
+				return r
+			}
+			for range 2 {
+				cachedAuditRun(context.Background(), Target{Page: []byte("page")}, ".", run)
+			}
+			if calls != tc.calls {
+				t.Fatalf("incomplete audit reused: calls=%d", calls)
+			}
+		})
 	}
 }
 
@@ -119,10 +142,7 @@ func TestAuditCacheIsBounded(t *testing.T) {
 		WriteCache(fmt.Sprintf("%03d", i), map[string]int{"entry": i})
 	}
 	entries, err := os.ReadDir(cacheDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(entries) != 128 {
-		t.Fatal("cache count", len(entries))
+	if err != nil || len(entries) != 128 {
+		t.Fatalf("cache entries=%d: %v", len(entries), err)
 	}
 }

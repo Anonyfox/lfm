@@ -1,9 +1,10 @@
 package compile
 
 import (
+	"bytes"
 	"fmt"
+	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/commercecheck"
@@ -48,88 +49,68 @@ func mmPixels(mm float64) int64 { return int64(mm*96/25.4 + 0.5) }
 // printed pages, renders the listing images, publishes the download page when
 // the printable sells through the page, and assembles its store packages when
 // it sells on its own. It returns the files and images for a bundle.
-func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *stock, result *Result) (shipped, []printable.Image, []diagnostic.Diagnostic) {
+func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *stock, result *Result) (shipped, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
 	sell := r.Summary.Sell
-	pageSale := sell == deliver.SellPage && deliver.ValidPath(r.Config.Path) && r.Summary.URL != ""
-	if sell == deliver.SellPage && !pageSale {
-		return out, nil, nil // the config finding says what is missing
+	s, stop := startSale(sell, r.Config.Path, r.Summary.URL, page, printable.RuleDelivery, "printable")
+	if s.skip || stop != nil {
+		return out, stop
 	}
-	if pageSale {
-		if leak := leaks(page, r.Config.Path, printable.RuleDelivery, "printable"); leak != nil {
-			return out, nil, leak
-		}
+	keys := make([]string, len(r.Editions))
+	for i, ed := range r.Editions {
+		keys[i] = ed.Edition.Key
 	}
-	// lfm serve shows every edition as HTML at <path>/preview/<edition>.html,
-	// or printable/preview/ when no download page exists.
-	root := "printable"
-	if pageSale {
-		root = r.Config.Path
-	}
-	if result.Previews == nil {
-		result.Previews = map[string][]byte{}
-	}
-	for _, ed := range r.Editions {
-		result.Previews[root+"/preview/"+ed.Edition.Key+".html"] = ed.Doc
-	}
-	for name, data := range r.Assets {
-		result.Previews[root+"/preview/"+name] = data
-	}
+	pr := s.open(st, result, keys, func(i int) []byte { return r.Editions[i].Doc }, r.Assets)
 	var issues []diagnostic.Diagnostic
 	warn := func(rule, message, hint string) {
 		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: printable.TemplateFile, Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
 	var images []printable.Image
 	if r.Buildable {
-		pr := st.press()
 		printed := printable.Printed{PDFs: map[string][]byte{}}
-		var mu sync.Mutex
-		var wg sync.WaitGroup
+
 		var layout []string               // findings in the order first seen
 		layoutIn := map[string][]string{} // finding -> editions it occurs in
 		unchecked := false                // an edition's layout check did not run
 		for _, ed := range r.Editions {
-			wg.Go(func() {
-				e := ed.Edition
-				pdf, err := pr.job(printKey("printable "+e.Key, ed.Doc, r.Assets), func(printer *release.Printer) ([]byte, error) {
-					return printer.Print(ed.Doc, r.Assets, e.Size.Digital)
-				})
-				var found []string
-				var layoutErr error
-				if st.release && err == nil {
-					if printer, perr := pr.printerFor(); perr == nil {
-						found, layoutErr = printer.PageLayout(ed.Doc, r.Assets, mmPixels(e.Size.Width), mmPixels(e.Size.Height), float64(mmPixels(printable.Safe)))
-					}
-				}
-				mu.Lock()
-				defer mu.Unlock()
-				if layoutErr != nil {
-					unchecked = true
-					warn(printable.RuleLayout, fmt.Sprintf("The layout check of the %s edition could not run: %s", e.Label, layoutErr), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
-				}
-				switch {
-				case err != nil:
-					unchecked = true
-					warn(printable.RuleLayout, fmt.Sprintf("The %s edition could not be printed: %s", e.Label, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
-				case pdf != nil:
-					printed.PDFs[e.Key] = pdf
-					if n := pdfx.PageCount(pdf); n != len(ed.Pages) {
-						warn(printable.RuleLayout, fmt.Sprintf("The %s PDF has %d pages, but %d page sections were rendered; links after the first difference land on the wrong page.", e.Label, n, len(ed.Pages)), "Keep every page section at the page's size: a section that grows splits into two pages.")
-					}
-				}
-				for _, f := range found {
-					if layoutIn[f] == nil {
-						layout = append(layout, f)
-					}
-					layoutIn[f] = append(layoutIn[f], e.Label)
-				}
+			e := ed.Edition
+			pdf, err := pr.job(printKey("printable "+e.Key, ed.Doc, r.Assets), func(printer *release.Printer) ([]byte, error) {
+				return printer.Print(ed.Doc, r.Assets, e.Size.Digital)
 			})
+			var found []string
+			var layoutErr error
+			if st.release && err == nil {
+				if printer, perr := pr.printerFor(); perr == nil {
+					found, layoutErr = printer.PageLayout(ed.Doc, r.Assets, mmPixels(e.Size.Width), mmPixels(e.Size.Height), float64(mmPixels(printable.Safe)))
+				}
+			}
+
+			if layoutErr != nil {
+				unchecked = true
+				warn(printable.RuleLayout, fmt.Sprintf("The layout check of the %s edition could not run: %s", e.Label, layoutErr), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+			}
+			switch {
+			case err != nil:
+				unchecked = true
+				warn(printable.RuleLayout, fmt.Sprintf("The %s edition could not be printed: %s", e.Label, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+			case pdf != nil:
+				printed.PDFs[e.Key] = pdf
+				if n := pdfx.PageCount(pdf); n != len(ed.Pages) {
+					warn(printable.RuleLayout, fmt.Sprintf("The %s PDF has %d pages, but %d page sections were rendered; links after the first difference land on the wrong page.", e.Label, n, len(ed.Pages)), "Keep every page section at the page's size: a section that grows splits into two pages.")
+				}
+			}
+			for _, f := range found {
+				if layoutIn[f] == nil {
+					layout = append(layout, f)
+				}
+				layoutIn[f] = append(layoutIn[f], e.Label)
+			}
 		}
 		// Listing images serve the printable's own shops and the bundle's.
 		if r.Listing.Present || sell == deliver.SellBundle {
-			wg.Go(func() { images = printableImages(pr, r) })
+			images = printableImages(pr, r)
 		}
-		wg.Wait()
+
 		for _, f := range layout {
 			which := strings.Join(layoutIn[f], ", ")
 			if len(layoutIn[f]) == len(r.Editions) {
@@ -161,13 +142,12 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 			result.distribute("printable", map[string][]byte{}) // no package of its own
 		}
 	}
-	for _, f := range out.Files {
-		r.Summary.Files = append(r.Summary.Files, f.Name)
-	}
-	if pageSale {
+	r.Summary.Files = allFiles(out)
+	if s.page {
 		downloadPage(result, r.Config.Path, printable.DownloadPage(*r, out.Files), out)
 	}
-	return out, images, issues
+	out.Images = images
+	return out, issues
 }
 
 // listingImages returns the listing images: reused while the first edition
@@ -183,16 +163,24 @@ func printableImages(pr *press, r *printable.Report) []printable.Image {
 		planned = append(planned, listingPlan{Name: plan.Name, Doc: plan.Doc,
 			Key: printKey("listing image "+plan.Name, append(append([]byte{}, plan.Doc...), inputs...), r.Assets)})
 	}
-	return listingImages(pr, planned, func(printer *release.Printer) ([]listingPlan, map[string][]byte, error) {
+	return listingImages(pr, "printable", r.Summary.Sell, planned, func(printer *release.Printer, missing []listingPlan) ([]listingPlan, map[string][]byte, error) {
 		// The plans show real pages: the first edition's and each size's cover.
-		shots := r.Shots()
+		var wanted []byte
+		for _, plan := range missing {
+			wanted = append(wanted, plan.Doc...)
+		}
+		shots := slices.DeleteFunc(r.Shots(), func(s printable.Shot) bool { return !bytes.Contains(wanted, []byte(`src="`+s.Name+`"`)) })
 		pages := make([]int, len(shots))
 		for i, s := range shots {
 			pages[i] = s.Page
 		}
 		first := r.Editions[0]
 		size := first.Edition.Size
-		rasters, err := printer.PageImages(first.Doc, r.Assets, mmPixels(size.Width), mmPixels(size.Height), printable.PageScale, pages)
+		var rasters [][]byte
+		var err error
+		if len(pages) > 0 {
+			rasters, err = printer.PageImages(first.Doc, r.Assets, mmPixels(size.Width), mmPixels(size.Height), printable.PageScale, pages)
+		}
 		if err != nil {
 			return nil, nil, err
 		}
@@ -202,12 +190,15 @@ func printableImages(pr *press, r *printable.Report) []printable.Image {
 		}
 		for _, ed := range covers {
 			s := ed.Edition.Size
+			if !bytes.Contains(wanted, []byte(`src="cover-`+s.Key+`.png"`)) {
+				continue
+			}
 			cover, err := printer.PageImages(ed.Doc, r.Assets, mmPixels(s.Width), mmPixels(s.Height), 1, []int{1})
 			if err != nil {
 				return nil, nil, err
 			}
 			assets["cover-"+s.Key+".png"] = cover[0]
 		}
-		return planned, assets, nil
+		return missing, assets, nil
 	})
 }

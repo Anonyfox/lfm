@@ -53,7 +53,7 @@ drives the checkers, `research`, `concept` and `release`; everything may use the
 
 ## The lifecycle
 
-`compile.Compile` runs load, prepare, assemble, optimize, finalize, verify, audit and publish in that order
+`compile.Compile` runs load, prepare, assemble, optimize, finalize, verify, deliver, audit and publish in that order
 (see [compiling](compiling.md)). Two rules keep it predictable:
 
 - **Everything reports through `diagnostic.Diagnostic`.** A finding has a rule ID, severity, location,

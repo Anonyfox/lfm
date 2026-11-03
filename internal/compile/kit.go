@@ -1,14 +1,16 @@
 package compile
 
 import (
+	"bytes"
+	"cmp"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/cache"
@@ -28,15 +30,12 @@ import (
 // finding is a release finding about one source file.
 type finding struct{ File, Message string }
 
-// warnings collects warnings safely from parallel steps.
+// warnings collects findings in delivery order.
 type warnings struct {
-	mu  sync.Mutex
 	out []diagnostic.Diagnostic
 }
 
 func (w *warnings) add(file, rule, message, hint string) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
 	w.out = append(w.out, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: file, Line: 1, Column: 1}, Message: message, Hint: hint})
 }
 
@@ -50,54 +49,35 @@ type printJob struct {
 	checks func(pdf []byte, printer *release.Printer) []finding
 }
 
-// printAll prints the jobs side by side, reusing every stamped PDF, and
+// printAll prints the jobs in order, reusing every stamped PDF, and
 // returns the PDFs by slot and what the checks found on fresh prints.
 func printAll(pr *press, jobs []printJob, fonts map[string][]byte, rule string, w *warnings) (map[string][]byte, []finding) {
 	pdfs := map[string][]byte{}
 	var found []finding
-	var mu sync.Mutex
-	var wg sync.WaitGroup
+
 	for _, j := range jobs {
-		wg.Go(func() {
-			fresh := !pr.has(j.key)
-			pdf, err := pr.job(j.key, func(printer *release.Printer) ([]byte, error) {
-				return printer.Print(j.doc(), fonts, false)
-			})
-			var got []finding
-			if err == nil && pdf != nil && fresh && j.checks != nil {
-				printer, _ := pr.printerFor()
-				got = j.checks(pdf, printer)
-			}
-			mu.Lock()
-			defer mu.Unlock()
-			switch {
-			case err != nil:
-				w.add(j.file, rule, "The PDF of "+j.name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
-			case pdf != nil:
-				pdfs[j.slot] = pdf
-			}
-			found = append(found, got...)
+		fresh := pr.lookup(j.key) == nil
+		pdf, err := pr.job(j.key, func(printer *release.Printer) ([]byte, error) {
+			return printer.Print(j.doc(), fonts, false)
 		})
-	}
-	wg.Wait()
-	// Parallel prints finish in any order; the report does not.
-	slices.SortFunc(found, func(a, b finding) int {
-		if a.File != b.File {
-			return compareStrings(a.File, b.File)
+		if err == nil && pdf != nil && fresh && j.checks != nil {
+			printer, _ := pr.printerFor()
+			found = append(found, j.checks(pdf, printer)...)
 		}
-		return compareStrings(a.Message, b.Message)
+
+		switch {
+		case err != nil:
+			w.add(j.file, rule, "The PDF of "+j.name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+		case pdf != nil:
+			pdfs[j.slot] = pdf
+		}
+	}
+
+	// Keep findings ordered by source and message.
+	slices.SortFunc(found, func(a, b finding) int {
+		return cmp.Or(cmp.Compare(a.File, b.File), cmp.Compare(a.Message, b.Message))
 	})
 	return pdfs, found
-}
-
-func compareStrings(a, b string) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	}
-	return 0
 }
 
 // opinion is another app's view of the real files: LibreOffice for every
@@ -142,22 +122,17 @@ func libreOffice(check func(soffice string) ([]finding, error), differ string) o
 	return o
 }
 
-// printGuides prints every start guide side by side, reusing stamped ones.
+// printGuides prints every start guide in order, reusing stamped ones.
 func printGuides(pr *press, keys []string, docs [][]byte, names []string, fonts map[string][]byte, dir, rule string, w *warnings) [][]byte {
-	out := make([][]byte, len(docs))
-	var wg sync.WaitGroup
+	jobs := make([]printJob, len(docs))
 	for i := range docs {
-		wg.Go(func() {
-			pdf, err := pr.job(keys[i], func(printer *release.Printer) ([]byte, error) {
-				return printer.Print(docs[i], fonts, false)
-			})
-			if err != nil {
-				w.add(dir, rule, "The start guide "+names[i]+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
-			}
-			out[i] = pdf
-		})
+		jobs[i] = printJob{key: keys[i], slot: keys[i], file: dir, name: "start guide " + names[i], doc: func() []byte { return docs[i] }}
 	}
-	wg.Wait()
+	pdfs, _ := printAll(pr, jobs, fonts, rule, w)
+	out := make([][]byte, len(docs))
+	for i := range out {
+		out[i] = pdfs[keys[i]]
+	}
 	return out
 }
 
@@ -182,60 +157,87 @@ type listingPlan struct {
 	Doc       []byte
 }
 
-// listingImages are a deliverable's listing images: every one reused from
-// the last publish while its key is unchanged, else rendered by a release
-// from the plans render gives (with what only a printer makes, such as
-// page rasters), 3000 × 2250 JPEGs under a megabyte. Without a release,
-// missing images leave the press pending.
-func listingImages(pr *press, planned []listingPlan, render func(*release.Printer) ([]listingPlan, map[string][]byte, error)) []deliver.Image {
-	var out []deliver.Image
-	all := true
+// listingImages materializes demanded plans in order, preserving individual hits.
+// Dependencies are prepared only for missing images. Failed work stays pending.
+func listingImages(pr *press, kind, sell string, planned []listingPlan, render func(*release.Printer, []listingPlan) ([]listingPlan, map[string][]byte, error)) []deliver.Image {
+	if sell == deliver.SellBundle {
+		planned = planned[:min(pr.demand[kind], len(planned))]
+	}
+	data := make(map[string][]byte, len(planned))
+	keys := map[string]string{}
+	var missing []listingPlan
 	for _, plan := range planned {
 		if jpg := pr.lookup(plan.Key); jpg != nil {
-			out = append(out, deliver.Image{Name: plan.Name, Data: jpg})
+			data[plan.Name] = jpg
 		} else {
-			all = false
+			missing = append(missing, plan)
+			keys[plan.Name] = plan.Key
 		}
 	}
-	if all {
-		return out
+	if len(missing) > 0 {
+		if pr.release && render != nil {
+			if printer, err := pr.printerFor(); err == nil {
+				plans, assets, err := render(printer, missing)
+				if err == nil {
+					for _, plan := range plans {
+						key := keys[plan.Name]
+						if key == "" {
+							continue
+						}
+						jpg, err := pr.job(key, func(printer *release.Printer) ([]byte, error) {
+							png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale)
+							if err != nil {
+								return nil, err
+							}
+							return jpegUnder(png, 1<<20, key)
+						})
+						if err == nil && jpg != nil {
+							data[plan.Name] = jpg
+						}
+					}
+				}
+			}
+		}
+		if len(data) != len(planned) {
+			pr.wait()
+		}
 	}
-	pending := func() []deliver.Image {
-		pr.wait()
-		return out
-	}
-	if !pr.release || render == nil {
-		return pending()
-	}
-	printer, err := pr.printerFor()
-	if err != nil {
-		return out
-	}
-	plans, assets, err := render(printer)
-	if err != nil || len(plans) == 0 {
-		return pending()
-	}
-	keys := map[string]string{}
+	var out []deliver.Image
 	for _, plan := range planned {
-		keys[plan.Name] = plan.Key
-	}
-	out = nil
-	for _, plan := range plans {
-		png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale)
-		if err != nil {
-			continue
+		if jpg := data[plan.Name]; jpg != nil {
+			out = append(out, deliver.Image{Name: plan.Name, Data: jpg})
 		}
-		key := keys[plan.Name]
-		if key == "" {
-			key = plan.Key
-		}
-		jpg, err := jpegUnder(png, 1<<20, key)
-		if err != nil {
-			continue
-		}
-		out = append(out, deliver.Image{Name: plan.Name, Data: jpg})
 	}
 	return out
+}
+
+// picturePlan is a source raster referenced by a listing layout. Markers are
+// rendered through the same templates as PNGs, then replaced only on demand.
+type picturePlan struct {
+	marker, doc   []byte
+	width, height int64
+	scale         float64
+}
+
+func captureShots(printer *release.Printer, plans, missing []listingPlan, assets map[string][]byte, shots []picturePlan) ([]listingPlan, error) {
+	plans = slices.DeleteFunc(plans, func(p listingPlan) bool {
+		return !slices.ContainsFunc(missing, func(m listingPlan) bool { return m.Name == p.Name })
+	})
+	for _, shot := range shots {
+		marker := []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(shot.marker))
+		if !slices.ContainsFunc(plans, func(p listingPlan) bool { return bytes.Contains(p.Doc, marker) }) {
+			continue
+		}
+		png, err := printer.Picture(shot.doc, assets, shot.width, shot.height, shot.scale)
+		if err != nil {
+			return nil, err
+		}
+		data := []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(png))
+		for i := range plans {
+			plans[i].Doc = bytes.ReplaceAll(plans[i].Doc, marker, data)
+		}
+	}
+	return plans, nil
 }
 
 // Listing images are 1500 × 1125 CSS pixels at twice the density: the
@@ -247,13 +249,12 @@ type sale struct {
 	page bool   // through the page's checkout and an unlisted download page
 	skip bool   // sells through the page but has no valid path: nothing to publish
 	root string // the folder its previews live under
-	kind string
 }
 
 // startSale decides how a deliverable sells and stops it when the page
 // would leak its download path.
 func startSale(sell, path, url string, page []byte, rule, kind string) (sale, []diagnostic.Diagnostic) {
-	s := sale{kind: kind, root: kind}
+	s := sale{root: kind}
 	s.page = sell == deliver.SellPage && deliver.ValidPath(path) && url != ""
 	if sell == deliver.SellPage && !s.page {
 		s.skip = true
@@ -271,19 +272,12 @@ func startSale(sell, path, url string, page []byte, rule, kind string) (sale, []
 // open starts the press beside the previews of every edition, which lfm
 // serve shows under the deliverable's folder.
 func (s sale) open(st *stock, result *Result, editions []string, preview func(i int) []byte, assets map[string][]byte) *press {
-	var pr *press
-	previews := make([][]byte, len(editions))
-	var wg sync.WaitGroup
-	wg.Go(func() { pr = st.press() })
-	for i := range editions {
-		wg.Go(func() { previews[i] = preview(i) })
-	}
-	wg.Wait()
+	pr := st.press()
 	if result.Previews == nil {
 		result.Previews = map[string][]byte{}
 	}
 	for i, key := range editions {
-		result.Previews[s.root+"/preview/"+key+".html"] = previews[i]
+		result.Previews[s.root+"/preview/"+key+".html"] = preview(i)
 	}
 	for name, data := range assets {
 		result.Previews[s.root+"/preview/"+name] = data

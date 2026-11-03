@@ -227,22 +227,10 @@ func TestPrinter(t *testing.T) {
 		}
 	})
 
-	t.Run("concurrent jobs share the browser", func(t *testing.T) {
-		errs := make(chan error, 4)
-		for i := range 4 {
-			go func() {
-				_, err := p.Picture([]byte(`<!doctype html><p>`+strconv.Itoa(i)), nil, 100, 100, 1)
-				errs <- err
-			}()
-		}
-		for range 4 {
-			select {
-			case err := <-errs:
-				if err != nil {
-					t.Fatal(err)
-				}
-			case <-time.After(browserTestTimeout):
-				t.Fatal("concurrent jobs hang")
+	t.Run("sequential jobs share the browser", func(t *testing.T) {
+		for range 2 {
+			if _, err := p.Picture([]byte(`<!doctype html><p>same browser`), nil, 100, 100, 1); err != nil {
+				t.Fatal(err)
 			}
 		}
 	})
@@ -253,23 +241,22 @@ func TestClosedPrinterFailsFast(t *testing.T) {
 	p := printer(t)
 	p.Close()
 	doc := []byte(`<!doctype html><p>x`)
-	if _, err := within(t, func() ([]byte, error) { return p.Print(doc, nil, false) }); err == nil {
-		t.Error("Print on a closed printer")
-	}
-	if _, err := within(t, func() ([]byte, error) { return p.Picture(doc, nil, 100, 100, 1) }); err == nil {
-		t.Error("Picture on a closed printer")
-	}
-	if _, err := within(t, func() ([]string, error) { return p.PageLayout(doc, nil, 100, 100, 10) }); err == nil {
-		t.Error("PageLayout on a closed printer")
-	}
-	if _, err := within(t, func() ([]string, error) { return p.Overflows(doc, nil, 100, 100) }); err == nil {
-		t.Error("Overflows on a closed printer")
-	}
-	if _, err := within(t, func() ([][]byte, error) { return p.PageImages(doc, nil, 100, 100, 1, []int{1}) }); err == nil {
-		t.Error("PageImages on a closed printer")
-	}
-	if _, err := within(t, func() ([]string, error) { return p.BookLayout(doc, nil, 4) }); err == nil {
-		t.Error("BookLayout on a closed printer")
+	for _, tc := range []struct {
+		name string
+		run  func() error
+	}{
+		{"Print", func() error { _, err := p.Print(doc, nil, false); return err }},
+		{"Picture", func() error { _, err := p.Picture(doc, nil, 100, 100, 1); return err }},
+		{"PageLayout", func() error { _, err := p.PageLayout(doc, nil, 100, 100, 10); return err }},
+		{"Overflows", func() error { _, err := p.Overflows(doc, nil, 100, 100); return err }},
+		{"PageImages", func() error { _, err := p.PageImages(doc, nil, 100, 100, 1, []int{1}); return err }},
+		{"BookLayout", func() error { _, err := p.BookLayout(doc, nil, 4); return err }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := within(t, func() (bool, error) { return false, tc.run() }); err == nil {
+				t.Error("closed printer succeeded")
+			}
+		})
 	}
 }
 

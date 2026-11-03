@@ -2,10 +2,10 @@ package compile
 
 import (
 	"fmt"
+	"maps"
 	"os"
-	"sort"
+	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/commercecheck"
@@ -54,50 +54,29 @@ func checkSpreadsheet(p project.Project, loaded project.Loaded, commerce commerc
 // release, and publishes the download page and shop packages.
 func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, st *stock, result *Result) (shipped, []diagnostic.Diagnostic) {
 	out := shipped{Data: map[string][]byte{}}
-	pageSale := r.Summary.Sell == deliver.SellPage && deliver.ValidPath(r.Config.Path) && r.Summary.URL != ""
-	if r.Summary.Sell == deliver.SellPage && !pageSale {
-		return out, nil
-	}
-	if pageSale {
-		if leak := leaks(page, r.Config.Path, spreadsheet.RuleDelivery, "spreadsheet"); leak != nil {
-			return out, leak
-		}
+	s, stop := startSale(r.Summary.Sell, r.Config.Path, r.Summary.URL, page, spreadsheet.RuleDelivery, "spreadsheet")
+	if s.skip || stop != nil {
+		return out, stop
 	}
 	var issues []diagnostic.Diagnostic
 	warn := func(rule, message, hint string) {
 		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: spreadsheet.WorkbookFile, Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
-	root := "spreadsheet"
-	if pageSale {
-		root = r.Config.Path
-	}
-	if result.Previews == nil {
-		result.Previews = map[string][]byte{}
-	}
 	if !r.Buildable {
-		if pageSale {
+		if s.page {
 			downloadPage(result, r.Config.Path, spreadsheet.DownloadPage(*r, nil), out)
 		}
 		return out, issues
 	}
-	// The previews, the documents to print and the scan for earlier prints
-	// do not depend on each other.
-	var pr *press
-	var starts map[string][]byte
+	keys := make([]string, len(r.Workbook.Editions))
+	for i, e := range r.Workbook.Editions {
+		keys[i] = e.Key
+	}
+	pr := s.open(st, result, keys, func(i int) []byte { return r.Preview(keys[i]) }, nil)
+	starts := r.StartDocs()
 	var plans []spreadsheet.ImagePlan
-	previews := make([][]byte, len(r.Workbook.Editions))
-	var prep sync.WaitGroup
-	prep.Go(func() { pr = st.press() })
-	prep.Go(func() { starts = r.StartDocs() })
 	if pictured(r.Listing.Present, r.Summary.Sell) {
-		prep.Go(func() { plans = r.Images() })
-	}
-	for i, e := range r.Workbook.Editions {
-		prep.Go(func() { previews[i] = r.Preview(e.Key) })
-	}
-	prep.Wait()
-	for i, e := range r.Workbook.Editions {
-		result.Previews[root+"/preview/"+e.Key+".html"] = previews[i]
+		plans = r.Images()
 	}
 	built, err := r.Build(func(key string) []byte { return pr.lookup(key) })
 	if err != nil {
@@ -107,49 +86,41 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 		out.add(deliver.File{Name: f.Name, Label: label(f), Note: r.FileNote(f.Name)}, f.Data)
 	}
 
-	var mu sync.Mutex
-	var wg sync.WaitGroup
 	printed := map[string][]byte{}
-	for name, doc := range starts {
-		wg.Go(func() {
-			pdf, err := pr.job(printKey("spreadsheet start "+name, doc, nil), func(printer *release.Printer) ([]byte, error) {
-				return printer.Print(doc, nil, false)
-			})
-			mu.Lock()
-			defer mu.Unlock()
-			if err != nil {
-				warn(spreadsheet.RuleChannels, "The start PDF "+name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
-			} else if pdf != nil {
-				printed[name] = pdf
-			}
+	names := slices.Sorted(maps.Keys(starts))
+	for _, name := range names {
+		doc := starts[name]
+		pdf, err := pr.job(printKey("spreadsheet start "+name, doc, nil), func(printer *release.Printer) ([]byte, error) {
+			return printer.Print(doc, nil, false)
 		})
+
+		if err != nil {
+			warn(spreadsheet.RuleChannels, "The start PDF "+name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+		} else if pdf != nil {
+			printed[name] = pdf
+		}
 	}
 	var images []spreadsheet.Image
 	if pictured(r.Listing.Present, r.Summary.Sell) {
-		wg.Go(func() { images = spreadsheetImages(pr, plans) })
+		images = spreadsheetImages(pr, plans, r.Summary.Sell)
 	}
 	var compat []string
 	var compatErr error
 	if st.release {
-		wg.Go(func() {
-			office, err := spreadsheet.Office()
-			if err != nil {
-				compatErr = err
-				return
-			}
+		office, err := spreadsheet.Office()
+		if err != nil {
+			compatErr = err
+		} else {
 			compat, compatErr = remembered(office, "spreadsheet", builtData(built, func(b spreadsheet.Built) []byte { return b.Data }), func() ([]string, error) {
 				return r.Compat(pr.ctx, office, built)
 			})
-		})
+		}
 	}
-	wg.Wait()
-	names := make([]string, 0, len(printed))
-	for name := range printed {
-		names = append(names, name)
-	}
-	sort.Strings(names)
+
 	for _, name := range names {
-		out.add(deliver.File{Name: name, Label: "PDF", Note: r.FileNote(name)}, printed[name])
+		if pdf := printed[name]; pdf != nil {
+			out.add(deliver.File{Name: name, Label: "PDF", Note: r.FileNote(name)}, pdf)
+		}
 	}
 	r.Summary.Pending = pr.pending
 	r.Summary.Images = len(images)
@@ -186,9 +157,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 		}
 	}
 	out.Images = images
-	for _, f := range out.Files {
-		r.Summary.Files = append(r.Summary.Files, f.Name)
-	}
+	r.Summary.Files = allFiles(out)
 	if ownStores(r.Listing.Present, r.Summary.Sell) {
 		dist, channels, found := spreadsheet.Distribution(*r, out.Files, out.Data, images, r.Summary.Pending, time.Now().Format("2006-01-02"))
 		result.distribute("spreadsheet", dist)
@@ -197,7 +166,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 	} else {
 		result.distribute("spreadsheet", map[string][]byte{})
 	}
-	if pageSale {
+	if s.page {
 		downloadPage(result, r.Config.Path, spreadsheet.DownloadPage(*r, out.Files), out)
 	}
 	return out, issues
@@ -213,11 +182,13 @@ func label(f spreadsheet.Built) string {
 
 // spreadsheetImages are the listing images: reused while their documents
 // are unchanged, rendered by a release otherwise.
-func spreadsheetImages(pr *press, plans []spreadsheet.ImagePlan) []spreadsheet.Image {
+func spreadsheetImages(pr *press, plans []spreadsheet.ImagePlan, sell string) []spreadsheet.Image {
 	planned := make([]listingPlan, len(plans))
 	for i, plan := range plans {
 		planned[i] = listingPlan{Name: plan.Name, Doc: plan.Doc, Key: printKey("spreadsheet image "+plan.Name, plan.Doc, nil)}
 	}
 	// The plans render the workbook's own HTML; no printer step comes first.
-	return listingImages(pr, planned, func(*release.Printer) ([]listingPlan, map[string][]byte, error) { return planned, nil, nil })
+	return listingImages(pr, "spreadsheet", sell, planned, func(_ *release.Printer, missing []listingPlan) ([]listingPlan, map[string][]byte, error) {
+		return missing, nil, nil
+	})
 }

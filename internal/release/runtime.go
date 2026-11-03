@@ -142,12 +142,14 @@ func auditRuntime(ctx context.Context, target Target, path, frames string, liste
 	}
 	mu.Unlock()
 	sort.Strings(r.Problems)
-	r.Status = "ok"
 	// Problems are taken before the frame walk reloads the page at other sizes.
 	layout, err := auditLayout(tab, destination, frames)
 	r.Layout = layout
+	r.Status = "ok"
 	if err != nil {
+		r.Status = "incomplete"
 		layout.Findings = append(layout.Findings, LayoutFinding{Kind: "incomplete", Message: "The frame walk stopped early: " + compact(err.Error(), 300), Hint: "Check that the page loads and scrolls in Chrome; rerun --release."})
+		return fail(err)
 	}
 
 	return r

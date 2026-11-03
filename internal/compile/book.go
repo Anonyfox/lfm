@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sync"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/deliver"
@@ -145,24 +144,22 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 		var pdf []byte
 		var pdfErr, layoutErr error
 		var layout []string
-		var wg sync.WaitGroup
+
 		if r.Config.Wants("pdf") || ownStores {
-			wg.Go(func() { pdf, pdfErr = pr.screen(built) })
+			pdf, pdfErr = pr.screen(built)
 		}
 		var printed book.Printed
 		if ownStores {
-			wg.Go(func() { printed = pr.paperback(r, built) })
+			printed = pr.paperback(r, built)
 		}
 		if st.release {
-			wg.Go(func() {
-				if printer, err := pr.printerFor(); err != nil {
-					layoutErr = err
-				} else {
-					layout, layoutErr = printer.BookLayout(built.Print, built.PrintAssets, built.TrimInches[0]-1.4)
-				}
-			})
+			if printer, err := pr.printerFor(); err != nil {
+				layoutErr = err
+			} else {
+				layout, layoutErr = printer.BookLayout(built.Print, built.PrintAssets, built.TrimInches[0]-1.4)
+			}
 		}
-		wg.Wait()
+
 		r.Summary.Pending = pr.pending
 		if r.Config.Wants("pdf") && pdf != nil {
 			out.add(deliver.File{Name: slug + ".pdf", Label: "PDF", Note: book.Words(r.Config.Language).PDFNote}, pdf)

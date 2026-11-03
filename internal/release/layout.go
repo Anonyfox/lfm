@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/css"
@@ -128,38 +127,23 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 			dir = ""
 		}
 	}
-	// The screens are walked in parallel, each in its own tab of the browser,
-	// and merged in screen order, so the result is the same as one walk after
-	// the other. Reduced motion and scripts off get tabs of their own.
-	results := make([]screenWalk, len(Screens))
-	var moving []string
-	var noScript []LayoutFinding
-	var motionErr, scriptErr error
-	var wg sync.WaitGroup
-	for i, v := range Screens {
-		wg.Go(func() {
-			t, done := tab, func() {}
-			if i > 0 {
-				t, done = chromedp.NewContext(tab)
-			}
-			defer done()
-			results[i], results[i].err = walkScreen(t, url, dir, v, before[v.String()], r.Previous)
-			if i == len(Screens)-1 && results[i].err == nil {
-				// fonts are read on the widest screen, where the most text shows
-				results[i].fonts, results[i].fontsErr = fallbackFonts(t)
-			}
-		})
-	}
-	wg.Go(func() { moving, motionErr = reducedMotion(tab, url, Screens[0]) })
-	wg.Go(func() {
-		t, done := chromedp.NewContext(tab)
-		defer done()
-		noScript, scriptErr = withoutScripts(t, url, Screens[0])
-	})
-	wg.Wait()
+	// Walk isolated screens in order, then reduced motion and scripts disabled.
 	var sizes, contrasts perElement
 	for i, v := range Screens {
-		w := results[i]
+		t, done := tab, func() {}
+		if i > 0 {
+			t, done = chromedp.NewContext(tab)
+		}
+		w, err := walkScreen(t, url, dir, v, before[v.String()], r.Previous)
+		if i == len(Screens)-1 && err == nil {
+			fonts, fontErr := fallbackFonts(t)
+			if fontErr == nil {
+				w.findings = append(w.findings, fonts...)
+			} else {
+				w.findings = append(w.findings, LayoutFinding{"", "incomplete", "The font check could not run: " + compact(fontErr.Error(), 300), "Rerun --release; if it persists, report it with the page."})
+			}
+		}
+		done()
 		r.Findings = append(r.Findings, w.findings...)
 		r.Count += w.count
 		r.Changed = append(r.Changed, w.changed...)
@@ -172,22 +156,20 @@ func auditLayout(tab context.Context, url, dir string) (*LayoutResult, error) {
 		for _, o := range w.contrasts {
 			contrasts.add(v, o.element, o.text)
 		}
-		if w.err != nil {
-			return r, w.err
+		if err != nil {
+			return r, err
 		}
 	}
-	// a failed font report is reported and skipped, never a silent pass
-	if last := results[len(results)-1]; last.fontsErr == nil {
-		r.Findings = append(r.Findings, last.fonts...)
-	} else {
-		r.Findings = append(r.Findings, LayoutFinding{"", "incomplete", "The font check could not run: " + compact(last.fontsErr.Error(), 300), "Rerun --release; if it persists, report it with the page."})
-	}
+	moving, motionErr := reducedMotion(tab, url, Screens[0])
 	if motionErr != nil {
 		return r, motionErr
 	} else if len(moving) > 0 {
 		r.Findings = append(r.Findings, LayoutFinding{Screens[0].String(), "motion", fmt.Sprintf("With reduced motion requested, the page still moves at %s: %s.", Screens[0], strings.Join(moving, "; ")),
 			"Inside @media (prefers-reduced-motion: reduce) stop loops and long moves (animation: none, or a short fade), and let scripts check matchMedia(\"(prefers-reduced-motion: reduce)\") before animating."})
 	}
+	t, done := chromedp.NewContext(tab)
+	noScript, scriptErr := withoutScripts(t, url, Screens[0])
+	done()
 	if scriptErr != nil {
 		return r, scriptErr
 	}
@@ -203,8 +185,6 @@ type screenWalk struct {
 	count            int
 	changed, after   []string
 	sizes, contrasts []elementNote
-	fonts            []LayoutFinding
-	err, fontsErr    error
 }
 
 type elementNote struct{ element, text string }
@@ -534,42 +514,33 @@ func reducedMotion(parent context.Context, url string, v Screen) ([]string, erro
 	// Each of the three positions is sampled in its own tab, which first
 	// passes the positions above it, as one tab scrolling down would.
 	type moved struct{ Selector, How string }
-	found := make([][]moved, 3)
-	errs := make([]error, 3)
-	var wg sync.WaitGroup
+	seen := map[string]bool{}
+	var out []string
 	for i := range 3 {
-		wg.Go(func() {
+		found, err := func() ([]moved, error) {
 			tab, done := chromedp.NewContext(parent)
 			defer done()
 			reduce := []*emulation.MediaFeature{{Name: "prefers-reduced-motion", Value: "reduce"}}
 			if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Features: reduce}); err != nil {
-				errs[i] = err
-				return
+				return nil, err
 			}
 			if err := chromedp.Do(tab, chromedp.EmulateViewport(int64(v.Width), int64(v.Height), chromedp.EmulateMobile, chromedp.EmulateTouch), chromedp.Navigate(url)); err != nil {
-				errs[i] = err
-				return
+				return nil, err
 			}
 			if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](layoutProbe)); err != nil {
-				errs[i] = err
-				return
+				return nil, err
 			}
 			script := "(async()=>{"
 			for j := range i {
 				script += fmt.Sprintf("await __lfmLayout.visit(%d);", j*v.Height/2)
 			}
 			script += fmt.Sprintf("return (await __lfmLayout.moving(%d)).map(m=>({Selector:m.selector,How:m.how}))})()", i*v.Height/2)
-			found[i], errs[i] = chromedp.Run(tab, chromedp.Evaluate[[]moved](script, chromedp.EvalAwaitPromise))
-		})
-	}
-	wg.Wait()
-	seen := map[string]bool{}
-	var out []string
-	for i := range 3 {
-		if errs[i] != nil {
-			return nil, errs[i]
+			return chromedp.Run(tab, chromedp.Evaluate[[]moved](script, chromedp.EvalAwaitPromise))
+		}()
+		if err != nil {
+			return nil, err
 		}
-		for _, m := range found[i] {
+		for _, m := range found {
 			if item := m.Selector + " (" + m.How + ")"; !seen[item] && len(out) < 4 {
 				seen[item] = true
 				out = append(out, item)

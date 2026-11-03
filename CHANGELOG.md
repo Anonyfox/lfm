@@ -1,5 +1,14 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Release delivery reuses individual listing images and renders only the images a bundle publishes.
+  Page audits run after delivery closes its browser; incomplete layouts are never cached, and transient
+  Chrome or Lighthouse version failures are retried before keying a successful audit.
+
+- Delivery stock keeps archive stamps separate from embedded PDF stamps, preventing a ZIP from
+  being reused as its own start guide and hiding later archive changes.
+
 ## 0.1.15 (2026-11-03)
 
 - Formula highlights (`"if": "=[.check]=\"prüfen\""`) keep their formula in the .xlsx. Every one was

@@ -26,30 +26,26 @@ func CacheKey(ctx context.Context, target Target, root string) string {
 	if target.URL != "" {
 		return ""
 	}
-	browser, err := BrowserPath()
-	if err != nil {
+	tools := target.Tools
+	if tools == nil {
+		tools = ResolveTools(ctx, root)
+	}
+	if tools.err != nil {
 		return ""
 	}
-	lighthouse, err := lighthousePath(target.toolRoot(root))
-	if err != nil {
-		return ""
-	}
-	version := func(tool string) (string, error) {
-		bounded, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		cmd := exec.CommandContext(bounded, tool, "--version")
-		cmd.WaitDelay = time.Second
-		out, err := cmd.Output()
-		return strings.TrimSpace(string(out)), err
-	}
-	chrome, err := version(browser)
-	if err != nil || chrome == "" {
-		return ""
-	}
-	light, err := version(lighthouse)
-	if err != nil || light == "" {
-		return ""
-	}
+	return artifactKey(target, tools.build, tools.chrome, tools.lighthouse)
+}
+
+// ToolIdentity is the immutable tool version snapshot for one invocation.
+type ToolIdentity struct {
+	build, chrome, lighthouse string
+	err                       error
+}
+
+// ResolveTools retries a failed or empty version once before giving up. No audit
+// is cached under an unknown tool version.
+func ResolveTools(ctx context.Context, root string) *ToolIdentity {
+	t := &ToolIdentity{}
 	identity := buildid.Writer()
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, setting := range info.Settings {
@@ -60,7 +56,33 @@ func CacheKey(ctx context.Context, target Target, root string) string {
 	}
 	// Reports and saved layout frames belong to this artifact's location.
 	absolute, _ := filepath.Abs(root)
-	return artifactKey(target, identity+"\x00"+absolute, chrome, light)
+	t.build = identity + "\x00" + absolute
+	version := func(tool string, findErr error) (string, error) {
+		if findErr != nil {
+			return "", findErr
+		}
+		var err error
+		for range 2 {
+			bounded, cancel := context.WithTimeout(ctx, 5*time.Second)
+			cmd := exec.CommandContext(bounded, tool, "--version")
+			cmd.WaitDelay = time.Second
+			out, runErr := cmd.Output()
+			cancel()
+			if v := strings.TrimSpace(string(out)); runErr == nil && v != "" {
+				return v, nil
+			}
+			err = fmt.Errorf("%s --version failed or returned no version: %v", tool, runErr)
+			if ctx.Err() != nil {
+				break
+			}
+		}
+		return "", err
+	}
+	t.chrome, t.err = version(BrowserPath())
+	if t.err == nil {
+		t.lighthouse, t.err = version(lighthousePath((Target{}).toolRoot(root)))
+	}
+	return t
 }
 
 func artifactKey(target Target, build, chrome, lighthouse string) string {
@@ -125,10 +147,7 @@ func WriteCache(key string, value any) {
 	if err != nil {
 		return
 	}
-	raw, err = json.Marshal(cacheEnvelope{time.Now().UTC(), raw})
-	if err != nil {
-		return
-	}
+	raw, _ = json.Marshal(cacheEnvelope{time.Now().UTC(), raw})
 	if os.MkdirAll(dir, 0o755) != nil {
 		return
 	}
@@ -137,17 +156,11 @@ func WriteCache(key string, value any) {
 		return
 	}
 	defer scratch.Remove(f.Name())
-	if _, err = f.Write(raw); err != nil {
-		f.Close()
-		return
+	_, err = f.Write(raw)
+	closed := f.Close()
+	if err == nil && closed == nil && os.Rename(f.Name(), filepath.Join(dir, key+".json")) == nil {
+		cache.Prune(dir)
 	}
-	if f.Close() != nil {
-		return
-	}
-	if os.Rename(f.Name(), filepath.Join(dir, key+".json")) != nil {
-		return
-	}
-	cache.Prune(dir)
 }
 
 type cachedAudit struct {
@@ -156,6 +169,9 @@ type cachedAudit struct {
 }
 
 func cachedAuditRun(ctx context.Context, target Target, root string, run func(context.Context, Target, string) *AuditResult) *AuditResult {
+	if target.Tools == nil && target.URL == "" {
+		target.Tools = ResolveTools(ctx, root)
+	}
 	key := CacheKey(ctx, target, root)
 	var entry cachedAudit
 	if date := ReadCache(key, &entry); !date.IsZero() && completeAudit(entry.Result) {
@@ -167,11 +183,18 @@ func cachedAuditRun(ctx context.Context, target Target, root string, run func(co
 	}
 	result := run(ctx, target, root)
 	if completeAudit(result) {
+		if target.Tools != nil && target.Tools.err != nil {
+			result.Diagnostics = append(result.Diagnostics, diagnostic.Diagnostic{Rule: "release.runtime", Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: "The audit could not be cached: " + target.Tools.err.Error(), Hint: "Check Chrome and Lighthouse --version, then run the release again."})
+		}
 		WriteCache(key, cachedAudit{result, result.Diagnostics})
 	}
+
 	return result
 }
 
 func completeAudit(result *AuditResult) bool {
-	return result != nil && result.Runtime != nil && result.Runtime.Status == "ok" && result.Lighthouse != nil && result.Lighthouse.Status == "ok"
+	if result == nil || result.Runtime == nil || result.Runtime.Status != "ok" || result.Runtime.Layout == nil || result.Lighthouse == nil || result.Lighthouse.Status != "ok" {
+		return false
+	}
+	return !slices.ContainsFunc(result.Runtime.Layout.Findings, func(f LayoutFinding) bool { return f.Kind == "incomplete" })
 }

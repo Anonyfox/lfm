@@ -105,7 +105,7 @@ func holds(dir string, files map[string][]byte) bool {
 		path := filepath.Join(dir, filepath.FromSlash(name))
 		// Stamped files carry the key of their inputs: the same key and
 		// size are the same file, without reading it.
-		if key := stampOf(want[max(0, len(want)-4096):]); key != "" && key == tailStampOfFile(path, stampOf) {
+		if key := stampOf(want); key != "" && key == tailStampOfFile(path, stampOf) {
 			continue
 		}
 		got, err := os.ReadFile(path)

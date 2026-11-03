@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,21 +17,15 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// Printer prints documents (books, printables) in one Chrome, a tab per job, so a release
-// pays for one browser start however many PDFs it prints. It is safe for
-// concurrent use.
+// Printer renders sequential documents in one Chrome, with an isolated tab per
+// job. Close it before running the page's performance audit.
 type Printer struct {
 	browser context.Context
 	server  *httptest.Server
 	stop    func()
 	jobs    sync.Map // "/<n>/" -> http.Handler
 	next    atomic.Int64
-	slots   chan struct{} // open tabs; a release prints many files side by side
 }
-
-// tabs is how many tabs print at once: enough to keep the cores busy, few
-// enough that Chrome's memory stays bounded however many files a set has.
-var tabs = min(max(2, runtime.NumCPU()), 8)
 
 // tabTime is how long one print or render may take once it has a tab.
 const tabTime = time.Minute
@@ -43,7 +36,7 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Printer{slots: make(chan struct{}, tabs)}
+	p := &Printer{}
 	p.server, err = localServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		job, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		if h, ok := p.jobs.Load(job); ok {
@@ -81,28 +74,24 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 func (p *Printer) Close() { p.stop() }
 
 // tab opens a new tab serving doc and its flat assets and returns its address.
-// It waits for a free slot first; the tab's minute starts once it has one.
+// Each tab has a one-minute deadline.
 func (p *Printer) tab(doc []byte, assets map[string][]byte) (context.Context, string, func()) {
-	p.slots <- struct{}{}
 	job := fmt.Sprint(p.next.Add(1))
 	p.jobs.Store(job, Handler(doc, assets))
 	tab, cancelTab := chromedp.NewContext(p.browser)
 	tab, cancelTimeout := context.WithTimeout(tab, tabTime)
-	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job); <-p.slots }
+	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job) }
 }
 
 // Print prints a document to PDF at the page size its @page rule
 // declares, with bookmarks from its headings when outline is set. Fonts and
 // images are awaited first so no fallback face is baked in.
 func (p *Printer) Print(doc []byte, assets map[string][]byte, outline bool) ([]byte, error) {
-	tab, url, done := p.tab(doc, assets)
+	tab, done, err := p.load(doc, assets, 0, 0, 0, "")
+	if err != nil {
+		return nil, err
+	}
 	defer done()
-	if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
-		return nil, fmt.Errorf("load the document for printing: %w", err)
-	}
-	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
-		return nil, fmt.Errorf("wait for fonts and images: %w", err)
-	}
 	yes := true
 	pdf, err := chromedp.Call(tab, page.PrintToPDF, page.PrintToPDFParams{PreferCSSPageSize: &yes, PrintBackground: &yes, GenerateDocumentOutline: &outline, GenerateTaggedPDF: &yes})
 	if err != nil {
@@ -201,11 +190,13 @@ func capitalize(s string) string {
 func (p *Printer) load(doc []byte, assets map[string][]byte, width, height int64, scale float64, media string) (context.Context, func(), error) {
 	tab, url, done := p.tab(doc, assets)
 	fail := func(err error) (context.Context, func(), error) { done(); return nil, nil, err }
-	if _, err := chromedp.Call(tab, emulation.SetDeviceMetricsOverride, emulation.SetDeviceMetricsOverrideParams{Width: width, Height: height, DeviceScaleFactor: scale}); err != nil {
-		return fail(err)
-	}
-	if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Media: media}); err != nil {
-		return fail(err)
+	if width > 0 {
+		if _, err := chromedp.Call(tab, emulation.SetDeviceMetricsOverride, emulation.SetDeviceMetricsOverrideParams{Width: width, Height: height, DeviceScaleFactor: scale}); err != nil {
+			return fail(err)
+		}
+		if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Media: media}); err != nil {
+			return fail(err)
+		}
 	}
 	if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
 		return fail(fmt.Errorf("load the document: %w", err))

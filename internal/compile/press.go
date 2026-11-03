@@ -30,23 +30,21 @@ import (
 // so files printed by an older lfm are printed again.
 const printFormat = "lfm-book-print-1"
 
-// stock is what a compile has printed or can print: every stamped file of
-// the last publish in output/ or distribution/, indexed once by the key of
-// the inputs it was printed from and read only when a deliverable uses it,
-// and one Chrome for every print of the compile. Chrome takes seconds, so
-// only a release prints. An unchanged deliverable therefore compiles without
-// a browser; a changed one keeps everything else current and waits for the
-// next release for its prints.
+// stock owns delivery artifacts from the previous publish and this compile,
+// indexed once and read on demand, plus one lazy delivery browser. Ordinary
+// compiles reuse release prints; book screen PDFs and SVGs can also render
+// without --release. It is owned by the sequential delivery stage.
 type stock struct {
+	mu      sync.Mutex // editable-file builders can look up previous bytes concurrently
 	ctx     context.Context
 	root    string
 	release bool
+	demand  map[string]int
 
-	indexed  sync.Once
-	mu       sync.Mutex
+	indexed  bool
 	files    map[string]string // stamp key -> a stamped file, read on use
 	zipped   map[string]zipRef // stamp key -> a stored file inside a published ZIP, read on use
-	previous map[string][]byte // stamp key -> the file's bytes, once read
+	previous map[string][]byte // stamp key -> reused or freshly materialized bytes
 
 	printer  *release.Printer
 	started  bool
@@ -61,12 +59,14 @@ func newStock(ctx context.Context, p project.Project, isRelease bool) *stock {
 // needs is due but this compile does not print.
 type press struct {
 	*stock
-	mu      sync.Mutex
 	pending bool
 }
 
 func (st *stock) press() *press {
-	st.indexed.Do(st.index)
+	if !st.indexed {
+		st.index()
+		st.indexed = true
+	}
 	return &press{stock: st}
 }
 
@@ -104,14 +104,15 @@ func (st *stock) index() {
 
 // wait marks the press pending: a print is due for a later release.
 func (pr *press) wait() {
-	pr.mu.Lock()
 	pr.pending = true
-	pr.mu.Unlock()
 }
 
-// stampOf is the key any stamped print or build carries.
+// stampOf returns the container key, never a ZIP's embedded PDF key.
 func stampOf(data []byte) string {
-	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, socialPNGStamp, spreadsheet.Stamp, zipx.Stamp} {
+	if key := zipx.Stamp(data); key != "" || bytes.HasPrefix(data, []byte("PK\x03\x04")) {
+		return key
+	}
+	for _, of := range []func([]byte) string{pdfx.StampOf, deliver.JPEGStamp, socialPNGStamp} {
 		if key := of(data); key != "" {
 			return key
 		}
@@ -139,14 +140,14 @@ func (st *stock) scanZip(path string) {
 	if err != nil {
 		return
 	}
-	tail := func(offset, size int64) string {
+	tail := func(offset, size int64, of func([]byte) string) string {
 		buf := make([]byte, min(size, 4096))
 		if _, err := f.ReadAt(buf, offset+size-int64(len(buf))); err != nil {
 			return ""
 		}
-		return stampOf(buf)
+		return of(buf)
 	}
-	if key := tail(0, info.Size()); key != "" {
+	if key := tail(0, info.Size(), zipx.Stamp); key != "" {
 		st.zipped[key] = zipRef{path, 0, info.Size()}
 	}
 	z, err := zip.NewReader(f, info.Size())
@@ -163,22 +164,12 @@ func (st *stock) scanZip(path string) {
 		if err != nil || e.Method != zip.Store {
 			continue
 		}
-		if key := tail(offset, int64(e.CompressedSize64)); key != "" {
+		if key := tail(offset, int64(e.CompressedSize64), stampOf); key != "" {
 			if _, seen := st.zipped[key]; !seen {
 				st.zipped[key] = zipRef{path, offset, int64(e.CompressedSize64)}
 			}
 		}
 	}
-}
-
-// has reports whether the last publish holds the stamped file of key,
-// without reading it.
-func (st *stock) has(key string) bool {
-	st.mu.Lock()
-	defer st.mu.Unlock()
-	_, file := st.files[key]
-	_, zipped := st.zipped[key]
-	return st.previous[key] != nil || file || zipped
 }
 
 // lookup returns the stamped print or build of key from the last publish:
@@ -245,8 +236,6 @@ func tailStampOfFile(path string, stampOf func([]byte) string) string {
 }
 
 func (st *stock) printerFor() (*release.Printer, error) {
-	st.mu.Lock()
-	defer st.mu.Unlock()
 	if !st.started {
 		st.started = true
 		st.printer, st.startErr = release.NewPrinter(st.ctx)
@@ -257,6 +246,7 @@ func (st *stock) printerFor() (*release.Printer, error) {
 func (st *stock) close() {
 	if st.printer != nil {
 		st.printer.Close()
+		st.printer = nil
 	}
 }
 
@@ -300,10 +290,14 @@ func (pr *press) cachedJob(key string, print bool, run func(*release.Printer) ([
 	if err != nil {
 		return nil, err
 	}
-	if bytes.HasPrefix(pdf, []byte{0xff, 0xd8}) {
-		return pdf, nil // a JPEG, stamped by jpegUnder
+	if !bytes.HasPrefix(pdf, []byte{0xff, 0xd8}) {
+		pdf, err = pdfx.Stamp(pdf, key)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return pdfx.Stamp(pdf, key)
+	pr.previous[key] = pdf
+	return pdf, nil
 }
 
 // offerPrices returns the page's offers by key with their prices, which a

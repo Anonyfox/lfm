@@ -91,8 +91,10 @@ func Audit(ctx context.Context, target Target, root string) *AuditResult {
 }
 
 func audit(ctx context.Context, target Target, root string, listen func(string, string) (net.Listener, error)) *AuditResult {
-	var t texts
-	r := &AuditResult{Delivery: t.delivery(target.Page, target.Assets)}
+	if target.text == nil {
+		target.text = &texts{}
+	}
+	r := &AuditResult{Delivery: target.text.delivery(target.Page, target.Assets)}
 	add := func(severity diagnostic.Severity, rule, message, hint string) {
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: severity, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
@@ -302,25 +304,37 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 // AuditHandler serves only immutable in-memory artifact bytes, without invented delivery
 // compression/cache/TLS advantages. Also suitable as Chrome's non-forwarding proxy.
 func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Handler {
+	return (Target{Page: page, Assets: assets, text: &texts{}}).handler(origin)
+}
+
+func (t Target) handler(origin string) http.Handler {
+	page, assets := t.Page, t.Assets
+	text := t.text
+	if text == nil {
+		text = &texts{}
+	}
 	want, _ := url.Parse(origin)
-	var t texts
-	// Text goes out gzip-compressed, as every common static host sends it,
-	// so Lighthouse times the page visitors get; the release report says
-	// what a host that does not compress would add.
-	compressed := func(w http.ResponseWriter, r *http.Request, name string, content []byte, kind string) bool {
-		if !compressible(name) || !acceptsGzip(r) {
-			return false
+	// Account for and serve the same compressed representation on each navigation.
+	send := func(w http.ResponseWriter, r *http.Request, name string, content []byte, kind string) {
+		if compressible(name) && acceptsGzip(r) {
+			if z := text.gzipped(name, content); z != nil {
+				if kind == "" {
+					kind = http.DetectContentType(content)
+				}
+				w.Header().Set("Content-Type", kind)
+				w.Header().Set("Content-Encoding", "gzip")
+				w.Header().Set("Content-Length", strconv.Itoa(len(z)))
+				w.Header().Set("Vary", "Accept-Encoding")
+				_, _ = w.Write(z)
+				return
+			}
 		}
-		z := t.gzipped(name, content)
-		if z == nil {
-			return false
+		if name == "index.html" {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write(content)
+		} else {
+			http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(content))
 		}
-		w.Header().Set("Content-Type", kind)
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Content-Length", strconv.Itoa(len(z)))
-		w.Header().Set("Vary", "Accept-Encoding")
-		_, _ = w.Write(z)
-		return true
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet || r.Host != want.Host || r.URL.IsAbs() && (r.URL.Scheme != "http" || r.URL.Host != want.Host) || r.Header.Get("Upgrade") != "" {
@@ -330,24 +344,13 @@ func AuditHandler(page []byte, assets map[string][]byte, origin string) http.Han
 		// Fresh profiles/Lighthouse reset provide cold runs. A synthetic no-store
 		// header here would itself disable bfcache and create misleading findings.
 		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
-			if compressed(w, r, "index.html", page, "text/html; charset=utf-8") {
-				return
-			}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write(page)
+			send(w, r, "index.html", page, "text/html; charset=utf-8")
 			return
 		}
 		name := strings.TrimPrefix(r.URL.Path, "/")
 		if name != "" && name != "." && !path.IsAbs(name) && path.Clean(name) == name && !strings.Contains(name, "\\") && !strings.HasPrefix(name, "../") {
 			if content, ok := assets[name]; ok {
-				kind := mime.TypeByExtension(filepath.Ext(name))
-				if kind == "" {
-					kind = http.DetectContentType(content)
-				}
-				if compressed(w, r, name, content, kind) {
-					return
-				}
-				http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(content))
+				send(w, r, name, content, mime.TypeByExtension(filepath.Ext(name)))
 				return
 			}
 		}
