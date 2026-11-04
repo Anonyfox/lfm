@@ -123,7 +123,8 @@ func TestRuntimeAuditExecutesJSAndBlocksOutsideTraffic(t *testing.T) {
 	outside := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1) }))
 	defer outside.Close()
 	page := `<!doctype html><html><head><link rel="icon" href="data:image/png;base64,aA=="></head><body><script>fetch('` + outside.URL + `/',{method:'POST'}).catch(()=>{});console.error('probe failure');throw new Error('deliberate exception')</script></body></html>`
-	r := AuditRuntime(context.Background(), Target{Page: []byte(page), Assets: nil}, path, "")
+	p := printer(t)
+	r := AuditRuntime(context.Background(), Target{Page: []byte(page), Printer: p}, path, "")
 	if r.Status != "ok" {
 		t.Fatal(r)
 	}

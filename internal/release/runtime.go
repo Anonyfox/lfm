@@ -13,6 +13,7 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/runtime"
+	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/remote"
 )
@@ -36,18 +37,18 @@ func AuditRuntime(ctx context.Context, target Target, path, frames string) *Runt
 	return auditRuntime(ctx, target, path, frames, net.Listen)
 }
 
-func auditRuntime(ctx context.Context, target Target, path, frames string, listen func(string, string) (net.Listener, error)) *RuntimeResult {
+func auditRuntime(ctx context.Context, subject Target, path, frames string, listen func(string, string) (net.Listener, error)) *RuntimeResult {
 	start := time.Now()
 	r := &RuntimeResult{Status: "skipped", Scope: "390x844 initial navigation with application JS; 250 ms settle; no user journeys or simulated mobile performance scores; external traffic/mutations blocked."}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
-	destination, proxy, closeTarget, err := target.serve(listen)
+	destination, proxy, closeTarget, err := subject.serve(listen)
 	if err != nil {
 		r.Reason = err.Error()
 		r.Hint = LocalPortSetup
 		return r
 	}
 	defer closeTarget()
-	if target.URL != "" {
+	if subject.URL != "" {
 		r.Scope = "Live URL navigation with application JS; no clicks or form submissions."
 	}
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
@@ -57,11 +58,21 @@ func auditRuntime(ctx context.Context, target Target, path, frames string, liste
 		r.Hint = BrowserSetup + " " + LocalPortSetup + " Check OS sandbox support and page startup time."
 		return r
 	}
-	tab, cleanup, err := startAuditBrowser(ctx, path, proxy, "")
+	var tab context.Context
+	var cleanup func()
+	if subject.Printer == nil {
+		tab, cleanup, err = startAuditBrowser(ctx, path, proxy, "")
+	} else {
+		tab, cleanup = chromedp.NewContext(subject.Printer.browser, chromedp.WithNewBrowserContext(func(p *target.CreateBrowserContextParams) { p.ProxyServer = proxy; p.ProxyBypassList = "<-loopback>" }))
+		stop := context.AfterFunc(ctx, cleanup)
+		closeTab := cleanup
+		cleanup = func() { stop(); closeTab() }
+		_, err = chromedp.Run(tab, chromedp.Evaluate[bool](`true`))
+	}
+	defer cleanup()
 	if err != nil {
 		return fail(err)
 	}
-	defer cleanup()
 	version, err := chromedp.CallBrowser(tab, browser.GetVersion, cdp.Empty{})
 	if err != nil {
 		return fail(err)
@@ -156,10 +167,10 @@ func auditRuntime(ctx context.Context, target Target, path, frames string, liste
 }
 
 func startAuditBrowser(ctx context.Context, path, proxy, profile string) (context.Context, func(), error) {
-	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
+	opts := BrowserOptions(path)
 	// chromedp gives up on Chrome's DevTools URL after 20s, which a loaded
 	// machine can exceed; wait as long as any other browser step instead.
-	opts = append(opts, chromedp.ExecPath(path), chromedp.WSURLReadTimeout(browserStepTimeout), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-component-update", true))
+	opts = append(opts, chromedp.WSURLReadTimeout(browserStepTimeout))
 	if proxy != "" {
 		opts = append(opts, chromedp.ProxyServer(proxy), chromedp.Flag("proxy-bypass-list", "<-loopback>"))
 	} else {

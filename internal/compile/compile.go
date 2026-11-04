@@ -312,7 +312,6 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	if !deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result) {
 		return result, &Failure{Errors: result.Errors()}
 	}
-	st.close()
 	if err := b.addPublic(&result); err != nil {
 		return result, err
 	}
@@ -322,7 +321,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
-		audit := release.Audit(ctx, release.Target{Page: page, Assets: auditAssets, Tools: b.tools}, p.Root)
+		audit := release.Audit(ctx, release.Target{Page: page, Assets: auditAssets, Tools: b.tools, Printer: st.printer}, p.Root)
 		result.Release.Audit = audit
 		if audit.Runtime != nil && audit.Runtime.Status != "ok" {
 			// A failed browser capability is reported once by the audit, even
@@ -337,6 +336,7 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		}
 	}
 
+	st.close()
 	if options.Release && ctx.Err() == nil {
 		if result.Release == nil {
 			result.Release = &release.Result{}

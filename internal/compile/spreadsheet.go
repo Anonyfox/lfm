@@ -58,15 +58,12 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 	if s.skip || stop != nil {
 		return out, stop
 	}
-	var issues []diagnostic.Diagnostic
-	warn := func(rule, message, hint string) {
-		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: spreadsheet.WorkbookFile, Line: 1, Column: 1}, Message: message, Hint: hint})
-	}
+	w := &warnings{}
 	if !r.Buildable {
 		if s.page {
 			downloadPage(result, r.Config.Path, spreadsheet.DownloadPage(*r, nil), out)
 		}
-		return out, issues
+		return out, w.out
 	}
 	keys := make([]string, len(r.Workbook.Editions))
 	for i, e := range r.Workbook.Editions {
@@ -80,26 +77,19 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 	}
 	built, err := r.Build(func(key string) []byte { return pr.lookup(key) })
 	if err != nil {
-		return out, append(issues, diagnostic.Diagnostic{Rule: spreadsheet.RuleWorkbook, Severity: diagnostic.Error, Location: diagnostic.Location{File: spreadsheet.WorkbookFile, Line: 1, Column: 1}, Message: "The workbook could not be written: " + err.Error(), Hint: "Fix what the error names, then compile again."})
+		return out, append(w.out, diagnostic.Diagnostic{Rule: spreadsheet.RuleWorkbook, Severity: diagnostic.Error, Location: diagnostic.Location{File: spreadsheet.WorkbookFile, Line: 1, Column: 1}, Message: "The workbook could not be written: " + err.Error(), Hint: "Fix what the error names, then compile again."})
 	}
 	for _, f := range built {
 		out.add(deliver.File{Name: f.Name, Label: label(f), Note: r.FileNote(f.Name)}, f.Data)
 	}
 
-	printed := map[string][]byte{}
 	names := slices.Sorted(maps.Keys(starts))
+	var jobs []printJob
 	for _, name := range names {
 		doc := starts[name]
-		pdf, err := pr.job(printKey("spreadsheet start "+name, doc, nil), func(printer *release.Printer) ([]byte, error) {
-			return printer.Print(doc, nil, false)
-		})
-
-		if err != nil {
-			warn(spreadsheet.RuleChannels, "The start PDF "+name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
-		} else if pdf != nil {
-			printed[name] = pdf
-		}
+		jobs = append(jobs, printJob{key: printKey("spreadsheet start "+name, doc, nil), slot: name, file: spreadsheet.WorkbookFile, name: "start guide " + name, doc: func() []byte { return doc }})
 	}
+	printed, _ := printAll(pr, jobs, nil, spreadsheet.RuleChannels, w)
 	var images []spreadsheet.Image
 	if pictured(r.Listing.Present, r.Summary.Sell) {
 		images = spreadsheetImages(pr, plans, r.Summary.Sell)
@@ -130,10 +120,10 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 			// A second opinion only: lfm's engine computed every formula.
 			r.Summary.Compat = "lfm computed every formula"
 		case compatErr != nil:
-			warn(spreadsheet.RuleCompat, "The files were not recalculated in LibreOffice: "+compatErr.Error(), "Run the release again; reinstall LibreOffice if it keeps failing.")
+			w.add(spreadsheet.WorkbookFile, spreadsheet.RuleCompat, "The files were not recalculated in LibreOffice: "+compatErr.Error(), "Run the release again; reinstall LibreOffice if it keeps failing.")
 		case len(compat) > 0:
 			for _, d := range compat {
-				warn(spreadsheet.RuleCompat, d, "A formula one app computes differently breaks the template for its buyers; rewrite it with the portable functions.")
+				w.add(spreadsheet.WorkbookFile, spreadsheet.RuleCompat, d, "A formula one app computes differently breaks the template for its buyers; rewrite it with the portable functions.")
 			}
 			r.Summary.Compat = term.Plural(len(compat), "difference") + " in LibreOffice"
 		default:
@@ -145,12 +135,12 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 			diffs, err := r.Excel(built)
 			switch {
 			case err != nil:
-				warn(spreadsheet.RuleCompat, "Excel did not check the files: "+err.Error(), "Close Excel's open dialogs and run the release again.")
+				w.add(spreadsheet.WorkbookFile, spreadsheet.RuleCompat, "Excel did not check the files: "+err.Error(), "Close Excel's open dialogs and run the release again.")
 			case len(diffs) == 0:
 				r.Summary.Compat += fmt.Sprintf(" · Excel agrees on %s", term.Plural(len(built), "file"))
 			default:
 				for _, d := range diffs {
-					warn(spreadsheet.RuleCompat, d, "A file Excel refuses or computes differently breaks the template for most buyers; fix it, then release again.")
+					w.add(spreadsheet.WorkbookFile, spreadsheet.RuleCompat, d, "A file Excel refuses or computes differently breaks the template for most buyers; fix it, then release again.")
 				}
 				r.Summary.Compat += " · " + term.Plural(len(diffs), "difference") + " in Excel"
 			}
@@ -162,14 +152,14 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 		dist, channels, found := spreadsheet.Distribution(*r, out.Files, out.Data, images, r.Summary.Pending, time.Now().Format("2006-01-02"))
 		result.distribute("spreadsheet", dist)
 		r.Summary.Channels = channels
-		issues = append(issues, found...)
+		w.out = append(w.out, found...)
 	} else {
 		result.distribute("spreadsheet", map[string][]byte{})
 	}
 	if s.page {
 		downloadPage(result, r.Config.Path, spreadsheet.DownloadPage(*r, out.Files), out)
 	}
-	return out, issues
+	return out, w.out
 }
 
 func label(f spreadsheet.Built) string {

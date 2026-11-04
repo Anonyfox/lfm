@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/color"
+	_ "image/jpeg"
 	"image/png"
 	"os"
 	"regexp"
@@ -34,28 +35,6 @@ func printer(t *testing.T) *Printer {
 	return p
 }
 
-// within runs f and fails the test when it does not return in time.
-func within[T any](t *testing.T, f func() (T, error)) (T, error) {
-	t.Helper()
-	type result struct {
-		v   T
-		err error
-	}
-	done := make(chan result, 1)
-	go func() {
-		v, err := f()
-		done <- result{v, err}
-	}()
-	select {
-	case r := <-done:
-		return r.v, r.err
-	case <-time.After(browserTestTimeout):
-		t.Fatal("the printer hangs")
-		var zero T
-		return zero, nil
-	}
-}
-
 var mediaBox = regexp.MustCompile(`/MediaBox\s*\[\s*0\s+0\s+([0-9.]+)\s+([0-9.]+)\s*\]`)
 
 // pageDoc is a document of fixed-size .page sections of w×h CSS pixels.
@@ -82,7 +61,7 @@ func TestPrinter(t *testing.T) {
 		doc := []byte(`<!doctype html><html><head><style>@font-face{font-family:"Go Test";src:url(go.woff2) format("woff2")}
 @page{size:A4;margin:20mm}body{font:12pt "Go Test",serif}h1{break-before:page}h1:first-child{break-before:auto}</style></head>
 <body><h1>One</h1><p>First page.</p><h1>Two</h1><p>Second page.</p></body></html>`)
-		pdf, err := within(t, func() ([]byte, error) { return p.Print(doc, map[string][]byte{"go.woff2": font}, true) })
+		pdf, err := p.Print(doc, map[string][]byte{"go.woff2": font}, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -107,7 +86,7 @@ func TestPrinter(t *testing.T) {
 		if !embedded.Match(pdf) {
 			t.Fatal("the web font from assets is not embedded")
 		}
-		without, err := within(t, func() ([]byte, error) { return p.Print(doc, nil, false) })
+		without, err := p.Print(doc, nil, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,27 +95,46 @@ func TestPrinter(t *testing.T) {
 		}
 	})
 
-	t.Run("Picture renders the requested pixel size", func(t *testing.T) {
-		doc := []byte(`<!doctype html><html><body style="margin:0;background:#c00"><div data-fit="200 100 1" style="width:400px;height:200px;background:#00c"></div></body></html>`)
-		raw, err := within(t, func() ([]byte, error) { return p.Picture(doc, nil, 300, 150, 2, true) })
-		if err != nil {
-			t.Fatal(err)
-		}
-		img, err := png.Decode(bytes.NewReader(raw))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if b := img.Bounds(); b.Dx() != 600 || b.Dy() != 300 {
-			t.Fatalf("picture is %v", b)
-		}
-		// the 400 px box is fitted into 200×100 CSS px, so the right side is red
-		if r, _, bl, _ := img.At(100, 50).RGBA(); bl>>8 < 150 || r>>8 > 50 {
-			t.Fatalf("the fitted box is missing: %d %d", r>>8, bl>>8)
-		}
-		if r, _, bl, _ := img.At(500, 50).RGBA(); r>>8 < 150 || bl>>8 > 50 {
-			t.Fatalf("the box was not scaled to fit: %d %d", r>>8, bl>>8)
-		}
-	})
+	for _, limit := range []int{0, 1 << 20} {
+		t.Run("Picture and batch size, fitting and isolation "+strconv.Itoa(limit), func(t *testing.T) {
+			doc := []byte(`<!doctype html><html><body style="margin:0;background:#c00"><div data-fit="200 100 1" style="width:400px;height:200px;background:#00c"></div></body></html>`)
+			other := []byte(`<!doctype html><style>body{margin:0;background:#0c0}div{width:50vw;height:100vh;background:#cc0}</style><div></div><script>document.body.style.background="#000"</script>`)
+			docs := [][]byte{doc, other, doc}
+			err := p.Pictures(docs, nil, 300, 150, 2, true, limit, func(i int, raw []byte) {
+				single, err := p.Picture(docs[i], nil, 300, 150, 2, true, limit)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(raw, single) {
+					t.Fatal("batch changed a standalone capture")
+				}
+				img, _, err := image.Decode(bytes.NewReader(raw))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if img.Bounds() != image.Rect(0, 0, 600, 300) {
+					t.Fatal(img.Bounds())
+				}
+				if limit > 0 && len(raw) > limit {
+					t.Fatal("JPEG exceeds limit")
+				}
+				if i != 1 {
+					if r, _, bl, _ := img.At(100, 50).RGBA(); bl>>8 < 150 || r>>8 > 50 {
+						t.Fatal("fitted box missing")
+					}
+					if r, _, bl, _ := img.At(500, 50).RGBA(); r>>8 < 150 || bl>>8 > 50 {
+						t.Fatal("box did not fit")
+					}
+				}
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	if _, err := p.Picture([]byte("<!doctype html><p>Size limit</p>"), nil, 300, 150, 2, false, 1); err == nil {
+		t.Fatal("impossible JPEG limit succeeded")
+	}
 
 	t.Run("PageLayout reports overflow and margin intrusion", func(t *testing.T) {
 		doc := pageDoc(400, 300, `.edge{position:absolute;left:4px;top:120px;margin:0}.bleed{position:absolute;inset:0;background:#eee}`,
@@ -148,7 +146,7 @@ func TestPrinter(t *testing.T) {
 			`<div style="position:absolute;inset:2px;border:1px solid #000"></div>`,
 		)
 		dot := pngOf(t, 4, 4, func(x, y int) color.Color { return color.Black })
-		got, err := within(t, func() ([]string, error) { return p.PageLayout(doc, map[string][]byte{"dot.png": dot}, 400, 300, 24) })
+		got, err := p.PageLayout(doc, map[string][]byte{"dot.png": dot}, 400, 300, 24)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,9 +159,7 @@ func TestPrinter(t *testing.T) {
 		if !slices.Equal(got, want) {
 			t.Fatalf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 		}
-		clean, err := within(t, func() ([]string, error) {
-			return p.PageLayout(pageDoc(400, 300, "", "<h1>Title</h1><p>Fine.</p>", "<p>Also fine.</p>"), nil, 400, 300, 24)
-		})
+		clean, err := p.PageLayout(pageDoc(400, 300, "", "<h1>Title</h1><p>Fine.</p>", "<p>Also fine.</p>"), nil, 400, 300, 24)
 		if err != nil || len(clean) != 0 {
 			t.Fatalf("clean pages: %q %v", clean, err)
 		}
@@ -176,7 +172,7 @@ func TestPrinter(t *testing.T) {
 <div data-fit="body">` + strings.Repeat("Again too much. ", 30) + `</div>
 <div data-fit="flagged" data-over="1">Fits, but the compiler flagged it</div>
 <div data-fit="note">One line</div></body></html>`)
-		got, err := within(t, func() ([]string, error) { return p.Overflows(doc, nil, 800, 600) })
+		got, err := p.Overflows(doc, nil, 800, 600)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -187,7 +183,7 @@ func TestPrinter(t *testing.T) {
 
 	t.Run("PageImages renders one PNG per requested page", func(t *testing.T) {
 		doc := pageDoc(200, 100, "", "<p>One</p>", "<p>Two</p>", "<p>Three</p>")
-		shots, err := within(t, func() ([][]byte, error) { return p.PageImages(doc, nil, 200, 100, 2, []int{3, 1}) })
+		shots, err := p.PageImages(doc, nil, 200, 100, 2, []int{3, 1})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,7 +207,7 @@ func TestPrinter(t *testing.T) {
 	t.Run("BookLayout reports wide elements and tiny text", func(t *testing.T) {
 		doc := []byte(`<!doctype html><html><head><style>body{margin:0;font:16px serif}.tiny{font-size:6px}</style></head><body>
 <p>Prose.</p><table style="width:700px"><tr><td>Wide table</td></tr></table><p class="tiny">Fine print</p></body></html>`)
-		got, err := within(t, func() ([]string, error) { return p.BookLayout(doc, nil, 4.5) })
+		got, err := p.BookLayout(doc, nil, 4.5)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -221,7 +217,7 @@ func TestPrinter(t *testing.T) {
 				t.Errorf("missing %q in\n%s", want, joined)
 			}
 		}
-		clean, err := within(t, func() ([]string, error) { return p.BookLayout([]byte(`<!doctype html><p>Plain prose.</p>`), nil, 4.5) })
+		clean, err := p.BookLayout([]byte(`<!doctype html><p>Plain prose.</p>`), nil, 4.5)
 		if err != nil || len(clean) != 0 {
 			t.Fatalf("clean book: %q %v", clean, err)
 		}
@@ -239,14 +235,14 @@ func TestClosedPrinterFailsFast(t *testing.T) {
 		run  func() error
 	}{
 		{"Print", func() error { _, err := p.Print(doc, nil, false); return err }},
-		{"Picture", func() error { _, err := p.Picture(doc, nil, 100, 100, 1, true); return err }},
+		{"Picture", func() error { _, err := p.Picture(doc, nil, 100, 100, 1, true, 0); return err }},
 		{"PageLayout", func() error { _, err := p.PageLayout(doc, nil, 100, 100, 10); return err }},
 		{"Overflows", func() error { _, err := p.Overflows(doc, nil, 100, 100); return err }},
 		{"PageImages", func() error { _, err := p.PageImages(doc, nil, 100, 100, 1, []int{1}); return err }},
 		{"BookLayout", func() error { _, err := p.BookLayout(doc, nil, 4); return err }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := within(t, func() (bool, error) { return false, tc.run() }); err == nil {
+			if _, err := false, tc.run(); err == nil {
 				t.Error("closed printer succeeded")
 			}
 		})
@@ -258,7 +254,7 @@ func TestPageImagesFailsFastOnAMissingPage(t *testing.T) {
 	p := printer(t)
 	doc := pageDoc(200, 100, "", "<p>One</p>")
 	start := time.Now()
-	if _, err := within(t, func() ([][]byte, error) { return p.PageImages(doc, nil, 200, 100, 1, []int{9}) }); err == nil {
+	if _, err := p.PageImages(doc, nil, 200, 100, 1, []int{9}); err == nil {
 		t.Fatal("a page that does not exist rendered")
 	}
 	// Waiting for the page took the tab's whole time; loading it on a busy
@@ -279,9 +275,7 @@ func TestImagePlacementFindsTheFirstScreen(t *testing.T) {
 	page := []byte(`<!doctype html><html><head><meta name="viewport" content="width=device-width"><style>body{margin:0}img{display:block;width:200px;height:100px}</style></head><body>
 <img src="hero.png"><div style="height:3000px"></div><img src="late.png"><img src="hidden.png" style="display:none"></body></html>`)
 	dot := pngOf(t, 2, 2, func(x, y int) color.Color { return color.White })
-	got, err := within(t, func() ([]Placement, error) {
-		return ImagePlacement(context.Background(), page, map[string][]byte{"hero.png": dot, "late.png": dot, "hidden.png": dot})
-	})
+	got, err := ImagePlacement(context.Background(), page, map[string][]byte{"hero.png": dot, "late.png": dot, "hidden.png": dot})
 	if err != nil {
 		t.Fatal(err)
 	}

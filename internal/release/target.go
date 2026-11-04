@@ -9,11 +9,12 @@ import (
 
 // Target selects a live URL or immutable artifact bytes for browser checks.
 type Target struct {
-	text   *texts
-	Tools  *ToolIdentity // shared by optimization and audit
-	URL    string
-	Page   []byte
-	Assets map[string][]byte
+	text    *texts
+	Printer *Printer      // completed delivery browser; closed before Lighthouse
+	Tools   *ToolIdentity // shared by optimization and audit
+	URL     string
+	Page    []byte
+	Assets  map[string][]byte
 }
 
 func (t Target) serve(listen func(string, string) (net.Listener, error)) (destination, proxy string, closeTarget func(), err error) {

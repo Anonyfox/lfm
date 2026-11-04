@@ -122,20 +122,6 @@ func libreOffice(check func(soffice string) ([]finding, error), differ string) o
 	return o
 }
 
-// printGuides prints every start guide in order, reusing stamped ones.
-func printGuides(pr *press, keys []string, docs [][]byte, names []string, fonts map[string][]byte, dir, rule string, w *warnings) [][]byte {
-	jobs := make([]printJob, len(docs))
-	for i := range docs {
-		jobs[i] = printJob{key: keys[i], slot: keys[i], file: dir, name: "start guide " + names[i], doc: func() []byte { return docs[i] }}
-	}
-	pdfs, _ := printAll(pr, jobs, fonts, rule, w)
-	out := make([][]byte, len(docs))
-	for i := range out {
-		out[i] = pdfs[keys[i]]
-	}
-	return out
-}
-
 // editionZip is a published edition's ZIP when every part of it is there
 // and its key is unchanged, else the ZIP pack writes, stamped only when
 // complete so a later compile can reuse it whole.
@@ -163,52 +149,42 @@ func listingImages(pr *press, kind, sell string, planned []listingPlan, render f
 	if sell == deliver.SellBundle {
 		planned = planned[:min(pr.demand[kind], len(planned))]
 	}
-	data := make(map[string][]byte, len(planned))
-	keys := map[string]string{}
+	out := make([]deliver.Image, len(planned))
+	indices := map[string]int{}
 	var missing []listingPlan
-	for _, plan := range planned {
-		if jpg := pr.lookup(plan.Key); jpg != nil {
-			data[plan.Name] = jpg
-		} else {
+	for i, plan := range planned {
+		out[i] = deliver.Image{Name: plan.Name, Data: pr.lookup(plan.Key)}
+		if out[i].Data == nil {
 			missing = append(missing, plan)
-			keys[plan.Name] = plan.Key
+			indices[plan.Name] = i
 		}
 	}
-	if len(missing) > 0 {
-		if pr.release && render != nil {
-			if printer, err := pr.printerFor(); err == nil {
-				plans, assets, err := render(printer, missing)
-				if err == nil {
-					for _, plan := range plans {
-						key := keys[plan.Name]
-						if key == "" {
-							continue
-						}
-						jpg, err := pr.job(key, func(printer *release.Printer) ([]byte, error) {
-							png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale, true)
-							if err != nil {
-								return nil, err
-							}
-							return jpegUnder(png, 1<<20, key)
-						})
-						if err == nil && jpg != nil {
-							data[plan.Name] = jpg
-						}
-					}
+	if len(missing) > 0 && pr.release && render != nil {
+		printer, err := pr.printerFor()
+		if err == nil {
+			plans, assets, err := render(printer, missing)
+			if err == nil {
+				plans = slices.DeleteFunc(plans, func(p listingPlan) bool { _, ok := indices[p.Name]; return !ok })
+				docs := make([][]byte, len(plans))
+				overhead := 0
+				for i, plan := range plans {
+					docs[i] = plan.Doc
+					overhead = max(overhead, len(deliver.StampJPEG([]byte{0xff, 0xd8}, planned[indices[plan.Name]].Key))-2)
 				}
+				_ = printer.Pictures(docs, assets, imageWidth, imageHeight, imageScale, false, (1<<20)-overhead, func(i int, jpg []byte) {
+					index := indices[plans[i].Name]
+					key := planned[index].Key
+					out[index].Data = deliver.StampJPEG(jpg, key)
+					pr.previous[key] = out[index].Data
+				})
 			}
 		}
-		if len(data) != len(planned) {
-			pr.wait()
-		}
 	}
-	var out []deliver.Image
-	for _, plan := range planned {
-		if jpg := data[plan.Name]; jpg != nil {
-			out = append(out, deliver.Image{Name: plan.Name, Data: jpg})
-		}
+	absent := func(image deliver.Image) bool { return image.Data == nil }
+	if slices.ContainsFunc(out, absent) {
+		pr.wait()
 	}
-	return out
+	return slices.DeleteFunc(out, absent)
 }
 
 // picturePlan is a source raster referenced by a listing layout. Markers are
@@ -228,7 +204,7 @@ func captureShots(printer *release.Printer, plans, missing []listingPlan, assets
 		if !slices.ContainsFunc(plans, func(p listingPlan) bool { return bytes.Contains(p.Doc, marker) }) {
 			continue
 		}
-		png, err := printer.Picture(shot.doc, assets, shot.width, shot.height, shot.scale, true)
+		png, err := printer.Picture(shot.doc, assets, shot.width, shot.height, shot.scale, true, 0)
 		if err != nil {
 			return nil, err
 		}

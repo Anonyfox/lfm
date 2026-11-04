@@ -171,7 +171,7 @@ func TestChromePrintsAsPlanned(t *testing.T) {
 				t.Errorf("%s: %s", f.File, f.Message)
 			}
 			w, h := PagePixels(b.Edition)
-			if png, err := printer.Picture(r.ShotDoc(b), r.GuideAssets(), w, h, 1, false); err != nil || len(png) < 1000 {
+			if png, err := printer.Picture(r.ShotDoc(b), r.GuideAssets(), w, h, 1, false, 0); err != nil || len(png) < 1000 {
 				t.Errorf("%s: no first-page shot: %v", b.Name, err)
 			}
 		}

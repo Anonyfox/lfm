@@ -2,13 +2,9 @@ package release
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/pdfx"
@@ -17,14 +13,11 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// Printer renders sequential documents in one Chrome, with an isolated tab per
-// job. Close it before running the page's performance audit.
+// Printer renders sequential print jobs and picture batches in one Chrome.
+// Each job or batch has a fresh browser context; runtime can reuse Chrome.
 type Printer struct {
 	browser context.Context
-	server  *httptest.Server
 	stop    func()
-	jobs    sync.Map // "/<n>/" -> http.Handler
-	next    atomic.Int64
 }
 
 // tabTime is how long one print or render may take once it has a tab.
@@ -36,40 +29,15 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Printer{}
-	p.server, err = localServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		job, _, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
-		if h, ok := p.jobs.Load(job); ok {
-			http.StripPrefix("/"+job, h.(http.Handler)).ServeHTTP(w, r)
-			return
-		}
-		http.NotFound(w, r)
-	}), net.Listen)
+	browser, stop, err := openBrowser(ctx, BrowserOptions(path), tabTime)
 	if err != nil {
 		return nil, err
 	}
-	browser, closeBrowser, err := openBrowser(ctx, BrowserOptions(path), tabTime)
-	if err != nil {
-		p.server.Close()
-		return nil, err
-	}
-	p.stop = func() { closeBrowser(); p.server.Close() }
-	p.browser = browser
-	return p, nil
+	return &Printer{browser: browser, stop: stop}, nil
 }
 
 // Close stops Chrome.
 func (p *Printer) Close() { p.stop() }
-
-// tab opens a new tab serving doc and its flat assets and returns its address.
-// Each tab has a one-minute deadline.
-func (p *Printer) tab(doc []byte, assets map[string][]byte) (context.Context, string, func()) {
-	job := fmt.Sprint(p.next.Add(1))
-	p.jobs.Store(job, Handler(doc, assets))
-	tab, cancelTab := chromedp.NewContext(p.browser)
-	tab, cancelTimeout := context.WithTimeout(tab, tabTime)
-	return tab, p.server.URL + "/" + job + "/", func() { cancelTimeout(); cancelTab(); p.jobs.Delete(job) }
-}
 
 // Print prints a document to PDF at the page size its @page rule
 // declares, with bookmarks from its headings when outline is set. Fonts and
@@ -168,7 +136,13 @@ func capitalize(s string) string {
 // scale device pixels per CSS pixel, with print or screen media, and waits
 // for fonts and images.
 func (p *Printer) load(doc []byte, assets map[string][]byte, width, height int64, scale float64, media string) (context.Context, func(), error) {
-	tab, url, done := p.tab(doc, assets)
+	server, err := localServer(Handler(doc, assets), net.Listen)
+	if err != nil {
+		return nil, nil, err
+	}
+	tab, cancelTab := chromedp.NewContext(p.browser, chromedp.WithNewBrowserContext())
+	tab, cancelTimeout := context.WithTimeout(tab, tabTime)
+	done := func() { cancelTimeout(); cancelTab(); server.Close() }
 	fail := func(err error) (context.Context, func(), error) { done(); return nil, nil, err }
 	if width > 0 {
 		if _, err := chromedp.Call(tab, emulation.SetDeviceMetricsOverride, emulation.SetDeviceMetricsOverrideParams{Width: width, Height: height, DeviceScaleFactor: scale}); err != nil {
@@ -178,10 +152,10 @@ func (p *Printer) load(doc []byte, assets map[string][]byte, width, height int64
 			return fail(err)
 		}
 	}
-	if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
+	if err := chromedp.Do(tab, chromedp.Navigate(server.URL+"/")); err != nil {
 		return fail(fmt.Errorf("load the document: %w", err))
 	}
-	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
+	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](readyScript, chromedp.EvalAwaitPromise)); err != nil {
 		return fail(fmt.Errorf("wait for fonts and images: %w", err))
 	}
 	return tab, done, nil
@@ -251,21 +225,65 @@ func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height
 	return out, nil
 }
 
-// Picture renders a document at width×height CSS pixels and scale as a PNG of
-// the viewport. Fast encoding preserves pixels with less PNG compression.
-func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height int64, scale float64, fast bool) ([]byte, error) {
-	tab, done, err := p.load(doc, assets, width, height, scale, "screen")
+// Picture renders the viewport as PNG, or native JPEG when limit > 0.
+// Fast PNG encoding preserves pixels; JPEG quality falls from 90 to 50 to fit limit.
+func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height int64, scale float64, fast bool, limit int) ([]byte, error) {
+	var out []byte
+	err := p.Pictures([][]byte{doc}, assets, width, height, scale, fast, limit, func(_ int, data []byte) { out = data })
+	return out, err
+}
+
+// Pictures renders independent documents sequentially in one tab. limit > 0
+// selects native JPEG; otherwise it captures lossless PNG. consume runs before
+// the next capture, so temporary rasters do not accumulate in memory.
+func (p *Printer) Pictures(docs [][]byte, assets map[string][]byte, width, height int64, scale float64, fast bool, limit int, consume func(int, []byte)) error {
+	if len(docs) == 0 {
+		return nil
+	}
+	tab, done, err := p.load(docs[0], assets, width, height, scale, "screen")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer done()
-	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](fitScript)); err != nil {
-		return nil, fmt.Errorf("fit the document: %w", err)
+	for i, doc := range docs {
+		if i > 0 {
+			raw, _ := json.Marshal(string(doc))
+			if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.open();document.write(`+string(raw)+`);document.close();true`)); err != nil {
+				return err
+			}
+			if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](readyScript, chromedp.EvalAwaitPromise)); err != nil {
+				return err
+			}
+		}
+		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](fitScript)); err != nil {
+			return fmt.Errorf("fit the document: %w", err)
+		}
+		yes := true
+		params := page.CaptureScreenshotParams{FromSurface: &yes, OptimizeForSpeed: &fast}
+		if limit > 0 {
+			params.Format = page.CaptureScreenshotFormatJpeg
+		}
+		for quality := int64(90); quality >= 50; quality -= 8 {
+			if limit > 0 {
+				params.Quality = &quality
+			}
+			shot, err := chromedp.Call(tab, page.CaptureScreenshot, params)
+			if err != nil {
+				return err
+			}
+			if limit <= 0 || len(shot.Data) <= limit {
+				consume(i, shot.Data)
+				break
+			}
+			if quality == 50 {
+				return fmt.Errorf("JPEG exceeds %d bytes at quality 50", limit)
+			}
+		}
 	}
-	yes := true
-	shot, err := chromedp.Call(tab, page.CaptureScreenshot, page.CaptureScreenshotParams{FromSurface: &yes, OptimizeForSpeed: &fast})
-	return shot.Data, err
+	return nil
 }
+
+const readyScript = `document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`
 
 // fitScript scales every element marked data-fit="width height max" to
 // fit its box, at most max; with data-fit-size its parent takes the scaled

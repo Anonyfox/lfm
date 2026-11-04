@@ -209,11 +209,8 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 			for name, data := range more {
 				assets[name] = data
 			}
-			png, err := printer.Picture(doc, assets, printable.ImageWidth, printable.ImageHeight, printable.ImageScale, true)
-			if err != nil {
-				return nil, err
-			}
-			return jpegUnder(png, 1<<20, key)
+			jpg, err := printer.Picture(doc, assets, printable.ImageWidth, printable.ImageHeight, printable.ImageScale, false, (1<<20)-(len(deliver.StampJPEG([]byte{0xff, 0xd8}, key))-2))
+			return deliver.StampJPEG(jpg, key), err
 		})
 		switch {
 		case err != nil:

@@ -30,7 +30,7 @@ func bookImages(r *book.Report, st *stock, at func(diagnostic.Severity, string, 
 		if release.ReadCache(key, &png).IsZero() {
 			printer, e := st.printerFor()
 			if e == nil {
-				png, e = printer.Picture(doc, map[string][]byte{"image.svg": data}, 1600, height, 1, false)
+				png, e = printer.Picture(doc, map[string][]byte{"image.svg": data}, 1600, height, 1, false, 0)
 			}
 			if e == nil {
 				release.WriteCache(key, png)

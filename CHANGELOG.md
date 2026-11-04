@@ -3,9 +3,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 ## Unreleased
 
 - Release delivery reuses individual listing images and renders only the images a bundle publishes.
-  Page audits run after delivery closes its browser; incomplete layouts are never cached, and transient
+  Page audits run after delivery, sharing its browser for isolated runtime checks; incomplete layouts are never cached, and transient
   Chrome or Lighthouse version failures are retried before keying a successful audit. Listing
-  captures use faster lossless PNG encoding with unchanged JPEG pixels and quality. Audit cache
+  captures share a tab and use native JPEG encoding at the shipped size, retaining the 1 MiB limit. Audit cache
   write failures and Lighthouse duration/deadline/scope reporting now explain lost reuse and retries.
 
 - Delivery stock keeps archive stamps separate from embedded PDF stamps, preventing a ZIP from

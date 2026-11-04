@@ -75,13 +75,12 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 	// Reuse complete ZIPs and keep print keys independent of the writer.
 	jobs := r.Jobs()
 	fonts, fontKey := r.GuideAssets(), r.Digest()
-	guideDocs := make([][]byte, len(r.Editions))
+	guidesPlan := make([]printJob, len(r.Editions))
 	guideKeys := make([]string, len(r.Editions))
-	guideNames := make([]string, len(r.Editions))
 	for i, e := range r.Editions {
-		guideDocs[i] = r.Guide(e)
-		guideKeys[i] = printKey("document guide "+e.Key, append(guideDocs[i], fontKey...), nil)
-		guideNames[i] = r.GuideName(e)
+		doc := r.Guide(e)
+		guideKeys[i] = printKey("document guide "+e.Key, append(append([]byte{}, doc...), fontKey...), nil)
+		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, file: document.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
 	}
 	printKeys := map[string]string{}
 	for _, b := range jobs {
@@ -138,19 +137,19 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 	}
 
 	var images []document.Image
-	guides := printGuides(pr, guideKeys, guideDocs, guideNames, fonts, document.Dir, document.RuleChannels, w)
+	guides, _ := printAll(pr, guidesPlan, fonts, document.RuleChannels, w)
 	if pictured(r.Listing.Present, r.Summary.Sell) {
 		images = documentImages(pr, r, built, printKeys)
 	}
 
 	for i, e := range r.Editions {
-		complete := guides[i] != nil
+		complete := guides[e.Key] != nil
 		for _, b := range built {
 			if b.Edition == e && pdfs[b.Key] == nil {
 				complete = false
 			}
 		}
-		data, err := editionZip(pr, zipKeys[i], complete, func(key string) ([]byte, error) { return r.Zip(e, built, pdfs, guides[i], key) })
+		data, err := editionZip(pr, zipKeys[i], complete, func(key string) ([]byte, error) { return r.Zip(e, built, pdfs, guides[e.Key], key) })
 		if err != nil {
 			w.add(document.Dir, document.RuleChannels, "The ZIP of "+e.Key+" could not be written: "+err.Error(), "Fix what the error names, then compile again.")
 		}

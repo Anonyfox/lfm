@@ -96,7 +96,7 @@ func browserCandidates() []string {
 // BrowserOptions configures an isolated browser without background services.
 func BrowserOptions(path string) []chromedp.ExecAllocatorOption {
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
+	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
 }
 
 // Analyze observes static first paint at several widths, unions visible rules,

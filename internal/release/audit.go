@@ -112,6 +112,9 @@ func audit(ctx context.Context, target Target, root string, listen func(string, 
 		return r
 	}
 	r.Runtime = auditRuntime(ctx, target, browser, FramesPath(root), listen)
+	if target.Printer != nil {
+		target.Printer.Close()
+	}
 	if r.Runtime.Status != "ok" {
 		add(diagnostic.Error, "release.browser", "Release browser checks could not run: "+r.Runtime.Reason, r.Runtime.Hint)
 	}

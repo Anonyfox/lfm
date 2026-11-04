@@ -67,7 +67,7 @@ func (b *builder) socialCard(source string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	png, err := printer.Picture(page.Bytes(), assets, 1200, 630, 1, false)
+	png, err := printer.Picture(page.Bytes(), assets, 1200, 630, 1, false, 0)
 	if err != nil {
 		return nil, err
 	}

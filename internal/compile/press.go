@@ -316,8 +316,8 @@ func offerPrices(commerce commercecheck.Facts) map[string]*deliver.Price {
 	return offers
 }
 
-// jpegUnder encodes a PNG as a JPEG of at most limit bytes, lowering the
-// quality as needed, stamped with key.
+// jpegUnder encodes a PNG at decreasing JPEG quality, targeting limit bytes.
+// If quality 50 still exceeds limit, the caller can keep its original PNG.
 func jpegUnder(png []byte, limit int, key string) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(png))
 	if err != nil {
