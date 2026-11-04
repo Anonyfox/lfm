@@ -2,12 +2,13 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
-- Release layout checks and listing captures share one browser tab. Bundle images reuse the
-  printable cover already rendered during the same release.
+## 0.1.18 (2026-11-04)
 
-- Release audits finish when Lighthouse has written its complete report, without waiting for
-  completed gatherers’ leftover timers. Compatible document and deck source images share one
-  render tab. All audits, categories and remeasurement checks remain.
+- `lfm compile --release` is a bit faster on a shop one-pager with a bundle, documents and a
+  spreadsheet: about 23.6 s instead of 24.2 s cold and 1.1 s instead of 1.3 s on an unchanged
+  project, measured side by side on the same machine. Layout checks and listing captures share one
+  browser tab, and the bundle's hero reuses the printable cover the release already rendered.
+  Audits, scores and outputs are unchanged.
 
 ## 0.1.17 (2026-11-04)
 
