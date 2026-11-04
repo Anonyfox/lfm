@@ -20,6 +20,7 @@ type Token struct {
 }
 
 type Document struct {
+	copyFindings   map[string][]Diagnostic
 	Raw            []byte
 	Root           *html.Node
 	Elements       []*html.Node

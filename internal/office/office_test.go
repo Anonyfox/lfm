@@ -91,7 +91,7 @@ func TestConvertReturnsEveryWrittenFile(t *testing.T) {
 }
 
 func TestConvertReportsFailures(t *testing.T) {
-	if _, err := Convert(context.Background(), fakeSoffice(t, "exit 3\n"), map[string][]byte{"a.docx": nil}, "pdf"); err == nil || !strings.Contains(err.Error(), "LibreOffice: exit status 3") {
+	if _, err := Convert(context.Background(), fakeSoffice(t, "echo conversion-failed >&2; exit 3\n"), map[string][]byte{"a.docx": nil}, "pdf"); err == nil || (!strings.Contains(err.Error(), "LibreOffice: exit status 3") || !strings.Contains(err.Error(), "conversion-failed")) {
 		t.Errorf("failing run: %v", err)
 	}
 	if _, err := Convert(context.Background(), filepath.Join(t.TempDir(), "absent"), nil, "pdf"); err == nil || !strings.Contains(err.Error(), "start LibreOffice") {
@@ -242,5 +242,23 @@ func TestAppsKeepTheirFilesInTheirSandbox(t *testing.T) {
 		if !strings.Contains(a.script, `tell application "`+a.name+`"`) {
 			t.Errorf("%s: the script tells another app", a.name)
 		}
+	}
+}
+
+// A missing regional locale makes LibreOffice encode non-ASCII sheet filenames
+// with the C locale. Linux's built-in C.UTF-8 must work without locale generation.
+func TestConvertUsesAvailableUnicodeLocale(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux locale fallback")
+	}
+	t.Setenv("LC_ALL", "lfm_missing_locale.UTF-8")
+	body := `test "$(locale charmap)" = UTF-8 || exit 2
+` + converts
+	got, err := Convert(context.Background(), fakeSoffice(t, body), map[string][]byte{"Übersicht.xlsx": []byte("cells")}, "csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got["Übersicht.csv"]) != "cells" {
+		t.Fatalf("Unicode output lost: %v", got)
 	}
 }

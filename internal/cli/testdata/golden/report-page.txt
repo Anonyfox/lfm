@@ -2,6 +2,9 @@ warning  copy.placeholder  page
          The page URL is still the placeholder https://example.com/tagungskosten/.
          fix: Set url in lfm.json to the address the page will be served from; the canonical,
               share links and previews are built from it.
+warning  copy.emoji  page <p.eyebrow>
+         An emoji can substitute decoration for a claim: "🧮".
+         fix: Use words that state the meaning.
 warning  design.eyebrows  page <p.eyebrow>
          Eyebrow "Tagungsplanung 🧮" above heading "Was kostet deine Tagung pro Kopf?": small
          tracked label restating or framing the heading.
@@ -15,7 +18,7 @@ warning  design.type  page <h1>
               copy. Deliberate? Keep it and add data-design-reason="…" on the element, or set
               build.validation.rules.design.type.
 
-✓ <project> compiled → output/ in <duration>, 3 warnings
+✓ <project> compiled → output/ in <duration>, 4 warnings
   index.html   10.3 KiB    4.0 KiB gzip · CSS 2.1 KiB · JS 767 B
   3 assets     26.5 KiB    share-4c2fc583eba1.webp, favicon.png, sitemap.xml
 'lfm rules <id>' explains any rule above.

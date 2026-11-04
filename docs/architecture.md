@@ -12,6 +12,7 @@ one package per responsibility, each testable on its own.
 | `project` | The fixed layout, the source boundary every read goes through, and `lfm.json` loading. |
 | `scaffold` | The embedded starter project written by `lfm init`. |
 | `skills` | Agent Skills embedded in the binary, rendered with its facts, stamped, installed and found on disk. |
+| `slop` | Shared embedded DE/EN copy patterns, language selection, editorial thresholds and justified exceptions; used by page checks and standalone text/Markdown checks. |
 | `aitext` | The AI-text estimate: language-agnostic features (burstiness, punctuation, lexical diversity, compression against model-written text, repetition) plus the habits and fillers of eight western languages, scored by models fitted on labelled human and generated text in those languages. Used by `copy.machine` and the book's prose checks. |
 | `deliver` | What every deliverable shares: the unlisted download path, file names, prices, the download page. |
 | `pdfx` | Reads and stamps the PDFs Chrome prints: page counts, outline targets, transparency, the input key that lets a compile reuse a print. |

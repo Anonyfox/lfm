@@ -41,6 +41,11 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.validation` | object |  | Rule levels and size budgets. |
 | `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Example: `{"design.mono": "off"}`. |
 | `build.validation.rules.*` | off | warn | error |  | The level of this rule. Example: `"warn"`. |
+| `build.validation.copyAllow` | list of objects |  | Copy exceptions with a required reason. Example: `[{"rule":"copy.superlative","phrase":"Traumhaft Hotel","reason":"Registered name"}]`. |
+| `build.validation.copyAllow.*` | object |  | One justified copy exception. |
+| `build.validation.copyAllow.*.rule` | string | required | An exact copy rule ID. Example: `"copy.superlative"`. |
+| `build.validation.copyAllow.*.phrase` | string |  | Case-insensitive literal phrase; omitted exempts the whole rule. Example: `"Traumhaft Hotel"`. |
+| `build.validation.copyAllow.*.reason` | string | required | Required nonblank explanation for this exception. Example: `"Registered name"`. |
 | `build.validation.budgets` | object |  | This page's advisory sizes, which perf.budgets warns past; raise one where the page has a reason to be larger instead of turning the rule off. Example: `{"cssKiB": 80}`. Checked by `perf.budgets`. |
 | `build.validation.budgets.imageKiB` | integer | 3000 | Total referenced image, poster, srcset candidate and CSS background image bytes in KiB; unknown sizes are skipped. Example: `6000`. Checked by `perf.budgets`. |
 | `build.validation.budgets.videoKiB` | integer | 8000 | Referenced video source bytes in KiB, counted separately from images. Example: `16000`. Checked by `perf.budgets`. |

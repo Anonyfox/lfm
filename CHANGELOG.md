@@ -2,6 +2,23 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- Copy sentence checks exclude unterminated source labels and data rows, and
+  preserve numbers when comparing repeated sentences.
+- LibreOffice conversion uses Linux’s built-in Unicode locale so sheet names
+  survive on systems without generated regional locales; conversion failures
+  include the application’s output.
+
+- New rules: shared DE/EN copy checks for contrast reveals, negative lists, empty
+  superlatives, food filler, trailing clauses, adjective triads, chained commas,
+  unattributed claims, emoji, German em dashes, duplicate sentences and uniform
+  rhythm. These default to warnings; leaked generation instructions and workspace
+  paths are errors. `copy.tells` keeps its existing stock phrases and repeated
+  not-only threshold; direct reveals now use `copy.reveal`.
+- `lfm check` accepts `.txt` and `.md`, with the page report's JSON and exit status.
+  `--lang` overrides language; HTML lang and Markdown front matter precede detection.
+  `build.validation.copyAllow` requires a reason for phrase or rule exceptions;
+  HTML `data-slop-skip` exempts verbatim text. See [copy rules](docs/copy-rules.md).
+
 ## 0.1.18 (2026-11-04)
 
 - `lfm compile --release` is a bit faster on a shop one-pager with a bundle, documents and a
@@ -9,6 +26,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
   project, measured side by side on the same machine. Layout checks and listing captures share one
   browser tab, and the bundle's hero reuses the printable cover the release already rendered.
   Audits, scores and outputs are unchanged.
+
 
 ## 0.1.17 (2026-11-04)
 

@@ -9,6 +9,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/fontcheck"
 	"github.com/Anonyfox/lfm/internal/imaging"
+	"github.com/Anonyfox/lfm/internal/slop"
 	"github.com/Anonyfox/lfm/internal/urlcheck"
 )
 
@@ -32,6 +33,8 @@ type Rule struct {
 
 // Options is also usable by small rule tests; no workbench/filesystem is needed.
 type Options struct {
+	Language        string
+	CopyAllow       []slop.Allow
 	ServedURL       string // Final fetched URL; enables loopback preview URL judgments.
 	File            string
 	RobotsHeader    []string

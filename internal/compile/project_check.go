@@ -56,6 +56,22 @@ func ProjectCheckOptions(dir string, options check.Options) (check.Options, erro
 	options.Registry, options.Commerce, options.Concept = registry, prepared.Commerce, facts
 	options.JSONLDGenerated, options.JSONLDSource = len(prepared.JSONLD) > 0, &prepared.JSONLDSource
 	options.Rules = loaded.Config.Build.Validation.Rules
+	options.CopyAllow = loaded.Config.Build.Validation.CopyAllow
 	options.Budgets = check.Budgets(loaded.Config.Build.Validation.Budgets)
+	return options, nil
+}
+
+// ProjectCopyOptions loads copy policy without requiring templates or research.
+func ProjectCopyOptions(dir string, options check.Options) (check.Options, error) {
+	p, err := project.Open(dir)
+	if err != nil {
+		return options, err
+	}
+	loaded := project.Load(p, ruleCheck)
+	if len(loaded.Problems) > 0 {
+		return options, fmt.Errorf("%s: %s: %v", loaded.Problems[0].File, loaded.Problems[0].Path, loaded.Problems[0].Err)
+	}
+	options.Rules = loaded.Config.Build.Validation.Rules
+	options.CopyAllow = loaded.Config.Build.Validation.CopyAllow
 	return options, nil
 }

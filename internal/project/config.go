@@ -15,6 +15,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/jsonsrc"
+	"github.com/Anonyfox/lfm/internal/slop"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -149,8 +150,9 @@ type Build struct {
 }
 
 type Validation struct {
-	Rules   map[string]diagnostic.Severity `json:"rules"`
-	Budgets Budgets                        `json:"budgets"`
+	CopyAllow []slop.Allow                   `json:"copyAllow"`
+	Rules     map[string]diagnostic.Severity `json:"rules"`
+	Budgets   Budgets                        `json:"budgets"`
 }
 
 // Budgets are a page's advisory sizes, which perf.budgets warns past; a
@@ -310,6 +312,15 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 			add(ConfigFile, jsonsrc.Child("build.validation.rules", id), err)
 		}
 	}
+	for i, a := range c.Build.Validation.CopyAllow {
+		if err := slop.ValidateAllow(a); err != nil {
+			key := "rule"
+			if strings.TrimSpace(a.Reason) == "" {
+				key = "reason"
+			}
+			add(ConfigFile, fmt.Sprintf("build.validation.copyAllow[%d].%s", i, key), err)
+		}
+	}
 	for _, r := range budgetRanges {
 		if v := r.value(c.Build.Validation.Budgets); v < 0 || v > r.max {
 			add(ConfigFile, "build.validation.budgets."+r.field, fmt.Errorf("build.validation.budgets.%s must be between 1 and %d; leave it out for lfm's default", r.field, r.max))
@@ -431,6 +442,15 @@ func checkShape(raw []byte) []Problem {
 				continue
 			}
 			checkValue(values[key], child, childPattern, f, report)
+			if f.Kind == Objects {
+				if items, ok := values[key].([]any); ok {
+					for i, item := range items {
+						if nested, ok := item.(map[string]any); ok {
+							walk(nested, fmt.Sprintf("%s[%d]", child, i), childPattern+".*", false)
+						}
+					}
+				}
+			}
 			if nested, ok := values[key].(map[string]any); ok && (f.Kind == Object || f.Kind == Map) {
 				walk(nested, child, childPattern, f.Kind == Map)
 			}
@@ -475,6 +495,17 @@ func checkValue(v any, path, pattern string, f Field, report func(string, Field,
 			report(path, f, "%s must be a whole number", path)
 		case !f.allowed(n.String()):
 			report(path, f, "%s must be %s", path, orList(f.Values))
+		}
+	case Objects:
+		items, ok := v.([]any)
+		if !ok {
+			report(path, f, "%s must be a list of objects", path)
+			return
+		}
+		for i, item := range items {
+			if _, ok := item.(map[string]any); !ok {
+				report(fmt.Sprintf("%s[%d]", path, i), f, "%s must hold objects", path)
+			}
 		}
 	case List:
 		items, ok := v.([]any)
