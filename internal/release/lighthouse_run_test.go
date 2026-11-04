@@ -3,7 +3,9 @@ package release
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +46,13 @@ func TestLighthouseRunAttachesToOwnChromeAndKeepsTheReport(t *testing.T) {
 	report := writeReport(t)
 	args := filepath.Join(t.TempDir(), "args")
 	root := fakeLighthouse(t, `echo "$@" > "`+args+`"; cat "`+report+`"`)
+	external := filepath.Join(t.TempDir(), "untouched")
+	if err := os.WriteFile(external, []byte("original"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(external, ReportPath(root)); err != nil {
+		t.Fatal(err)
+	}
 	browser, _ := BrowserPath()
 	r := runLighthouse(context.Background(), Target{Page: []byte("<!doctype html><title>x</title>"), Assets: nil}, browser, root)
 	if r.Status != "ok" || r.Reason != "" || *r.Scores["performance"] != 90 || len(r.Findings) != 1 {
@@ -55,11 +64,61 @@ func TestLighthouseRunAttachesToOwnChromeAndKeepsTheReport(t *testing.T) {
 	if saved, err := os.ReadFile(r.Report); err != nil || string(saved) != fakeReport {
 		t.Fatalf("saved report: %v %q", err, saved)
 	}
+	if raw, err := os.ReadFile(external); err != nil || string(raw) != "original" {
+		t.Fatalf("report followed a symlink: %v %q", err, raw)
+	}
 	raw, _ := os.ReadFile(args)
 	for _, want := range []string{"--output=json", "--form-factor=mobile", "--port=", "http://127.0.0.1:"} {
 		if !strings.Contains(string(raw), want) {
 			t.Errorf("lighthouse ran without %q: %s", want, raw)
 		}
+	}
+}
+
+func TestLighthouseNodeCLICompletion(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip(err)
+	}
+	for _, tc := range []struct {
+		name, tail string
+		ok         bool
+	}{
+		{"complete", "", true},
+		{"exit code", "process.exitCode = 3", false},
+		{"exception", "throw new Error('CLI failed')", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := fakeLighthouse(t, "")
+			entry := filepath.Join(root, "lighthouse-cli", "lighthouse", "cli", "index.mjs")
+			if err := os.MkdirAll(filepath.Dir(entry), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			// A full pipe must drain; completed work must not wait for a stale timer.
+			report := fakeReport[:len(fakeReport)-1] + `,"padding":"` + strings.Repeat("x", 1<<20) + `"}`
+			script := "#!/usr/bin/env node\nsetTimeout(()=>{}, 30000); process.stdout.write(" + strconv.Quote(report) + ");" + tc.tail
+			if err := os.WriteFile(entry, []byte(script), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			tool := filepath.Join(root, "lighthouse")
+			if err := os.Remove(tool); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(entry, tool); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			browser, _ := BrowserPath()
+			r := runLighthouseOnce(ctx, Target{Page: []byte("<!doctype html>")}, browser, root)
+			if (r.Status == "ok") != tc.ok || strings.Contains(r.Reason, "deadline") {
+				t.Fatalf("%+v", r)
+			}
+			if tc.ok {
+				if saved, err := os.ReadFile(r.Report); err != nil || string(saved) != report {
+					t.Fatalf("report did not drain: %v (%d bytes)", err, len(saved))
+				}
+			}
+		})
 	}
 }
 

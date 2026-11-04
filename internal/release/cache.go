@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -152,16 +151,7 @@ func WriteCache(key string, value any) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	f, err := scratch.File(dir, ".audit-*")
-	if err != nil {
-		return err
-	}
-	defer scratch.Remove(f.Name())
-	_, err = f.Write(raw)
-	if err := errors.Join(err, f.Close()); err != nil {
-		return err
-	}
-	if err := os.Rename(f.Name(), filepath.Join(dir, key+".json")); err != nil {
+	if err := scratch.WriteFile(filepath.Join(dir, key+".json"), raw); err != nil {
 		return err
 	}
 	cache.Prune(dir)

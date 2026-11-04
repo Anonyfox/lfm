@@ -164,7 +164,6 @@ func listingImages(pr *press, kind, sell string, planned []listingPlan, render f
 		if err == nil {
 			plans, assets, err := render(printer, missing)
 			if err == nil {
-				plans = slices.DeleteFunc(plans, func(p listingPlan) bool { _, ok := indices[p.Name]; return !ok })
 				docs := make([][]byte, len(plans))
 				overhead := 0
 				for i, plan := range plans {
@@ -199,19 +198,31 @@ func captureShots(printer *release.Printer, plans, missing []listingPlan, assets
 	plans = slices.DeleteFunc(plans, func(p listingPlan) bool {
 		return !slices.ContainsFunc(missing, func(m listingPlan) bool { return m.Name == p.Name })
 	})
-	for _, shot := range shots {
-		marker := []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(shot.marker))
-		if !slices.ContainsFunc(plans, func(p listingPlan) bool { return bytes.Contains(p.Doc, marker) }) {
-			continue
+	shots = slices.DeleteFunc(shots, func(s picturePlan) bool {
+		s.marker = []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(s.marker))
+		return !slices.ContainsFunc(plans, func(p listingPlan) bool { return bytes.Contains(p.Doc, s.marker) })
+	})
+	for len(shots) > 0 {
+		shot := shots[0]
+		n := 1
+		for n < len(shots) && shots[n].width == shot.width && shots[n].height == shot.height && shots[n].scale == shot.scale {
+			n++
 		}
-		png, err := printer.Picture(shot.doc, assets, shot.width, shot.height, shot.scale, true, 0)
+		docs := make([][]byte, n)
+		for i := range docs {
+			docs[i] = shots[i].doc
+		}
+		err := printer.Pictures(docs, assets, shot.width, shot.height, shot.scale, true, 0, func(i int, png []byte) {
+			marker := []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(shots[i].marker))
+			data := []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(png))
+			for j := range plans {
+				plans[j].Doc = bytes.ReplaceAll(plans[j].Doc, marker, data)
+			}
+		})
 		if err != nil {
 			return nil, err
 		}
-		data := []byte("data:image/png;base64," + base64.StdEncoding.EncodeToString(png))
-		for i := range plans {
-			plans[i].Doc = bytes.ReplaceAll(plans[i].Doc, marker, data)
-		}
+		shots = shots[n:]
 	}
 	return plans, nil
 }
@@ -290,14 +301,7 @@ func remembered[T any](soffice, kind string, files [][]byte, run func() (T, erro
 		return out, err
 	}
 	if raw, err := json.Marshal(out); err == nil && os.MkdirAll(filepath.Dir(path), 0o755) == nil {
-		// A rename makes the verdict appear whole to a parallel release.
-		if tmp, err := scratch.File(filepath.Dir(path), ".verdict-*"); err == nil {
-			_, werr := tmp.Write(raw)
-			if tmp.Close() == nil && werr == nil {
-				os.Rename(tmp.Name(), path)
-			}
-			scratch.Remove(tmp.Name())
-		}
+		_ = scratch.WriteFile(path, raw)
 	}
 	cache.Prune(filepath.Dir(path))
 	return out, nil

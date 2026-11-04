@@ -247,6 +247,11 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	// Attach Lighthouse to OUR Chrome. Even a killed/timed-out Node process
 	// cannot orphan a Chrome child/profile: Go owns and closes both.
 	cmd := exec.CommandContext(ctx, tool, destination, "--quiet", "--output=json", "--output-path=stdout", "--only-categories=performance,accessibility,best-practices,seo", "--form-factor=mobile", "--throttling-method=simulate", "--port="+strconv.Itoa(port), "--no-enable-error-reporting")
+	// The Node CLI can leave completed gatherers' timeout callbacks alive.
+	// Await its entry point and drain both pipes before exiting with its status.
+	if entry, err := filepath.EvalSymlinks(tool); err == nil && (filepath.Base(entry) == "index.js" || filepath.Base(entry) == "index.mjs") && filepath.Base(filepath.Dir(entry)) == "cli" && filepath.Base(filepath.Dir(filepath.Dir(entry))) == "lighthouse" {
+		cmd = exec.CommandContext(ctx, "node", append([]string{"--input-type=module", "-e", `import {pathToFileURL} from 'node:url'; await import(pathToFileURL(process.argv[1])); process.stdout.end(()=>process.stderr.end(()=>process.exit(process.exitCode || 0)));`, entry}, cmd.Args[1:]...)...)
+	}
 	cmd.Dir = target.toolRoot(root)
 	cmd.Env = append(os.Environ(), "CHROME_PATH="+browser)
 	var stdout cappedBuffer
@@ -275,19 +280,7 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	// Persist raw detail in the user cache directory, one file per project.
 	// Atomic rename replaces an existing symlink rather than following it.
 	report := ReportPath(root)
-	file, err := scratch.File(filepath.Dir(report), ".report-*.json")
-	if err == nil {
-		name := file.Name()
-		defer scratch.Remove(name)
-		_, err = file.Write(stdout.Bytes())
-		closeErr := file.Close()
-		if err == nil {
-			err = closeErr
-		}
-		if err == nil {
-			err = os.Rename(name, report)
-		}
-	}
+	err = scratch.WriteFile(report, stdout.Bytes())
 	if parsed != nil {
 		*r = *parsed
 	}

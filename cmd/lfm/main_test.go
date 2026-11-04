@@ -15,7 +15,7 @@ func TestErrorExitCleansScratch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file, err := scratch.File(os.Getenv("XDG_CACHE_HOME"), ".report-*")
+	file, err := os.CreateTemp(path, ".report-*")
 	if err != nil {
 		t.Fatal(err)
 	}

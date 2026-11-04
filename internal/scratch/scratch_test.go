@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -62,7 +63,15 @@ func TestCleanupOnSIGTERM(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		fmt.Println(path)
+		file, err := os.CreateTemp(os.TempDir(), ".report-*")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+		register(file.Name())
+		fmt.Println(path, file.Name())
 		<-ctx.Done()
 		return
 	}
@@ -83,9 +92,14 @@ func TestCleanupOnSIGTERM(t *testing.T) {
 	if !scanner.Scan() {
 		t.Fatal("helper did not create scratch")
 	}
-	path := scanner.Text()
-	if filepath.Dir(path) != os.TempDir() {
-		t.Fatalf("unexpected scratch: %s", path)
+	paths := strings.Fields(scanner.Text())
+	if len(paths) != 2 {
+		t.Fatalf("expected directory and file: %v", paths)
+	}
+	for _, path := range paths {
+		if filepath.Dir(path) != os.TempDir() {
+			t.Fatalf("unexpected scratch: %s", path)
+		}
 	}
 	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		t.Fatal(err)
@@ -93,7 +107,9 @@ func TestCleanupOnSIGTERM(t *testing.T) {
 	if err := cmd.Wait(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatalf("scratch remains: %v", err)
+	for _, path := range paths {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("scratch remains: %s: %v", path, err)
+		}
 	}
 }

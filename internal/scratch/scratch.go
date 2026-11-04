@@ -2,6 +2,7 @@
 package scratch
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -54,13 +55,19 @@ func DirIn(parent, prefix string) (string, error) {
 	return path, err
 }
 
-// File registers an atomic-write temporary file beside its destination.
-func File(dir, pattern string) (*os.File, error) {
-	f, err := os.CreateTemp(dir, pattern)
-	if err == nil {
-		register(f.Name())
+// WriteFile atomically replaces path, including a symlink, with raw.
+func WriteFile(path string, raw []byte) error {
+	f, err := os.CreateTemp(filepath.Dir(path), ".audit-*")
+	if err != nil {
+		return err
 	}
-	return f, err
+	register(f.Name())
+	defer Remove(f.Name())
+	_, err = f.Write(raw)
+	if err := errors.Join(err, f.Close()); err != nil {
+		return err
+	}
+	return os.Rename(f.Name(), path)
 }
 
 func register(path string) {

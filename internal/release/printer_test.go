@@ -99,9 +99,10 @@ func TestPrinter(t *testing.T) {
 		t.Run("Picture and batch size, fitting and isolation "+strconv.Itoa(limit), func(t *testing.T) {
 			doc := []byte(`<!doctype html><html><body style="margin:0;background:#c00"><div data-fit="200 100 1" style="width:400px;height:200px;background:#00c"></div></body></html>`)
 			other := []byte(`<!doctype html><style>body{margin:0;background:#0c0}div{width:50vw;height:100vh;background:#cc0}</style><div></div><script>document.body.style.background="#000"</script>`)
-			docs := [][]byte{doc, other, doc}
-			err := p.Pictures(docs, nil, 300, 150, 2, true, limit, func(i int, raw []byte) {
-				single, err := p.Picture(docs[i], nil, 300, 150, 2, true, limit)
+			source := []byte(`<!doctype html><style>@font-face{font-family:Source;src:url(go.woff2)}body{margin:0;padding:12px;background:white;font:14px Source}header{position:absolute;top:0}footer{position:absolute;bottom:0}</style><header>Running header</header><p>Source page with embedded font.</p><footer>Page 1</footer>`)
+			docs := [][]byte{doc, other, doc, source}
+			err := p.Pictures(docs, map[string][]byte{"go.woff2": font}, 300, 150, 2, true, limit, func(i int, raw []byte) {
+				single, err := p.Picture(docs[i], map[string][]byte{"go.woff2": font}, 300, 150, 2, true, limit)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -118,7 +119,7 @@ func TestPrinter(t *testing.T) {
 				if limit > 0 && len(raw) > limit {
 					t.Fatal("JPEG exceeds limit")
 				}
-				if i != 1 {
+				if i == 0 || i == 2 {
 					if r, _, bl, _ := img.At(100, 50).RGBA(); bl>>8 < 150 || r>>8 > 50 {
 						t.Fatal("fitted box missing")
 					}
