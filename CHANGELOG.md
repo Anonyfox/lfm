@@ -1,15 +1,15 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.16 (2026-11-04)
 
-- Release delivery reuses individual listing images and renders only the images a bundle publishes.
-  Page audits run after delivery, sharing its browser for isolated runtime checks; incomplete layouts are never cached, and transient
-  Chrome or Lighthouse version failures are retried before keying a successful audit. Listing
-  captures share a tab and use native JPEG encoding at the shipped size, retaining the 1 MiB limit. Audit cache
-  write failures and Lighthouse duration/deadline/scope reporting now explain lost reuse and retries.
-
-- Delivery stock keeps archive stamps separate from embedded PDF stamps, preventing a ZIP from
-  being reused as its own start guide and hiding later archive changes.
+- `lfm compile --release` on an unchanged project is about 14x faster: 1.2 s instead of 17 s on a
+  shop one-pager with a bundle, documents and a spreadsheet. Delivery reuses every listing image
+  it already made and renders only the images a bundle publishes. Page audits run once, after
+  delivery, and the runtime checks share delivery's browser. A layout that did not finish is
+  never cached, and the report now says why an audit was not reused.
+- Listing images are captured in one tab as JPEG at their shipped size, still under 1 MiB.
+- A ZIP is no longer mistaken for its own start guide, so later changes to an archive are no
+  longer hidden.
 
 ## 0.1.15 (2026-11-03)
 
