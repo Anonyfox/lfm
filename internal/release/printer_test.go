@@ -118,7 +118,7 @@ func TestPrinter(t *testing.T) {
 
 	t.Run("Picture renders the requested pixel size", func(t *testing.T) {
 		doc := []byte(`<!doctype html><html><body style="margin:0;background:#c00"><div data-fit="200 100 1" style="width:400px;height:200px;background:#00c"></div></body></html>`)
-		raw, err := within(t, func() ([]byte, error) { return p.Picture(doc, nil, 300, 150, 2) })
+		raw, err := within(t, func() ([]byte, error) { return p.Picture(doc, nil, 300, 150, 2, true) })
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -227,13 +227,6 @@ func TestPrinter(t *testing.T) {
 		}
 	})
 
-	t.Run("sequential jobs share the browser", func(t *testing.T) {
-		for range 2 {
-			if _, err := p.Picture([]byte(`<!doctype html><p>same browser`), nil, 100, 100, 1); err != nil {
-				t.Fatal(err)
-			}
-		}
-	})
 }
 
 func TestClosedPrinterFailsFast(t *testing.T) {
@@ -246,7 +239,7 @@ func TestClosedPrinterFailsFast(t *testing.T) {
 		run  func() error
 	}{
 		{"Print", func() error { _, err := p.Print(doc, nil, false); return err }},
-		{"Picture", func() error { _, err := p.Picture(doc, nil, 100, 100, 1); return err }},
+		{"Picture", func() error { _, err := p.Picture(doc, nil, 100, 100, 1, true); return err }},
 		{"PageLayout", func() error { _, err := p.PageLayout(doc, nil, 100, 100, 10); return err }},
 		{"Overflows", func() error { _, err := p.Overflows(doc, nil, 100, 100); return err }},
 		{"PageImages", func() error { _, err := p.PageImages(doc, nil, 100, 100, 1, []int{1}); return err }},

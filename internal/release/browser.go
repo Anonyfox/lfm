@@ -115,22 +115,13 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	defer server.Close()
 	ctx, abort := context.WithCancelCause(ctx)
 	defer abort(nil)
-	opts := BrowserOptions(path)
-	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
-	defer cancelAlloc()
-	browser, cancelBrowser := chromedp.NewContext(alloc)
-	defer cancelBrowser()
-	// The preview CSP blocks application scripts. Keep the engine enabled for
-	// DevTools promises, loaded-font checks and rendering-frame synchronization.
-	// The first Run owns Chrome's lifetime. Bound startup without giving that
-	// lifetime a deadline (or canceling it when a successful step returns).
-	if _, err = browserStep(browser, "start release browser", browserStepTimeout, func(step context.Context) (bool, error) {
-		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
-		defer stop()
-		return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
-	}); err != nil {
+	browser, closeBrowser, err := openBrowser(ctx, BrowserOptions(path), browserStepTimeout)
+	if err != nil {
 		return result, err
 	}
+	defer closeBrowser()
+	// The preview CSP blocks application scripts; DevTools can still await
+	// fonts and rendering frames.
 	events := chromedp.Events(browser, fetch.RequestPaused)
 	go func() {
 		for ev, err := range events {
@@ -334,6 +325,24 @@ const near=i=>{const r=i.getBoundingClientRect();return r.top<=innerHeight&&r.le
 const pending=[...document.images].filter(i=>!i.complete&&(i.loading!=='lazy'||near(i)));
 await Promise.all(pending.map(i=>i.decode().catch(()=>{})));
 return true})()`
+
+// openBrowser bounds startup while leaving the browser lifetime with ctx.
+// Canceling a successful startup step must not cancel later document jobs.
+func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration) (context.Context, func(), error) {
+	ctx, abort := context.WithCancelCause(ctx)
+	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
+	browser, closeBrowser := chromedp.NewContext(alloc)
+	close := func() { closeBrowser(); closeAlloc(); abort(nil) }
+	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
+		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
+		defer stop()
+		return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
+	}); err != nil {
+		close()
+		return nil, func() {}, err
+	}
+	return browser, close, nil
+}
 
 // Each blocking browser operation gets a fresh budget. There is no deadline
 // for the whole analysis: a loaded machine can keep making progress through

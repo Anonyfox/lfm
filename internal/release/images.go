@@ -36,12 +36,7 @@ func ImagePlacement(ctx context.Context, page []byte, assets map[string][]byte) 
 	defer cancelAlloc()
 	tab, cancelTab := chromedp.NewContext(alloc)
 	defer cancelTab()
-	type box struct {
-		Src     string
-		Visible bool
-		Area    float64
-	}
-	measure := `[...document.images].map(i=>{const r=i.getBoundingClientRect();const w=Math.max(0,Math.min(r.right,innerWidth)-Math.max(r.left,0)),h=Math.max(0,Math.min(r.bottom,innerHeight)-Math.max(r.top,0));const cs=getComputedStyle(i);const shown=cs.visibility!=="hidden"&&cs.display!=="none";return {Src:i.getAttribute("src")||"",Visible:shown&&w*h>0,Area:shown?w*h:0}})`
+	measure := `[...document.images].map(i=>{const r=i.getBoundingClientRect();const w=Math.max(0,Math.min(r.right,innerWidth)-Math.max(r.left,0)),h=Math.max(0,Math.min(r.bottom,innerHeight)-Math.max(r.top,0));const cs=getComputedStyle(i);const shown=cs.visibility!=="hidden"&&cs.display!=="none";return {Src:i.getAttribute("src")||"",FirstScreen:shown&&w*h>0,PhoneArea:shown?w*h:0}})`
 	var out []Placement
 	for i, v := range viewports {
 		opts := []chromedp.EmulateViewportOption{}
@@ -54,7 +49,7 @@ func ImagePlacement(ctx context.Context, page []byte, assets map[string][]byte) 
 		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
 			return nil, err
 		}
-		boxes, err := chromedp.Run(tab, chromedp.Evaluate[[]box](measure))
+		boxes, err := chromedp.Run(tab, chromedp.Evaluate[[]Placement](measure))
 		if err != nil {
 			return nil, err
 		}
@@ -66,9 +61,9 @@ func ImagePlacement(ctx context.Context, page []byte, assets map[string][]byte) 
 		}
 		for k, b := range boxes {
 			out[k].Src = b.Src
-			out[k].FirstScreen = out[k].FirstScreen || b.Visible
+			out[k].FirstScreen = out[k].FirstScreen || b.FirstScreen
 			if i == 0 {
-				out[k].PhoneArea = b.Area
+				out[k].PhoneArea = b.PhoneArea
 			}
 		}
 	}

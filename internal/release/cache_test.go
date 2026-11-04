@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/buildid"
@@ -69,7 +70,14 @@ func TestArtifactAuditCache(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.change()
 			got := cachedAuditRun(ctx, target, ".", run)
-			if calls != tc.want || len(got.Diagnostics) != 1 || tc.name == "warm" && got.Reused == "" {
+			if strings.HasPrefix(tc.name, "unwritable") && !strings.Contains(got.Diagnostics[len(got.Diagnostics)-1].Message, "audit could not be cached") {
+				t.Fatal(got.Diagnostics)
+			}
+			wantDiagnostics := 1
+			if strings.HasPrefix(tc.name, "unwritable") {
+				wantDiagnostics = 2
+			}
+			if calls != tc.want || len(got.Diagnostics) != wantDiagnostics || tc.name == "warm" && got.Reused == "" {
 				t.Fatalf("calls=%d result=%+v", calls, got)
 			}
 		})

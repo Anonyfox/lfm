@@ -168,12 +168,5 @@ func startAuditBrowser(ctx context.Context, path, proxy, profile string) (contex
 	if profile != "" {
 		opts = append(opts, chromedp.UserDataDir(profile), chromedp.Flag("remote-debugging-port", "0"), remote.WebSocket)
 	}
-	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
-	tab, closeTab := chromedp.NewContext(alloc)
-	cleanup := func() { closeTab(); closeAlloc() }
-	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool]("true")); err != nil {
-		cleanup()
-		return nil, func() {}, err
-	}
-	return tab, cleanup, nil
+	return openBrowser(ctx, opts, browserStepTimeout)
 }

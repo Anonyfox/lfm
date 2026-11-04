@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -104,9 +105,9 @@ func artifactKey(target Target, build, chrome, lighthouse string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-type cacheEnvelope struct {
+type cacheEnvelope[T any] struct {
 	Date  time.Time
-	Value json.RawMessage
+	Value T
 }
 
 var userCacheDir = os.UserCacheDir
@@ -129,7 +130,7 @@ func ReadCache(key string, value any) time.Time {
 	if err != nil {
 		return time.Time{}
 	}
-	var entry cacheEnvelope
+	var entry cacheEnvelope[json.RawMessage]
 	if json.Unmarshal(raw, &entry) != nil || entry.Date.IsZero() || time.Since(entry.Date) > 30*24*time.Hour || json.Unmarshal(entry.Value, value) != nil {
 		return time.Time{}
 	}
@@ -137,30 +138,34 @@ func ReadCache(key string, value any) time.Time {
 	return entry.Date
 }
 
-// WriteCache is best effort and atomic. Keep at most 128 recent entries.
-func WriteCache(key string, value any) {
-	dir := cacheDir()
-	if key == "" || dir == "" {
-		return
+// WriteCache atomically saves an optional entry and keeps 128 recent entries.
+// Callers that need to explain lost reuse can report the returned write error.
+func WriteCache(key string, value any) error {
+	if key == "" {
+		return nil
 	}
-	raw, err := json.Marshal(value)
+	raw, err := json.Marshal(cacheEnvelope[any]{time.Now().UTC(), value})
 	if err != nil {
-		return
+		return err
 	}
-	raw, _ = json.Marshal(cacheEnvelope{time.Now().UTC(), raw})
-	if os.MkdirAll(dir, 0o755) != nil {
-		return
+	dir := cacheDir()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
 	}
 	f, err := scratch.File(dir, ".audit-*")
 	if err != nil {
-		return
+		return err
 	}
 	defer scratch.Remove(f.Name())
 	_, err = f.Write(raw)
-	closed := f.Close()
-	if err == nil && closed == nil && os.Rename(f.Name(), filepath.Join(dir, key+".json")) == nil {
-		cache.Prune(dir)
+	if err := errors.Join(err, f.Close()); err != nil {
+		return err
 	}
+	if err := os.Rename(f.Name(), filepath.Join(dir, key+".json")); err != nil {
+		return err
+	}
+	cache.Prune(dir)
+	return nil
 }
 
 type cachedAudit struct {
@@ -183,10 +188,16 @@ func cachedAuditRun(ctx context.Context, target Target, root string, run func(co
 	}
 	result := run(ctx, target, root)
 	if completeAudit(result) {
-		if target.Tools != nil && target.Tools.err != nil {
-			result.Diagnostics = append(result.Diagnostics, diagnostic.Diagnostic{Rule: "release.runtime", Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: "The audit could not be cached: " + target.Tools.err.Error(), Hint: "Check Chrome and Lighthouse --version, then run the release again."})
+		var err error
+		if target.Tools != nil {
+			err = target.Tools.err
 		}
-		WriteCache(key, cachedAudit{result, result.Diagnostics})
+		if err == nil {
+			err = WriteCache(key, cachedAudit{result, result.Diagnostics})
+		}
+		if err != nil {
+			result.Diagnostics = append(result.Diagnostics, diagnostic.Diagnostic{Rule: "release.runtime", Severity: diagnostic.Warning, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: "The audit could not be cached: " + err.Error(), Hint: "Check the user cache directory is writable and Chrome and Lighthouse --version succeed; then run the release again."})
+		}
 	}
 
 	return result

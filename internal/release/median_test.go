@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 func metricReport(t *testing.T, id string, value, score float64) *LighthouseResult {
@@ -53,7 +54,7 @@ func TestTimingMedianAndFastPath(t *testing.T) {
 		if calls != tc.runs || result.Runs != calls || len(result.Findings) != tc.findings {
 			t.Fatalf("%+v: calls %d result %+v", tc, calls, result)
 		}
-		if calls == 3 && (!strings.Contains(result.Metrics[tc.id], "median of 3") || *result.Scores["performance"] != 98) {
+		if calls == 3 && (!strings.Contains(result.Metrics[tc.id], "median of 3") || *result.Scores["performance"] != 98 || strings.Contains(result.Scope, "One fresh") || !strings.Contains(result.Scope, "Numeric/scored")) {
 			t.Fatal(result)
 		}
 	}
@@ -128,12 +129,13 @@ func TestTimingRemeasurementFailureAndCancellation(t *testing.T) {
 		calls := 0
 		result := measureLighthouse(context.Background(), func(context.Context) *LighthouseResult {
 			calls++
+			time.Sleep(time.Millisecond)
 			if calls > successful {
 				return &LighthouseResult{Status: "skipped", Reason: "audit deadline exceeded"}
 			}
 			return metricReport(t, "total-blocking-time", float64(400-calls*50), 1)
 		})
-		if result.Runs != successful || len(result.Warnings) != 1 || !strings.Contains(result.Warnings[0], "remeasurement failed") || len(result.Findings) != 1 {
+		if result.DurationMS < int64(successful+1) || result.Runs != successful || len(result.Warnings) != 1 || !strings.Contains(result.Warnings[0], "remeasurement failed") || len(result.Findings) != 1 {
 			t.Fatal(result)
 		}
 	}

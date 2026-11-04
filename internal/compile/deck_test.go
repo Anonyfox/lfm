@@ -91,7 +91,7 @@ func TestBundleSellsDeckAndDocumentsTogether(t *testing.T) {
 	}
 	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
 	if err != nil || result.Bundle.Images < 4 || len(result.Bundle.Channels) == 0 {
-		t.Fatalf("release: %v %+v %v", err, result.Bundle, findings(result, "bundle."))
+		t.Fatalf("release: %v %+v %v", err, result.Bundle, result.Validation)
 	}
 	images, _ := os.ReadDir(filepath.Join(dir, "distribution", "bundle", "images"))
 	var names []string

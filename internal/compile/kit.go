@@ -185,7 +185,7 @@ func listingImages(pr *press, kind, sell string, planned []listingPlan, render f
 							continue
 						}
 						jpg, err := pr.job(key, func(printer *release.Printer) ([]byte, error) {
-							png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale)
+							png, err := printer.Picture(plan.Doc, assets, imageWidth, imageHeight, imageScale, true)
 							if err != nil {
 								return nil, err
 							}
@@ -228,7 +228,7 @@ func captureShots(printer *release.Printer, plans, missing []listingPlan, assets
 		if !slices.ContainsFunc(plans, func(p listingPlan) bool { return bytes.Contains(p.Doc, marker) }) {
 			continue
 		}
-		png, err := printer.Picture(shot.doc, assets, shot.width, shot.height, shot.scale)
+		png, err := printer.Picture(shot.doc, assets, shot.width, shot.height, shot.scale, true)
 		if err != nil {
 			return nil, err
 		}

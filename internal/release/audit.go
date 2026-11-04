@@ -178,7 +178,7 @@ func LighthouseDiagnostics(lh *LighthouseResult) []diagnostic.Diagnostic {
 	return result
 }
 
-const auditScope = "One fresh mobile Lighthouse navigation; simulated mobile CPU/network; exact artifact on local HTTP; external traffic and non-GET requests blocked. Delivery/TLS/CDN and interaction journeys are not measured."
+const auditScope = "Fresh mobile Lighthouse navigation; timing findings trigger up to three runs; simulated mobile CPU/network; exact artifact on local HTTP; external traffic and non-GET requests blocked. Delivery/TLS/CDN and interaction journeys are not measured."
 
 func lighthousePath(root string) (string, error) {
 	if path := os.Getenv("LFM_LIGHTHOUSE"); path != "" {
@@ -255,7 +255,7 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	if err := cmd.Run(); err != nil {
 		r.Reason = compact(err.Error()+": "+stderr.String(), 600)
 		if ctx.Err() != nil {
-			r.Reason = "45 s audit deadline exceeded"
+			r.Reason = "Lighthouse stopped: " + ctx.Err().Error()
 		}
 		r.Hint = "Check compatible Node/Lighthouse/Chrome versions and OS browser sandbox support. " + LighthouseSetup
 		return r

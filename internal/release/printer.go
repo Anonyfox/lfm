@@ -48,24 +48,12 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 	if err != nil {
 		return nil, err
 	}
-	// No deadline on the browser itself: a large release prints for longer
-	// than any fixed limit; each tab has its own.
-	ctx, abort := context.WithCancelCause(ctx)
-	cancel := func() { abort(nil) }
-	opts := BrowserOptions(path)
-	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
-	browser, cancelBrowser := chromedp.NewContext(alloc)
-	p.stop = func() { cancelBrowser(); cancelAlloc(); cancel(); p.server.Close() }
-	// The first command owns Chrome's lifetime. Abort that lifetime only on
-	// startup timeout; a successful startup leaves it available for later tabs.
-	if _, err := browserStep(browser, "start rendering browser", tabTime, func(step context.Context) (bool, error) {
-		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
-		defer stop()
-		return true, chromedp.Do(browser)
-	}); err != nil {
-		p.stop()
-		return nil, fmt.Errorf("start Chrome: %w", err)
+	browser, closeBrowser, err := openBrowser(ctx, BrowserOptions(path), tabTime)
+	if err != nil {
+		p.server.Close()
+		return nil, err
 	}
+	p.stop = func() { closeBrowser(); p.server.Close() }
 	p.browser = browser
 	return p, nil
 }
@@ -104,8 +92,6 @@ func (p *Printer) Print(doc []byte, assets map[string][]byte, outline bool) ([]b
 // printed text column and reports what does not fit: elements wider than the
 // column, clipped images, images split across printed pages and text below 9 pixels.
 func (p *Printer) BookLayout(doc []byte, assets map[string][]byte, columnInches float64) ([]string, error) {
-	tab, url, done := p.tab(doc, assets)
-	defer done()
 	type report struct {
 		Wide   []string
 		Tiny   int
@@ -131,18 +117,11 @@ return {Wide:wide.slice(0,6),Tiny:tiny,Width:W,Images:images}})()`
 		{"in print", int64(columnInches * 96), "print"},
 	}
 	for _, s := range sizes {
-		if err := chromedp.Do(tab, chromedp.EmulateViewport(s.width, 900)); err != nil {
+		tab, done, err := p.load(doc, assets, s.width, 900, 1, s.media)
+		if err != nil {
 			return nil, err
 		}
-		if _, err := chromedp.Call(tab, emulation.SetEmulatedMedia, emulation.SetEmulatedMediaParams{Media: s.media}); err != nil {
-			return nil, err
-		}
-		if err := chromedp.Do(tab, chromedp.Navigate(url)); err != nil {
-			return nil, err
-		}
-		if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](`document.fonts.ready.then(()=>Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
-			return nil, err
-		}
+		defer done()
 		r, err := chromedp.Run(tab, chromedp.Evaluate[report](measure))
 		if err != nil {
 			return nil, err
@@ -173,6 +152,7 @@ return {Wide:wide.slice(0,6),Tiny:tiny,Width:W,Images:images}})()`
 				}
 			}
 		}
+		done()
 	}
 	return issues, nil
 }
@@ -272,8 +252,8 @@ func (p *Printer) PageImages(doc []byte, assets map[string][]byte, width, height
 }
 
 // Picture renders a document at width×height CSS pixels and scale as a PNG of
-// the viewport.
-func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height int64, scale float64) ([]byte, error) {
+// the viewport. Fast encoding preserves pixels with less PNG compression.
+func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height int64, scale float64, fast bool) ([]byte, error) {
 	tab, done, err := p.load(doc, assets, width, height, scale, "screen")
 	if err != nil {
 		return nil, err
@@ -282,7 +262,9 @@ func (p *Printer) Picture(doc []byte, assets map[string][]byte, width, height in
 	if _, err := chromedp.Run(tab, chromedp.Evaluate[bool](fitScript)); err != nil {
 		return nil, fmt.Errorf("fit the document: %w", err)
 	}
-	return chromedp.Run(tab, chromedp.CaptureScreenshot())
+	yes := true
+	shot, err := chromedp.Call(tab, page.CaptureScreenshot, page.CaptureScreenshotParams{FromSurface: &yes, OptimizeForSpeed: &fast})
+	return shot.Data, err
 }
 
 // fitScript scales every element marked data-fit="width height max" to

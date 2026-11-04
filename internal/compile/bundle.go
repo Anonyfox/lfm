@@ -209,7 +209,7 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 			for name, data := range more {
 				assets[name] = data
 			}
-			png, err := printer.Picture(doc, assets, printable.ImageWidth, printable.ImageHeight, printable.ImageScale)
+			png, err := printer.Picture(doc, assets, printable.ImageWidth, printable.ImageHeight, printable.ImageScale, true)
 			if err != nil {
 				return nil, err
 			}

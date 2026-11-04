@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -40,14 +41,12 @@ func runLighthouse(ctx context.Context, target Target, browser, root string) *Li
 	})
 }
 
-func measureLighthouse(ctx context.Context, run func(context.Context) *LighthouseResult) *LighthouseResult {
+func measureLighthouse(ctx context.Context, run func(context.Context) *LighthouseResult) (result *LighthouseResult) {
 	start := time.Now()
+	defer func() { result.DurationMS = time.Since(start).Milliseconds() }()
 	first := run(ctx)
 	first.Runs = 1
-	retry := false
-	for _, f := range first.Findings {
-		retry = retry || timingAudit(f.ID)
-	}
+	retry := slices.ContainsFunc(first.Findings, func(f AuditFinding) bool { return timingAudit(f.ID) })
 	if first.Status != "ok" || !retry {
 		return first
 	}
@@ -61,7 +60,6 @@ func measureLighthouse(ctx context.Context, run func(context.Context) *Lighthous
 		runs = append(runs, next)
 	}
 	if len(runs) == 1 {
-		first.Runs = len(runs)
 		return first
 	}
 	return medianLighthouse(runs, time.Since(start).Milliseconds())
@@ -132,7 +130,7 @@ func medianLighthouse(runs []*LighthouseResult, duration int64) *LighthouseResul
 	}
 	result.Runs, result.DurationMS = len(runs), duration
 	result.Report = runs[len(runs)-1].Report
-	result.Scope = runs[0].Scope + fmt.Sprintf(" Timing results and category scores use per-audit medians of %d runs; saved full report is the last run.", len(runs))
+	result.Scope = runs[0].Scope + fmt.Sprintf(" Numeric/scored audits and category scores use per-audit medians of %d runs; saved full report is the last run.", len(runs))
 	result.Warnings = append(result.Warnings, runs[0].Warnings[len(reports[0].RunWarnings):]...)
 	return result
 }
