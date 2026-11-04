@@ -2,6 +2,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- Release layout checks and listing captures share one browser tab. Bundle images reuse the
+  printable cover already rendered during the same release.
+
 - Release audits finish when Lighthouse has written its complete report, without waiting for
   completed gatherers’ leftover timers. Compatible document and deck source images share one
   render tab. All audits, categories and remeasurement checks remain.

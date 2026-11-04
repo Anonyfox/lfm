@@ -307,8 +307,8 @@ func remembered[T any](soffice, kind string, files [][]byte, run func() (T, erro
 	return out, nil
 }
 
-func builtData[B any](built []B, data func(B) []byte) [][]byte {
-	out := make([][]byte, len(built))
+func builtData[B, T any](built []B, data func(B) T) []T {
+	out := make([]T, len(built))
 	for i, b := range built {
 		out[i] = data(b)
 	}

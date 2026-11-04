@@ -52,6 +52,7 @@ func checkBook(p project.Project, loaded project.Loaded, commerce commercecheck.
 type shipped struct {
 	Files  []deliver.File
 	Data   map[string][]byte
+	Cover  []byte          // first-page raster, when listing generation already rendered it
 	Images []deliver.Image // the listing images, for a bundle that holds the unit
 }
 

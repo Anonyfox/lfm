@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/pdfx"
+	"github.com/chromedp/chromedp"
 )
 
 // printer starts one Chrome for a test, or skips the test without one.
@@ -55,6 +56,53 @@ func TestPrinter(t *testing.T) {
 	font, err := os.ReadFile("../fontcheck/testdata/Go-Regular.woff2")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	for _, outline := range []bool{false, true} {
+		t.Run("shared tab preserves prints and layout "+strconv.FormatBool(outline), func(t *testing.T) {
+			fresh, closeFresh := chromedp.NewContext(p.browser, chromedp.WithNewBrowserContext())
+			defer closeFresh()
+			if _, err := chromedp.Run(fresh, chromedp.Evaluate[bool]("true")); err != nil {
+				t.Fatal(err)
+			}
+			standalone := &Printer{browser: fresh}
+			assets := map[string][]byte{"go.woff2": font}
+			dates := regexp.MustCompile(`/((?:Creation|Mod)Date)\s*\(D:[^)]*\)`)
+			for _, content := range []string{"<h1>Clean</h1><p>Body</p><table><tr><th>Header</th></tr><tr><td>Value</td></tr></table>", "<h1>Overflow</h1><p>" + strings.Repeat("Too much text. ", 100) + "</p>"} {
+				doc := pageDoc(400, 300, `@font-face{font-family:Go;src:url(go.woff2)}p{font-family:Go}h1{width:50vw}`, content)
+				doc = bytes.Replace(doc, []byte("<head>"), []byte("<head><title>Print equivalence</title>"), 1)
+				want, err := standalone.Print(doc, assets, outline)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// A capture leaves a different density, media and viewport in the shared tab.
+				if _, err := p.Picture([]byte("<p>Previous job</p>"), nil, 150, 100, 2, true, 0); err != nil {
+					t.Fatal(err)
+				}
+				got, err := p.Print(doc, assets, outline)
+				if err != nil || !bytes.Equal(dates.ReplaceAll(got, nil), dates.ReplaceAll(want, nil)) {
+					t.Fatalf("shared print differs: %v", err)
+				}
+				wantLayout, err := standalone.PageLayout(doc, assets, 400, 300, 24)
+				if err != nil {
+					t.Fatal(err)
+				}
+				gotLayout, err := p.PageLayout(doc, assets, 400, 300, 24)
+				if err != nil || !slices.Equal(gotLayout, wantLayout) {
+					t.Fatalf("shared layout %q; standalone %q: %v", gotLayout, wantLayout, err)
+				}
+				for _, scale := range []float64{2, 1} {
+					want, err := standalone.PageImages(doc, assets, 400, 300, scale, []int{1})
+					if err != nil {
+						t.Fatal(err)
+					}
+					got, err := p.PageImages(doc, assets, 400, 300, scale, []int{1})
+					if err != nil || len(got) != 1 || !bytes.Equal(got[0], want[0]) {
+						t.Fatalf("shared raster at density %g differs: %v", scale, err)
+					}
+				}
+			}
+		})
 	}
 
 	t.Run("Print prints A4 pages with the fonts from assets", func(t *testing.T) {
@@ -101,12 +149,16 @@ func TestPrinter(t *testing.T) {
 			other := []byte(`<!doctype html><style>body{margin:0;background:#0c0}div{width:50vw;height:100vh;background:#cc0}</style><div></div><script>document.body.style.background="#000"</script>`)
 			source := []byte(`<!doctype html><style>@font-face{font-family:Source;src:url(go.woff2)}body{margin:0;padding:12px;background:white;font:14px Source}header{position:absolute;top:0}footer{position:absolute;bottom:0}</style><header>Running header</header><p>Source page with embedded font.</p><footer>Page 1</footer>`)
 			docs := [][]byte{doc, other, doc, source}
-			err := p.Pictures(docs, map[string][]byte{"go.woff2": font}, 300, 150, 2, true, limit, func(i int, raw []byte) {
-				single, err := p.Picture(docs[i], map[string][]byte{"go.woff2": font}, 300, 150, 2, true, limit)
+			singles := make([][]byte, len(docs))
+			for i, doc := range docs {
+				var err error
+				singles[i], err = p.Picture(doc, map[string][]byte{"go.woff2": font}, 300, 150, 2, true, limit)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if !bytes.Equal(raw, single) {
+			}
+			err := p.Pictures(docs, map[string][]byte{"go.woff2": font}, 300, 150, 2, true, limit, func(i int, raw []byte) {
+				if !bytes.Equal(raw, singles[i]) {
 					t.Fatal("batch changed a standalone capture")
 				}
 				img, _, err := image.Decode(bytes.NewReader(raw))

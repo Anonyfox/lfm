@@ -14,7 +14,7 @@ import (
 )
 
 // Printer renders sequential print jobs and picture batches in one Chrome.
-// Each job or batch has a fresh browser context; runtime can reuse Chrome.
+// PDFs keep fresh contexts for stable tagged IDs; other jobs share the tab.
 type Printer struct {
 	browser context.Context
 	stop    func()
@@ -43,6 +43,9 @@ func (p *Printer) Close() { p.stop() }
 // declares, with bookmarks from its headings when outline is set. Fonts and
 // images are awaited first so no fallback face is baked in.
 func (p *Printer) Print(doc []byte, assets map[string][]byte, outline bool) ([]byte, error) {
+	tab, cancel := chromedp.NewContext(p.browser, chromedp.WithNewBrowserContext())
+	defer cancel()
+	p = &Printer{browser: tab}
 	tab, done, err := p.load(doc, assets, 0, 0, 0, "")
 	if err != nil {
 		return nil, err
@@ -132,7 +135,7 @@ func capitalize(s string) string {
 	return string(s[0]-32) + s[1:]
 }
 
-// load opens doc in a new tab at a viewport of width×height CSS pixels and
+// load navigates the print tab at a viewport of width×height CSS pixels and
 // scale device pixels per CSS pixel, with print or screen media, and waits
 // for fonts and images.
 func (p *Printer) load(doc []byte, assets map[string][]byte, width, height int64, scale float64, media string) (context.Context, func(), error) {
@@ -140,9 +143,8 @@ func (p *Printer) load(doc []byte, assets map[string][]byte, width, height int64
 	if err != nil {
 		return nil, nil, err
 	}
-	tab, cancelTab := chromedp.NewContext(p.browser, chromedp.WithNewBrowserContext())
-	tab, cancelTimeout := context.WithTimeout(tab, tabTime)
-	done := func() { cancelTimeout(); cancelTab(); server.Close() }
+	tab, cancelTimeout := context.WithTimeout(p.browser, tabTime)
+	done := func() { cancelTimeout(); server.Close() }
 	fail := func(err error) (context.Context, func(), error) { done(); return nil, nil, err }
 	if width > 0 {
 		if _, err := chromedp.Call(tab, emulation.SetDeviceMetricsOverride, emulation.SetDeviceMetricsOverrideParams{Width: width, Height: height, DeviceScaleFactor: scale}); err != nil {

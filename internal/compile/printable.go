@@ -65,7 +65,6 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 	warn := func(rule, message, hint string) {
 		issues = append(issues, diagnostic.Diagnostic{Rule: rule, Severity: diagnostic.Warning, Location: diagnostic.Location{File: printable.TemplateFile, Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
-	var images []printable.Image
 	if r.Buildable {
 		printed := printable.Printed{PDFs: map[string][]byte{}}
 
@@ -108,7 +107,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 		}
 		// Listing images serve the printable's own shops and the bundle's.
 		if r.Listing.Present || sell == deliver.SellBundle {
-			images = printableImages(pr, r)
+			out.Images = printableImages(pr, r, &out)
 		}
 
 		for _, f := range layout {
@@ -118,10 +117,10 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 			}
 			warn(printable.RuleLayout, which+": "+f, "Every .page is padded by var(--safe); keep text, pictures and borders inside that padding (negative margins and absolute positions escape it). Put a frame on an inner element; mark a deliberate full-bleed background with data-bleed.")
 		}
-		printed.Images = images
+		printed.Images = out.Images
 		printed.Pending = pr.pending
 		r.Summary.Pending = pr.pending
-		r.Summary.Images = len(images)
+		r.Summary.Images = len(out.Images)
 		if st.release && pr.startErr == nil && !unchecked {
 			r.Summary.Layout = "every page inside the safe margin"
 			if len(layout) > 0 {
@@ -146,13 +145,12 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 	if s.page {
 		downloadPage(result, r.Config.Path, printable.DownloadPage(*r, out.Files), out)
 	}
-	out.Images = images
 	return out, issues
 }
 
 // listingImages returns the listing images: reused while the first edition
 // and the image layouts are unchanged, rendered by a release otherwise.
-func printableImages(pr *press, r *printable.Report) []printable.Image {
+func printableImages(pr *press, r *printable.Report, out *shipped) []printable.Image {
 	covers := r.SizeCovers()
 	inputs := []byte{}
 	for _, ed := range covers {
@@ -187,6 +185,9 @@ func printableImages(pr *press, r *printable.Report) []printable.Image {
 		assets := map[string][]byte{}
 		for i, s := range shots {
 			assets[s.Name] = rasters[i]
+			if s.Page == 1 {
+				out.Cover = rasters[i]
+			}
 		}
 		for _, ed := range covers {
 			s := ed.Edition.Size

@@ -114,7 +114,7 @@ type part struct {
 	kind, name string
 	accent     string
 	plans      []listingPlan
-	render     func(*release.Printer) (map[string][]byte, error)
+	render     func(*release.Printer) ([]byte, error)
 	files      shipped
 	facts      []string
 	groups     map[string][]string // ZIP name suffix -> files
@@ -127,7 +127,7 @@ type part struct {
 // deliverBundle publishes the bundle's download page with every file of
 // every unit when it sells through the page, and assembles its shop
 // packages from them when it has a listing.
-func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent string, page []byte, st *stock, result *Result, heroDoc func(printer *release.Printer) (map[string][]byte, error)) []diagnostic.Diagnostic {
+func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent string, page []byte, st *stock, result *Result) []diagnostic.Diagnostic {
 	pageSale := r.Summary.Sell == deliver.SellPage && r.Summary.URL != ""
 	if pageSale {
 		if leak := leaks(page, r.Config.Path, bundle.RuleDelivery, "bundle"); leak != nil {
@@ -167,7 +167,7 @@ func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent str
 		facts = append(facts, pt.name+":")
 		facts = append(facts, pt.facts...)
 	}
-	listingImages, heroErr := bundleImages(p, r, parts, accent, st, heroDoc)
+	listingImages, heroErr := bundleImages(p, r, parts, accent, st)
 	r.Summary.Images = len(listingImages)
 	dist, channels, issues := bundle.Distribution(*r, all.Files, all.Data, groups, listingImages, facts, r.Summary.Pending, time.Now().Format("2006-01-02"))
 	if heroErr != nil {
@@ -182,7 +182,7 @@ func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent str
 // bundleImages are the bundle's listing images: every unit's cover
 // together first, then each unit's own images in turn. The first is
 // rendered by a release and reused while the covers are unchanged.
-func bundleImages(p project.Project, r *bundle.Report, parts []part, accent string, st *stock, render func(printer *release.Printer) (map[string][]byte, error)) ([]bundle.Image, error) {
+func bundleImages(p project.Project, r *bundle.Report, parts []part, accent string, st *stock) ([]bundle.Image, error) {
 	var out []bundle.Image
 	var heroErr error
 	var covers []bundle.Cover
@@ -202,12 +202,15 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 		key := printKey("bundle hero", append(append([]byte{}, doc...), made...), assets)
 		press := st.press()
 		hero, err := press.job(key, func(printer *release.Printer) ([]byte, error) {
-			more, err := render(printer)
-			if err != nil {
-				return nil, err
-			}
-			for name, data := range more {
-				assets[name] = data
+			for _, pt := range parts {
+				if pt.render == nil {
+					continue
+				}
+				data, err := pt.render(printer)
+				if err != nil {
+					return nil, err
+				}
+				assets[pt.cover.Name] = data
 			}
 			jpg, err := printer.Picture(doc, assets, printable.ImageWidth, printable.ImageHeight, printable.ImageScale, false, (1<<20)-(len(deliver.StampJPEG([]byte{0xff, 0xd8}, key))-2))
 			return deliver.StampJPEG(jpg, key), err
@@ -242,21 +245,16 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 }
 
 func allFiles(s shipped) []string {
-	var names []string
-	for _, f := range s.Files {
-		names = append(names, f.Name)
-	}
-	return names
+	return builtData(s.Files, func(f deliver.File) string { return f.Name })
 }
 
 func (u *bookUnit) part() part {
 	bk := u.r
-	kind := "book"
 	var formats []string
 	for _, f := range u.out.Files {
 		formats = append(formats, strings.ToUpper(strings.TrimPrefix(path.Ext(f.Name), ".")))
 	}
-	pt := part{kind: kind, name: bk.Plan.Title, files: u.out, pending: bk.Summary.Pending,
+	pt := part{kind: "book", name: bk.Plan.Title, files: u.out, pending: bk.Summary.Pending,
 		facts:  []string{fmt.Sprintf("%s, %d chapters", strings.Join(formats, ", "), len(bk.Plan.Chapters))},
 		groups: map[string][]string{"ebook": allFiles(u.out)}}
 	if cover := bk.Sources[bk.Plan.Cover]; cover != nil {
@@ -270,8 +268,7 @@ func (u *bookUnit) part() part {
 
 func (u *printableUnit) part() part {
 	pr := u.r
-	kind := "printable"
-	pt := part{kind: kind, name: pr.Plan.Name, files: u.out, pending: pr.Summary.Pending, facts: printable.Facts(*pr), groups: map[string][]string{}}
+	pt := part{kind: "printable", name: pr.Plan.Name, files: u.out, pending: pr.Summary.Pending, facts: printable.Facts(*pr), groups: map[string][]string{}}
 	for _, ed := range pr.Editions {
 		if u.out.Data[pr.FileName(ed.Edition)] != nil {
 			pt.groups[ed.Edition.Size.Key] = append(pt.groups[ed.Edition.Size.Key], pr.FileName(ed.Edition))
@@ -282,12 +279,15 @@ func (u *printableUnit) part() part {
 		pt.cover = &bundle.Cover{Name: "printable-cover.png", Ratio: first.Edition.Size.Width / first.Edition.Size.Height}
 		pt.coverKey = first.Doc
 		// The printable's first page is drawn by the printer.
-		pt.render = func(printer *release.Printer) (map[string][]byte, error) {
+		pt.render = func(printer *release.Printer) ([]byte, error) {
+			if u.out.Cover != nil {
+				return u.out.Cover, nil
+			}
 			raster, err := printer.PageImages(first.Doc, pr.Assets, mmPixels(first.Edition.Size.Width), mmPixels(first.Edition.Size.Height), printable.PageScale, []int{1})
 			if err != nil {
 				return nil, err
 			}
-			return map[string][]byte{"printable-cover.png": raster[0]}, nil
+			return raster[0], nil
 		}
 	}
 	if pictured(pr.Listing.Present, pr.Summary.Sell) {

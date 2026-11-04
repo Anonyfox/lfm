@@ -447,7 +447,6 @@ func deliverAll(p project.Project, page []byte, units []unit, pack *bundle.Repor
 	if pack != nil && len(pack.Summary.Units) >= 2 {
 		var parts []part
 		accent := ""
-		render := func(*release.Printer) (map[string][]byte, error) { return nil, nil }
 		for _, u := range units {
 			pt := u.part()
 			selected[pt.kind] = pt
@@ -461,11 +460,8 @@ func deliverAll(p project.Project, page []byte, units []unit, pack *bundle.Repor
 			if accent == "" {
 				accent = pt.accent
 			}
-			if pt.render != nil {
-				render = pt.render
-			}
 		}
-		return result.revalidate(result.Validation.Stage, deliverBundle(p, pack, parts, accent, page, st, result, render), rules)
+		return result.revalidate(result.Validation.Stage, deliverBundle(p, pack, parts, accent, page, st, result), rules)
 	}
 	return true
 }

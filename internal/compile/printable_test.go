@@ -10,6 +10,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/pdfx"
 	"github.com/Anonyfox/lfm/internal/printable"
+	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/testproject"
 )
@@ -216,5 +217,52 @@ func TestBundleConfigErrors(t *testing.T) {
 	result, _ = Compile(context.Background(), dir, Options{Publish: true})
 	if f := findings(result, "bundle.config"); len(f) != 1 || !strings.Contains(f[0], "two or more") {
 		t.Fatalf("%v", f)
+	}
+}
+
+func TestPrintableCoverHandoff(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := release.BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	p, err := project.Open(printableProject(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, _ := checkPrintable(p, project.Load(p, ruleCheck), checking{}.commerce)
+	st := newStock(context.Background(), p, true)
+	defer st.close()
+	pr := st.press()
+	printer, err := pr.printerFor()
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := r.Editions[0]
+	direct, err := printer.PageImages(first.Doc, r.Assets, mmPixels(first.Edition.Size.Width), mmPixels(first.Edition.Size.Height), printable.PageScale, []int{1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, hit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "listing miss", true: "listing hit"}[hit], func(t *testing.T) {
+			out := shipped{}
+			images := printableImages(pr, r, &out)
+			if len(images) == 0 || (out.Cover == nil) != hit {
+				t.Fatal("listing did not hand off its fresh cover")
+			}
+			u := printableUnit{r: r, out: out}
+			got, err := u.part().render(printer)
+			if err != nil || !bytes.Equal(got, direct[0]) {
+				t.Fatalf("cover changed: %v", err)
+			}
+			if !hit {
+				// A consumed raster needs no live browser and is passed without copying.
+				got, err = u.part().render(nil)
+				if err != nil || len(got) == 0 || &got[0] != &out.Cover[0] {
+					t.Fatal("fresh cover was rendered again")
+				}
+			}
+		})
 	}
 }
