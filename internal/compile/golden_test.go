@@ -9,11 +9,12 @@ import (
 	"github.com/Anonyfox/lfm/internal/golden"
 )
 
-// TestGoldenPages compiles the example project and lfm.cash itself and
-// holds every file in output/ to the bytes it compiled to before.
+// TestGoldenPages compiles the example project and a snapshot of lfm.cash
+// (testdata/lfm-cash: its config, template, assets and public files as of
+// 0.1.17) and holds every file in output/ to the bytes it compiled to before.
 func TestGoldenPages(t *testing.T) {
 	t.Parallel()
-	for name, src := range map[string]string{"example": "../../testdata/example", "site": "../../site"} {
+	for name, src := range map[string]string{"example": "../../testdata/example", "site": "../../testdata/lfm-cash"} {
 		dir := t.TempDir()
 		if err := os.CopyFS(dir, os.DirFS(src)); err != nil {
 			t.Fatal(err)

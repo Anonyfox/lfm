@@ -228,7 +228,7 @@ func fixture(t *testing.T) (project.Project, *research.Voices, *research.Competi
 	writeFile(t, root, ListingFile, []byte(testListing))
 	writeFile(t, root, Dir+"/images/cover.png", pngOf(1600, 2560))
 	writeFile(t, root, Dir+"/images/crumb.png", pngOf(800, 600))
-	font, err := os.ReadFile("../../site/assets/fonts/martian-mono.woff2")
+	font, err := os.ReadFile("../../testdata/lfm-cash/assets/fonts/martian-mono.woff2")
 	if err != nil {
 		t.Fatal(err)
 	}

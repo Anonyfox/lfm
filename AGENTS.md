@@ -35,9 +35,8 @@ template `lfm init` writes into user projects.
   The root [SKILL.md](SKILL.md) is the entry point agents fetch from lfm.cash.
 - **Parsers and analyzers of author or LLM input** need a native fuzz target; see
   [CONTRIBUTING.md](CONTRIBUTING.md).
-- **The website** is an lfm project in `site/`; `.github/workflows/pages.yml` compiles it with the lfm
-  built from the same commit and deploys lfm.cash. Case studies live in
-  `site/case-studies/<slug>/` as their own lfm projects; add each URL to `site/public/sitemap.xml`.
+- **The website** [lfm.cash](https://lfm.cash) is built and hosted outside this repository. The root
+  SKILL.md and install.sh are served there byte for byte, so changes to them reach it on its next deploy.
 - **User-visible changes** get a line in [CHANGELOG.md](CHANGELOG.md).
 
 ## Verify before you say done

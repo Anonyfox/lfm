@@ -137,7 +137,7 @@ func TestGuidancePlantsNoDefaults(t *testing.T) {
 	for _, s := range all {
 		texts["skill "+s.Topic] = s.Text
 	}
-	for _, root := range []string{"../../SKILL.md", "../../site/assets/agents/SKILL.md"} {
+	for _, root := range []string{"../../SKILL.md"} {
 		raw, err := os.ReadFile(root)
 		if err != nil {
 			t.Fatal(err)

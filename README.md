@@ -113,12 +113,10 @@ command line.
 
 ## Made with lfm
 
-[lfm.cash](https://lfm.cash) is an lfm project in [site/](site/), built by an agent through the same three
-phases: [120 buyer posts and 20 competitor pages](site/research/), a [concept](site/concept.md) that chose
-one of ten directions with every decision cited, and a page that compiles with 0 errors and 0 warnings. Its
-proof section compiles the page an agent wrote from one sentence without lfm; that
-[page](site/proof/default-agent-page.html) and its [report](site/proof/default-agent-page.report.txt) are
-there too.
+[lfm.cash](https://lfm.cash) is an lfm project, built by an agent through the same three phases: 120
+buyer posts and 20 competitor pages, a concept that chose one of ten directions with every decision cited,
+and a page that compiles with 0 errors and 0 warnings. Its proof section compiles the page an agent wrote
+from one sentence without lfm, with the agent's file and lfm's full report.
 
 ## What a compile guarantees
 

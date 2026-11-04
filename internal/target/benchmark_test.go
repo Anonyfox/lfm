@@ -62,7 +62,7 @@ func BenchmarkCheckFolder(b *testing.B) {
 
 func BenchmarkCheckSite(b *testing.B) {
 	dir := b.TempDir()
-	if err := os.CopyFS(dir, os.DirFS("../../site")); err != nil {
+	if err := os.CopyFS(dir, os.DirFS("../../testdata/lfm-cash")); err != nil {
 		b.Fatal(err)
 	}
 	if _, err := compile.Compile(context.Background(), dir, compile.Options{Publish: true}); err != nil {
