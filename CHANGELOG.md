@@ -6,6 +6,13 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
   completed gatherers’ leftover timers. Compatible document and deck source images share one
   render tab. All audits, categories and remeasurement checks remain.
 
+## 0.1.17 (2026-11-04)
+
+- A cold `lfm compile --release` is about 16% faster (23 s instead of 28 s on a shop one-pager with a
+  bundle, documents and a spreadsheet). Lighthouse no longer keeps lfm waiting about 3 s after its
+  report is written, and the document showcase captures share one browser tab. Audits, scores and
+  outputs are unchanged.
+
 ## 0.1.16 (2026-11-04)
 
 - `lfm compile --release` on an unchanged project is about 14x faster: 1.2 s instead of 17 s on a
