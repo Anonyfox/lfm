@@ -2,13 +2,14 @@ package release
 
 import (
 	"context"
-	"github.com/Anonyfox/lfm/internal/cache"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Anonyfox/lfm/internal/cache"
 )
 
 func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {

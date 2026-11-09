@@ -29,6 +29,7 @@ func Prune() {
 		date   time.Time
 		size   int64
 		unlock func()
+		busy   bool
 	}
 	var files []artifact
 	var total int64
@@ -49,9 +50,7 @@ func Prune() {
 			f := artifact{path: filepath.Join(path, entry.Name()), date: info.ModTime()}
 			if strings.HasPrefix(category.Name(), "chrome-") && entry.IsDir() {
 				f.unlock, err = Lock(f.path)
-				if err != nil {
-					continue
-				} // A running Chrome owns this profile.
+				f.busy = err != nil // A running Chrome owns this profile.
 			}
 			_ = filepath.WalkDir(f.path, func(_ string, d fs.DirEntry, err error) error {
 				if err == nil && !d.IsDir() {
@@ -67,7 +66,7 @@ func Prune() {
 	}
 	slices.SortFunc(files, func(a, b artifact) int { return a.date.Compare(b.date) })
 	for _, f := range files {
-		if time.Since(f.date) > 2*24*time.Hour || total > 300<<20 {
+		if !f.busy && (time.Since(f.date) > 2*24*time.Hour || total > 300<<20) {
 			if os.RemoveAll(f.path) == nil {
 				total -= f.size
 			}

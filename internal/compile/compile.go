@@ -24,7 +24,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/Anonyfox/lfm/internal/cache"
 	"slices"
 	"sort"
 	"strings"
@@ -33,6 +32,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/book"
 	"github.com/Anonyfox/lfm/internal/bundle"
+	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/concept"
 	"github.com/Anonyfox/lfm/internal/deck"

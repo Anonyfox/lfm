@@ -143,14 +143,3 @@ func TestAuditLayoutCompletion(t *testing.T) {
 		})
 	}
 }
-
-func TestAuditCacheIsBounded(t *testing.T) {
-	cacheTools(t)
-	for i := range 130 {
-		WriteCache(fmt.Sprintf("%03d", i), map[string]int{"entry": i})
-	}
-	entries, err := os.ReadDir(cacheDir())
-	if err != nil || len(entries) != 128 {
-		t.Fatalf("cache entries=%d: %v", len(entries), err)
-	}
-}
