@@ -1,14 +1,14 @@
 //go:build unix
 
-package release
+package cache
 
 import (
 	"os"
 	"syscall"
 )
 
-// Lock the directory itself so process exit also releases it.
-func lockProfile(path string) (func(), error) {
+// Lock exclusively locks a cache directory until close or process exit.
+func Lock(path string) (func(), error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err

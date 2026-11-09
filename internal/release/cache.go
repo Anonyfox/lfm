@@ -137,7 +137,7 @@ func ReadCache(key string, value any) time.Time {
 	return entry.Date
 }
 
-// WriteCache atomically saves an optional entry and keeps 128 recent entries.
+// WriteCache atomically saves an optional entry.
 // Callers that need to explain lost reuse can report the returned write error.
 func WriteCache(key string, value any) error {
 	if key == "" {
@@ -154,7 +154,6 @@ func WriteCache(key string, value any) error {
 	if err := scratch.WriteFile(filepath.Join(dir, key+".json"), raw); err != nil {
 		return err
 	}
-	cache.Prune(dir)
 	return nil
 }
 

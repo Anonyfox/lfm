@@ -2,9 +2,11 @@
 package cache
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -17,23 +19,61 @@ func Dir(category string) string {
 	return filepath.Join(base, "lfm", category)
 }
 
-// Prune keeps at most 128 entries used within 30 days.
-func Prune(dir string) {
-	entries, _ := os.ReadDir(dir)
-	type file struct {
-		name string
-		date time.Time
+// Prune expires artifacts after two days and evicts the least recently used
+// entries until the whole lfm cache fits in 300 MiB. Directories are artifacts
+// (frame sets and profiles), never followed through symlinks.
+func Prune() {
+	root := Dir("")
+	type artifact struct {
+		path   string
+		date   time.Time
+		size   int64
+		unlock func()
 	}
-	var files []file
-	for _, entry := range entries {
-		if info, e := entry.Info(); e == nil {
-			files = append(files, file{entry.Name(), info.ModTime()})
+	var files []artifact
+	var total int64
+	categories, _ := os.ReadDir(root)
+	for _, category := range categories {
+		path := filepath.Join(root, category.Name())
+		entries := []fs.DirEntry{category}
+		if category.IsDir() && !strings.HasPrefix(category.Name(), "chrome-") {
+			entries, _ = os.ReadDir(path)
+		} else {
+			path = root
+		}
+		for _, entry := range entries {
+			info, err := entry.Info()
+			if err != nil {
+				continue
+			}
+			f := artifact{path: filepath.Join(path, entry.Name()), date: info.ModTime()}
+			if strings.HasPrefix(category.Name(), "chrome-") && entry.IsDir() {
+				f.unlock, err = Lock(f.path)
+				if err != nil {
+					continue
+				} // A running Chrome owns this profile.
+			}
+			_ = filepath.WalkDir(f.path, func(_ string, d fs.DirEntry, err error) error {
+				if err == nil && !d.IsDir() {
+					if i, e := d.Info(); e == nil {
+						f.size += i.Size()
+					}
+				}
+				return nil
+			})
+			total += f.size
+			files = append(files, f)
 		}
 	}
-	slices.SortFunc(files, func(a, b file) int { return b.date.Compare(a.date) })
-	for i, entry := range files {
-		if i >= 128 || time.Since(entry.date) > 30*24*time.Hour {
-			_ = os.RemoveAll(filepath.Join(dir, entry.name))
+	slices.SortFunc(files, func(a, b artifact) int { return a.date.Compare(b.date) })
+	for _, f := range files {
+		if time.Since(f.date) > 2*24*time.Hour || total > 300<<20 {
+			if os.RemoveAll(f.path) == nil {
+				total -= f.size
+			}
+		}
+		if f.unlock != nil {
+			f.unlock()
 		}
 	}
 }

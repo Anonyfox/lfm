@@ -2,6 +2,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- Every compile expires cache artifacts unused for two days and evicts the oldest
+  artifacts above a shared 300 MiB limit. Active Chrome profiles stay locked.
+
 - Chrome reuses locked profiles per purpose and disables background model downloads;
   concurrent runs clean up their temporary fallback profiles on exit.
 

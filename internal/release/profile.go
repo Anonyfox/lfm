@@ -15,7 +15,7 @@ import (
 func browserProfile(purpose string) (string, func(), error) {
 	path := cache.Dir("chrome-" + purpose)
 	if err := os.MkdirAll(path, 0o700); err == nil {
-		if unlock, err := lockProfile(path); err == nil {
+		if unlock, err := cache.Lock(path); err == nil {
 			cache.Touch(path)
 			return path, unlock, nil
 		}

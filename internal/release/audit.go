@@ -283,7 +283,6 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	if err != nil {
 		r.Warnings = append(r.Warnings, "Full report could not be saved: "+err.Error())
 	} else {
-		cache.Prune(filepath.Dir(report))
 		r.Report = report
 	}
 	if parseErr != nil {
@@ -575,7 +574,6 @@ func ReportPath(root string) string {
 	dir := cache.Dir("lighthouse")
 	path := filepath.Join(dir, fmt.Sprintf("%x.json", sum[:6]))
 	cache.Touch(path)
-	cache.Prune(dir)
 	_ = os.MkdirAll(dir, 0o755)
 	return path
 }

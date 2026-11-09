@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/Anonyfox/lfm/internal/cache"
 	"slices"
 	"sort"
 	"strings"
@@ -172,6 +173,7 @@ type builder struct {
 // Compile runs the lifecycle on the project in dir. Cancelling ctx stops it
 // between stages; a cancelled compile never publishes.
 func Compile(ctx context.Context, dir string, options Options) (result Result, err error) {
+	defer cache.Prune()
 	p, err := project.Open(dir)
 	if err == nil {
 		err = p.Expect(dir)

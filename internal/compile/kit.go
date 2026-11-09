@@ -291,7 +291,6 @@ func remembered[T any](soffice, kind string, files [][]byte, run func() (T, erro
 	}
 	path := filepath.Join(cache.Dir("libreoffice"), hex.EncodeToString(h.Sum(nil))[:32]+".json")
 	cache.Touch(path)
-	cache.Prune(filepath.Dir(path))
 	var out T
 	if raw, err := os.ReadFile(path); err == nil && json.Unmarshal(raw, &out) == nil {
 		return out, nil
@@ -303,7 +302,6 @@ func remembered[T any](soffice, kind string, files [][]byte, run func() (T, erro
 	if raw, err := json.Marshal(out); err == nil && os.MkdirAll(filepath.Dir(path), 0o755) == nil {
 		_ = scratch.WriteFile(path, raw)
 	}
-	cache.Prune(filepath.Dir(path))
 	return out, nil
 }
 

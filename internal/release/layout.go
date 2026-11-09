@@ -73,7 +73,6 @@ func FramesPath(root string) string {
 	path := filepath.Join(dir, fmt.Sprintf("%x", sum[:6]))
 	_ = os.MkdirAll(path, 0o755)
 	cache.Touch(path)
-	cache.Prune(dir)
 	return path
 }
 

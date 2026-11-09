@@ -2,6 +2,7 @@ package release
 
 import (
 	"context"
+	"github.com/Anonyfox/lfm/internal/cache"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -59,7 +60,7 @@ func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {
 			t.Errorf("missing %s: %s", flag, raw)
 		}
 	}
-	unlock, err := lockProfile(first)
+	unlock, err := cache.Lock(first)
 	if err != nil {
 		t.Fatal("failed startup retained lock", err)
 	}
