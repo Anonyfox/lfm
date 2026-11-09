@@ -31,11 +31,11 @@ func ImagePlacement(ctx context.Context, page []byte, assets map[string][]byte) 
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	opts := BrowserOptions(path)
-	alloc, cancelAlloc := chromedp.NewExecAllocator(ctx, opts...)
-	defer cancelAlloc()
-	tab, cancelTab := chromedp.NewContext(alloc)
-	defer cancelTab()
+	tab, closeBrowser, err := profileBrowser(ctx, BrowserOptions(path), browserStepTimeout, "images")
+	if err != nil {
+		return nil, err
+	}
+	defer closeBrowser()
 	measure := `[...document.images].map(i=>{const r=i.getBoundingClientRect();const w=Math.max(0,Math.min(r.right,innerWidth)-Math.max(r.left,0)),h=Math.max(0,Math.min(r.bottom,innerHeight)-Math.max(r.top,0));const cs=getComputedStyle(i);const shown=cs.visibility!=="hidden"&&cs.display!=="none";return {Src:i.getAttribute("src")||"",FirstScreen:shown&&w*h>0,PhoneArea:shown?w*h:0}})`
 	var out []Placement
 	for i, v := range viewports {

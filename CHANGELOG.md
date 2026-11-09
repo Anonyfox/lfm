@@ -2,6 +2,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- Chrome reuses locked profiles per purpose and disables background model downloads;
+  concurrent runs clean up their temporary fallback profiles on exit.
+
 ## 0.1.19 (2026-11-05)
 
 - Shared German and English copy rules now run for page HTML/URL checks and for

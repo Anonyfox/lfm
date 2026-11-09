@@ -29,7 +29,7 @@ func NewPrinter(ctx context.Context) (*Printer, error) {
 	if err != nil {
 		return nil, err
 	}
-	browser, stop, err := openBrowser(ctx, BrowserOptions(path), tabTime)
+	browser, stop, err := profileBrowser(ctx, BrowserOptions(path), tabTime, "print")
 	if err != nil {
 		return nil, err
 	}

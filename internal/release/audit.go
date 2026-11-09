@@ -209,7 +209,7 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 		return r
 	}
 	// Artifact targets use the sealed non-forwarding proxy. URL targets visit
-	// the live page without a proxy. Both use a fresh browser profile.
+	// the live page without a proxy. Both use a locked browser profile.
 	destination, proxy, closeTarget, err := target.serve(net.Listen)
 	if err != nil {
 		r.Reason = err.Error()
@@ -219,17 +219,13 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	defer closeTarget()
 	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
 	defer cancel()
-	profile, err := scratch.Dir("lighthouse-chrome")
+	profile, releaseProfile, err := browserProfile("lighthouse")
 	if err != nil {
 		r.Reason = err.Error()
 		r.Hint = "Ensure the system temporary directory is writable."
 		return r
 	}
-	defer func() {
-		if err := removeProfile(profile); err != nil {
-			r.Warnings = append(r.Warnings, "Could not remove release browser profile "+profile+": "+err.Error())
-		}
-	}()
+	defer releaseProfile()
 	_, closeBrowser, err := startAuditBrowser(ctx, browser, proxy, profile)
 	if err != nil {
 		r.Reason = err.Error()

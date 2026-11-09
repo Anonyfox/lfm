@@ -96,7 +96,7 @@ func browserCandidates() []string {
 // BrowserOptions configures an isolated browser without background services.
 func BrowserOptions(path string) []chromedp.ExecAllocatorOption {
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("no-first-run", true))
+	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("disable-features", "OptimizationGuideModelDownloading,OptimizationHints,OptimizationTargetPrediction"), chromedp.Flag("no-first-run", true))
 }
 
 // Analyze observes static first paint at several widths, unions visible rules,
@@ -115,7 +115,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	defer server.Close()
 	ctx, abort := context.WithCancelCause(ctx)
 	defer abort(nil)
-	browser, closeBrowser, err := openBrowser(ctx, BrowserOptions(path), browserStepTimeout)
+	browser, closeBrowser, err := profileBrowser(ctx, BrowserOptions(path), browserStepTimeout, "critical")
 	if err != nil {
 		return result, err
 	}
