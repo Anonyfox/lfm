@@ -76,13 +76,3 @@ func TestDirFallsBackToTemp(t *testing.T) {
 		t.Fatalf("%s != %s", got, want)
 	}
 }
-
-// userCache is the platform cache root, which is not XDG_CACHE_HOME on macOS.
-func userCache(t *testing.T) string {
-	t.Helper()
-	dir, err := os.UserCacheDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return dir
-}
