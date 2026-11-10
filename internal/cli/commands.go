@@ -71,8 +71,9 @@ output/<path>/, and with a listing.md its store packages to distribution/.
 Only --release prints PDFs and listing images; later compiles reuse them
 while nothing changed.
 
-Chrome is found on PATH and in standard locations, or via LFM_CHROME.
-Lighthouse is found on PATH, in node_modules/.bin, or via LFM_LIGHTHOUSE.
+Chrome and Lighthouse use LFM_CHROME / LFM_LIGHTHOUSE first, then PATH,
+standard installs and npm global bin (also node_modules/.bin for Lighthouse).
+Run lfm doctor to report the resolved executable paths.
 
 The report ends with the next step: the missing phase (research, design,
 implementation, or a deliverable's), the findings to resolve, the release

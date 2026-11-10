@@ -17,7 +17,7 @@ import (
 func TestPruneKnownOwnedScratch(t *testing.T) {
 	t.Setenv("TMPDIR", t.TempDir())
 	old := time.Now().Add(-7 * time.Hour)
-	names := []string{"lfm-lighthouse-chrome-old", "lfm-office-old", "lfm-ooxml-old", "lfm-tests-old", "lfm-frames-012345abcdef", "lfm-lighthouse-012345abcdef.json", "lfm-libreoffice"}
+	names := []string{"lfm-chrome-old", "lfm-lighthouse-tmp-old", "lfm-lighthouse-chrome-old", "lfm-office-old", "lfm-ooxml-old", "lfm-tests-old", "lfm-frames-012345abcdef", "lfm-lighthouse-012345abcdef.json", "lfm-libreoffice"}
 	for _, name := range append(names, "lfm-perf", "lfm-final", "lfm-frames-not-a-hash", "lfm-lighthouse-wrong.json") {
 		path := filepath.Join(os.TempDir(), name)
 		if err := os.Mkdir(path, 0o700); err != nil {

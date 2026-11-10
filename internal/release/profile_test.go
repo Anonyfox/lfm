@@ -16,6 +16,8 @@ func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("shell and directory locks")
 	}
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	t.Setenv("HOME", t.TempDir())
 	first, release, err := browserProfile("test")
@@ -46,7 +48,7 @@ func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {
 	args := filepath.Join(t.TempDir(), "args")
 	t.Setenv("LFM_TEST_CHROME_ARGS", args)
 	tool := filepath.Join(t.TempDir(), "chrome")
-	if err := os.WriteFile(tool, []byte("#!/bin/sh\nkill -0 -$$ || exit 2\nprintf '%s\\n' \"$@\" > \"$LFM_TEST_CHROME_ARGS\"\nexit 1\n"), 0o700); err != nil {
+	if err := os.WriteFile(tool, []byte("#!/bin/sh\nkill -0 -$$ || exit 2\nprintf '%s\\n' \"$@\" > \"$LFM_TEST_CHROME_ARGS\"\nprintf scratch > \"$TMPDIR/child-file\"\nexit 1\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := profileBrowser(context.Background(), BrowserOptions(tool), time.Second, "test"); err == nil {
@@ -60,6 +62,10 @@ func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {
 		if !strings.Contains(string(raw), flag+"\n") {
 			t.Errorf("missing %s: %s", flag, raw)
 		}
+	}
+	entries, err := os.ReadDir(tmp)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("failed browser left scratch: %v, %v", entries, err)
 	}
 	unlock, err := cache.Lock(first)
 	if err != nil {

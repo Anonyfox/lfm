@@ -220,8 +220,13 @@ unchanged documents, decks or workbooks does not open them again.
    the report's host line gives the text as sent and as built, and about how much later a phone gets it
    from a host that does not compress, and the deploy step names the check for it.
 
-Chrome or Chromium is found on `PATH` and in standard locations, or set `LFM_CHROME`. Lighthouse is found on
-`PATH`, in `node_modules/.bin`, or via `LFM_LIGHTHOUSE` (`npm install -g lighthouse`). Missing
+`LFM_CHROME` and `LFM_LIGHTHOUSE` override automatic discovery, including when invalid. Otherwise Chrome
+is found on `PATH` in this order: `google-chrome`, `google-chrome-stable`, `chromium`, `chromium-browser`,
+`chrome`, then headless shells and other Chromium browsers. Lighthouse uses `lighthouse` on `PATH`.
+Both then check standard Linux/macOS install paths and finally the bin directory from `npm prefix -g`
+(`npm install -g lighthouse`). Lighthouse also checks the project’s `node_modules/.bin` before npm global
+bin. `lfm doctor [directory]` reports both resolved absolute paths or missing-tool reasons; `--json`
+contains the same paths, reasons and next step. Missing
 tools produce a release error with setup guidance; lfm never installs anything.
 
 Lighthouse runs serialize across processes sharing the user cache, using an advisory `flock` on
@@ -271,7 +276,10 @@ Review frames, Lighthouse reports and LibreOffice verdicts live under the user c
 `lfm/frames/<project-hash>/`, `lfm/lighthouse/<project-hash>.json` and `lfm/libreoffice/`. Each category
 keeps at most 128 entries and removes entries unused for 30 days. If the user cache cannot be located,
 lfm uses the system temp directory. Working directories are removed on exit; startup removes owned
-scratch older than six hours.
+scratch older than six hours. Chrome, Lighthouse and LibreOffice child processes receive private
+working directories as `TMPDIR`, `TMP` and `TEMP`, so their temporary files are removed with those
+directories on success, failure or cancellation. These directories use `os.TempDir()`, honoring the
+caller’s `TMPDIR`; set it to a project-owned scratch directory to keep work off the shared system temp.
 
 Published image files use a shared content-addressed cache at `<user-cache>/lfm/img/`.
 Identical bytes share an inode across projects, worktrees, output and distribution;

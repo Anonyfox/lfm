@@ -80,7 +80,7 @@ func ResolveTools(ctx context.Context, root string) *ToolIdentity {
 	}
 	t.chrome, t.err = version(BrowserPath())
 	if t.err == nil {
-		t.lighthouse, t.err = version(lighthousePath((Target{}).toolRoot(root)))
+		t.lighthouse, t.err = version(LighthousePath((Target{}).toolRoot(root)))
 	}
 	return t
 }

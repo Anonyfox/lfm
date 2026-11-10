@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Discover Chrome and Lighthouse through environment overrides, PATH, standard installs and npm global
+  bin; `lfm doctor` reports resolved paths, including JSON. Child-process temporary files stay in owned
+  scratch directories under TMPDIR (the system temp directory by default) and are removed on failure too.
+
 ## 0.1.24 (2026-11-10)
 
 - Lighthouse runs serialize across processes sharing the user cache, report the lock holder PID

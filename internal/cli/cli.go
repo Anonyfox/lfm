@@ -59,7 +59,7 @@ func commandNames() []string {
 
 func commands() []command {
 	return []command{
-		initCommand, compileCommand, checkCommand, serveCommand, rulesCommand, skillsCommand, versionCommand,
+		initCommand, compileCommand, checkCommand, serveCommand, rulesCommand, skillsCommand, versionCommand, doctorCommand,
 	}
 }
 

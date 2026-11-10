@@ -18,7 +18,7 @@ import (
 )
 
 func runLighthouse(ctx context.Context, target Target, browser, root string) *LighthouseResult {
-	tool, err := lighthousePath(target.toolRoot(root))
+	tool, err := LighthousePath(target.toolRoot(root))
 	if err != nil {
 		return &LighthouseResult{Status: "skipped", Missing: true, Reason: err.Error(), Hint: LighthouseSetup, Scope: target.auditScope()}
 	}

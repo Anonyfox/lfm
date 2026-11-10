@@ -24,7 +24,7 @@ func Prune(dir string) {
 	for _, entry := range entries {
 		name := entry.Name()
 		known := legacy.MatchString(name)
-		for _, prefix := range []string{"lfm-lighthouse-chrome-", "lfm-office-", "lfm-ooxml-", "lfm-tests-"} {
+		for _, prefix := range []string{"lfm-chrome-", "lfm-lighthouse-tmp-", "lfm-lighthouse-chrome-", "lfm-office-", "lfm-ooxml-", "lfm-tests-"} {
 			known = known || strings.HasPrefix(name, prefix)
 		}
 		if !known {

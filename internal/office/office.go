@@ -69,7 +69,7 @@ func Convert(ctx context.Context, soffice string, files map[string][]byte, filte
 	if runtime.GOOS == "linux" {
 		locale = "C.UTF-8"
 	}
-	cmd.Env = append(os.Environ(), "LC_ALL="+locale)
+	cmd.Env = append(os.Environ(), "LC_ALL="+locale, "TMPDIR="+dir, "TMP="+dir, "TEMP="+dir)
 	var output bytes.Buffer
 	cmd.Stdout = &output
 	cmd.Stderr = &output

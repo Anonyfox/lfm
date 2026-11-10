@@ -12,12 +12,12 @@ import (
 	"mime"
 	"net"
 	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/Anonyfox/lfm/internal/scratch"
 	"github.com/chromedp/cdproto"
 	cdpbrowser "github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/cdp"
@@ -60,40 +60,6 @@ type observation struct {
 	Rules       []rule
 	Fingerprint string
 	Reason      string
-}
-
-func BrowserPath() (string, error) {
-	if path := os.Getenv("LFM_CHROME"); path != "" {
-		found, err := exec.LookPath(path)
-		if err != nil {
-			return "", fmt.Errorf("LFM_CHROME: %w", err)
-		}
-		return found, nil
-	}
-	for _, path := range browserCandidates() {
-		if found, err := exec.LookPath(path); err == nil {
-			return found, nil
-		}
-	}
-	return "", fmt.Errorf("--release needs installed Chrome/Chromium; install it or set LFM_CHROME to its executable (ordinary builds need neither browser nor Node)")
-}
-
-// browserCandidates lists Chromium-based browsers in order of preference:
-// headless builds first, then regular installs on Linux and macOS.
-func browserCandidates() []string {
-	candidates := []string{
-		"chromium-headless-shell", "chrome-headless-shell", "headless_shell",
-		"chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "chrome",
-		"microsoft-edge", "brave-browser", "/snap/bin/chromium",
-	}
-	for _, app := range []string{"Google Chrome", "Chromium", "Microsoft Edge", "Brave Browser"} {
-		inApplications := filepath.Join("/Applications", app+".app", "Contents", "MacOS", app)
-		candidates = append(candidates, inApplications)
-		if home, err := os.UserHomeDir(); err == nil {
-			candidates = append(candidates, filepath.Join(home, inApplications))
-		}
-	}
-	return candidates
 }
 
 // BrowserOptions configures an isolated browser without background services.
@@ -340,12 +306,17 @@ return true})()`
 // tab initializes the document target on the browser lifetime, before step contexts.
 // Canceling a successful startup step must not cancel later document jobs.
 func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration, tab bool) (context.Context, func(), error) {
+	tmp, err := scratch.Dir("chrome")
+	if err != nil {
+		return nil, func() {}, err
+	}
+	opts = append(opts, chromedp.Env("TMPDIR="+tmp, "TMP="+tmp, "TEMP="+tmp))
 	ctx, abort := context.WithCancelCause(ctx)
 	stopProcess := func() {}
 	opts = append(opts, chromedp.ModifyCmdFunc(func(cmd *exec.Cmd) { stopProcess = browserCommand(cmd) }))
 	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, closeBrowser := chromedp.NewContext(alloc)
-	close := func() { closeBrowser(); closeAlloc(); stopProcess(); abort(nil) }
+	close := func() { closeBrowser(); closeAlloc(); stopProcess(); abort(nil); _ = scratch.Remove(tmp) }
 	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
 		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
 		defer stop()

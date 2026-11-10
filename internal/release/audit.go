@@ -99,7 +99,7 @@ func audit(ctx context.Context, target Target, root string, listen func(string, 
 		r.Diagnostics = append(r.Diagnostics, diagnostic.Diagnostic{Rule: rule, Severity: severity, Location: diagnostic.Location{File: "index.html", Line: 1, Column: 1}, Message: message, Hint: hint})
 	}
 	browser, err := BrowserPath()
-	_, toolErr := lighthousePath(target.toolRoot(root))
+	_, toolErr := LighthousePath(target.toolRoot(root))
 	if err != nil {
 		r.Runtime = &RuntimeResult{Status: "skipped", Reason: err.Error(), Hint: BrowserSetup}
 		r.Lighthouse = &LighthouseResult{Status: "skipped", Reason: "browser unavailable", Hint: BrowserSetup, Scope: target.auditScope()}
@@ -183,22 +183,6 @@ func LighthouseDiagnostics(lh *LighthouseResult) []diagnostic.Diagnostic {
 
 const auditScope = "Fresh mobile Lighthouse navigation; timing findings trigger up to three runs; simulated mobile CPU/network; exact artifact on local HTTP; external traffic and non-GET requests blocked. Delivery/TLS/CDN and interaction journeys are not measured."
 
-func lighthousePath(root string) (string, error) {
-	if path := os.Getenv("LFM_LIGHTHOUSE"); path != "" {
-		return exec.LookPath(path)
-	}
-	if path, err := exec.LookPath("lighthouse"); err == nil {
-		return path, nil
-	}
-	for _, name := range []string{"lighthouse", "lighthouse.cmd"} {
-		path := filepath.Join(root, "node_modules", ".bin", name)
-		if found, err := exec.LookPath(path); err == nil {
-			return found, nil
-		}
-	}
-	return "", fmt.Errorf("installed Lighthouse executable not found")
-}
-
 func runLighthouseOnce(ctx context.Context, target Target, browser, root, tool string) *LighthouseResult {
 	start := time.Now()
 	r := &LighthouseResult{Status: "skipped", Scope: target.auditScope()}
@@ -248,7 +232,13 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root, tool s
 		cmd = exec.CommandContext(ctx, "node", append([]string{"--input-type=module", "-e", `import {pathToFileURL} from 'node:url'; await import(pathToFileURL(process.argv[1])); process.stdout.end(()=>process.stderr.end(()=>process.exit(process.exitCode || 0)));`, entry}, cmd.Args[1:]...)...)
 	}
 	cmd.Dir = target.toolRoot(root)
-	cmd.Env = append(os.Environ(), "CHROME_PATH="+browser)
+	tmp, err := scratch.Dir("lighthouse-tmp")
+	if err != nil {
+		r.Reason, r.Hint = err.Error(), "Check the permissions of TMPDIR and retry --release."
+		return r
+	}
+	defer scratch.Remove(tmp)
+	cmd.Env = append(os.Environ(), "CHROME_PATH="+browser, "TMPDIR="+tmp, "TMP="+tmp, "TEMP="+tmp)
 	var stdout cappedBuffer
 	stdout.Limit = 32 * 1024 * 1024
 	var stderr cappedBuffer
