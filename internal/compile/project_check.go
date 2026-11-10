@@ -56,6 +56,7 @@ func ProjectCheckOptions(dir string, options check.Options) (check.Options, erro
 	options.Registry, options.Commerce, options.Concept = registry, prepared.Commerce, facts
 	options.JSONLDGenerated, options.JSONLDSource = len(prepared.JSONLD) > 0, &prepared.JSONLDSource
 	options.Rules = loaded.Config.Build.Validation.Rules
+	options.CopyBans = loaded.Config.Build.Validation.CopyBans
 	options.CopyAllow = loaded.Config.Build.Validation.CopyAllow
 	options.Budgets = check.Budgets(loaded.Config.Build.Validation.Budgets)
 	return options, nil
@@ -72,6 +73,7 @@ func ProjectCopyOptions(dir string, options check.Options) (check.Options, error
 		return options, fmt.Errorf("%s: %s: %v", loaded.Problems[0].File, loaded.Problems[0].Path, loaded.Problems[0].Err)
 	}
 	options.Rules = loaded.Config.Build.Validation.Rules
+	options.CopyBans = loaded.Config.Build.Validation.CopyBans
 	options.CopyAllow = loaded.Config.Build.Validation.CopyAllow
 	return options, nil
 }

@@ -165,3 +165,40 @@ not identical sentences, so its counts are a separate metric. Agentpreneur's
 `slopgate.py` also checks project-specific banned regexes, fragment triplets and
 other prose hints; it is not an equivalent comma-list/duplicate gate. Extra banned
 phrases in `lfm.json` remain a follow-up; domain-specific bans stay local.
+
+Project copy bans live in `build.validation.copyBans` in `lfm.json`:
+
+```json
+{
+  "build": {
+    "validation": {
+      "copyBans": [
+        {"phrase": "hidden gem", "severity": "error", "hint": "Name the place and what visitors find there."},
+        {"regex": "\\b(traumhaft|malerisch)[\\p{L}]*", "severity": "warning"}
+      ]
+    }
+  }
+}
+```
+
+Set exactly one nonblank `phrase` or `regex` per entry, a required `severity`
+(`error` or `warning`), and an optional `hint`. Phrases are literal,
+case-insensitive and bounded by Unicode letters/digits, so `Oase` does not match
+`Oasen` or `Öoase`. Surrounding phrase whitespace is trimmed. Regexes are
+case-insensitive Go expressions: add boundaries yourself when needed. Go's `\b`
+and `\w` are ASCII; use `\p{L}` for Unicode letters. Lookaround and backreferences
+are unsupported. JSON requires doubling regex backslashes.
+
+`lfm compile` and `lfm check --project <dir>` report these as `copy.banned`, with
+the matched wording, source location and entry's hint (or a concrete default),
+in human and `--json` reports. An error blocks compile before publishing;
+warnings are advisory and use the existing report severity `warn`. The existing
+`build.validation.rules` override for `copy.banned` applies to all entries.
+Text/Markdown checks with `--project` also use the list.
+
+Bans use the built-in copy scope: visible authored body text, title and description
+metadata, with phrases joined across inline markup but never across blocks.
+Quotes, code, hidden text and `data-slop-skip` subtrees are skipped. The shared
+engine normalizes curly apostrophes and nonbreaking spaces and lowercases text
+before matching. Bans apply in every language. They do not scan JSON-LD, scripts,
+source files or deliverables; `copyAllow` exempts built-in rules only.

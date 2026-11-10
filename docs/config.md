@@ -41,6 +41,12 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.validation` | object |  | Rule levels and size budgets. |
 | `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Example: `{"design.mono": "off"}`. |
 | `build.validation.rules.*` | off | warn | error |  | The level of this rule. Example: `"warn"`. |
+| `build.validation.copyBans` | list of objects |  | Project-banned copy, checked by compile and check --project as copy.banned. Example: `[{"phrase":"hidden gem","severity":"error","hint":"Name the place."}]`. |
+| `build.validation.copyBans.*` | object |  | One copy ban; set exactly one nonblank phrase or regex. |
+| `build.validation.copyBans.*.phrase` | string |  | Case-insensitive literal phrase with Unicode letter/digit boundaries; surrounding whitespace is trimmed. Example: `"hidden gem"`. |
+| `build.validation.copyBans.*.regex` | string |  | Case-insensitive Go regular expression; explicit boundaries are optional. No lookaround or backreferences. Matched against normalized lowercase copy with straight apostrophes. Example: `"\\b(traumhaft\|malerisch)[\\p{L}]*"`. |
+| `build.validation.copyBans.*.severity` | error | warning | required | Error blocks compile; warning is advisory (reported as warn). |
+| `build.validation.copyBans.*.hint` | string |  | Optional concrete fix; omitted uses a request to replace the wording with a fact. Example: `"Name the place."`. |
 | `build.validation.copyAllow` | list of objects |  | Copy exceptions with a required reason. Example: `[{"rule":"copy.superlative","phrase":"Traumhaft Hotel","reason":"Registered name"}]`. |
 | `build.validation.copyAllow.*` | object |  | One justified copy exception. |
 | `build.validation.copyAllow.*.rule` | string | required | An exact copy rule ID. Example: `"copy.superlative"`. |

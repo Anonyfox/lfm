@@ -150,6 +150,7 @@ type Build struct {
 }
 
 type Validation struct {
+	CopyBans  []slop.Ban                     `json:"copyBans"`
 	CopyAllow []slop.Allow                   `json:"copyAllow"`
 	Rules     map[string]diagnostic.Severity `json:"rules"`
 	Budgets   Budgets                        `json:"budgets"`
@@ -319,6 +320,11 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 				key = "reason"
 			}
 			add(ConfigFile, fmt.Sprintf("build.validation.copyAllow[%d].%s", i, key), err)
+		}
+	}
+	for i, b := range c.Build.Validation.CopyBans {
+		if key, err := b.Validate(); err != nil {
+			add(ConfigFile, fmt.Sprintf("build.validation.copyBans[%d].%s", i, key), err)
 		}
 	}
 	for _, r := range budgetRanges {

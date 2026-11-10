@@ -106,6 +106,15 @@ func CopyText(raw []byte, markdown bool, options Options) Report {
 			report.Diagnostics = append(report.Diagnostics, Diagnostic{Rule: r.ID, Severity: level, Location: location(options.File, lineStarts(raw), positions[hit.Block]), Message: message, Hint: r.Fix})
 		}
 	}
+	for _, hit := range slop.MatchBans(blocks, options.CopyBans) {
+		level := Severity(hit.Severity)
+		if v := options.Rules["copy.banned"]; v != "" {
+			level = v
+		}
+		if level != Off {
+			report.Diagnostics = append(report.Diagnostics, Diagnostic{Rule: "copy.banned", Severity: level, Location: location(options.File, lineStarts(raw), positions[hit.Block]), Message: "Project-banned copy: " + hit.Text, Hint: hit.Hint})
+		}
+	}
 	summary := diagnostic.Summarize(report.Diagnostics)
 	report.Diagnostics = summary.Diagnostics
 	report.Errors = summary.Errors

@@ -1,5 +1,10 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Projects can add literal or regex copy bans with error/warning severity and fix hints
+  through `build.validation.copyBans`, checked by compile and check --project as `copy.banned`.
+
 ## 0.1.22 (2026-11-10)
 
 - `check` folder targets report site-wide triplet endings above ten and normalized

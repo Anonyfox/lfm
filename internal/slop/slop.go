@@ -17,6 +17,79 @@ type Allow struct {
 	Reason string `json:"reason"`
 }
 
+// Ban adds a project copy policy; exactly one of Phrase and Regex is required.
+type Ban struct {
+	Phrase   string `json:"phrase,omitempty"`
+	Regex    string `json:"regex,omitempty"`
+	Severity string `json:"severity"`
+	Hint     string `json:"hint,omitempty"`
+}
+
+// Validate returns the offending JSON field and its problem.
+func (b Ban) Validate() (string, error) {
+	_, key, err := b.rule()
+	return key, err
+}
+
+func (b Ban) rule() (Rule, string, error) {
+	r := Rule{ID: "copy.banned", Language: "any", Severity: b.Severity, Fix: b.Hint}
+	if b.Severity != "error" && b.Severity != "warning" {
+		return r, "severity", fmt.Errorf("severity must be error or warning")
+	}
+	if b.Severity == "warning" {
+		r.Severity = "warn"
+	}
+	if (strings.TrimSpace(b.Phrase) == "") == (strings.TrimSpace(b.Regex) == "") {
+		return r, "phrase", fmt.Errorf("set exactly one nonblank phrase or regex")
+	}
+	r.Kind = "project-regex"
+	pattern := b.Regex
+	if b.Phrase != "" {
+		if b.Regex != "" {
+			return r, "regex", fmt.Errorf("set exactly one phrase or regex")
+		}
+		pattern = regexp.QuoteMeta(normalize(strings.TrimSpace(b.Phrase)))
+		r.Kind = "literal"
+	}
+	var err error
+	r.re, err = regexp.Compile("(?i)" + pattern)
+	if err != nil {
+		return r, "regex", fmt.Errorf("invalid Go regular expression: %w", err)
+	}
+	if r.Fix == "" {
+		r.Fix = "Replace this project-banned wording with a concrete fact."
+	}
+	return r, "", nil
+}
+
+// BanHit carries a match and the project entry's reporting policy.
+type BanHit struct {
+	Hit
+	Severity, Hint string
+}
+
+// MatchBans uses the ordinary copy matcher and preserves each entry's policy.
+func MatchBans(blocks []string, bans []Ban) []BanHit {
+	var out []BanHit
+	if len(bans) == 0 {
+		return out
+	}
+	texts := make([]string, len(blocks))
+	for i, text := range blocks {
+		texts[i] = normalize(text)
+	}
+	for _, b := range bans {
+		r, _, err := b.rule()
+		if err != nil {
+			continue
+		} // project.Load reports invalid entries before checks
+		for _, h := range matchRule(r, texts) {
+			out = append(out, BanHit{h, r.Severity, r.Fix})
+		}
+	}
+	return out
+}
+
 type Rule struct {
 	ID       string `json:"id"`
 	Language string `json:"language"`
@@ -213,6 +286,11 @@ func match(id, lang string, texts []string) []Hit {
 	if !found || rule.Language != "any" && rule.Language != lang {
 		return nil
 	}
+	return matchRule(rule, texts)
+}
+
+func matchRule(rule Rule, texts []string) []Hit {
+	id := rule.ID
 	var hits []Hit
 	seen := map[string]bool{}
 	lengths := []int{}
@@ -275,11 +353,14 @@ func match(id, lang string, texts []string) []Hit {
 				continue
 			}
 			for _, loc := range rule.re.FindAllStringIndex(text, -1) {
+				if rule.Kind == "literal" && (letterAtEnd(text[:loc[0]]) || letterAtStart(text[loc[1]:])) {
+					continue
+				}
 				// A single not-only construction remains legitimate, as in copy.tells.
 				if id == "copy.reveal" && strings.HasPrefix(text[loc[0]:loc[1]], "nicht nur ") {
 					continue
 				}
-				if loc[0] > 0 && letterAtStart(text[loc[0]:loc[1]]) && letterAtEnd(text[:loc[0]]) || loc[1] < len(text) && letterAtEnd(text[loc[0]:loc[1]]) && letterAtStart(text[loc[1]:]) {
+				if rule.Kind != "project-regex" && (loc[0] > 0 && letterAtStart(text[loc[0]:loc[1]]) && letterAtEnd(text[:loc[0]]) || loc[1] < len(text) && letterAtEnd(text[loc[0]:loc[1]]) && letterAtStart(text[loc[1]:])) {
 					continue
 				}
 				hits = append(hits, Hit{Block: i, Text: text[loc[0]:loc[1]], Count: 1})

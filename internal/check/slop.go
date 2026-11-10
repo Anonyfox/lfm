@@ -10,7 +10,7 @@ import (
 )
 
 func slopRules() []Rule {
-	var out []Rule
+	out := []Rule{{RuleInfo: diagnostic.RuleInfo{ID: "copy.banned", Summary: "Project-banned copy", Help: "Reports an error or warns when copy matches build.validation.copyBans. Project policy keeps domain clichés out of sales copy. Replace the matched wording using the entry's hint, or update copyBans in lfm.json."}, Check: slopRule("copy.banned")}}
 	for _, r := range slop.Rules() {
 		if r.ID == "copy.tells" {
 			continue
@@ -86,6 +86,9 @@ func analyzeSlop(d *Document) map[string][]Diagnostic {
 			}
 			out[r.ID] = append(out[r.ID], d.At(segments[hit.Block].node, Severity(r.Severity), message, r.Fix))
 		}
+	}
+	for _, hit := range slop.MatchBans(texts, d.Options.CopyBans) {
+		out["copy.banned"] = append(out["copy.banned"], d.At(segments[hit.Block].node, Severity(hit.Severity), fmt.Sprintf("Project-banned copy: %q.", hit.Text), hit.Hint))
 	}
 	return out
 }

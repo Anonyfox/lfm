@@ -82,6 +82,14 @@ func FuzzMatch(f *testing.F) {
 		if len(s) > 32768 {
 			t.Skip()
 		}
+		for _, pattern := range []string{s, "hidden gem"} {
+			bans := []Ban{{Regex: pattern, Severity: "error"}, {Phrase: pattern, Severity: "warning"}}
+			for _, hit := range MatchBans(strings.Split(s, "\n"), bans) {
+				if hit.Block < 0 || hit.Block >= len(strings.Split(s, "\n")) {
+					t.Fatal(hit)
+				}
+			}
+		}
 		for _, r := range Rules() {
 			for _, hit := range Match(r.ID, Language("", s), strings.Split(s, "\n"), nil) {
 				if hit.Block < 0 || hit.Block >= len(strings.Split(s, "\n")) {
