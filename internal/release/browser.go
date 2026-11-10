@@ -20,6 +20,7 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/evanw/esbuild/pkg/api"
 )
@@ -333,10 +334,11 @@ func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit
 	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, closeBrowser := chromedp.NewContext(alloc)
 	close := func() { closeBrowser(); closeAlloc(); abort(nil) }
-	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
+	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (cdp.Empty, error) {
 		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
 		defer stop()
-		return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
+		// A reused profile can restore several tabs; animate the one we attached.
+		return chromedp.Call(browser, page.BringToFront, cdp.Empty{})
 	}); err != nil {
 		close()
 		return nil, func() {}, err
