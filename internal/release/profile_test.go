@@ -46,7 +46,7 @@ func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {
 	args := filepath.Join(t.TempDir(), "args")
 	t.Setenv("LFM_TEST_CHROME_ARGS", args)
 	tool := filepath.Join(t.TempDir(), "chrome")
-	if err := os.WriteFile(tool, []byte("#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$LFM_TEST_CHROME_ARGS\"\nexit 1\n"), 0o700); err != nil {
+	if err := os.WriteFile(tool, []byte("#!/bin/sh\nkill -0 -$$ || exit 2\nprintf '%s\\n' \"$@\" > \"$LFM_TEST_CHROME_ARGS\"\nexit 1\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := profileBrowser(context.Background(), BrowserOptions(tool), time.Second, "test"); err == nil {

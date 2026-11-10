@@ -331,9 +331,11 @@ return true})()`
 // Canceling a successful startup step must not cancel later document jobs.
 func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration) (context.Context, func(), error) {
 	ctx, abort := context.WithCancelCause(ctx)
+	stopProcess := func() {}
+	opts = append(opts, chromedp.ModifyCmdFunc(func(cmd *exec.Cmd) { stopProcess = browserCommand(cmd) }))
 	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, closeBrowser := chromedp.NewContext(alloc)
-	close := func() { closeBrowser(); closeAlloc(); abort(nil) }
+	close := func() { closeBrowser(); closeAlloc(); stopProcess(); abort(nil) }
 	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
 		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
 		defer stop()
