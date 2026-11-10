@@ -30,8 +30,16 @@ func TestBuiltinFooter(t *testing.T) {
 				if tc.footer != nil {
 					c["footer"] = tc.footer
 				}
+				if tc.footer != false {
+					urls, _ := c["urls"].(map[string]any)
+					if urls == nil {
+						urls = map[string]any{}
+						c["urls"] = urls
+					}
+					urls["anonyfox"] = "https://anonyfox.com/"
+				}
 				if tc.name == "configured" {
-					c["urls"] = map[string]any{"news": "https://example.org/news/", "badge": "https://example.org/badge.svg"}
+					c["urls"] = map[string]any{"news": "https://example.org/news/", "badge": "https://example.org/badge.svg", "anonyfox": "https://anonyfox.com/"}
 				}
 			})
 			if tc.own {

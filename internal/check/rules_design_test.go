@@ -110,6 +110,7 @@ func TestDesignActionsChromeMono(t *testing.T) {
 	expectDesign(t, "design.mono", 1, mono+strings.Repeat(`<p class="m">Field label</p>`, 8))
 	expectDesign(t, "design.mono", 0, mono+strings.Repeat(`<pre class="m">npm install thing</pre>`, 8)+strings.Repeat(`<output class="m">25:00</output>`, 8))
 	expectDesign(t, "design.mono", 0, mono+strings.Repeat(`<p class="m">Field label</p>`, 7))
+	expectDesign(t, "design.mono", 0, mono+"<footer>"+strings.Repeat(`<p class="m">Field label</p>`, 8)+"</footer>")
 }
 
 func TestDesignHeroTypeProofSectionsMotion(t *testing.T) {

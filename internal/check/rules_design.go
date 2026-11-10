@@ -1201,7 +1201,7 @@ func (a *designAnalysis) mono() {
 	declared := a.d.conceptFamilies()
 	var hits []*html.Node
 	for _, n := range a.d.Elements {
-		if !a.d.designVisible(n) {
+		if !a.d.designVisible(n) || inFooter(n) {
 			continue
 		}
 		own := ""
@@ -1233,6 +1233,15 @@ func (a *designAnalysis) mono() {
 	} else if len(hits) >= 3 {
 		a.add(designSignal{rule: "design.mono", kind: "monospace microcopy", node: hits[0]})
 	}
+}
+
+func inFooter(n *html.Node) bool {
+	for p := n; p != nil; p = p.Parent {
+		if p.Type == html.ElementNode && p.Data == "footer" {
+			return true
+		}
+	}
+	return false
 }
 
 func codeContext(n *html.Node) bool {

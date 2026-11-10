@@ -108,6 +108,11 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 			for _, badge := range c.Footer.Badges {
 				options.Consumed = append(options.Consumed, jsonsrc.Child("urls", badge.URLKey), jsonsrc.Child("urls", badge.SrcKey))
 			}
+			for key, dest := range c.URLs {
+				if urlcheck.BuiltinFooterURL(dest) {
+					options.Consumed = append(options.Consumed, jsonsrc.Child("urls", key))
+				}
+			}
 		}
 		if resolved != nil && bindings.Errors == 0 {
 			var err error

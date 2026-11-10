@@ -10,8 +10,8 @@
     },
     {
       "name": "index.html",
-      "bytes": 13707,
-      "sha256": "6ed2e91b037affcd21cf3d9eb7ccf21ca87d2740e5421f79cedf0ced98cf90fc"
+      "bytes": 13669,
+      "sha256": "dfd03212a8284bc7e0beaa894f2108e3c491ccbaddb9d56f9da0be43f1b67a7b"
     },
     {
       "name": "share-4c2fc583eba1.webp",
@@ -27,10 +27,10 @@
   "validation": {
     "stage": "html",
     "stats": {
-      "htmlBytes": 13707,
+      "htmlBytes": 13669,
       "elements": 95,
       "maxDepth": 10,
-      "inlineCSSBytes": 4479,
+      "inlineCSSBytes": 4441,
       "inlineJSBytes": 767,
       "embeddedBytes": 1289,
       "embeds": [
@@ -42,7 +42,7 @@
           "bytes": 1289,
           "count": 1,
           "totalBytes": 1289,
-          "offset": 7121
+          "offset": 7083
         }
       ]
     },
@@ -66,7 +66,7 @@
           "file": "index.html",
           "line": 24,
           "column": 9,
-          "offset": 6037
+          "offset": 5999
         },
         "element": "p.eyebrow",
         "message": "An emoji can substitute decoration for a claim: \"🧮\".",
@@ -79,7 +79,7 @@
           "file": "index.html",
           "line": 24,
           "column": 9,
-          "offset": 6037
+          "offset": 5999
         },
         "element": "p.eyebrow",
         "message": "Eyebrow \"Tagungsplanung 🧮\" above heading \"Was kostet deine Tagung pro Kopf?\": small tracked label restating or framing the heading.",
@@ -93,7 +93,7 @@
           "file": "index.html",
           "line": 25,
           "column": 9,
-          "offset": 6086
+          "offset": 6048
         },
         "element": "h1",
         "message": "\"system-ui\" sets both the display headline and the body: the one-sans generator default.",
@@ -128,18 +128,18 @@
     }
   ],
   "cost": {
-    "htmlBytes": 13707,
-    "htmlGzipLevel1Bytes": 5088,
+    "htmlBytes": 13669,
+    "htmlGzipLevel1Bytes": 5076,
     "sidecarBytes": 27168,
-    "totalRawBytes": 40875,
-    "totalCSSBytes": 4479,
+    "totalRawBytes": 40837,
+    "totalCSSBytes": 4441,
     "totalJSBytes": 767,
     "externalCSSBytes": 0,
     "externalJSBytes": 0
   },
   "htmlCompaction": {
-    "beforeBytes": 13964,
-    "afterBytes": 13707,
+    "beforeBytes": 13926,
+    "afterBytes": 13669,
     "savedBytes": 257
   },
   "images": [
