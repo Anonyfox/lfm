@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.25 (2026-11-10)
 
 - Discover Chrome and Lighthouse through environment overrides, PATH, standard installs and npm global
   bin; `lfm doctor` reports resolved paths, including JSON. Child-process temporary files stay in owned
