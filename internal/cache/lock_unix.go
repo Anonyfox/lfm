@@ -7,6 +7,17 @@ import (
 	"syscall"
 )
 
+func shared(info os.FileInfo) bool {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	return ok && stat.Nlink > 1
+}
+
+func differentDevices(a, b os.FileInfo) bool {
+	x, xok := a.Sys().(*syscall.Stat_t)
+	y, yok := b.Sys().(*syscall.Stat_t)
+	return xok && yok && x.Dev != y.Dev
+}
+
 // Lock exclusively locks a cache directory until close or process exit.
 func Lock(path string) (func(), error) {
 	f, err := os.Open(path)

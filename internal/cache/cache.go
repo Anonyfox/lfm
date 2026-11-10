@@ -55,7 +55,11 @@ func Prune() {
 			_ = filepath.WalkDir(f.path, func(_ string, d fs.DirEntry, err error) error {
 				if err == nil && !d.IsDir() {
 					if i, e := d.Info(); e == nil {
-						f.size += i.Size()
+						if shared(i) {
+							f.busy = true
+						} else {
+							f.size += i.Size()
+						}
 					}
 				}
 				return nil

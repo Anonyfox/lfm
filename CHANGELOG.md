@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Published images share a content-addressed cache through hardlinks (copying
+  across filesystems). Linked cache entries remain available until outputs are
+  removed and are excluded from the cache eviction budget.
+
 ## 0.1.20 (2026-11-10)
 
 - X sharing metadata defaults title and description to Open Graph values and

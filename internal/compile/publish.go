@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/cache"
 	"github.com/Anonyfox/lfm/internal/project"
 )
 
@@ -49,7 +50,12 @@ func publishTo(p project.Project, dir string, files map[string][]byte) error {
 				return err
 			}
 		}
-		if err := os.WriteFile(target, contents, 0o644); err != nil {
+		if publishedImage(name) {
+			err = cache.LinkImage(target, contents)
+		} else {
+			err = os.WriteFile(target, contents, 0o644)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -74,6 +80,14 @@ func publishTo(p project.Project, dir string, files map[string][]byte) error {
 		os.RemoveAll(previous)
 	}
 	return nil
+}
+
+func publishedImage(name string) bool {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif", ".svg", ".ico":
+		return true
+	}
+	return false
 }
 
 // holds reports whether dir holds exactly files: the same names, sizes and
@@ -103,6 +117,10 @@ func holds(dir string, files map[string][]byte) bool {
 	}
 	for name, want := range files {
 		path := filepath.Join(dir, filepath.FromSlash(name))
+		if publishedImage(name) && !cache.ImageReusable(path, want) {
+			// Migrate existing copies on the next successful compile too.
+			return false
+		}
 		// Stamped files carry the key of their inputs: the same key and
 		// size are the same file, without reading it.
 		if key := stampOf(want); key != "" && key == tailStampOfFile(path, stampOf) {

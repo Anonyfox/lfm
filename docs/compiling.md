@@ -258,3 +258,19 @@ Review frames, Lighthouse reports and LibreOffice verdicts live under the user c
 keeps at most 128 entries and removes entries unused for 30 days. If the user cache cannot be located,
 lfm uses the system temp directory. Working directories are removed on exit; startup removes owned
 scratch older than six hours.
+
+Published image files use a shared content-addressed cache at `<user-cache>/lfm/img/`.
+Identical bytes share an inode across projects, worktrees, output and distribution;
+across filesystems publication copies the bytes. Cache files and linked outputs are
+read-only: edit source images and compile again rather than editing output in place.
+The next successful compile migrates existing output copies to cache links.
+On Unix, entries with more than one hardlink are in use: pruning neither expires
+these entries nor charges them against its 300 MiB eviction budget. Once their
+outputs are removed, ordinary age and size pruning applies. On other platforms,
+pruning may remove the cache name; existing output hardlinks still retain the bytes.
+
+Existing authored image variants remain ordinary referenced assets. Do not delete
+variants while templates, stylesheets or scripts still refer to them. To remove
+committed variants, first replace those references with retained originals, compile
+and review the result, then remove the unused files from Git. The compiler does
+not currently generate replacement width variants or rewrite authored srcsets.
