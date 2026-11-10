@@ -205,8 +205,8 @@ unchanged documents, decks or workbooks does not open them again.
    requests are blocked; nothing is clicked, typed or submitted.
    Images get the hints the author left out: those below the first screen at every size load lazily, and
    the largest file image of the phone's first screen is fetched first; authored hints are kept.
-3. **Lighthouse**: one mobile lab run on the fast path (45 s per run). Timing findings
-   trigger up to three runs within a 120 s total budget. Audit metrics and category scores
+3. **Lighthouse**: one mobile lab run on the fast path. Timing findings
+   trigger up to three runs. Audit metrics and category scores
    use per-audit medians; the report shows run count and metric ranges. Deterministic
    findings do not trigger retries. The saved full JSON is the last run, rather than the
    synthesized median. Metric warnings use mobile good thresholds: LCP 2.5 s, TBT 200 ms,
@@ -223,6 +223,20 @@ unchanged documents, decks or workbooks does not open them again.
 Chrome or Chromium is found on `PATH` and in standard locations, or set `LFM_CHROME`. Lighthouse is found on
 `PATH`, in `node_modules/.bin`, or via `LFM_LIGHTHOUSE` (`npm install -g lighthouse`). Missing
 tools produce a release error with setup guidance; lfm never installs anything.
+
+Lighthouse runs serialize across processes sharing the user cache, using an advisory `flock` on
+`<user-cache>/lfm-lighthouse.lock` (outside the pruned artifacts). The lock covers Chrome startup,
+all measurements and cleanup; process exit or a crash releases it. A contender prints
+`waiting for Lighthouse lock (held by pid N)` to stderr and waits at most ten minutes;
+caller cancellation also stops the wait. Never remove the lock file while builds are running.
+Each measurement, including Chrome startup, has a separate timeout: 45 seconds multiplied by
+`max(1, one-minute host load / logical CPUs)`, capped at five minutes. Linux supplies the host
+load; other platforms without `/proc/loadavg` use 45 seconds. Set `LFM_LIGHTHOUSE_TIMEOUT=3m`
+(or another positive Go duration such as `90s`) to override this per-measurement budget.
+The audit budget starts after acquiring the lock; a caller's earlier deadline still wins.
+Timeout errors name the budget, host load and CPU count and suggest waiting or an override.
+Serialization prevents competing lfm Lighthouse runs; unrelated host load can still affect scores.
+
 Release checks start Chrome and open local listeners for artifact HTTP and Chrome DevTools.
 Sandboxed jobs must allow listening and connecting on loopback (127.0.0.1); otherwise run
 `compile --release` or `check --release` outside the sandbox. Ordinary static checks need

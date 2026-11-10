@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto"
+	cdpbrowser "github.com/chromedp/cdproto/browser"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
@@ -336,8 +337,9 @@ await Promise.all(pending.map(i=>i.decode().catch(()=>{})));
 return true})()`
 
 // openBrowser bounds startup while leaving the browser lifetime with ctx.
+// tab initializes the document target on the browser lifetime, before step contexts.
 // Canceling a successful startup step must not cancel later document jobs.
-func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration) (context.Context, func(), error) {
+func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration, tab bool) (context.Context, func(), error) {
 	ctx, abort := context.WithCancelCause(ctx)
 	stopProcess := func() {}
 	opts = append(opts, chromedp.ModifyCmdFunc(func(cmd *exec.Cmd) { stopProcess = browserCommand(cmd) }))
@@ -347,7 +349,13 @@ func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit
 	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
 		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
 		defer stop()
-		return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
+		if tab {
+			return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
+		}
+		// Lighthouse only needs the browser endpoint. Waiting for a page
+		// target here hangs when Chrome starts without a window.
+		_, err := chromedp.CallBrowser(browser, cdpbrowser.GetVersion, cdp.Empty{})
+		return err == nil, err
 	}); err != nil {
 		close()
 		return nil, func() {}, err

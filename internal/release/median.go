@@ -33,14 +33,6 @@ func timingAudit(id string) bool {
 	return false
 }
 
-func runLighthouse(ctx context.Context, target Target, browser, root string) *LighthouseResult {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
-	defer cancel()
-	return measureLighthouse(ctx, func(ctx context.Context) *LighthouseResult {
-		return runLighthouseOnce(ctx, target, browser, root)
-	})
-}
-
 func measureLighthouse(ctx context.Context, run func(context.Context) *LighthouseResult) (result *LighthouseResult) {
 	start := time.Now()
 	defer func() { result.DurationMS = time.Since(start).Milliseconds() }()

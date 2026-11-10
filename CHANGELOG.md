@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Lighthouse runs serialize across processes sharing the user cache, report the lock holder PID
+  and cap lock waits at ten minutes. Measurement timeouts scale with Linux host load and support
+  `LFM_LIGHTHOUSE_TIMEOUT`. Chrome startup checks the browser endpoint without waiting for a tab.
+
 ## 0.1.23 (2026-11-10)
 
 - Projects can add literal or regex copy bans with error/warning severity and fix hints

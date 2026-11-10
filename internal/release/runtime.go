@@ -168,9 +168,14 @@ func auditRuntime(ctx context.Context, subject Target, path, frames string, list
 
 func startAuditBrowser(ctx context.Context, path, proxy, profile string) (context.Context, func(), error) {
 	opts := BrowserOptions(path)
-	// chromedp gives up on Chrome's DevTools URL after 20s, which a loaded
-	// machine can exceed; wait as long as any other browser step instead.
-	opts = append(opts, chromedp.WSURLReadTimeout(browserStepTimeout))
+	limit := browserStepTimeout
+	if profile != "" {
+		// Lighthouse owns a load-aware deadline, including Chrome startup.
+		if deadline, ok := ctx.Deadline(); ok {
+			limit = time.Until(deadline)
+		}
+	}
+	opts = append(opts, chromedp.WSURLReadTimeout(limit))
 	if proxy != "" {
 		opts = append(opts, chromedp.ProxyServer(proxy), chromedp.Flag("proxy-bypass-list", "<-loopback>"))
 	} else {
@@ -182,5 +187,5 @@ func startAuditBrowser(ctx context.Context, path, proxy, profile string) (contex
 	if profile == "" {
 		return profileBrowser(ctx, opts, browserStepTimeout, "audit")
 	}
-	return openBrowser(ctx, opts, browserStepTimeout)
+	return openBrowser(ctx, opts, limit, false)
 }

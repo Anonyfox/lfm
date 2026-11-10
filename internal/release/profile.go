@@ -29,7 +29,7 @@ func profileBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, li
 	if err != nil {
 		return nil, func() {}, err
 	}
-	browser, closeBrowser, err := openBrowser(ctx, append(opts, chromedp.UserDataDir(profile)), limit)
+	browser, closeBrowser, err := openBrowser(ctx, append(opts, chromedp.UserDataDir(profile)), limit, true)
 	if err != nil {
 		release()
 		return nil, func() {}, err

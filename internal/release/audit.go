@@ -199,15 +199,10 @@ func lighthousePath(root string) (string, error) {
 	return "", fmt.Errorf("installed Lighthouse executable not found")
 }
 
-func runLighthouseOnce(ctx context.Context, target Target, browser, root string) *LighthouseResult {
+func runLighthouseOnce(ctx context.Context, target Target, browser, root, tool string) *LighthouseResult {
 	start := time.Now()
 	r := &LighthouseResult{Status: "skipped", Scope: target.auditScope()}
 	defer func() { r.DurationMS = time.Since(start).Milliseconds() }()
-	tool, err := lighthousePath(target.toolRoot(root))
-	if err != nil {
-		r.Reason, r.Hint, r.Missing = err.Error(), LighthouseSetup, true
-		return r
-	}
 	// Artifact targets use the sealed non-forwarding proxy. URL targets visit
 	// the live page without a proxy. Both use a locked browser profile.
 	destination, proxy, closeTarget, err := target.serve(net.Listen)
@@ -217,7 +212,11 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 		return r
 	}
 	defer closeTarget()
-	ctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+	ctx, cancel, err := lighthouseContext(ctx)
+	if err != nil {
+		r.Reason, r.Hint = err.Error(), "Set LFM_LIGHTHOUSE_TIMEOUT to a positive duration, for example 3m; then retry --release."
+		return r
+	}
 	defer cancel()
 	profile, releaseProfile, err := browserProfile("lighthouse")
 	if err != nil {
@@ -259,7 +258,7 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root string)
 	if err := cmd.Run(); err != nil {
 		r.Reason = compact(err.Error()+": "+stderr.String(), 600)
 		if ctx.Err() != nil {
-			r.Reason = "Lighthouse stopped: " + ctx.Err().Error()
+			r.Reason = "Lighthouse stopped: " + context.Cause(ctx).Error()
 		}
 		r.Hint = "Check compatible Node/Lighthouse/Chrome versions and OS browser sandbox support. " + LighthouseSetup
 		return r

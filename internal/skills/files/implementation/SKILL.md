@@ -250,6 +250,7 @@ These ship on pages that looked finished in chosen screenshots; check each in th
 After deployment, `lfm check <url> --json` checks the published page with the same page rules.
 Pair a built target with `lfm check <url> --project <dir> --json` to include project-only rules.
 Use `lfm check --project <dir> --json` to check output/ against current source without publishing.
-Release checks require installed Chrome and Lighthouse plus loopback sockets. Timing findings
-use up to three measurements; review informational diagnostics and third-party rows separately.
+Release checks require Chrome, Lighthouse and loopback sockets. Lighthouse serializes across processes sharing the user cache: `waiting for Lighthouse lock (held by pid N)` (10m wait cap).
+Each measurement defaults to 45s, scaled by Linux host load per CPU up to 5m; `LFM_LIGHTHOUSE_TIMEOUT=3m` overrides it. Caller deadlines still win.
+Timing findings use up to three measurements; review informational diagnostics and third-party rows separately.
 Page grounds must be white, cool or neutral grey, dark, or saturated subject colours. Warm off-white backgrounds on any element and paper, parchment, notebook or receipt decoration, including torn, zigzag or perforated edges, fail `design.ground`; `data-design-reason` does not exempt it.

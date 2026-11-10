@@ -61,6 +61,9 @@ compile again, and repeat until it says deploy:
 `lfm check <url> --json` checks any existing page, from any framework, with the same page rules.
 Add `--project <dir>` for project-only rules; omit the target to check output/ and detect stale files.
 Release checks require Chrome, Lighthouse and loopback sockets; run outside a sandbox that blocks them.
+Lighthouse serializes across processes sharing the user cache (lock wait capped at 10m, with holder PID).
+Each measurement defaults to 45s, scaled by Linux host load per CPU up to 5m;
+set `LFM_LIGHTHOUSE_TIMEOUT=3m` to override. Caller deadlines still win.
 Timing warnings use up to three measurements; informational diagnostics and third-party rows do not block release.
 
 ## Rules

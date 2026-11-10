@@ -54,7 +54,16 @@ func TestLighthouseRunAttachesToOwnChromeAndKeepsTheReport(t *testing.T) {
 		t.Fatal(err)
 	}
 	browser, _ := BrowserPath()
-	r := runLighthouse(context.Background(), Target{Page: []byte("<!doctype html><title>x</title>"), Assets: nil}, browser, root)
+	// A live DevTools endpoint need not have a page. The former startup
+	// Evaluate waited for a first tab and never reached Lighthouse.
+	launcher := filepath.Join(t.TempDir(), "chrome")
+	t.Setenv("LFM_TEST_BROWSER", browser)
+	if err := os.WriteFile(launcher, []byte("#!/bin/sh\nexec \"$LFM_TEST_BROWSER\" --no-startup-window \"$@\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
+	defer cancel()
+	r := runLighthouse(ctx, Target{Page: []byte("<!doctype html><title>x</title>"), Assets: nil}, launcher, root)
 	if r.Status != "ok" || r.Reason != "" || *r.Scores["performance"] != 90 || len(r.Findings) != 1 {
 		t.Fatalf("%+v", r)
 	}
@@ -109,7 +118,7 @@ func TestLighthouseNodeCLICompletion(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			browser, _ := BrowserPath()
-			r := runLighthouseOnce(ctx, Target{Page: []byte("<!doctype html>")}, browser, root)
+			r := runLighthouseOnce(ctx, Target{Page: []byte("<!doctype html>")}, browser, root, tool)
 			if (r.Status == "ok") != tc.ok || strings.Contains(r.Reason, "deadline") {
 				t.Fatalf("%+v", r)
 			}
