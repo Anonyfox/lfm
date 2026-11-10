@@ -70,6 +70,12 @@ func TestBuiltinFooter(t *testing.T) {
 			if warned != tc.warning {
 				t.Errorf("duplicate warning = %v", warned)
 			}
+			if tc.footer != false {
+				fi, si := strings.Index(raw, `class=fox-footer`), strings.LastIndex(raw, "<script")
+				if fi < 0 || (si >= 0 && fi > si) {
+					t.Errorf("footer should precede trailing scripts")
+				}
+			}
 		})
 	}
 }

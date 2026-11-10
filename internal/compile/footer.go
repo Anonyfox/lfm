@@ -3,6 +3,7 @@ package compile
 import (
 	_ "embed"
 	"strconv"
+	"strings"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
 	"golang.org/x/net/html"
@@ -49,8 +50,24 @@ func (b *builder) footer(doc *html.Node) {
 		parent.AppendChild(n)
 		return n
 	}
-	footer := element(body, "footer", "", "")
+	footer := htmlx.Element("footer", "")
 	htmlx.SetAttr(footer, "class", "fox-footer")
+	var anchor *html.Node
+	for c := body.LastChild; c != nil; c = c.PrevSibling {
+		if c.Type == html.CommentNode || (c.Type == html.TextNode && strings.TrimSpace(c.Data) == "") {
+			continue
+		}
+		if c.Type == html.ElementNode && c.Data == "script" {
+			anchor = c
+			continue
+		}
+		break
+	}
+	if anchor != nil {
+		body.InsertBefore(footer, anchor)
+	} else {
+		body.AppendChild(footer)
+	}
 	htmlx.SetAttr(footer, "data-design-reason", "Built-in site navigation and attribution.")
 	inner := element(footer, "div", "__inner", "")
 	if f.Wordmark != "" || f.Tagline != "" || len(f.Groups) > 0 {

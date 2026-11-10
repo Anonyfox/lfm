@@ -31,6 +31,7 @@ works, tell the user what failed and stop: a page made without lfm is not this s
   `cd` into it. Inside an unrelated repository, ask where the page should live; without anyone to ask,
   use a new subfolder of the current folder. Never initialize into a folder holding other work.
 - Set `language` in `lfm.json` to the language the buyers speak (`de` for buyers in Germany).
+- Every compiled page includes the built-in footer (a crafted-with-lfm badge and the Anonyfox credit). Set branding and link groups in `footer`, or set `footer` to false to turn it off.
 
 ## 3. Install the process skills
 
