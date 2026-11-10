@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.21 (2026-11-10)
 
 - Published images share a content-addressed cache through hardlinks (copying
   across filesystems). Linked cache entries remain available until outputs are
