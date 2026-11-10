@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chromedp/cdproto"
 	"github.com/chromedp/chromedp"
 )
 
@@ -265,4 +266,21 @@ func tile(seed int) []byte {
 	var out bytes.Buffer
 	png.Encode(&out, img)
 	return out.Bytes()
+}
+
+func TestExpiredInterceptionKeepsProtocolFailures(t *testing.T) {
+	for _, tc := range []struct {
+		err     error
+		expired bool
+	}{
+		{nil, false},
+		{fmt.Errorf("continue request: %w", &cdproto.Error{Code: -32602, Message: "Invalid InterceptionId."}), true},
+		{&cdproto.Error{Code: -32602, Message: "Invalid parameters"}, false},
+		{&cdproto.Error{Code: -32601, Message: "Invalid InterceptionId."}, false},
+		{errors.New("browser connection lost"), false},
+	} {
+		if expiredInterception(tc.err) != tc.expired {
+			t.Errorf("%v: expired=%v", tc.err, tc.expired)
+		}
+	}
 }

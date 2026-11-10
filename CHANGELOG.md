@@ -9,7 +9,8 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
   artifacts above a shared 300 MiB limit. Active Chrome profiles stay locked.
 
 - Chrome reuses locked profiles per purpose and disables background model downloads;
-  concurrent runs clean up their temporary fallback profiles on exit.
+  concurrent runs clean up their temporary fallback profiles on exit. Release
+  CSS capture tolerates requests canceled by viewport reloads.
 
 ## 0.1.19 (2026-11-05)
 

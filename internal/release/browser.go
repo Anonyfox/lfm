@@ -6,6 +6,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/png"
 	"mime"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
@@ -100,6 +102,12 @@ func BrowserOptions(path string) []chromedp.ExecAllocatorOption {
 	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("disable-features", "OptimizationGuideModelDownloading,OptimizationHints,OptimizationTargetPrediction"), chromedp.Flag("no-first-run", true), chromedp.Flag("incognito", true))
 }
 
+// A viewport reload can cancel a request before its queued handler continues it.
+func expiredInterception(err error) bool {
+	var protocol *cdproto.Error
+	return errors.As(err, &protocol) && protocol.Code == -32602 && protocol.Message == "Invalid InterceptionId."
+}
+
 // Analyze observes static first paint at several widths, unions visible rules,
 // then verifies both critical-only and critical+full rendering at every width.
 // The original full CSS is never purged. Ambiguous/unstable pages retain it inline.
@@ -138,7 +146,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 				_, err := cdp.Call(step, target, fetch.FailRequest, fetch.FailRequestParams{RequestID: ev.RequestID, ErrorReason: network.ErrorReasonBlockedByClient})
 				return err
 			}))
-			if err != nil {
+			if err != nil && !expiredInterception(err) {
 				abort(err)
 				return
 			}
