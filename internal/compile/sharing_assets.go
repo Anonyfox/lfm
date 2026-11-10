@@ -166,7 +166,6 @@ func (b *builder) socialImageSizes(doc *html.Node) {
 // socialHandles fills X sharing defaults and attribution without replacing authored tags.
 func (b *builder) socialHandles(doc *html.Node) []string {
 	var head *html.Node
-	present := map[string]bool{}
 	values := map[string]string{}
 	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Namespace != "" || htmlx.Dormant(n) {
@@ -178,7 +177,6 @@ func (b *builder) socialHandles(doc *html.Node) []string {
 		if n.Data == "meta" {
 			for _, attr := range []string{"name", "property"} {
 				key := strings.ToLower(strings.TrimSpace(htmlx.Attr(n, attr)))
-				present[key] = true
 				values[key] = htmlx.Attr(n, "content")
 			}
 		}
@@ -198,7 +196,7 @@ func (b *builder) socialHandles(doc *html.Node) []string {
 	var added []string
 	for _, item := range defaults {
 		key := item.key
-		if present[key] || item.value == "" {
+		if _, present := values[key]; present || item.value == "" {
 			continue
 		}
 		meta := htmlx.Element("meta", "")
