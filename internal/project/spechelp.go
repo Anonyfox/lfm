@@ -66,7 +66,7 @@ func rows(b *strings.Builder, fields []Field) {
 		}
 		more := ""
 		if len(Children(f.Path)) > 0 {
-			more = " (more: 'lfm help config " + strings.ReplaceAll(f.Path, ".*", "") + "')"
+			more = " (more: 'lfm help config " + f.Path + "')"
 		}
 		indent := strings.Repeat(" ", width+4)
 		line := fmt.Sprintf("%s · %s%s%s", f.Shape(), note, f.Doc, more)

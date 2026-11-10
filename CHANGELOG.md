@@ -1,5 +1,9 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Render a built-in black footer by default, with configurable branding, link groups and badges, fixed craft and credit links, and `"footer": false` to opt out.
+
 ## 0.1.25 (2026-11-10)
 
 - Discover Chrome and Lighthouse through environment overrides, PATH, standard installs and npm global

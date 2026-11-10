@@ -112,12 +112,7 @@
       </div>
     </section>
   </main>
-  <footer class="wrap footer">
-    <a href="{{ .urls.contact }}">Kontakt</a>
-    {{ range .links.related }}
-    <a href="{{ index $.urls .urlKey }}">{{ .label }}</a>
-    {{ end }}
-  </footer>
+
   <!-- Compiler inserts #product-data from build.browserData before scripts. -->
   {{script "assets/scripts/main.js"}}
 </body>

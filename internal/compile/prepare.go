@@ -98,7 +98,17 @@ func prepareTemplate(p project.Project, loaded project.Loaded) (preparedTemplate
 		resolved, consumed, bindings := templatecheck.ResolveJSONLD(options)
 		issues = append(issues, bindings.Diagnostics...)
 		options.Consumed = append(consumed, prepared.Commerce.Consumed...)
-		options.Consumed = append(options.Consumed, "social.x")
+		options.Consumed = append(options.Consumed, "social.x", "footer")
+		if !c.Footer.Disabled {
+			for _, group := range c.Footer.Groups {
+				for _, link := range group.Links {
+					options.Consumed = append(options.Consumed, jsonsrc.Child("urls", link.URLKey))
+				}
+			}
+			for _, badge := range c.Footer.Badges {
+				options.Consumed = append(options.Consumed, jsonsrc.Child("urls", badge.URLKey), jsonsrc.Child("urls", badge.SrcKey))
+			}
+		}
 		if resolved != nil && bindings.Errors == 0 {
 			var err error
 			prepared.JSONLD, err = json.Marshal(resolved)

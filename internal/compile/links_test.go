@@ -52,6 +52,9 @@ func TestURLFailuresPreserveOutput(t *testing.T) {
 			changeConfig(t, root, func(c map[string]any) { c["urls"] = map[string]any{"checkout": "https://checkout.example/"} })
 			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="https://checkout.example/">Pay</a></body>`, 1))
 		}},
+		{"authored credit URL remains literal", "links.literal", func(t *testing.T, root string) {
+			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="https://anonyfox.com/">Credit</a></body>`, 1))
+		}},
 		{"dynamic undeclared", "links.declared", func(t *testing.T, root string) {
 			changeConfig(t, root, func(c map[string]any) { c["data"].(map[string]any)["checkout"] = "https://checkout.example/" })
 			write(t, root, "index.html.tmpl", strings.Replace(fixtureHTML, "</body>", `<a href="{{.data.checkout}}">Pay</a></body>`, 1))

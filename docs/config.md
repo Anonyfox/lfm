@@ -4,6 +4,29 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 
 | Field | Takes | Default | Meaning |
 | --- | --- | --- | --- |
+| `footer` | false or object |  | Built-in black footer on every page, with locked craft and credit links. Set false to disable; omit or use an object to enable. Example: `{}`. |
+| `footer.wordmark` | string |  | Large brand wordmark. Example: `"example.com"`. |
+| `footer.tagline` | string |  | One-line brand description. Example: `"Tools for your work."`. |
+| `footer.accent` | string |  | CSS value for the accent hairlines and hover color; default white. Example: `"var(--glow)"`. |
+| `footer.type` | string |  | CSS font family for the wordmark and labels; default monospace. Example: `"var(--mono)"`. |
+| `footer.muted` | string |  | CSS value for secondary text; default light gray. Example: `"var(--hairline)"`. |
+| `footer.groups` | list of objects |  | Link columns; their count sets the desktop column count. Example: `[{"label":"Product","links":[{"urlKey":"news","text":"Release notes by email"}]}]`. |
+| `footer.groups.*` | object |  | One footer entry. |
+| `footer.groups.*.label` | string | required | Column label. Example: `"Product"`. |
+| `footer.groups.*.links` | list of objects | required | Links resolved through urls. Example: `[{"urlKey":"news","text":"Release notes by email"}]`. |
+| `footer.groups.*.links.*` | object |  | One footer entry. |
+| `footer.groups.*.links.*.urlKey` | string | required | Destination key in urls. Example: `"news"`. |
+| `footer.groups.*.links.*.text` | string | required | Visible link text. Example: `"Release notes by email"`. |
+| `footer.groups.*.links.*.lang` | string |  | Language of the linked text. Example: `"de"`. |
+| `footer.badges` | list of objects |  | Optional linked badge images. Example: `[{"urlKey":"directory","srcKey":"badge","alt":"Featured","width":175,"height":55}]`. |
+| `footer.badges.*` | object |  | One footer entry. |
+| `footer.badges.*.urlKey` | string | required | Badge destination key in urls. Example: `"news"`. |
+| `footer.badges.*.srcKey` | string | required | Badge image source key in urls. Example: `"badge"`. |
+| `footer.badges.*.alt` | string | required | Description of the badge image. Example: `"Featured"`. |
+| `footer.badges.*.width` | integer | required | Positive image width in pixels. Example: `175`. |
+| `footer.badges.*.height` | integer | required | Positive image height in pixels. Example: `55`. |
+| `footer.badges.*.target` | string |  | Link target, such as _blank. Example: `"_blank"`. |
+| `footer.badges.*.rel` | string |  | Link relationship, such as noopener. Example: `"noopener"`. |
 | `schemaVersion` | 1 | required | The format of this file; always 1. Example: `1`. |
 | `url` | string | required | The absolute HTTPS URL of the folder the page is deployed to, ending in /: its canonical URL; download paths hang off it. Example: `"https://example.com/my-page/"`. |
 | `language` | string | required | The page's language as a BCP 47 tag; deliverables default to it. Example: `"en"`. |

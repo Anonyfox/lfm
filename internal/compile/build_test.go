@@ -66,7 +66,7 @@ func fixture(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	write(t, root, "lfm.json", `{
-"schemaVersion":1,"url":"https://example.com/tools/demo/","language":"en",
+"footer":false,"schemaVersion":1,"url":"https://example.com/tools/demo/","language":"en",
 "title":"A < B & café 🐺","description":"Example",
 "build":{"browserData":["data.quiz"],"assets":{"default":"inline"}},
 "data":{"enabled":true,"quiz":{"value":42,"prompt":"</script><script id=intruder>bad()</script>"},"unpublished":"PRIVATE_CONFIG_MARKER"}}

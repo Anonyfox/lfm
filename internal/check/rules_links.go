@@ -66,7 +66,7 @@ func linksDeclaredRule(d *Document) []Diagnostic {
 		if urlcheck.Embedded(ref.Value) || sameDocument || d.generatedURL(ref.Value, analyzer) {
 			continue
 		}
-		if len(d.Options.Registry.Match(ref.Value)) > 0 {
+		if urlcheck.BuiltinFooterURL(ref.Value) || len(d.Options.Registry.Match(ref.Value)) > 0 {
 			continue
 		}
 		issues = append(issues, d.linkAt(ref, Error, "Rendered "+ref.Attribute+" destination has no named config URL.", urlcheck.URLHint(ref.Attribute)+" Declare the complete URL, including deliberate query/fragment variants."))

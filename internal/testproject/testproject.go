@@ -71,6 +71,7 @@ func scaffolded(t testing.TB) string {
 	if _, err := scaffold.Create(dir); err != nil {
 		t.Fatal(err)
 	}
+	Configure(t, dir, func(c map[string]any) { c["footer"] = false })
 	return dir
 }
 

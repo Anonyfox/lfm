@@ -409,3 +409,7 @@ frame at clamped progress. Keep text in HTML:
 // frames are createImageBitmap results, loaded only near the viewport; progress is in [0, 1].
 if (!reduced.matches) ctx.drawImage(frames[Math.round(progress * (frames.length - 1))], 0, 0);
 ```
+
+## Footer
+
+Compile appends the built-in black footer automatically. Configure `footer.wordmark`, `tagline`, `accent`, `type`, `muted`, `groups` and `badges` in lfm.json; links and badge images reference `urls` through `urlKey` and `srcKey`. The craft badge and credit are fixed. Remove your template footer when migrating, or set `"footer": false` to retain your own. Run `lfm help config footer` for the fields.

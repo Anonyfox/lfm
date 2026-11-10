@@ -480,6 +480,7 @@ func (r *Result) revalidate(stage string, found []diagnostic.Diagnostic, rules m
 // assemble rewrites the document so every local resource is bundled, packed
 // and referenced by its final name.
 func (b *builder) assemble(doc *html.Node, values map[string]any, prepared preparedTemplate, result *Result) error {
+	b.footer(doc)
 	b.collectAssetRoles(doc)
 	images := captureImages(doc)
 	data, err := project.BrowserData(values, b.config.Build.BrowserData)

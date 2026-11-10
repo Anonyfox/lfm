@@ -14,14 +14,6 @@
     "calculator": "#rechner",
     "relatedHotels": "https://example.com/tagungshotels/"
   },
-  "links": {
-    "related": [
-      {
-        "urlKey": "relatedHotels",
-        "label": "Passende Tagungshotels finden"
-      }
-    ]
-  },
   "jsonld": {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -52,5 +44,22 @@
       "defaultRoomCost": 600,
       "defaultCateringPerPerson": 45
     }
+  },
+  "footer": {
+    "groups": [
+      {
+        "label": "Kontakt",
+        "links": [
+          {
+            "urlKey": "contact",
+            "text": "Kontakt"
+          },
+          {
+            "urlKey": "relatedHotels",
+            "text": "Passende Tagungshotels finden"
+          }
+        ]
+      }
+    ]
   }
 }

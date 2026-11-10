@@ -22,6 +22,7 @@ import (
 // Rules lists every rule any stage of the lifecycle can report, sorted by ID.
 func Rules() []diagnostic.RuleInfo {
 	rules := templatecheck.Catalog()
+	rules = append(rules, diagnostic.RuleInfo{ID: "footer.duplicate", Summary: "Authored footer overlaps the built-in footer", Help: "Triggered when a page has an authored footer while the built-in footer is enabled. Two footers repeat navigation and attribution. Remove the authored footer and configure footer in lfm.json, or set footer to false; see lfm help config footer."})
 	rules = append(rules, commercecheck.Catalog()...)
 	rules = append(rules, diagnostic.OperationalRules()...)
 	rules = append(rules, urlcheck.Catalog()...)

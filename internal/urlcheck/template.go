@@ -191,3 +191,10 @@ func Template(t *htmltemplate.Template, files map[string][]byte, registries ...*
 func localResource(raw string) bool {
 	return Scheme(raw) == "" && !strings.HasPrefix(raw, "/") && !strings.HasPrefix(raw, "?") && !looksHost(raw)
 }
+
+// BuiltinFooterURL identifies the two destinations emitted by the compiler.
+// Only final-document declaration checks use this exemption: the literal check
+// above still rejects these destinations in author templates.
+func BuiltinFooterURL(value string) bool {
+	return value == "https://lfm.cash/" || value == "https://anonyfox.com/"
+}

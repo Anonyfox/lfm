@@ -22,6 +22,7 @@ import (
 // Config is lfm.json. Reserved fields use exact casing; product values live
 // under data, which data/*.json files extend.
 type Config struct {
+	Footer        Footer            `json:"footer"`
 	SchemaVersion int               `json:"schemaVersion"`
 	URL           string            `json:"url"`
 	Language      string            `json:"language"`
@@ -294,6 +295,7 @@ func Load(p Project, rules RuleCheck) Loaded {
 
 func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string, err error)) {
 	c := &l.Config
+	c.Footer.validate(c.URLs, add)
 	if c.URL != "" && !directoryURL(c.URL) {
 		add(ConfigFile, "url", fmt.Errorf("url must be an absolute HTTPS directory URL ending in /, without query or fragment; it becomes the page canonical"))
 	}
@@ -440,7 +442,7 @@ func checkShape(raw []byte) []Problem {
 					}
 				}
 				if pattern != "" {
-					hint += " 'lfm help config " + strings.ReplaceAll(pattern, ".*", "") + "' lists the options."
+					hint += " 'lfm help config " + strings.TrimSuffix(pattern, ".*") + "' lists the options."
 				} else {
 					hint += " 'lfm help config' lists the options."
 				}
@@ -457,7 +459,7 @@ func checkShape(raw []byte) []Problem {
 					}
 				}
 			}
-			if nested, ok := values[key].(map[string]any); ok && (f.Kind == Object || f.Kind == Map) {
+			if nested, ok := values[key].(map[string]any); ok && (f.Kind == Object || f.Kind == Map || f.Kind == OptionalObject) {
 				walk(nested, child, childPattern, f.Kind == Map)
 			}
 		}
@@ -528,6 +530,14 @@ func checkValue(v any, path, pattern string, f Field, report func(string, Field,
 				report(fmt.Sprintf("%s[%d]", path, i), f, "%s: %q is not %s", path, s, orList(f.Values))
 			}
 		}
+	case OptionalObject:
+		if v == false {
+			return
+		}
+		if _, ok := v.(map[string]any); !ok {
+			report(path, f, "%s must be false or an object", path)
+		}
+		return
 	case Object, Map:
 		if _, ok := v.(map[string]any); !ok {
 			report(path, f, "%s must be an object", path)

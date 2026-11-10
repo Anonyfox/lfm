@@ -120,6 +120,8 @@ command to update each folder with older copies.
 `output/` was written, 1 when errors kept it unchanged or there is no project, and 2 for a mistake in the
 command line.
 
+Every compiled page includes a black footer with a boxed “crafted with lfm” link and the fixed Anonyfox credit. Configure branding, link groups and badges with [`footer`](docs/config.md), or set `"footer": false` for a client storefront.
+
 ## Made with lfm
 
 [lfm.cash](https://lfm.cash) is an lfm project, built by an agent through the same three phases: 120

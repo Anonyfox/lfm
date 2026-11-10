@@ -12,13 +12,14 @@ type Kind string
 // Field kinds. A map holds keys of the author's choosing whose values the
 // field's "*" child describes; free holds anything, unchecked.
 const (
-	Object  Kind = "object"
-	String  Kind = "string"
-	Int     Kind = "integer"
-	List    Kind = "list"
-	Objects Kind = "list of objects"
-	Map     Kind = "map"
-	Free    Kind = "any"
+	OptionalObject Kind = "false or object"
+	Object         Kind = "object"
+	String         Kind = "string"
+	Int            Kind = "integer"
+	List           Kind = "list"
+	Objects        Kind = "list of objects"
+	Map            Kind = "map"
+	Free           Kind = "any"
 )
 
 // Field is one key of lfm.json: its shape, its meaning and how it is
@@ -39,6 +40,30 @@ type Field struct {
 
 // Spec lists every field of lfm.json, parents before children.
 var Spec = []Field{
+	{Path: "footer", Kind: OptionalObject, Doc: "Built-in black footer on every page, with locked craft and credit links. Set false to disable; omit or use an object to enable.", Example: `{}`},
+	{Path: "footer.wordmark", Kind: String, Doc: "Large brand wordmark.", Example: `"example.com"`},
+	{Path: "footer.tagline", Kind: String, Doc: "One-line brand description.", Example: `"Tools for your work."`},
+	{Path: "footer.accent", Kind: String, Doc: "CSS value for the accent hairlines and hover color; default white.", Example: `"var(--glow)"`},
+	{Path: "footer.type", Kind: String, Doc: "CSS font family for the wordmark and labels; default monospace.", Example: `"var(--mono)"`},
+	{Path: "footer.muted", Kind: String, Doc: "CSS value for secondary text; default light gray.", Example: `"var(--hairline)"`},
+	{Path: "footer.groups", Kind: Objects, Doc: "Link columns; their count sets the desktop column count.", Example: `[{"label":"Product","links":[{"urlKey":"news","text":"Release notes by email"}]}]`},
+	{Path: "footer.groups.*", Kind: Object, Doc: "One footer entry."},
+	{Path: "footer.groups.*.label", Kind: String, Required: true, Doc: "Column label.", Example: `"Product"`},
+	{Path: "footer.groups.*.links", Kind: Objects, Required: true, Doc: "Links resolved through urls.", Example: `[{"urlKey":"news","text":"Release notes by email"}]`},
+	{Path: "footer.groups.*.links.*", Kind: Object, Doc: "One footer entry."},
+	{Path: "footer.groups.*.links.*.urlKey", Kind: String, Required: true, Doc: "Destination key in urls.", Example: `"news"`},
+	{Path: "footer.groups.*.links.*.text", Kind: String, Required: true, Doc: "Visible link text.", Example: `"Release notes by email"`},
+	{Path: "footer.groups.*.links.*.lang", Kind: String, Doc: "Language of the linked text.", Example: `"de"`},
+	{Path: "footer.badges", Kind: Objects, Doc: "Optional linked badge images.", Example: `[{"urlKey":"directory","srcKey":"badge","alt":"Featured","width":175,"height":55}]`},
+	{Path: "footer.badges.*", Kind: Object, Doc: "One footer entry."},
+	{Path: "footer.badges.*.urlKey", Kind: String, Required: true, Doc: "Badge destination key in urls.", Example: `"news"`},
+	{Path: "footer.badges.*.srcKey", Kind: String, Required: true, Doc: "Badge image source key in urls.", Example: `"badge"`},
+	{Path: "footer.badges.*.alt", Kind: String, Required: true, Doc: "Description of the badge image.", Example: `"Featured"`},
+	{Path: "footer.badges.*.width", Kind: Int, Required: true, Doc: "Positive image width in pixels.", Example: `175`},
+	{Path: "footer.badges.*.height", Kind: Int, Required: true, Doc: "Positive image height in pixels.", Example: `55`},
+	{Path: "footer.badges.*.target", Kind: String, Doc: "Link target, such as _blank.", Example: `"_blank"`},
+	{Path: "footer.badges.*.rel", Kind: String, Doc: "Link relationship, such as noopener.", Example: `"noopener"`},
+
 	{Path: "schemaVersion", Kind: Int, Required: true, Values: []string{"1"}, Doc: "The format of this file; always 1.", Example: `1`},
 	{Path: "url", Kind: String, Required: true, Doc: "The absolute HTTPS URL of the folder the page is deployed to, ending in /: its canonical URL; download paths hang off it.", Example: `"https://example.com/my-page/"`},
 	{Path: "language", Kind: String, Required: true, Doc: "The page's language as a BCP 47 tag; deliverables default to it.", Example: `"en"`},
@@ -240,8 +265,11 @@ func (f Field) Hint() string {
 		fmt.Fprintf(&b, " Example: %s.", f.Example)
 	}
 	parent := ""
+	if f.Kind == OptionalObject {
+		parent = " " + f.Path
+	}
 	if i := strings.LastIndex(f.Path, "."); i > 0 {
-		parent = " " + strings.ReplaceAll(f.Path[:i], ".*", "")
+		parent = " " + strings.TrimSuffix(f.Path[:i], ".*")
 	}
 	fmt.Fprintf(&b, " 'lfm help config%s' lists the options.", parent)
 	return b.String()
