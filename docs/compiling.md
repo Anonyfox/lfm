@@ -266,7 +266,8 @@ read-only: edit source images and compile again rather than editing output in pl
 The next successful compile migrates existing output copies to cache links.
 On Unix, entries with more than one hardlink are in use: pruning neither expires
 these entries nor charges them against its 300 MiB eviction budget. Once their
-outputs are removed, ordinary age and size pruning applies. On other platforms,
+outputs are removed, entries expire after two days and compete for the shared
+300 MiB cache budget. On other platforms,
 pruning may remove the cache name; existing output hardlinks still retain the bytes.
 
 Existing authored image variants remain ordinary referenced assets. Do not delete
