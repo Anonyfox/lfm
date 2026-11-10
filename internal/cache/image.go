@@ -3,11 +3,9 @@ package cache
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"syscall"
 )
 
 func imagePath(contents []byte) string {
@@ -62,7 +60,7 @@ func LinkImage(target string, contents []byte) error {
 	}
 	Touch(path)
 	if err := os.Link(path, target); err != nil {
-		if errors.Is(err, syscall.EXDEV) {
+		if crossDevice(err) {
 			return os.WriteFile(target, contents, 0o444)
 		}
 		return err

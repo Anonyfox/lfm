@@ -47,3 +47,42 @@ func TestImageLinksSurvivePruningAndReleaseTheirBudget(t *testing.T) {
 		t.Fatal("unused expired image retained", err)
 	}
 }
+
+func TestImageCopyAcrossFilesystems(t *testing.T) {
+	base, err := os.MkdirTemp("/dev/shm", "lfm-image-test-")
+	if err != nil {
+		t.Skip("second filesystem unavailable:", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(base) })
+	target := filepath.Join(t.TempDir(), "image")
+	a, _ := os.Stat(base)
+	b, _ := os.Stat(filepath.Dir(target))
+	if !differentDevices(a, b) {
+		t.Skip("second filesystem unavailable")
+	}
+	t.Setenv("XDG_CACHE_HOME", base)
+	contents := []byte("image")
+	if err := LinkImage(target, contents); err != nil {
+		t.Fatal(err)
+	}
+	if !ImageReusable(target, contents) {
+		t.Fatal("cross-device output would be republished")
+	}
+	path := imagePath(contents)
+	cached, _ := os.Stat(path)
+	output, _ := os.Stat(target)
+	if os.SameFile(cached, output) {
+		t.Fatal("expected a cross-device copy")
+	}
+	old := time.Now().Add(-72 * time.Hour)
+	if err := os.Chtimes(path, old, old); err != nil {
+		t.Fatal(err)
+	}
+	Prune()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("expired unlinked image retained", err)
+	}
+	if got, err := os.ReadFile(target); err != nil || string(got) != string(contents) {
+		t.Fatal("output lost after pruning", err)
+	}
+}
