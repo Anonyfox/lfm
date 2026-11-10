@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.22 (2026-11-10)
 
 - `check` folder targets report site-wide triplet endings above ten and normalized
   duplicate sentence/heading groups across pages, including every source location.
