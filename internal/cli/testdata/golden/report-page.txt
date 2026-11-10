@@ -19,8 +19,9 @@ warning  design.type  page <h1>
               build.validation.rules.design.type.
 
 ✓ <project> compiled → output/ in <duration>, 4 warnings
-  index.html   10.3 KiB    4.0 KiB gzip · CSS 2.1 KiB · JS 767 B
+  index.html   10.6 KiB    4.1 KiB gzip · CSS 2.1 KiB · JS 767 B
   3 assets     26.5 KiB    share-4c2fc583eba1.webp, favicon.png, sitemap.xml
+  sharing      added sharing defaults: twitter:title, twitter:description, twitter:card
 'lfm rules <id>' explains any rule above.
 Next (research): collect real buyer voices and competitor pages into research/.
                  Follow 'lfm skills research', or install them all with 'lfm skills install'.

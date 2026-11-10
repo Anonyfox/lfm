@@ -10,8 +10,8 @@
     },
     {
       "name": "index.html",
-      "bytes": 10539,
-      "sha256": "4d093182a8f08ddd1713289148eb885bab3ad975fa9ade040d99bd93135d67e6"
+      "bytes": 10827,
+      "sha256": "cf56a0710d6cb0e5a18e3c8ca53fdccebdbcfa6fdd0886ad2ee927e2a86a54a5"
     },
     {
       "name": "share-4c2fc583eba1.webp",
@@ -27,8 +27,8 @@
   "validation": {
     "stage": "html",
     "stats": {
-      "htmlBytes": 10539,
-      "elements": 81,
+      "htmlBytes": 10827,
+      "elements": 84,
       "maxDepth": 10,
       "inlineCSSBytes": 2186,
       "inlineJSBytes": 767,
@@ -42,7 +42,7 @@
           "bytes": 1289,
           "count": 1,
           "totalBytes": 1289,
-          "offset": 4540
+          "offset": 4828
         }
       ]
     },
@@ -66,7 +66,7 @@
           "file": "index.html",
           "line": 24,
           "column": 9,
-          "offset": 3456
+          "offset": 3744
         },
         "element": "p.eyebrow",
         "message": "An emoji can substitute decoration for a claim: \"🧮\".",
@@ -79,7 +79,7 @@
           "file": "index.html",
           "line": 24,
           "column": 9,
-          "offset": 3456
+          "offset": 3744
         },
         "element": "p.eyebrow",
         "message": "Eyebrow \"Tagungsplanung 🧮\" above heading \"Was kostet deine Tagung pro Kopf?\": small tracked label restating or framing the heading.",
@@ -93,7 +93,7 @@
           "file": "index.html",
           "line": 25,
           "column": 9,
-          "offset": 3505
+          "offset": 3793
         },
         "element": "h1",
         "message": "\"system-ui\" sets both the display headline and the body: the one-sans generator default.",
@@ -128,19 +128,19 @@
     }
   ],
   "cost": {
-    "htmlBytes": 10539,
-    "htmlGzipLevel1Bytes": 4137,
+    "htmlBytes": 10827,
+    "htmlGzipLevel1Bytes": 4180,
     "sidecarBytes": 27168,
-    "totalRawBytes": 37707,
+    "totalRawBytes": 37995,
     "totalCSSBytes": 2186,
     "totalJSBytes": 767,
     "externalCSSBytes": 0,
     "externalJSBytes": 0
   },
   "htmlCompaction": {
-    "beforeBytes": 10755,
-    "afterBytes": 10539,
-    "savedBytes": 216
+    "beforeBytes": 11054,
+    "afterBytes": 10827,
+    "savedBytes": 227
   },
   "images": [
     {
@@ -169,6 +169,11 @@
     "plannedImages": 0,
     "openQuestions": 0
   },
+  "socialMetaRepairs": [
+    "twitter:title",
+    "twitter:description",
+    "twitter:card"
+  ],
   "starter": false,
   "errors": 0,
   "warnings": 4,

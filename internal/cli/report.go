@@ -116,7 +116,7 @@ func renderResult(w io.Writer, s term.Style, r compile.Result, err error) {
 		fmt.Fprintln(w, "  page         starter, not audited (sold in shops)")
 	}
 	if len(r.SocialMeta) > 0 {
-		fmt.Fprintf(w, "  %s added %s from social.x\n", term.Pad("sharing", 12), strings.Join(r.SocialMeta, ", "))
+		fmt.Fprintf(w, "  %s added sharing defaults: %s\n", term.Pad("sharing", 12), strings.Join(r.SocialMeta, ", "))
 	}
 	renderBook(w, s, r.Book, r.Files)
 	renderPrintable(w, s, r.Printable)

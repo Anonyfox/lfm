@@ -62,11 +62,11 @@ func TestCompileJSONManifest(t *testing.T) {
 			t.Errorf("missing output %s", name)
 		}
 	}
-	if strings.Join(got.SocialMeta, ",") != "twitter:site,twitter:creator" {
+	if strings.Join(got.SocialMeta, ",") != "twitter:title,twitter:description,twitter:site,twitter:creator" {
 		t.Fatal("JSON report lacks social repairs", got.SocialMeta)
 	}
 	code, out, errs = run(t, "compile", dir)
-	if code != 0 || errs != "" || !strings.Contains(out, "added twitter:site, twitter:creator from social.x") {
+	if code != 0 || errs != "" || !strings.Contains(out, "added sharing defaults: twitter:title, twitter:description, twitter:site, twitter:creator") {
 		t.Fatalf("human report lacks social repairs: exit %d, stderr %q\n%s", code, errs, out)
 	}
 }

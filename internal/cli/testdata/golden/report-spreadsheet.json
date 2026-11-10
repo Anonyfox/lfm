@@ -10,8 +10,8 @@
     },
     {
       "name": "index.html",
-      "bytes": 1231,
-      "sha256": "1bf31aaac9014ea86fb91ba46c08244602488b996823668c5ffa7a8d4d4fc8dc"
+      "bytes": 1371,
+      "sha256": "367830c70b9031702b0e33ed47df4ffe47064b6cc09614a9c0edbee0c83727f1"
     },
     {
       "name": "share-3f93c132da0c.png",
@@ -52,8 +52,8 @@
   "validation": {
     "stage": "html",
     "stats": {
-      "htmlBytes": 1231,
-      "elements": 23,
+      "htmlBytes": 1371,
+      "elements": 25,
       "maxDepth": 4,
       "inlineCSSBytes": 98,
       "inlineJSBytes": 46,
@@ -115,19 +115,19 @@
     }
   ],
   "cost": {
-    "htmlBytes": 1231,
-    "htmlGzipLevel1Bytes": 604,
+    "htmlBytes": 1371,
+    "htmlGzipLevel1Bytes": 621,
     "sidecarBytes": 727,
-    "totalRawBytes": 1958,
+    "totalRawBytes": 2098,
     "totalCSSBytes": 98,
     "totalJSBytes": 46,
     "externalCSSBytes": 0,
     "externalJSBytes": 0
   },
   "htmlCompaction": {
-    "beforeBytes": 1299,
-    "afterBytes": 1231,
-    "savedBytes": 68
+    "beforeBytes": 1447,
+    "afterBytes": 1371,
+    "savedBytes": 76
   },
   "research": {
     "voices": 0,
@@ -146,6 +146,10 @@
     "plannedImages": 0,
     "openQuestions": 0
   },
+  "socialMetaRepairs": [
+    "twitter:title",
+    "twitter:description"
+  ],
   "starter": true,
   "spreadsheet": {
     "name": "Paycheck Budget",

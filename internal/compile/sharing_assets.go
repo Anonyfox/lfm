@@ -163,13 +163,11 @@ func (b *builder) socialImageSizes(doc *html.Node) {
 	}
 }
 
-// socialHandles fills optional X attribution without replacing authored tags.
+// socialHandles fills X sharing defaults and attribution without replacing authored tags.
 func (b *builder) socialHandles(doc *html.Node) []string {
-	if b.config.Social.X == "" {
-		return nil
-	}
 	var head *html.Node
 	present := map[string]bool{}
+	values := map[string]string{}
 	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Namespace != "" || htmlx.Dormant(n) {
 			return
@@ -179,18 +177,33 @@ func (b *builder) socialHandles(doc *html.Node) []string {
 		}
 		if n.Data == "meta" {
 			for _, attr := range []string{"name", "property"} {
-				present[strings.ToLower(strings.TrimSpace(htmlx.Attr(n, attr)))] = true
+				key := strings.ToLower(strings.TrimSpace(htmlx.Attr(n, attr)))
+				present[key] = true
+				values[key] = htmlx.Attr(n, "content")
 			}
 		}
 	})
+	if head == nil {
+		return nil
+	}
+	defaults := []struct{ key, value string }{
+		{"twitter:title", values["og:title"]},
+		{"twitter:description", values["og:description"]},
+		{"twitter:site", b.config.Social.X},
+		{"twitter:creator", b.config.Social.X},
+	}
+	if values["og:image"] != "" {
+		defaults = append(defaults, struct{ key, value string }{"twitter:card", "summary_large_image"})
+	}
 	var added []string
-	for _, key := range []string{"twitter:site", "twitter:creator"} {
-		if present[key] {
+	for _, item := range defaults {
+		key := item.key
+		if present[key] || item.value == "" {
 			continue
 		}
 		meta := htmlx.Element("meta", "")
 		htmlx.SetAttr(meta, "name", key)
-		htmlx.SetAttr(meta, "content", b.config.Social.X)
+		htmlx.SetAttr(meta, "content", item.value)
 		head.AppendChild(meta)
 		added = append(added, key)
 	}

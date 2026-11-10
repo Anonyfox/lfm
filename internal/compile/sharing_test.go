@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"image"
 	"image/png"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/htmlx"
+	"golang.org/x/net/html"
 )
 
 func TestCanonicalFinalGateAndConfigBase(t *testing.T) {
@@ -295,7 +297,7 @@ func TestSocialHandles(t *testing.T) {
 					t.Fatalf("%s: %v, want %q", key, got, want)
 				}
 			}
-			if len(r.SocialMeta) != tc.added {
+			if len(r.SocialMeta) != tc.added+1 {
 				t.Fatal("missing repair report", r.SocialMeta)
 			}
 			for _, d := range r.Validation.Diagnostics {
@@ -342,4 +344,45 @@ func TestInvalidSocialHandleFinding(t *testing.T) {
 		}
 	}
 	t.Fatal("missing located finding with concrete fix", r.Validation)
+}
+
+func TestTwitterSharingDefaults(t *testing.T) {
+	for _, tc := range []struct {
+		name, source string
+		want         map[string]string
+		added        int
+	}{
+		{"fallback", `<head><meta property="og:title" content="A title"><meta property="og:description" content="A description"><meta property="og:image" content="https://example.com/card.png"></head>`, map[string]string{"twitter:title": "A title", "twitter:description": "A description", "twitter:card": "summary_large_image"}, 3},
+		{"authored", `<head><meta property="og:title" content="OG"><meta property="og:description" content="OG description"><meta property="og:image" content="https://example.com/card.png"><meta name="TWITTER:TITLE" content="Custom"><meta name="twitter:description" content="Custom description"><meta name="twitter:card" content="summary"></head>`, map[string]string{"twitter:title": "Custom", "twitter:description": "Custom description", "twitter:card": "summary"}, 0},
+		{"no image", `<head><meta property="og:title" content="Title"></head>`, map[string]string{"twitter:title": "Title"}, 1},
+		{"no metadata", `<head></head>`, map[string]string{}, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc, err := html.Parse(strings.NewReader(tc.source))
+			if err != nil {
+				t.Fatal(err)
+			}
+			b := &builder{}
+			added := b.socialHandles(doc)
+			if len(added) != tc.added {
+				t.Fatal(added)
+			}
+			seen := map[string]string{}
+			htmlx.Walk(doc, func(n *html.Node) {
+				key := strings.ToLower(htmlx.Attr(n, "name"))
+				if n.Data == "meta" && strings.HasPrefix(key, "twitter:") {
+					if _, ok := seen[key]; ok {
+						t.Errorf("duplicate %s", key)
+					}
+					if n.Parent.Data != "head" {
+						t.Error("metadata outside head")
+					}
+					seen[key] = htmlx.Attr(n, "content")
+				}
+			})
+			if !reflect.DeepEqual(seen, tc.want) {
+				t.Fatalf("got %v, want %v", seen, tc.want)
+			}
+		})
+	}
 }

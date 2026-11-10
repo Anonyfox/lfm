@@ -2,6 +2,9 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- X sharing metadata defaults title and description to Open Graph values and
+  selects a large image card when available, preserving project-provided tags.
+
 - Every compile expires cache artifacts unused for two days and evicts the oldest
   artifacts above a shared 300 MiB limit. Active Chrome profiles stay locked.
 
