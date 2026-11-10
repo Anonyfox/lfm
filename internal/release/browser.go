@@ -20,7 +20,6 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/evanw/esbuild/pkg/api"
 )
@@ -95,9 +94,10 @@ func browserCandidates() []string {
 }
 
 // BrowserOptions configures an isolated browser without background services.
+// Incognito keeps reused profiles from restoring stale tabs and session state.
 func BrowserOptions(path string) []chromedp.ExecAllocatorOption {
 	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("disable-features", "OptimizationGuideModelDownloading,OptimizationHints,OptimizationTargetPrediction"), chromedp.Flag("no-first-run", true))
+	return append(opts, chromedp.ExecPath(path), chromedp.Flag("disable-quic", true), chromedp.Flag("disable-background-networking", true), chromedp.Flag("disable-component-update", true), chromedp.Flag("disable-features", "OptimizationGuideModelDownloading,OptimizationHints,OptimizationTargetPrediction"), chromedp.Flag("no-first-run", true), chromedp.Flag("incognito", true))
 }
 
 // Analyze observes static first paint at several widths, unions visible rules,
@@ -334,11 +334,10 @@ func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit
 	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, closeBrowser := chromedp.NewContext(alloc)
 	close := func() { closeBrowser(); closeAlloc(); abort(nil) }
-	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (cdp.Empty, error) {
+	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
 		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
 		defer stop()
-		// A reused profile can restore several tabs; animate the one we attached.
-		return chromedp.Call(browser, page.BringToFront, cdp.Empty{})
+		return chromedp.Run(browser, chromedp.Evaluate[bool]("true"))
 	}); err != nil {
 		close()
 		return nil, func() {}, err

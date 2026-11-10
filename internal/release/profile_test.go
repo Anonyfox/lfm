@@ -56,7 +56,7 @@ func TestBrowserProfileReuseFallbackAndFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, flag := range []string{"--disable-component-update", "--disable-features=OptimizationGuideModelDownloading,OptimizationHints,OptimizationTargetPrediction", "--user-data-dir=" + first} {
+	for _, flag := range []string{"--incognito", "--disable-component-update", "--disable-features=OptimizationGuideModelDownloading,OptimizationHints,OptimizationTargetPrediction", "--user-data-dir=" + first} {
 		if !strings.Contains(string(raw), flag+"\n") {
 			t.Errorf("missing %s: %s", flag, raw)
 		}
