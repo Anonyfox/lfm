@@ -138,6 +138,8 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
 | `design.kit` | Warnings: four or more custom properties with exact shadcn/ui default theme values (slate/zinc HSL, v4 oklch neutrals); two or three are weak. |
 | `design.defaults` | (A page without any imagery is one weak signal.) Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
+| `copy.triplets` | Warnings: every X, Y and Z / und ending when the checked site has more than ten; shared chrome excluded. |
+| `copy.cross-page` | Warnings: normalized sentences/headings of nine or more words shared by two or more pages, with all locations; nav/footer/shared chrome excluded. |
 | `copy.tells` | Warnings: narrow stock phrases of generated copy (English and German), repeated not-just-but and nicht nur … sondern constructions from two uses, and ≥4 em dashes above one per hundred words outside German. Direct reveals use copy.reveal. Quotations, code, data-design-reason and data-slop-skip subtrees are exempt. |
 | `copy.reveal` | any; warn: A contrast reveal substitutes a slogan for a claim. Example: It's not a course, it's a kit. Fix: State the positive claim directly. |
 | `copy.negative-list` | any; warn: Repeated negatives create a stock sales rhythm. Example: No fluff, no jargon, no distractions. Fix: Name what the buyer receives. |

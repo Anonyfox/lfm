@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -186,12 +187,21 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 		if textTarget {
 			r.Validation = check.CopyText(input.Page, strings.EqualFold(filepath.Ext(p.args[0]), ".md"), input.Options)
 		} else {
-			r.Validation = check.Run(doc, rules, overrides)
+			// Aggregate copy runs once below, after collecting the folder pages.
+			r.Validation = check.Run(doc, slices.DeleteFunc(rules, func(r check.Rule) bool { return r.ID == "copy.triplets" }), overrides)
 		}
 	} else {
 		r.Validation.Diagnostics = append(r.Validation.Diagnostics, diagnostic.Diagnostic{Rule: "build.failed", Severity: diagnostic.Error, Location: diagnostic.Location{File: p.args[0], Line: 1, Column: 1}, Message: readErr.Error(), Hint: "Make the page readable at this target and check again."})
 	}
 	issues := r.Validation.Diagnostics
+	if readErr == nil && !textTarget {
+		copyIssues, err := folderCopy(p.args[0], doc)
+		if err != nil {
+			issues = append(issues, diagnostic.Diagnostic{Rule: "build.failed", Severity: diagnostic.Error, Location: diagnostic.Location{File: p.args[0], Line: 1, Column: 1}, Message: err.Error(), Hint: "Make every HTML page readable within the folder limits and check again."})
+		} else {
+			issues = append(issues, copyIssues...)
+		}
+	}
 	if noTarget && readErr == nil {
 		built, err := compile.Compile(ctx, projectDir, compile.Options{})
 		if err != nil {

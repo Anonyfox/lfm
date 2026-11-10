@@ -662,3 +662,43 @@ func TestCheckStandaloneCopy(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckFolderCopyJSON(t *testing.T) {
+	dir := t.TempDir()
+	paragraph := "<p>We ship 12 detailed maps for the northern coastal paths.</p>"
+	for _, name := range []string{"index.html", "nested/other.html"} {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		raw := strings.Replace(checkHTML, "</main>", paragraph+strings.Repeat("<p>Sand, Wind und Meer.</p>", 6)+"</main>", 1)
+		if err := os.WriteFile(path, []byte(raw), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		target           string
+		triplets, groups int
+	}{{dir, 12, 2}, {filepath.Join(dir, "index.html"), 0, 0}} {
+		_, out, errs := run(t, "check", tc.target, "--json")
+		var r checkResult
+		if err := json.Unmarshal([]byte(out), &r); err != nil {
+			t.Fatal(err, out, errs)
+		}
+		triplets, groups := 0, 0
+		for _, d := range r.Validation.Diagnostics {
+			switch d.Rule {
+			case "copy.triplets":
+				triplets++
+			case "copy.cross-page":
+				groups++
+				if !strings.Contains(d.Hint, "nested/other.html:") {
+					t.Fatal(d)
+				}
+			}
+		}
+		if triplets != tc.triplets || groups != tc.groups {
+			t.Fatalf("%s: triplets=%d groups=%d: %s", tc.target, triplets, groups, out)
+		}
+	}
+}
