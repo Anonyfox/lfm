@@ -6,8 +6,9 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Anonyfox/lfm.svg)](https://pkg.go.dev/github.com/Anonyfox/lfm)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**Sell before you build: one binary and a skill that make your coding agent research real buyers and
-ship one checked, fast landing page with a payment link.**
+`lfm` is an agent-first landing page compiler for people using coding agents to research buyers and
+build a page for one offer. Its own site, [lfm.cash](https://lfm.cash), compiles with 0 errors and
+0 warnings after the same research, design and implementation process.
 
 ```sh
 curl -fsSL https://lfm.cash/install.sh | sh
@@ -15,13 +16,21 @@ curl -fsSL https://lfm.cash/install.sh | sh
 
 ![lfm check flags a generated page (violet gradient, cream background, stock phrases), then passes lfm.cash with 0 errors and 0 warnings](docs/media/demo.gif)
 
-`lfm` is an agent-first page compiler. Your coding agent researches real buyers, writes a design
-concept from what they say, and builds one HTML template with its config and assets. `lfm` compiles that into a
-standalone static folder and refuses to ship a page that is broken, slow, inaccessible, invisible to
-search or full of generic AI design defaults. Every finding says how to fix it.
+Your agent writes an HTML template with its config and assets; lfm compiles them into a standalone
+static folder. It checks correctness, speed, accessibility, search metadata and generic design
+defaults before publishing output. Every finding says how to fix it.
 
-No framework, no platform, no runtime: one binary, one page, one folder you upload anywhere. No MCP
-server either: a CLI with `--json` plus one SKILL.md is the whole agent interface.
+One Go binary produces one folder you can upload anywhere, with no framework or runtime required.
+The agent interface is a CLI with `--json` and [SKILL.md](SKILL.md).
+
+## How it compares
+
+The [landing page tool comparison](https://lfm.cash/compare/) describes these workflow fits:
+
+- Code / agent: lfm, one checked static page; Astro, multi-page components; Hugo, large content sites.
+- Visual editor: Carrd, simple one-page sites; Framer, design, interactions and CMS.
+- Agents read copy, metadata and accessibility findings together.
+- lfm lacks managed hosting and visual editing.
 
 ## Ask your agent
 
@@ -136,6 +145,34 @@ from one sentence without lfm, with the agent's file and lfm's full report.
 - **Seen whole:** `--release` scrolls the page at phone and desktop sizes, saves every frame and reports
   empty stretches, sideways scrolling, covered or unreadable text, split values and missing glyphs.
 - **Safe to ship:** nothing is written until all checks pass, and a failed compile keeps the last good output.
+
+## FAQ
+
+### What is an agent-first landing page compiler?
+
+lfm gives coding agents a CLI and skills for research, design and implementation, then checks and
+compiles their template into static files. Reports include findings, fixes and the next step;
+`--json` exposes the same information to an agent.
+
+### Can I use lfm with Claude Code, Codex or Cursor?
+
+Yes, as well as OpenCode, Gemini CLI and other coding agents. Give the agent the request under
+[Ask your agent](#ask-your-agent), or install the entry skill for future sessions.
+
+### Where can I host an lfm landing page?
+
+Upload `output/` to a static host at the URL declared in `lfm.json`. The compiled page needs no
+framework or server runtime; see [compiling](docs/compiling.md) for output details.
+
+### Can lfm check an existing website?
+
+`lfm check` accepts a URL, folder or file without an lfm project. See
+[checking any built page](docs/check.md) for targets, limits and browser checks.
+
+### Do I need Chrome or Lighthouse to use lfm?
+
+They are optional: Chrome or Chromium enables browser checks in `lfm compile --release`, and
+Lighthouse adds its scores. Missing tools are reported and skipped.
 
 ## Docs
 
