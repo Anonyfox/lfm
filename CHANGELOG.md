@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.20 (2026-11-10)
 
 - X sharing metadata defaults title and description to Open Graph values and
   selects a large image card when available, preserving project-provided tags.
