@@ -1,5 +1,9 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.1.27 (2026-11-10)
+
+- Built-in footer CSS uses the live mono stack for labels and the craft badge, treats matching credit URLs in `urls` as used, and keeps footer chrome out of `design.mono`.
+
 ## 0.1.26 (2026-11-10)
 
 - Render a built-in black footer by default, with configurable branding, link groups and badges, fixed craft and credit links, and `"footer": false` to opt out.
