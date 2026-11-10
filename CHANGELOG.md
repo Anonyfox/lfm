@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.24 (2026-11-10)
 
 - Lighthouse runs serialize across processes sharing the user cache, report the lock holder PID
   and cap lock waits at ten minutes. Measurement timeouts scale with Linux host load and support
