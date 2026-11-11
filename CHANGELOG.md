@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Site copy skips header/footer/nav landmarks and `data-lfm-shared` subtrees for both duplicate and triplet checks, with a triplet budget of ten times the checked HTML page count.
+- Folder checks apply project copy bans to every HTML page and remove the 512-page cap while retaining the 8 MiB/page and 32 MiB HTML limits.
+- Project copy bans accept an optional CSS `selector` to scope domain policies, keeping travel-only CTA bans off calculator/product copy.
+
 ## 0.1.27 (2026-11-10)
 
 - Built-in footer CSS uses the live mono stack for labels and the craft badge, treats matching credit URLs in `urls` as used, and keeps footer chrome out of `design.mono`.

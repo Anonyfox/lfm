@@ -61,6 +61,9 @@ compile again, and repeat until it says deploy:
 
 `lfm check <url> --json` checks any existing page, from any framework, with the same page rules.
 Add `--project <dir>` for project-only rules; omit the target to check output/ and detect stale files.
+Folder checks include recursive project copy bans and site copy: ten triplet endings per HTML page
+in the aggregate budget; mark intentional shared copy with `data-lfm-shared` (header/footer/nav excluded).
+Scope domain-only `copyBans` with a CSS `selector`; unscoped bans apply everywhere.
 Release checks require Chrome, Lighthouse and loopback sockets; run outside a sandbox that blocks them.
 Lighthouse serializes across processes sharing the user cache (lock wait capped at 10m, with holder PID).
 Each measurement defaults to 45s, scaled by Linux host load per CPU up to 5m;

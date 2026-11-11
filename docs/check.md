@@ -130,13 +130,18 @@ JSON report and error exit status. `--release` requires an HTML target.
 ## Site copy
 
 A local **folder** also scans its HTML files recursively, in path order, for
-`copy.triplets` and `copy.cross-page`. Other page rules, resources, statistics and
+`copy.triplets`, `copy.cross-page` and project `copy.banned` entries (with
+`--project`). Other page rules, resources, statistics and
 release checks still describe the root index.html. Explicit files and URLs check
 one page; URLs are not crawled. The aggregate scan is serial and confined to the
-folder (including symlink reads), with at most 512 HTML pages, 8 MiB per page and
+folder (including symlink reads), with no HTML page-count cap, 8 MiB per page and
 32 MiB of HTML total; an incomplete scan reports `build.failed`.
 
-`copy.triplets` warns at **every occurrence** when the total exceeds **10**.
+`copy.triplets` warns at **every occurrence** when the total exceeds **10 × the
+number of checked HTML pages**. Each page contributes ten endings to the site
+budget: 72 pages allow 720, and one page allows ten. This keeps the average
+budget constant as a site grows; a folder scan does not enforce a separate
+per-page cap. Single-page checks and compile retain the ten-ending limit.
 It recognizes sentence/heading endings such as “Sand, Wind und Meer” and
 “tools, notes and maps”, including the Oxford comma. This is a soft editorial
 signal, not proof of generated text. Each warning has a page, block location,
@@ -148,23 +153,28 @@ punctuation are normalized; tokens containing digits become `#`. The message
 contains the normalized text and the hint lists **every page:line:column**, even
 multiple occurrences on a page. Locations identify the containing copy block.
 Both rules reuse the existing visible-copy exclusions (hidden/inert content,
-quotations, code, `data-slop-skip` and `data-design-reason`). Navigation and footer
-subtrees are excluded. Identical blocks outside main/article appearing on every
-page are treated as shared chrome when that page has a main/article landmark; repeated main/article copy remains eligible.
+quotations, code, `data-slop-skip` and `data-design-reason`). Header, footer and navigation
+subtrees (including role=banner/contentinfo/navigation) are excluded. Mark other
+intentionally repeated content with `data-lfm-shared`, for example
+`<section data-lfm-shared>…legal or office text…</section>` or a repeated card.
+The attribute works on inline elements too and skips their entire subtree for
+both site rules, including the single-page triplet check. It does not exempt
+project bans or other copy rules. Ordinary repeated main/article copy remains
+eligible; repetition alone never establishes shared chrome.
 Findings use the normal JSON diagnostics and `build.validation.rules` overrides.
 
 These thresholds deliberately differ from Helgoland's `slopcheck.py` duplicates
 (more than three pages, prose only, H1 words masked, metadata included): headings
 and two-page repetition matter here, while H1 masking could merge different facts.
-The triplet limit matches its ten-ending gate, with English and Oxford-comma
-support added. Its `.review-tile` and `.pull-quote` class exemptions are local;
+The single-page triplet limit matches its ten-ending gate, with English and
+Oxford-comma support added; the site budget scales with page count. Its `.review-tile` and `.pull-quote` class exemptions are local;
 lfm requires quotation markup or `data-slop-skip` instead of inferring authorship
 from class names. Metadata is excluded because these checks concern visible copy.
 Helgoland's `dupcheck.py` measures cluster-specific five-word shingle similarity,
 not identical sentences, so its counts are a separate metric. Agentpreneur's
 `slopgate.py` also checks project-specific banned regexes, fragment triplets and
 other prose hints; it is not an equivalent comma-list/duplicate gate. Extra banned
-phrases in `lfm.json` remain a follow-up; domain-specific bans stay local.
+phrases belong in `lfm.json`; domain-specific bans stay local.
 
 Project copy bans live in `build.validation.copyBans` in `lfm.json`:
 
@@ -202,3 +212,19 @@ Quotes, code, hidden text and `data-slop-skip` subtrees are skipped. The shared
 engine normalizes curly apostrophes and nonbreaking spaces and lowercases text
 before matching. Bans apply in every language. They do not scan JSON-LD, scripts,
 source files or deliverables; `copyAllow` exempts built-in rules only.
+
+An optional `selector` scopes one ban to matching HTML elements and their
+visible descendants. For example, a travel-only CTA policy can use:
+
+```json
+{"regex":"mehr erfahren|jetzt buchen", "selector":".travel", "severity":"error"}
+```
+
+Only apply that selector to the site's travel sections. A calculator link saying
+“Mehr erfahren” inside `div.ctabox` then stays outside the travel ban. Class names
+have no built-in meaning: without `selector`, this regex explicitly bans the
+phrase everywhere, including product links. Keep production-note bans unscoped
+when they should apply site-wide. Selectors accept CSS selector lists; invalid
+selectors report `build.validation.copyBans[N].selector`. Scoped bans exclude
+metadata and do not run on standalone text/Markdown, which has no DOM. Use an
+unscoped entry for those targets. Shared markers do not bypass bans.
