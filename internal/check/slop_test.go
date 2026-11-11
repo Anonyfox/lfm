@@ -116,6 +116,7 @@ func TestCopyBanCTAScope(t *testing.T) {
 		{"calculator", ".travel", `<div class="ctabox"><h2>Mietpreisbremse-Rechner</h2><a href="/rechner/">Mehr erfahren</a></div>`, 0},
 		{"travel", ".travel", `<section class="travel"><p><a href="/reise/">Mehr erfahren</a></p></section>`, 1},
 		{"inline and selector list", "a[href='/reise/'], .travel", `<p><a href="/rechner/">Mehr erfahren</a> <a href="/reise/">Mehr <em>erfahren</em></a></p>`, 1},
+		{"ancestor scope", "html", `<div class="ctabox"><a href="/rechner/">Mehr erfahren</a></div>`, 1},
 		{"hidden", ".travel", `<div hidden><p class="travel">Mehr erfahren</p></div>`, 0},
 		{"metadata", ".travel", `<meta name="description" content="Mehr erfahren">`, 0},
 		{"block boundary", ".travel", `<section class="travel"><p>Mehr</p><p>erfahren</p></section>`, 0},

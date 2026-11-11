@@ -123,7 +123,11 @@ func scopedSegments(body *html.Node, quotes, tables, shared bool, scope cascadia
 			}
 		}
 	}
-	walk(body, scope == nil || scope.Match(body))
+	included := scope == nil
+	for n := body; !included && n != nil; n = n.Parent {
+		included = scope.Match(n)
+	}
+	walk(body, included)
 	flush()
 	return out
 }
