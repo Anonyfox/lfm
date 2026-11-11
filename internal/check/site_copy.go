@@ -21,62 +21,16 @@ func SiteCopy(pages []*Document) []Diagnostic {
 		node *html.Node
 		text string
 	}
-	type block struct {
-		occurrence
-		key string
-	}
-	var blocks []block
-	primary := make([]bool, len(pages))
-	shared := map[string]map[int]bool{}
+	var blocks []occurrence
 	for i, d := range pages {
-		for _, n := range d.Elements {
-			if n.Data == "main" || n.Data == "article" {
-				primary[i] = true
-				break
-			}
-		}
-		for _, s := range copySegments(d) {
-			chrome := false
-			for n := s.node; n != nil; n = n.Parent {
-				if n.Data == "nav" || n.Data == "footer" || Attr(n, "role") == "navigation" || Attr(n, "role") == "contentinfo" {
-					chrome = true
-					break
-				}
-			}
-			if chrome {
-				continue
-			}
-			// Exact text and element type distinguish shared furniture from merely
-			// similar content (numeric normalization must not hide repeated templates).
-			key := s.node.Data + "\x00" + s.text
-			if shared[key] == nil {
-				shared[key] = map[int]bool{}
-			}
-			shared[key][i] = true
-			blocks = append(blocks, block{occurrence{i, s.node, s.text}, key})
+		for _, s := range textSegments(d, false, false, true) {
+			blocks = append(blocks, occurrence{i, s.node, s.text})
 		}
 	}
 	var triplets []occurrence
 	groups := map[string][]occurrence{}
 	var order []string
 	for _, b := range blocks {
-		if len(pages) > 1 && len(shared[b.key]) == len(pages) {
-			// Main/article content is authored copy even when repeated on every page.
-			main := !primary[b.page]
-			for n := b.node; n != nil; n = n.Parent {
-				if n.Data == "header" || n.Data == "aside" || Attr(n, "role") == "banner" {
-					main = false
-					break
-				}
-				if n.Data == "main" || n.Data == "article" {
-					main = true
-					break
-				}
-			}
-			if !main {
-				continue
-			}
-		}
 		for _, sentence := range siteSentenceRE.FindAllString(b.text, -1) {
 			sentence = strings.Join(strings.Fields(sentence), " ")
 			o := occurrence{b.page, b.node, sentence}
@@ -103,9 +57,10 @@ func SiteCopy(pages []*Document) []Diagnostic {
 		}
 	}
 	var out []Diagnostic
-	if len(triplets) > 10 {
+	limit := 10 * len(pages)
+	if len(triplets) > limit {
 		for _, o := range triplets {
-			d := pages[o.page].At(o.node, Warning, fmt.Sprintf("%d triplet endings across %d pages (limit 10): %q.", len(triplets), len(pages), o.text), "Rewrite repeated three-item endings as specific claims or vary the sentence structure.")
+			d := pages[o.page].At(o.node, Warning, fmt.Sprintf("%d triplet endings across %d pages (limit %d): %q.", len(triplets), len(pages), limit, o.text), "Rewrite repeated three-item endings as specific claims or vary the sentence structure.")
 			d.Rule = "copy.triplets"
 			out = append(out, d)
 		}

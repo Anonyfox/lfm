@@ -6,6 +6,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/slop"
+	"github.com/andybalholm/cascadia"
 	"golang.org/x/net/html"
 )
 
@@ -87,8 +88,28 @@ func analyzeSlop(d *Document) map[string][]Diagnostic {
 			out[r.ID] = append(out[r.ID], d.At(segments[hit.Block].node, Severity(r.Severity), message, r.Fix))
 		}
 	}
-	for _, hit := range slop.MatchBans(texts, d.Options.CopyBans) {
-		out["copy.banned"] = append(out["copy.banned"], d.At(segments[hit.Block].node, Severity(hit.Severity), fmt.Sprintf("Project-banned copy: %q.", hit.Text), hit.Hint))
+	for _, ban := range d.Options.CopyBans {
+		blocks, targets := texts, segments
+		if ban.Selector != "" {
+			sel, err := cascadia.ParseGroup(ban.Selector)
+			if err != nil {
+				continue
+			} // project.Load reports invalid selectors.
+			for _, n := range d.Elements {
+				if n.Data == "body" {
+					targets = scopedSegments(n, false, false, false, sel)
+					break
+				}
+			}
+			blocks = make([]string, len(targets))
+			for i, s := range targets {
+				blocks[i] = s.text
+			}
+			ban.Selector = ""
+		}
+		for _, hit := range slop.MatchBans(blocks, []slop.Ban{ban}) {
+			out["copy.banned"] = append(out["copy.banned"], d.At(targets[hit.Block].node, Severity(hit.Severity), fmt.Sprintf("Project-banned copy: %q.", hit.Text), hit.Hint))
+		}
 	}
 	return out
 }

@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/andybalholm/cascadia"
 )
 
 // Allow exempts occurrences of Phrase for Rule, or the whole rule when Phrase is empty.
@@ -19,6 +21,7 @@ type Allow struct {
 
 // Ban adds a project copy policy; exactly one of Phrase and Regex is required.
 type Ban struct {
+	Selector string `json:"selector,omitempty"`
 	Phrase   string `json:"phrase,omitempty"`
 	Regex    string `json:"regex,omitempty"`
 	Severity string `json:"severity"`
@@ -27,6 +30,11 @@ type Ban struct {
 
 // Validate returns the offending JSON field and its problem.
 func (b Ban) Validate() (string, error) {
+	if b.Selector != "" {
+		if _, err := cascadia.ParseGroup(b.Selector); err != nil {
+			return "selector", fmt.Errorf("invalid CSS selector: %w", err)
+		}
+	}
 	_, key, err := b.rule()
 	return key, err
 }
@@ -79,6 +87,9 @@ func MatchBans(blocks []string, bans []Ban) []BanHit {
 		texts[i] = normalize(text)
 	}
 	for _, b := range bans {
+		if b.Selector != "" {
+			continue // CSS-scoped bans require an HTML document.
+		}
 		r, _, err := b.rule()
 		if err != nil {
 			continue

@@ -261,10 +261,10 @@ func baseRules() []Rule {
 			designDefaultsRule),
 		// copy
 		rule("copy.triplets", "Triplet endings stay below the site-wide soft limit",
-			"Warns at every occurrence when more than ten sentences or headings end in X, Y and Z (or und) across the checked pages. Repeated three-item cadences make copy sound generated. Rewrite the repeated lists as concrete claims; quotations, hidden copy and shared chrome are excluded.",
+			"Warns at every occurrence when sentences or headings ending in X, Y and Z (or und) exceed ten times the number of checked HTML pages. Repeated three-item cadences make copy sound generated. Rewrite the repeated lists as concrete claims; quotations, hidden copy, header/footer/nav landmarks and data-lfm-shared subtrees are excluded.",
 			func(d *Document) []Diagnostic { return SiteCopy([]*Document{d}) }),
 		rule("copy.cross-page", "Pages have distinct sentences and headings",
-			"Warns for groups of normalized sentences or headings of at least nine words on two or more checked pages. Repeated generic copy hides what distinguishes each page. Write page-specific facts; case, whitespace, punctuation and numeric tokens are normalized, while navigation, footers and identical shared chrome are excluded.",
+			"Warns for groups of normalized sentences or headings of at least nine words on two or more checked pages. Repeated generic copy hides what distinguishes each page. Write page-specific facts; case, whitespace, punctuation and numeric tokens are normalized, while header/footer/nav landmarks and data-lfm-shared subtrees are excluded.",
 			func(*Document) []Diagnostic { return nil }),
 		rule("copy.tells", "Visible copy avoids stock phrases and repeated sales constructions",
 			"Warns for narrow English and German stock phrases, repeated not-just-but and nicht-nur-sondern constructions from two uses, and four or more prose em dashes above one per hundred words outside German copy. Visitors recognize these as unedited machine text. Replace them with concrete facts; copy.reveal owns direct contrast reveals and copy.german-dash owns German em dashes. Quotations, code and subtrees with data-design-reason or data-slop-skip are exempt; see docs/copy-rules.md for justified configuration exceptions.",

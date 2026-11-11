@@ -105,6 +105,7 @@ var Spec = []Field{
 	{Path: "build.validation.copyBans.*", Kind: Object, Doc: "One copy ban; set exactly one nonblank phrase or regex."},
 	{Path: "build.validation.copyBans.*.phrase", Kind: String, Doc: "Case-insensitive literal phrase with Unicode letter/digit boundaries; surrounding whitespace is trimmed.", Example: `"hidden gem"`},
 	{Path: "build.validation.copyBans.*.regex", Kind: String, Doc: "Case-insensitive Go regular expression; explicit boundaries are optional. No lookaround or backreferences. Matched against normalized lowercase copy with straight apostrophes.", Example: `"\\b(traumhaft|malerisch)[\\p{L}]*"`},
+	{Path: "build.validation.copyBans.*.selector", Kind: String, Doc: "Optional CSS selector limiting this ban to matching HTML elements and their descendants. Omitted applies everywhere; scoped bans skip metadata and standalone text/Markdown.", Example: `".travel-cta"`},
 	{Path: "build.validation.copyBans.*.severity", Kind: String, Required: true, Values: []string{"error", "warning"}, Doc: "Error blocks compile; warning is advisory (reported as warn)."},
 	{Path: "build.validation.copyBans.*.hint", Kind: String, Doc: "Optional concrete fix; omitted uses a request to replace the wording with a fact.", Example: `"Name the place."`},
 	{Path: "build.validation.copyAllow", Kind: Objects, Doc: "Copy exceptions with a required reason.", Example: `[{"rule":"copy.superlative","phrase":"Traumhaft Hotel","reason":"Registered name"}]`},

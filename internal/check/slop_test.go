@@ -106,3 +106,53 @@ func TestCopySentenceDatedRecords(t *testing.T) {
 		})
 	}
 }
+
+func TestCopyBanCTAScope(t *testing.T) {
+	for _, tc := range []struct {
+		name, selector, html string
+		want                 int
+	}{
+		{"broad policy reproduces", "", `<div class="ctabox"><h2>Mietpreisbremse-Rechner</h2><a href="/rechner/">Mehr erfahren</a></div>`, 1},
+		{"calculator", ".travel", `<div class="ctabox"><h2>Mietpreisbremse-Rechner</h2><a href="/rechner/">Mehr erfahren</a></div>`, 0},
+		{"travel", ".travel", `<section class="travel"><p><a href="/reise/">Mehr erfahren</a></p></section>`, 1},
+		{"inline and selector list", "a[href='/reise/'], .travel", `<p><a href="/rechner/">Mehr erfahren</a> <a href="/reise/">Mehr <em>erfahren</em></a></p>`, 1},
+		{"hidden", ".travel", `<div hidden><p class="travel">Mehr erfahren</p></div>`, 0},
+		{"metadata", ".travel", `<meta name="description" content="Mehr erfahren">`, 0},
+		{"block boundary", ".travel", `<section class="travel"><p>Mehr</p><p>erfahren</p></section>`, 0},
+		{"shared marker keeps ban", ".travel", `<p class="travel" data-lfm-shared>Mehr erfahren</p>`, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d, err := Parse([]byte(tc.html), Options{CopyBans: []slop.Ban{{Regex: "mehr erfahren|jetzt buchen", Selector: tc.selector, Severity: "error"}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := slopRule("copy.banned")(d)
+			if len(got) != tc.want {
+				t.Fatalf("got %+v, want %d", got, tc.want)
+			}
+		})
+	}
+}
+
+func FuzzCopyBanScope(f *testing.F) {
+	f.Add(`<main class="travel"><p>Mehr <em>erfahren</em></p></main>`, ".travel")
+	f.Add(`<p>Mehr erfahren</p>`, "[")
+	f.Fuzz(func(t *testing.T, raw, selector string) {
+		if len(raw)+len(selector) > 32768 {
+			t.Skip()
+		}
+		ban := slop.Ban{Phrase: "mehr erfahren", Selector: selector, Severity: "error"}
+		if _, err := ban.Validate(); err != nil {
+			return
+		}
+		d, err := Parse([]byte(raw), Options{CopyBans: []slop.Ban{ban}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, hit := range slopRule("copy.banned")(d) {
+			if hit.Location.Line < 1 || hit.Hint == "" {
+				t.Fatal(hit)
+			}
+		}
+	})
+}

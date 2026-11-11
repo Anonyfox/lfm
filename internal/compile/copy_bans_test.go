@@ -25,6 +25,7 @@ func TestProjectCopyBans(t *testing.T) {
 		{name: "literal escaping", entry: `{"phrase":"gem.*","severity":"error"}`, html: `<p>gemstones</p>`},
 		{name: "skip", entry: `{"phrase":"hidden gem","severity":"error"}`, html: `<p hidden>hidden gem</p><blockquote>hidden gem</blockquote><p data-slop-skip>hidden gem</p><script>console.log("hidden gem")</script>`},
 		{name: "blocks", entry: `{"phrase":"hidden gem","severity":"error"}`, html: `<p>hidden</p><p>gem</p>`},
+		{name: "invalid selector", entry: `{"phrase":"gem","selector":"[","severity":"error"}`, problem: "selector"},
 		{name: "empty", entry: `{"phrase":"  ","severity":"error"}`, problem: "phrase"},
 		{name: "both", entry: `{"phrase":"gem","regex":"gem","severity":"error"}`, problem: "phrase"},
 		{name: "invalid regex", entry: `{"regex":"[","severity":"error"}`, problem: "regex"},

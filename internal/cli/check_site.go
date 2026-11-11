@@ -28,6 +28,16 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 	}
 	defer root.Close()
 	pages := []*check.Document{first}
+	var bans []check.Diagnostic
+	var banRules []check.Rule
+	if len(first.Options.CopyBans) > 0 {
+		for _, rule := range check.DefaultRules() {
+			if rule.ID == "copy.banned" {
+				banRules = append(banRules, rule)
+				break
+			}
+		}
+	}
 	total := len(first.Raw)
 	err = fs.WalkDir(root.FS(), ".", func(name string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -35,9 +45,6 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		}
 		if entry.IsDir() || !strings.EqualFold(filepath.Ext(name), ".html") || name == "index.html" {
 			return nil
-		}
-		if len(pages) >= 512 {
-			return fmt.Errorf("site copy check exceeds 512 HTML pages")
 		}
 		f, err := root.Open(name)
 		if err != nil {
@@ -61,11 +68,14 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		if err != nil {
 			return err
 		}
+		if len(options.CopyBans) > 0 {
+			bans = append(bans, check.Run(d, banRules, nil).Diagnostics...)
+		}
 		pages = append(pages, d)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return check.SiteCopy(pages), nil
+	return append(bans, check.SiteCopy(pages)...), nil
 }

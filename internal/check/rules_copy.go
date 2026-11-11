@@ -13,6 +13,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/aitext"
 	"github.com/Anonyfox/lfm/internal/slop"
+	"github.com/andybalholm/cascadia"
 	"golang.org/x/net/html"
 )
 
@@ -59,10 +60,10 @@ func visibleSegments(d *Document) []copySegment {
 }
 
 func segments(d *Document, quotes bool) []copySegment {
-	return textSegments(d, quotes, false)
+	return textSegments(d, quotes, false, false)
 }
 
-func textSegments(d *Document, quotes, tables bool) []copySegment {
+func textSegments(d *Document, quotes, tables, shared bool) []copySegment {
 	var body *html.Node
 	for _, n := range d.Elements {
 		if n.Data == "body" && n.Namespace == "" {
@@ -70,7 +71,11 @@ func textSegments(d *Document, quotes, tables bool) []copySegment {
 			break
 		}
 	}
-	if body == nil || skipCopy(body) {
+	return scopedSegments(body, quotes, tables, shared, nil)
+}
+
+func scopedSegments(body *html.Node, quotes, tables, shared bool, scope cascadia.Matcher) []copySegment {
+	if body == nil || skipCopy(body) || shared && sharedCopy(body) {
 		return nil
 	}
 	var out []copySegment
@@ -82,23 +87,31 @@ func textSegments(d *Document, quotes, tables bool) []copySegment {
 		}
 		b.Reset()
 	}
-	var walk func(*html.Node)
-	walk = func(n *html.Node) {
+	var walk func(*html.Node, bool)
+	walk = func(n *html.Node, included bool) {
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			switch c.Type {
 			case html.TextNode:
-				b.WriteString(c.Data)
+				if included {
+					b.WriteString(c.Data)
+				}
 			case html.ElementNode:
 				quotation := quotes && (c.Data == "blockquote" || c.Data == "q") && !HasAttr(c, "hidden") && Attr(c, "aria-hidden") != "true"
+				if shared && sharedCopy(c) {
+					b.WriteByte(' ')
+					continue
+				}
 				if c.Namespace != "" || skipCopy(c) && !quotation || tables && (c.Data == "table" || containsWord(Attr(c, "role"), "table") || containsWord(Attr(c, "role"), "grid")) {
 					continue
 				}
-				if copyBlocks[c.Data] {
+				selected := included || scope != nil && scope.Match(c)
+				boundary := selected != included
+				if copyBlocks[c.Data] || boundary {
 					b.WriteString(" ")
 					flush()
 					parent := owner
 					owner = c
-					walk(c)
+					walk(c, selected)
 					flush()
 					owner = parent
 					continue
@@ -106,13 +119,19 @@ func textSegments(d *Document, quotes, tables bool) []copySegment {
 				if c.Data == "br" {
 					b.WriteString(" ")
 				}
-				walk(c)
+				walk(c, selected)
 			}
 		}
 	}
-	walk(body)
+	walk(body, scope == nil || scope.Match(body))
 	flush()
 	return out
+}
+
+// sharedCopy identifies intentionally repeated site furniture for both site rules.
+func sharedCopy(n *html.Node) bool {
+	return HasAttr(n, "data-lfm-shared") || n.Data == "header" || n.Data == "footer" || n.Data == "nav" ||
+		containsWord(Attr(n, "role"), "banner") || containsWord(Attr(n, "role"), "contentinfo") || containsWord(Attr(n, "role"), "navigation")
 }
 
 func skipCopy(n *html.Node) bool {
@@ -669,7 +688,7 @@ func copyMachineRule(d *Document) []Diagnostic {
 	}
 	var paragraphs []string
 	var blocks []copySegment
-	for _, s := range textSegments(d, false, true) {
+	for _, s := range textSegments(d, false, true, false) {
 		if len(strings.Fields(s.text)) >= minMachineParagraph {
 			blocks = append(blocks, s)
 			paragraphs = append(paragraphs, s.text)

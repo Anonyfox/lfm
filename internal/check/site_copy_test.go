@@ -13,8 +13,9 @@ func TestSiteTriplets(t *testing.T) {
 		text   string
 		want   int
 	}{
-		{"at limit", []int{5, 5}, "Sand, Wind und Meer.", 0},
-		{"across pages", []int{5, 6}, "Sand, Wind und Meer.", 11},
+		{"at limit", []int{10, 10}, "Sand, Wind und Meer.", 0},
+		{"across pages", []int{10, 11}, "Sand, Wind und Meer.", 21},
+		{"large site", []int{10, 10, 10, 10, 10}, "Tools, notes and maps.", 0},
 		{"single page", []int{11}, "Tools, notes and maps.", 11},
 		{"Oxford comma", []int{11}, "Tools, notes, and maps!", 11},
 		{"two items", []int{11}, "Tools and maps.", 0},
@@ -78,6 +79,50 @@ func TestSiteDuplicateGroups(t *testing.T) {
 				if !strings.Contains(got[0].Hint, "0.html:") || !strings.Contains(got[0].Hint, "1.html:") || strings.Count(got[0].Hint, "0.html:") != 2 {
 					t.Fatal(got)
 				}
+			}
+		})
+	}
+}
+
+func TestSiteSharedCopy(t *testing.T) {
+	for _, tc := range []struct {
+		name, open, close string
+		shared            bool
+	}{
+		{"authored", "<section>", "</section>", false},
+		{"header", "<header>", "</header>", true},
+		{"footer", "<footer>", "</footer>", true},
+		{"nav", "<nav>", "</nav>", true},
+		{"banner", `<div role="banner">`, "</div>", true},
+		{"contentinfo", `<div role="contentinfo">`, "</div>", true},
+		{"navigation", `<div role="navigation">`, "</div>", true},
+		{"marked block", `<div data-lfm-shared>`, "</div>", true},
+		{"marked inline", `<span data-lfm-shared="legal">`, "</span>", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var pages []*Document
+			for i := range 3 {
+				// Shared on two of three pages: no all-pages heuristic may hide it.
+				raw := "<main><p>Distinct page.</p></main>"
+				if i < 2 {
+					raw = "<main>" + tc.open + strings.Repeat("<p>We send you detailed maps covering dunes, paths and beaches.</p>", 16) + tc.close + "</main>"
+					if tc.name == "marked inline" {
+						raw = "<main><p>" + tc.open + strings.Repeat("We send you detailed maps covering dunes, paths and beaches. ", 16) + tc.close + "</p></main>"
+					}
+				}
+				d, err := Parse([]byte(raw), Options{File: fmt.Sprintf("%d.html", i)})
+				if err != nil {
+					t.Fatal(err)
+				}
+				pages = append(pages, d)
+			}
+			got := SiteCopy(pages)
+			want := 33 // 32 triplets and one duplicate group.
+			if tc.shared {
+				want = 0
+			}
+			if len(got) != want {
+				t.Fatalf("got %d, want %d: %+v", len(got), want, got)
 			}
 		})
 	}

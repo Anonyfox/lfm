@@ -679,7 +679,7 @@ func TestCheckFolderCopyJSON(t *testing.T) {
 	for _, tc := range []struct {
 		target           string
 		triplets, groups int
-	}{{dir, 12, 2}, {filepath.Join(dir, "index.html"), 0, 0}} {
+	}{{dir, 0, 2}, {filepath.Join(dir, "index.html"), 0, 0}} {
 		_, out, errs := run(t, "check", tc.target, "--json")
 		var r checkResult
 		if err := json.Unmarshal([]byte(out), &r); err != nil {
@@ -700,5 +700,90 @@ func TestCheckFolderCopyJSON(t *testing.T) {
 		if triplets != tc.triplets || groups != tc.groups {
 			t.Fatalf("%s: triplets=%d groups=%d: %s", tc.target, triplets, groups, out)
 		}
+	}
+}
+
+func TestCheckFolderProjectBans(t *testing.T) {
+	for _, tc := range []struct {
+		name, text, severity string
+		want                 int
+	}{
+		{"clean", "Concrete facts.", "error", 0},
+		{"nested error", "A hidden gem.", "error", 1},
+		{"nested warning", "A hidden gem.", "warning", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			projectDir, built := t.TempDir(), t.TempDir()
+			if _, err := scaffold.Create(projectDir); err != nil {
+				t.Fatal(err)
+			}
+			configPath := filepath.Join(projectDir, "lfm.json")
+			raw, err := os.ReadFile(configPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var config map[string]any
+			if err := json.Unmarshal(raw, &config); err != nil {
+				t.Fatal(err)
+			}
+			config["build"] = map[string]any{"validation": map[string]any{"copyBans": []any{map[string]any{"phrase": "hidden gem", "severity": tc.severity}}}}
+			raw, err = json.Marshal(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(configPath, raw, 0600); err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range []string{"index.html", "nested/other.html"} {
+				path := filepath.Join(built, name)
+				if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+					t.Fatal(err)
+				}
+				page := checkHTML
+				if name != "index.html" {
+					page = strings.Replace(page, "</main>", "<p>"+tc.text+"</p></main>", 1)
+				}
+				if err := os.WriteFile(path, []byte(page), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, out, errs := run(t, "check", built, "--project", projectDir, "--json")
+			var result checkResult
+			if err := json.Unmarshal([]byte(out), &result); err != nil {
+				t.Fatal(err, out, errs)
+			}
+			var bans []check.Diagnostic
+			for _, d := range result.Validation.Diagnostics {
+				if d.Rule == "copy.banned" {
+					bans = append(bans, d)
+				}
+			}
+			if len(bans) != tc.want {
+				t.Fatal(out)
+			}
+			if tc.want > 0 && (bans[0].Location.File != "nested/other.html" || string(bans[0].Severity) != strings.ReplaceAll(tc.severity, "warning", "warn")) {
+				t.Fatal(bans)
+			}
+		})
+	}
+}
+
+func TestFolderCopyPageCount(t *testing.T) {
+	for _, count := range []int{512, 531} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			dir := t.TempDir()
+			first, err := check.Parse([]byte("<main>Clean root.</main>"), check.Options{File: "index.html"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := 1; i < count; i++ {
+				if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("%d.html", i)), []byte("<main>Clean copy.</main>"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if got, err := folderCopy(dir, first); err != nil || len(got) != 0 {
+				t.Fatal(got, err)
+			}
+		})
 	}
 }
