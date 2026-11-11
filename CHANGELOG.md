@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.1.28 (2026-11-11)
 
 - Site copy skips header/footer/nav landmarks and `data-lfm-shared` subtrees for both duplicate and triplet checks, with a triplet budget of ten times the checked HTML page count.
 - Folder checks apply project copy bans to every HTML page and remove the 512-page cap while retaining the 8 MiB/page and 32 MiB HTML limits.
