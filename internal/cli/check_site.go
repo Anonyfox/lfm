@@ -58,6 +58,11 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		if closeErr != nil {
 			return closeErr
 		}
+		// Empty files have no copy and must not add unbounded parsed documents
+		// or increase the site's editorial budget without contributing HTML.
+		if len(raw) == 0 {
+			return nil
+		}
 		total += len(raw)
 		if len(raw) > 8<<20 || total > 32<<20 {
 			return fmt.Errorf("site copy check exceeds HTML byte limit at %s", name)

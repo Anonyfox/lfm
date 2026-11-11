@@ -769,19 +769,26 @@ func TestCheckFolderProjectBans(t *testing.T) {
 }
 
 func TestFolderCopyPageCount(t *testing.T) {
-	for _, count := range []int{512, 531} {
-		t.Run(fmt.Sprint(count), func(t *testing.T) {
+	for _, tc := range []struct {
+		name, page, first string
+		count, want       int
+	}{
+		{"at old cap", "<main>Clean copy.</main>", "Clean root.", 512, 0},
+		{"over old cap", "<main>Clean copy.</main>", "Clean root.", 531, 0},
+		{"empty files do not dilute budget", "", strings.Repeat("<p>Tools, notes and maps.</p>", 11), 531, 11},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			first, err := check.Parse([]byte("<main>Clean root.</main>"), check.Options{File: "index.html"})
+			first, err := check.Parse([]byte("<main>"+tc.first+"</main>"), check.Options{File: "index.html"})
 			if err != nil {
 				t.Fatal(err)
 			}
-			for i := 1; i < count; i++ {
-				if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("%d.html", i)), []byte("<main>Clean copy.</main>"), 0600); err != nil {
+			for i := 1; i < tc.count; i++ {
+				if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("%d.html", i)), []byte(tc.page), 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if got, err := folderCopy(dir, first); err != nil || len(got) != 0 {
+			if got, err := folderCopy(dir, first); err != nil || len(got) != tc.want {
 				t.Fatal(got, err)
 			}
 		})

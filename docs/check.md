@@ -135,7 +135,9 @@ A local **folder** also scans its HTML files recursively, in path order, for
 release checks still describe the root index.html. Explicit files and URLs check
 one page; URLs are not crawled. The aggregate scan is serial and confined to the
 folder (including symlink reads), with no HTML page-count cap, 8 MiB per page and
-32 MiB of HTML total; an incomplete scan reports `build.failed`.
+32 MiB of HTML total; an incomplete scan reports `build.failed`. Empty files
+are ignored by the aggregate scan and contribute no page budget, keeping parsed
+page retention bounded by the HTML byte limit.
 
 `copy.triplets` warns at **every occurrence** when the total exceeds **10 × the
 number of checked HTML pages**. Each page contributes ten endings to the site
