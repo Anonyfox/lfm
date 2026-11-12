@@ -115,9 +115,9 @@ Look at every tab there: totals, highlights, charts, empty rows, the German form
 
 ## Phase 3: release
 
-`lfm compile --release --validate` prints a start-here PDF per edition (the copy button first, the steps from the
-guide sheet, Excel and Numbers notes, the licence), and renders the listing images. With LibreOffice
-installed it recalculates every file there too: `spreadsheet.compat` names any cell another app computes
+`lfm compile --release` prints a start-here PDF per edition (the copy button first, the steps from the
+guide sheet, Excel and Numbers notes, the licence), and renders the listing images. `--validate`
+recalculates every file in LibreOffice when installed: `spreadsheet.compat` names any cell another app computes
 differently. The report's `optional` line names helpers that are not installed and what each would add;
 pass it on to the owner, whose choice it is. Open one
 .xlsx in Excel or LibreOffice yourself and type a transaction; the dashboard must follow.

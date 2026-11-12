@@ -172,7 +172,7 @@ func deliverBundle(p project.Project, r *bundle.Report, parts []part, accent str
 	dist, channels, issues := bundle.Distribution(*r, all.Files, all.Data, groups, listingImages, facts, r.Summary.Pending, time.Now().Format("2006-01-02"))
 	if heroErr != nil {
 		issues = append(issues, diagnostic.Diagnostic{Rule: bundle.RuleChannels, Severity: diagnostic.Warning, Location: diagnostic.Location{File: bundle.ListingFile, Line: 1, Column: 1},
-			Message: "The bundle's first image, every unit's cover together, could not be rendered: " + heroErr.Error(), Hint: "Check each unit's cover or first page, then run 'lfm compile --release --validate' again."})
+			Message: "The bundle's first image, every unit's cover together, could not be rendered: " + heroErr.Error(), Hint: "Check each unit's cover or first page, then run 'lfm compile --release' again."})
 	}
 	result.distribute("bundle", dist)
 	r.Summary.Channels = channels
@@ -201,7 +201,7 @@ func bundleImages(p project.Project, r *bundle.Report, parts []part, accent stri
 		doc := bundle.HeroDoc(covers, accent)
 		key := printKey("bundle hero", append(append([]byte{}, doc...), made...), assets)
 		press := st.press()
-		hero, err := press.job(key, "01-bundle.jpg", func(printer *release.Printer) ([]byte, error) {
+		hero, err := press.job(key, func(printer *release.Printer) ([]byte, error) {
 			for _, pt := range parts {
 				if pt.render == nil {
 					continue

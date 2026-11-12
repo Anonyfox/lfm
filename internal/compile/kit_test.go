@@ -102,7 +102,8 @@ func TestPrintChecksUseSuccessfulLookup(t *testing.T) {
 	st.files["key"] = "missing.pdf"
 	checked := 0
 	jobs := []printJob{{key: "key", slot: "pdf", doc: func() []byte { return []byte(`<!doctype html><p>Print</p>`) }, checks: func([]byte, *release.Printer) []finding { checked++; return nil }}}
-	for _, want := range []int{1, 1} {
+	for i, want := range []int{0, 1, 2, 2} {
+		st.validate = i == 1 || i == 2
 		pdfs, _ := printAll(pr, jobs, nil, "document.layout", &warnings{})
 		if checked != want || pdfs["pdf"] == nil {
 			t.Fatalf("checks=%d PDFs=%d", checked, len(pdfs))

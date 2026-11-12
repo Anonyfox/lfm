@@ -1,5 +1,10 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.2.1 (2026-11-12)
+
+- `--release` builds the shippable page: critical CSS and prints, using low-priority Chrome on cache misses, never Lighthouse. CSS extraction failures stop publishing.
+- `--validate` adds Lighthouse, browser audits and layout checks for opt-in proof/QA runs, including checks on reused prints.
+
 ## 0.2.0 (2026-11-12)
 
 - Fast releases reuse browser results and stamped prints; missing prints stop publishing.

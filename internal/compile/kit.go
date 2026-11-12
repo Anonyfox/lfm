@@ -23,7 +23,7 @@ import (
 )
 
 // The steps every deliverable of editable files shares (documents, decks,
-// and for listing images spreadsheets): printing with checks on fresh
+// and for listing images spreadsheets): printing with checks during validation on
 // prints, second opinions from other apps, start guides, reused ZIPs and
 // listing images.
 
@@ -41,34 +41,32 @@ func (w *warnings) add(file, rule, message, hint string) {
 
 // printJob is one PDF a built file ships.
 type printJob struct {
-	output     string        // pending PDF filename, independent of its lookup slot
 	key, slot  string        // its print key; where its PDF goes
 	file, name string        // the source, and the file the PDF belongs to
 	doc        func() []byte // what Chrome prints
-	// checks hold a fresh print to its plan; printer runs page checks
+	// checks hold a print to its plan; printer runs page checks
 	// such as boxes that cut their text off.
 	checks func(pdf []byte, printer *release.Printer) []finding
 }
 
 // printAll prints the jobs in order, reusing every stamped PDF, and
-// returns the PDFs by slot and what the checks found on fresh prints.
+// returns the PDFs by slot and what the checks found during validation.
 func printAll(pr *press, jobs []printJob, fonts map[string][]byte, rule string, w *warnings) (map[string][]byte, []finding) {
 	pdfs := map[string][]byte{}
 	var found []finding
 
 	for _, j := range jobs {
-		fresh := pr.lookup(j.key) == nil
-		pdf, err := pr.job(j.key, j.output, func(printer *release.Printer) ([]byte, error) {
+		pdf, err := pr.job(j.key, func(printer *release.Printer) ([]byte, error) {
 			return printer.Print(j.doc(), fonts, false)
 		})
-		if err == nil && pdf != nil && fresh && j.checks != nil {
+		if err == nil && pdf != nil && pr.validate && j.checks != nil {
 			printer, _ := pr.printerFor()
 			found = append(found, j.checks(pdf, printer)...)
 		}
 
 		switch {
 		case err != nil:
-			w.add(j.file, rule, "The PDF of "+j.name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release --validate'.")
+			w.add(j.file, rule, "The PDF of "+j.name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
 		case pdf != nil:
 			pdfs[j.slot] = pdf
 		}
@@ -157,9 +155,6 @@ func listingImages(pr *press, kind, sell string, planned []listingPlan, render f
 		out[i] = deliver.Image{Name: plan.Name, Data: pr.lookup(plan.Key)}
 		if out[i].Data == nil {
 			missing = append(missing, plan)
-			if pr.cacheOnly {
-				pr.pendingFiles = append(pr.pendingFiles, plan.Name)
-			}
 			indices[plan.Name] = i
 		}
 	}

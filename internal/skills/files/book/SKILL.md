@@ -196,7 +196,7 @@ Once every chapter exists, read the book in one pass with fresh eyes, as its har
   `@font-face` rules in `[[.Book.Dir]]/book.css`. That file may refine lfm's book styles.
 - Once every chapter exists and no row is planned, compile writes the EPUB to `distribution/book/`.
   With `sell: page`, `output/<path>/` also holds the download page and chosen formats. Chrome prints the PDF.
-  `--release --validate` prints the paperback and checks layout; unchanged prints are reused. Incomplete books get previews.
+  `--release` prints the paperback; `--validate` checks layout; unchanged prints are reused. Incomplete books get previews.
 - Open the PDF and look at every page: cover, title page, contents, each chapter opening, every image
   and table, the page breaks. Open the EPUB in a reader when you can. Fix what you see, compile again.
 

@@ -13,14 +13,10 @@ import (
 	"golang.org/x/net/html"
 )
 
-type optionalReleaseError struct{ error }
+type cssExtractionError struct{ error }
 
 func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 	report := &release.Result{}
-	if _, err := release.BrowserPath(); err != nil {
-		report.Reason = "Critical CSS skipped: " + err.Error()
-		return report, optionalReleaseError{err}
-	}
 	var sheets []*html.Node
 	var blocked bool
 	var scan func(*html.Node)
@@ -82,7 +78,7 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 	}
 	observed, err := release.Analyze(b.ctx, preview.Bytes(), assets)
 	if err != nil {
-		return report, optionalReleaseError{fmt.Errorf("release CSS analysis: %w", err)}
+		return report, cssExtractionError{fmt.Errorf("release CSS analysis: %w", err)}
 	}
 	observed.OriginalBytes = len(full)
 	if observed.Reason != "" {
@@ -128,9 +124,9 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 	return &observed, nil
 }
 
-func optionalReleaseFailure(err error) bool {
-	var optional optionalReleaseError
-	return errors.As(err, &optional)
+func cssExtractionFailure(err error) bool {
+	var extraction cssExtractionError
+	return errors.As(err, &extraction)
 }
 
 // imageHints fills the loading and fetch-priority hints the author left out,

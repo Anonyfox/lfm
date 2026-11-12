@@ -71,7 +71,7 @@ func (b *builder) optimizeWithCache(doc *html.Node, result *Result, run func(*ht
 		return err
 	}
 	replaceDocument(doc, parsed)
-	if result.Release != nil && len(b.notices) == before && !strings.HasPrefix(result.Release.Reason, "Critical CSS skipped:") {
+	if result.Release != nil && len(b.notices) == before {
 		changed := map[string][]byte{}
 		for name, raw := range b.sidecars() {
 			if previous, ok := beforeAssets[name]; !ok || !bytes.Equal(raw, previous) {

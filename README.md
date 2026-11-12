@@ -68,7 +68,7 @@ With Go 1.26 or newer:
 go install github.com/Anonyfox/lfm/cmd/lfm@latest
 ```
 
-Optional: Chrome or Chromium for `lfm compile --release --validate`, and Lighthouse for its scores. Missing validation tools
+Chrome or Chromium builds critical CSS and prints with `lfm compile --release`; `--validate` adds browser audits and Lighthouse scores. Missing validation tools
 are reported as errors, never installed.
 
 ## Start a page
@@ -174,7 +174,7 @@ framework or server runtime; see [compiling](docs/compiling.md) for output detai
 ### Do I need Chrome or Lighthouse to use lfm?
 
 They are optional: Chrome or Chromium enables browser checks in `lfm compile --release --validate`, and
-Lighthouse adds its scores. Browser validation requires both tools; fast releases reuse cached results.
+Lighthouse adds its scores. Browser validation requires both tools; releases reuse cached outputs and render missing critical CSS and prints.
 
 ## Docs
 

@@ -9,7 +9,7 @@
   stores       distribution/book/ · 1 channel
                kdp
   book         Signal · fiction · 2 chapters: 2 written, 0 planned · 1,250 of 1,200 words · sold in shops
-               EPUB 50.8 KiB → distribution/book/ · the paperback prints with --release --validate
+               EPUB 50.8 KiB → distribution/book/ · the paperback prints with --release
   book         Signal · fiction · 3 chapters: 1 written, 2 planned · 400 of 1,800 words · sold in shops
                preview EPUB → distribution/book/preview/signal-preview.epub
   book         Rye · 1 chapter: 1 written, 0 planned · 600 of 600 words

@@ -16,7 +16,8 @@ review or deploy) and the skill that covers it. Follow that line until it says d
 
 - `lfm compile` checks and builds. Fix every error and warning it prints; each one says how.
   `--json` prints the same result, the findings and the next step as JSON.
-- `lfm compile --release --validate` also measures the page in headless Chrome, and with Lighthouse when installed.
+- `lfm compile --release` builds critical CSS and prints, using low-priority Chrome on cache misses.
+  `--validate` adds Lighthouse, browser audits and layout checks for proof/QA runs.
 - `lfm serve --open` previews the page and recompiles on every save.
 - `lfm rules` lists every check; `lfm rules <id>` explains one.
 - `lfm skills` lists the skills; `lfm skills <topic>` prints one; `lfm skills install` installs all.

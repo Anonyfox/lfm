@@ -8,11 +8,11 @@ of them report through the same findings, so a single run lists everything that 
 | load | Read `lfm.json` and `data/`; every config problem is reported at its JSON key. Check the research files and `concept.md`. |
 | prepare | Check every template binding, link and offer statically, then render the page. |
 | assemble | Resolve, bundle and pack every referenced resource; inspect images and fonts. |
-| optimize | `--validate`: measure and split critical CSS in Chrome. Fast `--release`: reuse cached optimization, or keep full CSS and authored hints with one warning. |
+| optimize | `--release`: reuse cached optimization, or measure and split critical CSS in low-priority Chrome. |
 | finalize | Serialize and compact the HTML; generate crawler discovery files. |
 | verify | Run every check on the exact bytes that will be written. |
-| deliver | When `deliverables/book/`, `deliverables/printable/`, `deliverables/spreadsheet/`, `deliverables/document/` or `deliverables/deck/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of the units it holds when one is configured. PDFs, a book's paperback and covers, a printable's and a spreadsheet's listing images and start PDFs are made in Chrome by `--release --validate` and reused by every later compile while their inputs are unchanged. Fast `--release` fails with `release.pending` if any print is missing. |
-| audit | `--validate`: runtime probe, layout audit and Lighthouse. Fast `--release`: reuse the exact artifact’s cached findings, or skip with `release.validate`. |
+| deliver | When `deliverables/book/`, `deliverables/printable/`, `deliverables/spreadsheet/`, `deliverables/document/` or `deliverables/deck/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of the units it holds when one is configured. PDFs, a book's paperback and covers, a printable's and a spreadsheet's listing images and start PDFs are made in Chrome by `--release` and reused by every later compile while their inputs are unchanged. Missing prints are rendered by `--release`. |
+| audit | `--validate`: runtime probe, layout audit and Lighthouse. `--release`: reuse the exact artifact’s cached findings, or skip silently. |
 | publish | Replace `output/` with one rename. |
 
 Nothing is written before verify passes. A failed compile keeps the previous `output/` and exits with code 1.
@@ -26,16 +26,15 @@ the build details, including `validated` for the requested browser-validation mo
 
 ## Release and validation
 
-`--release` is the deploy build and never starts a browser. Everything a browser measures or makes is
-cached by the exact inputs: the critical-CSS split and image hints by the page and asset bytes plus the
-lfm, Chrome and Lighthouse versions; audit findings by the served artifact; PDFs and listing images by the
-key stamped into each file. A release reuses whatever matches, so after one validation the same bytes ship
-identically without Chrome. On a miss it keeps the complete CSS and authored image hints (correct, only
-less optimized) and reports one `release.validate` warning; a missing print is a `release.pending` error,
-because a deliverable is never published without its files. Tool versions are probed once per executable
-(path, size, modification time) and remembered in the cache.
+`--release` builds the shippable page: critical CSS and prints, with low-priority Chrome only on cache misses, never Lighthouse.
+`--validate` (implies `--release`) adds Lighthouse, browser audits and layout checks for opt-in proof/QA runs.
 
-`--validate` (implies `--release`) runs every browser stage and check, the same rules at the same levels.
+Optimization and prints are cached by their exact inputs; cold and warm optimization output bytes match.
+Critical-CSS extraction failures block publishing and preserve the previous output. Legitimate full-CSS
+fallbacks (small sheets, external resources/CSP, independent loading semantics or insufficient savings)
+remain valid. Cached audit findings are reused when available; a miss is silent. Validation checks
+reused prints too. Tool versions are probed once per executable and remembered in the cache.
+
 Browser work is limited so several builds on one machine queue instead of stacking:
 
 - One browser pool at a time per machine: every Chrome and Lighthouse launch holds an exclusive lock on
@@ -106,11 +105,9 @@ noindex, sending no referrer) and, once every chapter is written, `<slug>.epub` 
 EPUB is EPUB 3 with a navigation document and an NCX for older readers, built reproducibly and checked by
 lfm itself: mimetype first and stored, every manifest item present and every file declared, every link
 resolving. The PDF is printed at the concept's trim size with page numbers, a cover page and a linked
-contents page. Validation prints new PDFs; ordinary compiles also render the screen PDF when needed,
-while fast `--release` only reuses stamped prints. Every PDF it writes carries
+contents page. `--release` prints missing or stale PDFs; ordinary compiles also render the screen PDF when needed. Every PDF it writes carries
 the key of the inputs it was printed from in its document information, and any later compile, `lfm serve`
-included, reuses a PDF from `output/` or `distribution/` whose key still matches. An ordinary compile of a
-changed book keeps the EPUB current and leaves the PDF out until the next release; the report says so. The page
+included, reuses a PDF from `output/` or `distribution/` whose key still matches. An ordinary compile keeps the EPUB and screen PDF current; paperback prints are built by `--release`. The page
 itself must never contain the path (`book.delivery`). Stripe's after-payment redirect and the invoice
 email are how buyers get there; `lfm compile` prints the address.
 
@@ -166,9 +163,9 @@ buyers elsewhere.
 A spreadsheet builds two Excel files per edition on every compile: `<slug>-<edition>.xlsx`, the blank
 template, and `<slug>-<edition>-example.xlsx`, filled with the example dataset. Every formula is written
 with its computed value, so the files open with numbers in any app, and a rebuild of unchanged sources is
-byte-identical. `--release --validate` adds `<slug>-<edition>-start.pdf`, the start-here guide with the Google Sheets
-copy link from `deliverables.spreadsheet.sheets`, and recalculates every file in LibreOffice when it is
-installed (`spreadsheet.compat`). The download page lists the copy links first, then the files. With
+byte-identical. `--release` adds `<slug>-<edition>-start.pdf`, the start-here guide with the Google Sheets
+copy link from `deliverables.spreadsheet.sheets`. `--validate` recalculates every file in LibreOffice when
+it is installed (`spreadsheet.compat`). The download page lists the copy links first, then the files. With
 `deliverables/spreadsheet/listing.md`, `distribution/spreadsheet/` holds every file once, `images/` with
 the listing images (the dashboard alone, every tab, each tab, what it works with) and a guide per shop;
 for Etsy, more than five files are zipped per edition.
@@ -178,11 +175,11 @@ for Etsy, more than five files are zipped per edition.
 A document set builds one `.docx` per document, language and paper size on every compile, each stamped
 with the key of its inputs and reused while they are unchanged, and ships one ZIP per edition
 (`<slug>-<language>-<paper>.zip`): the documents named by their titles, the fonts with their licence and,
-after a release, `PDF/` with the print of every document and the start guide. `--release --validate` prints each
-document's print layout, which follows the .docx line for line, in Chrome and holds it to its planned
-pages, paper and fonts (`document.layout`), renders the listing images from the first pages and prints
+after a release, `PDF/` with the print of every document and the start guide. `--release` prints each
+document's print layout, which follows the .docx line for line, in Chrome, renders the listing images from the first pages and prints
 the start guides; later compiles reuse all of it from the published ZIPs. A release needs Chrome alone:
-LibreOffice, when installed, opens every .docx as a second opinion. The report names optional
+`--validate` checks planned pages, paper and fonts (`document.layout`); LibreOffice, when installed,
+opens every .docx as a second opinion. The report names optional
 helpers that are not installed and what each would add; none is a warning. With
 `deliverables/document/listing.md`, `distribution/document/` holds the ZIPs, the images and a guide per
 shop.
@@ -193,11 +190,11 @@ A deck set builds one `.pptx` per deck and language on every compile: a 16:9 sli
 (title, title and content, section, two content, picture, statement) whose placeholders every slide fills,
 the Look's fonts embedded, and speaker notes from `::: notes` on notes pages. Every compile measures each
 slide's text with the fonts and warns where it would not fit (`deck.design`). It ships one ZIP per language
-(`<slug>-<language>.zip`); `--release --validate` adds `PDF/` with the slides, the speaker notes beside every slide on
-each of the language's papers and, when the deck asks questions, a quiz sheet with its answer key, holds
-every slide's boxes to what they show (`deck.layout`), renders the listing images from the real slides,
-notes and quiz sheet and prints the start guides. LibreOffice, when installed, opens every .pptx as a
-second opinion.
+(`<slug>-<language>.zip`); `--release` adds `PDF/` with the slides, the speaker notes beside every slide on
+each of the language's papers and, when the deck asks questions, a quiz sheet with its answer key. It renders
+the listing images from the real slides, notes and quiz sheet and prints the start guides. `--validate`
+checks every slide's boxes against what they show (`deck.layout`); LibreOffice, when installed, opens
+every .pptx as a second opinion.
 
 Compiles of the same project are serialized across processes by locking the project directory; no lock
 file is created, and a second compile waits and says so. Nothing is written into the project except
@@ -209,7 +206,7 @@ unchanged documents, decks or workbooks does not open them again.
 
 ## Release
 
-`lfm compile --release --validate` adds three stages that need installed tools:
+`lfm compile --release` builds critical CSS and prints. `--validate` adds the runtime/layout audit and Lighthouse stages below:
 
 1. **Critical CSS** (45 s per browser operation): the first screen is rendered at 390×844, 768×1024 and 1440×900; the rules it
    uses stay in the head and the complete stylesheet loads after. A rule counts by the elements it styles:
@@ -253,7 +250,7 @@ Both then check standard Linux/macOS install paths and finally the bin directory
 (`npm install -g lighthouse`). Lighthouse also checks the project’s `node_modules/.bin` before npm global
 bin. `lfm doctor [directory]` reports both resolved absolute paths or missing-tool reasons; `--json`
 contains the same paths, reasons and next step. Missing
-tools produce a release error with setup guidance; lfm never installs anything.
+validation tools produce a validation error with setup guidance; lfm never installs anything.
 
 Lighthouse runs serialize across processes sharing the user cache, using an advisory `flock` on
 `<user-cache>/lfm-lighthouse.lock` (outside the pruned artifacts). The lock covers Chrome startup,
@@ -282,7 +279,7 @@ sources, and injects its reload script into responses, never into `output/`.
 
 `socialImage.src` accepts a local HTML card as well as a PNG or JPEG. Compile bundles the card's relative
 images, fonts and CSS, renders it through Chrome at 1200×630 CSS pixels, and emits a hashed image URL.
-This also runs without `--release --validate`; an unchanged card and its assets reuse the previous render in
+This also runs without `--release`; an unchanged card and its assets reuse the previous render in
 `output/`. Set `LFM_CHROME` if Chrome is not in PATH. A render has a 60-second tab timeout.
 
 Release optimization and audits are cached under the system user cache directory in `lfm/release/`.
@@ -327,16 +324,11 @@ not currently generate replacement width variants or rewrite authored srcsets.
 
 ## Fast releases and validation
 
-`lfm compile --release` deploys using cached optimization and audit results.
-On a cache miss it keeps the complete CSS and authored image hints and reports
-`release.validate`. Pending Chrome-made deliverables stop publishing with
-`release.pending`; existing stamped files are reused.
-
-`lfm compile --release --validate` (or `lfm compile --validate`) runs browser
-optimization, all audits, and deliverable printing. The optimize and audit stages
-cache the exact artifact and tool identities; subsequent fast releases reuse
-those results to avoid repeating browser work. The deliver stage reuses stamped
-prints in either mode. HTML social cards retain their content cache in all modes.
+`lfm compile --release` builds critical CSS and missing prints with low-priority Chrome on cache
+misses, never Lighthouse. Warm optimization and prints are reused without Chrome.
+`lfm compile --validate` adds Lighthouse, browser audits and deliverable layout/office checks,
+including checks on reused prints. Audit cache misses are silent in plain releases.
+HTML social cards retain their content cache in all modes.
 
 Every browser and Lighthouse launch takes the box-wide `/tmp/lfm-browser.lock`
 (`LFM_BROWSER_LOCK` overrides it). Waiting is cancellable; nested work in the

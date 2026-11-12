@@ -132,9 +132,9 @@ sold in shops: read every slide and its notes there.
 
 ## Phase 4: release
 
-`lfm compile --release --validate` prints every deck in Chrome laid out as its .pptx places each box: one page a
+`lfm compile --release` prints every deck in Chrome laid out as its .pptx places each box: one page a
 slide, the speaker notes beside each slide on paper, and the quiz sheet with its answer key on a page of
-its own. `deck.layout` names a slide whose box cuts its text off, a print of other pages or size, or a
+its own. With `--validate`, `deck.layout` names a slide whose box cuts its text off, a print of other pages or size, or a
 font the theme does not have; LibreOffice, when installed, opens the real .pptx too, and the report's
 `optional` line names helpers that are not installed and what each would add, for the owner to decide.
 The release ships each print in the language's ZIP, prints the start guide (open in PowerPoint, Google

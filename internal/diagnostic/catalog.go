@@ -6,8 +6,8 @@ import "strings"
 // Lighthouse owns a versioned audit namespace, so its concrete IDs are dynamic.
 func OperationalRules() []RuleInfo {
 	return []RuleInfo{
-		{ID: "release.validate", Summary: "Browser validation has run for these bytes", Help: "When a fast release has no cached browser results, complete CSS and authored image hints remain; browser audits and deliverable layout and office checks have not run on these bytes. Run lfm compile --release --validate; later releases reuse its results without Chrome."},
-		{ID: "release.pending", Summary: "Every Chrome-made deliverable file is available", Help: "When a fast release needs a print that has not been stamped, publishing stops to keep deliverables complete. Missing PDFs or listing images cannot be shipped. Run lfm compile --release --validate once; later releases reuse the printed files.", Required: true},
+		{ID: "release.validate", Summary: "Browser validation has run for these bytes", Help: "Since 0.2.1 this rule is no longer emitted. The ID remains valid for existing configuration overrides. Run lfm compile --validate for browser audits and layout checks."},
+		{ID: "release.pending", Summary: "Every Chrome-made deliverable file is available", Help: "Since 0.2.1 this rule is no longer emitted. Releases render missing prints automatically. Run lfm compile --release to build shippable deliverables.", Required: true},
 		{ID: "build.stale", Summary: "Built output matches the current source", Help: "With lfm check --project and no target, an in-memory compile differs from output/. A stale baseline can hide recent source changes. Run lfm compile to rebuild the named files and check again."},
 		{
 			ID:       "build.failed",
@@ -31,9 +31,10 @@ func OperationalRules() []RuleInfo {
 			Help:    "The compactor found input it could not shrink without risk and kept the serialized HTML byte for byte. The page is still correct and fully checked, only slightly larger. This indicates a compactor limitation, so report the input as an lfm bug.",
 		},
 		{
-			ID:      "release.css",
-			Summary: "The --release --validate critical-CSS pass in headless Chrome finished",
-			Help:    "With --release --validate, lfm measures above-the-fold CSS in Chrome so the first paint does not wait for the full stylesheet. When that pass fails, the complete CSS is kept and the page still works, but first render is slower. Check that Chrome starts and the page renders, then compile with --release --validate again.",
+			ID:       "release.css",
+			Summary:  "The --release critical-CSS pass in headless Chrome finished",
+			Help:     "With --release, lfm extracts critical CSS in Chrome when splitting applies. Extraction failure blocks publishing and preserves the previous output. Check Chrome startup and page rendering, then run lfm compile --release again.",
+			Required: true,
 		},
 		{
 			ID:      "release.browser",
@@ -53,7 +54,7 @@ func OperationalRules() []RuleInfo {
 		{
 			ID:      "release.lighthouse",
 			Summary: "Installed Lighthouse ran and produced a complete audit",
-			Help:    "With --release --validate, lfm runs an installed Lighthouse against the artifact; this reports an error when a run fails, times out or returns incomplete JSON. A missing executable also reports an error because release requires these measurements. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
+			Help:    "With --release --validate, lfm runs an installed Lighthouse against the artifact; this reports an error when a run fails, times out or returns incomplete JSON. A missing executable also reports an error because validation requires these measurements. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
 		},
 		{
 			ID:      "lighthouse.*",

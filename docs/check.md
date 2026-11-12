@@ -232,5 +232,5 @@ metadata and do not run on standalone text/Markdown, which has no DOM. Use an
 unscoped entry for those targets. Shared markers do not bypass bans.
 
 For project builds, `lfm compile --release` reuses cached browser results;
-`lfm compile --validate` runs browser optimization and audits. The standalone
+`lfm compile --release` builds critical CSS and prints; `--validate` adds browser audits and layout checks. The standalone
 `lfm check --release` command continues to run browser checks.

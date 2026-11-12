@@ -87,7 +87,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 	var jobs []printJob
 	for _, name := range names {
 		doc := starts[name]
-		jobs = append(jobs, printJob{key: printKey("spreadsheet start "+name, doc, nil), slot: name, output: name, file: spreadsheet.WorkbookFile, name: "start guide " + name, doc: func() []byte { return doc }})
+		jobs = append(jobs, printJob{key: printKey("spreadsheet start "+name, doc, nil), slot: name, file: spreadsheet.WorkbookFile, name: "start guide " + name, doc: func() []byte { return doc }})
 	}
 	printed, _ := printAll(pr, jobs, nil, spreadsheet.RuleChannels, w)
 	var images []spreadsheet.Image
@@ -96,7 +96,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 	}
 	var compat []string
 	var compatErr error
-	if st.release {
+	if st.validate {
 		office, err := spreadsheet.Office()
 		if err != nil {
 			compatErr = err
@@ -114,7 +114,7 @@ func deliverSpreadsheet(p project.Project, r *spreadsheet.Report, page []byte, s
 	}
 	r.Summary.Pending = pr.pending
 	r.Summary.Images = len(images)
-	if st.release {
+	if st.validate {
 		switch {
 		case office.Missing(compatErr):
 			// A second opinion only: lfm's engine computed every formula.

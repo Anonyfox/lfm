@@ -147,13 +147,13 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 		var layout []string
 
 		if r.Config.Wants("pdf") || ownStores {
-			pdf, pdfErr = pr.screen(built, slug+".pdf")
+			pdf, pdfErr = pr.screen(built)
 		}
 		var printed book.Printed
 		if ownStores {
 			printed = pr.paperback(r, built)
 		}
-		if st.release {
+		if st.validate {
 			if printer, err := pr.printerFor(); err != nil {
 				layoutErr = err
 			} else {
@@ -179,7 +179,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 				at(diagnostic.Warning, printRule, "The PDF could not be printed: "+pdfErr.Error(), "Check the book's fonts and images, then compile again.")
 			}
 			for _, problem := range printed.Problems {
-				at(diagnostic.Warning, book.RuleChannels, problem, "Check the book's fonts, images and book.css, then run 'lfm compile --release --validate' again.")
+				at(diagnostic.Warning, book.RuleChannels, problem, "Check the book's fonts, images and book.css, then run 'lfm compile --release' again.")
 			}
 		}
 		if ownStores {
@@ -197,7 +197,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 			}
 			result.distribute("book", files)
 		}
-		if st.release {
+		if st.validate {
 			switch {
 			case layoutErr != nil:
 				at(diagnostic.Warning, book.RuleLayout, "The book layout check could not run: "+layoutErr.Error(), "Install Chrome or Chromium, or set LFM_CHROME.")

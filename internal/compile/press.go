@@ -33,16 +33,14 @@ const printFormat = "lfm-book-print-1"
 // stock owns delivery artifacts from the previous publish and this compile,
 // indexed once and read on demand, plus one lazy delivery browser. Ordinary
 // compiles reuse release prints; book screen PDFs and SVGs can also render
-// without --release --validate. It is owned by the sequential delivery stage.
+// without --release. It is owned by the sequential delivery stage.
 type stock struct {
-	mu           sync.Mutex // editable-file builders can look up previous bytes concurrently
-	ctx          context.Context
-	root         string
-	pending      bool
-	cacheOnly    bool
-	pendingFiles []string
-	release      bool
-	demand       map[string]int
+	mu       sync.Mutex // editable-file builders can look up previous bytes concurrently
+	ctx      context.Context
+	root     string
+	validate bool
+	release  bool
+	demand   map[string]int
 
 	indexed  bool
 	files    map[string]string // stamp key -> a stamped file, read on use
@@ -108,7 +106,6 @@ func (st *stock) index() {
 // wait marks the press pending: a print is due for a later release.
 func (pr *press) wait() {
 	pr.pending = true
-	pr.stock.pending = true
 }
 
 // stampOf returns the container key, never a ZIP's embedded PDF key.
@@ -274,18 +271,15 @@ func printKey(kind string, doc []byte, assets map[string][]byte) string {
 // job returns the PDF (or stamped JPEG) for key: the stamped file from the last publish, or, in
 // a release, a fresh print stamped with key. Otherwise it returns nil and
 // marks the press pending.
-func (pr *press) job(key, name string, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
-	return pr.cachedJob(key, name, pr.release, run)
+func (pr *press) job(key string, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
+	return pr.cachedJob(key, pr.release, run)
 }
 
-func (pr *press) cachedJob(key, name string, print bool, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
+func (pr *press) cachedJob(key string, print bool, run func(*release.Printer) ([]byte, error)) ([]byte, error) {
 	if pdf := pr.lookup(key); pdf != nil {
 		return pdf, nil
 	}
-	if !print || pr.cacheOnly {
-		if pr.cacheOnly {
-			pr.pendingFiles = append(pr.pendingFiles, name)
-		}
+	if !print {
 		pr.wait()
 		return nil, nil
 	}

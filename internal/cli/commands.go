@@ -62,17 +62,18 @@ var compileCommand = command{
 	summary: "Check the project and build output/",
 	details: `
 Runs every check and replaces output/ only when no errors remain; warnings
-explain improvements without blocking. --release is fast and reuses cached browser
-results without launching Chrome. --validate implies --release and adds critical
-CSS measured in Chrome, a runtime probe and Lighthouse. Browser work is serialized
+explain improvements without blocking. --release builds the shippable page: critical
+CSS and prints, with low-priority Chrome only on cache misses, never Lighthouse.
+--validate implies --release and adds Lighthouse, browser audits and layout checks
+for opt-in proof/QA runs. Browser work is serialized
 box-wide and runs at low priority on Linux. --browser-jobs defaults to 2
 (LFM_BROWSER_JOBS), with a minimum of 1. Missing validation tools are reported, never installed.
 
 Every deliverable in deliverables/ (book, printable, spreadsheet, document,
 deck, and a bundle of them) is built too: its files and download page go to
 output/<path>/, and with a listing.md its store packages to distribution/.
-Only --validate prints PDFs and listing images; later compiles reuse them
-while nothing changed. A fast release stops if a required print is pending.
+--release prints PDFs and listing images; later compiles reuse them
+while nothing changed.
 HTML social cards render on a content-cache miss in every mode.
 
 Chrome and Lighthouse use LFM_CHROME / LFM_LIGHTHOUSE first, then PATH,
@@ -87,8 +88,8 @@ after an upgrade, run the printed lfm skills install command to update them.
 Exit status: 0 when output/ was written; 1 when errors kept it unchanged or
 there is no project to compile; 2 for a mistake in the command line.`,
 	flags: []flagSpec{
-		{name: "release", usage: "fast release using cached browser results"},
-		{name: "validate", usage: "browser optimization and audits; implies --release, box-wide serialized, low priority"},
+		{name: "release", usage: "build critical CSS and prints; cached outputs need no Chrome, never Lighthouse"},
+		{name: "validate", usage: "add Lighthouse, browser audits and layout checks for proof/QA; implies --release"},
 		{name: "browser-jobs", value: true, usage: "maximum concurrent browser jobs (default 2; LFM_BROWSER_JOBS)"},
 		{name: "json", usage: "print the result as JSON instead of the report"},
 	},

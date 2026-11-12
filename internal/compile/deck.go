@@ -80,7 +80,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 	for i, e := range r.Editions {
 		doc := r.Guide(e)
 		guideKeys[i] = printKey("deck guide "+e.Key, append(append([]byte{}, doc...), fontKey...), nil)
-		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, output: r.GuideName(e), file: deck.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
+		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, file: deck.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
 	}
 	printKeys := map[string]string{}
 	for _, b := range jobs {
@@ -109,7 +109,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 	var unchecked bool // a slide check did not run
 	for _, b := range built {
 		for _, pp := range b.Prints() {
-			prints = append(prints, printJob{key: printKeys[b.PrintKey(pp)], slot: b.PrintKey(pp), output: b.PDFName(pp), file: b.Deck.File, name: b.Name,
+			prints = append(prints, printJob{key: printKeys[b.PrintKey(pp)], slot: b.PrintKey(pp), file: b.Deck.File, name: b.Name,
 				doc: func() []byte { return r.PrintDoc(b, pp) },
 				checks: func(pdf []byte, printer *release.Printer) []finding {
 					found := deckFindings(r.Inspect(b, pp, pdf))
@@ -131,7 +131,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 		}
 	}
 	pdfs, found := printAll(pr, prints, fonts, deck.RuleLayout, w)
-	if st.release {
+	if st.validate {
 		for _, f := range found {
 			w.add(f.File, deck.RuleLayout, f.Message, "Cut the slide's text, move detail into the notes, or split the slide; check the theme's fonts draw every character.")
 		}
