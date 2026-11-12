@@ -1,5 +1,12 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.2.0 (2026-11-12)
+
+- Fast releases reuse browser results and stamped prints; missing prints stop publishing.
+- Add opt-in validation for browser optimization and audits.
+- Serialize browser work box-wide and lower Linux child priority.
+- Migration: deploy scripts keep `--release`; release gates that relied on browser audits add `--validate`.
+
 ## 0.1.28 (2026-11-11)
 
 - Site copy skips header/footer/nav landmarks and `data-lfm-shared` subtrees for both duplicate and triplet checks, with a triplet budget of ten times the checked HTML page count.
