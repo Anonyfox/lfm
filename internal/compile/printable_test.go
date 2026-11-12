@@ -41,7 +41,7 @@ func TestPrintableIsPublishedBehindItsPath(t *testing.T) {
 	if _, browserErr := release.BrowserPath(); browserErr != nil || testing.Short() {
 		return
 	}
-	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	if err != nil || result.Printable.Pending || len(result.Printable.Files) != 2 || result.Printable.Images < 4 {
 		t.Fatalf("release: %v, %+v", err, result.Printable)
 	}
@@ -67,7 +67,7 @@ func TestPrintableIsPublishedBehindItsPath(t *testing.T) {
 	// A page that clips into the margin is reported by the release.
 	css := filepath.Join(dir, filepath.FromSlash(printable.Dir+"/printable.css"))
 	os.WriteFile(css, []byte(".maze { width: 140mm; display: block; margin: 0 auto; }\n.page[data-role=key] .maze { width: 80mm; }\nh1 { margin-left: -8mm; }\n"), 0o644)
-	result, _ = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, _ = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	var layout []string
 	for _, d := range result.Validation.Diagnostics {
 		if d.Rule == printable.RuleLayout {
@@ -145,7 +145,7 @@ func TestBundleSellsBookAndPrintableTogether(t *testing.T) {
 	if _, browserErr := release.BrowserPath(); browserErr != nil || testing.Short() {
 		return
 	}
-	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	if err != nil || !result.Bundle.Ready || len(result.Bundle.Channels) == 0 || result.Bundle.Images < 2 {
 		t.Fatalf("release: %v, %+v; findings: %v", err, result.Bundle, findings(result, ""))
 	}

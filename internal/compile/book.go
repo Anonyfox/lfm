@@ -147,7 +147,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 		var layout []string
 
 		if r.Config.Wants("pdf") || ownStores {
-			pdf, pdfErr = pr.screen(built)
+			pdf, pdfErr = pr.screen(built, slug+".pdf")
 		}
 		var printed book.Printed
 		if ownStores {
@@ -179,7 +179,7 @@ func deliverBook(p project.Project, r *book.Report, page []byte, st *stock, resu
 				at(diagnostic.Warning, printRule, "The PDF could not be printed: "+pdfErr.Error(), "Check the book's fonts and images, then compile again.")
 			}
 			for _, problem := range printed.Problems {
-				at(diagnostic.Warning, book.RuleChannels, problem, "Check the book's fonts, images and book.css, then run 'lfm compile --release' again.")
+				at(diagnostic.Warning, book.RuleChannels, problem, "Check the book's fonts, images and book.css, then run 'lfm compile --release --validate' again.")
 			}
 		}
 		if ownStores {

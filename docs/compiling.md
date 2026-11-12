@@ -8,11 +8,11 @@ of them report through the same findings, so a single run lists everything that 
 | load | Read `lfm.json` and `data/`; every config problem is reported at its JSON key. Check the research files and `concept.md`. |
 | prepare | Check every template binding, link and offer statically, then render the page. |
 | assemble | Resolve, bundle and pack every referenced resource; inspect images and fonts. |
-| optimize | `--release` only: split critical CSS after measuring it in headless Chrome. |
+| optimize | `--validate`: measure and split critical CSS in Chrome. Fast `--release`: reuse cached optimization, or keep full CSS and authored hints with one warning. |
 | finalize | Serialize and compact the HTML; generate crawler discovery files. |
 | verify | Run every check on the exact bytes that will be written. |
-| deliver | When `deliverables/book/`, `deliverables/printable/`, `deliverables/spreadsheet/`, `deliverables/document/` or `deliverables/deck/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of the units it holds when one is configured. PDFs, a book's paperback and covers, a printable's and a spreadsheet's listing images and start PDFs are made in Chrome by `--release` and reused by every later compile while their inputs are unchanged. |
-| audit | `--release` only: a runtime probe, the layout audit and Lighthouse. |
+| deliver | When `deliverables/book/`, `deliverables/printable/`, `deliverables/spreadsheet/`, `deliverables/document/` or `deliverables/deck/` exists: build it, publish its download page when it sells through the page, and with `listing.md` assemble its store packages in `distribution/<unit>/`; then the bundle of the units it holds when one is configured. PDFs, a book's paperback and covers, a printable's and a spreadsheet's listing images and start PDFs are made in Chrome by `--release --validate` and reused by every later compile while their inputs are unchanged. Fast `--release` fails with `release.pending` if any print is missing. |
+| audit | `--validate`: runtime probe, layout audit and Lighthouse. Fast `--release`: reuse the exact artifact’s cached findings, or skip with `release.validate`. |
 | publish | Replace `output/` with one rename. |
 
 Nothing is written before verify passes. A failed compile keeps the previous `output/` and exits with code 1.
@@ -20,9 +20,34 @@ Findings carry a rule ID, the location, what is wrong and how to fix it; `lfm ru
 
 The report ends with the next step and the skill for it, in this order: fix errors; collect research when
 `research/` is empty; write `concept.md` when it is missing; replace the starter page; resolve warnings;
-run `--release` and review the frames; deploy. It never writes skill files. After an upgrade, run the printed `lfm skills install` command to update older copies.
+run `--release --validate` and review the frames; deploy. It never writes skill files. After an upgrade, run the printed `lfm skills install` command to update older copies.
 `--json` prints the same result as one object (`errors`, `warnings`, `validation`, `next`, `skills`, and
-the build details) and keeps progress messages on stderr.
+the build details, including `validated` for the requested browser-validation mode) and keeps progress messages on stderr.
+
+## Release and validation
+
+`--release` is the deploy build and never starts a browser. Everything a browser measures or makes is
+cached by the exact inputs: the critical-CSS split and image hints by the page and asset bytes plus the
+lfm, Chrome and Lighthouse versions; audit findings by the served artifact; PDFs and listing images by the
+key stamped into each file. A release reuses whatever matches, so after one validation the same bytes ship
+identically without Chrome. On a miss it keeps the complete CSS and authored image hints (correct, only
+less optimized) and reports one `release.validate` warning; a missing print is a `release.pending` error,
+because a deliverable is never published without its files. Tool versions are probed once per executable
+(path, size, modification time) and remembered in the cache.
+
+`--validate` (implies `--release`) runs every browser stage and check, the same rules at the same levels.
+Browser work is limited so several builds on one machine queue instead of stacking:
+
+- One browser pool at a time per machine: every Chrome and Lighthouse launch holds an exclusive lock on
+  `/tmp/lfm-browser.lock` (`LFM_BROWSER_LOCK` changes the path); other lfm processes wait and say so on
+  stderr. The lock does not depend on `TMPDIR` or `XDG_CACHE_HOME`. Windows has no lock.
+- `--browser-jobs N` (or `LFM_BROWSER_JOBS`, default 2, minimum 1) bounds concurrent browser launches
+  within one compile.
+- On Linux, Chrome and Lighthouse start through `nice -n 10` and `ionice -c 2 -n 7` when those programs
+  exist; otherwise they start unchanged.
+
+HTML social cards (`socialImage.src` pointing at HTML) render on a cache miss in every mode, under the same
+lock and priority, because the page cannot ship without its card.
 
 ## Research and concept
 
@@ -81,7 +106,8 @@ noindex, sending no referrer) and, once every chapter is written, `<slug>.epub` 
 EPUB is EPUB 3 with a navigation document and an NCX for older readers, built reproducibly and checked by
 lfm itself: mimetype first and stored, every manifest item present and every file declared, every link
 resolving. The PDF is printed at the concept's trim size with page numbers, a cover page and a linked
-contents page. Printing takes Chrome and seconds, so only `--release` prints: every PDF it writes carries
+contents page. Validation prints new PDFs; ordinary compiles also render the screen PDF when needed,
+while fast `--release` only reuses stamped prints. Every PDF it writes carries
 the key of the inputs it was printed from in its document information, and any later compile, `lfm serve`
 included, reuses a PDF from `output/` or `distribution/` whose key still matches. An ordinary compile of a
 changed book keeps the EPUB current and leaves the PDF out until the next release; the report says so. The page
@@ -140,7 +166,7 @@ buyers elsewhere.
 A spreadsheet builds two Excel files per edition on every compile: `<slug>-<edition>.xlsx`, the blank
 template, and `<slug>-<edition>-example.xlsx`, filled with the example dataset. Every formula is written
 with its computed value, so the files open with numbers in any app, and a rebuild of unchanged sources is
-byte-identical. `--release` adds `<slug>-<edition>-start.pdf`, the start-here guide with the Google Sheets
+byte-identical. `--release --validate` adds `<slug>-<edition>-start.pdf`, the start-here guide with the Google Sheets
 copy link from `deliverables.spreadsheet.sheets`, and recalculates every file in LibreOffice when it is
 installed (`spreadsheet.compat`). The download page lists the copy links first, then the files. With
 `deliverables/spreadsheet/listing.md`, `distribution/spreadsheet/` holds every file once, `images/` with
@@ -152,7 +178,7 @@ for Etsy, more than five files are zipped per edition.
 A document set builds one `.docx` per document, language and paper size on every compile, each stamped
 with the key of its inputs and reused while they are unchanged, and ships one ZIP per edition
 (`<slug>-<language>-<paper>.zip`): the documents named by their titles, the fonts with their licence and,
-after a release, `PDF/` with the print of every document and the start guide. `--release` prints each
+after a release, `PDF/` with the print of every document and the start guide. `--release --validate` prints each
 document's print layout, which follows the .docx line for line, in Chrome and holds it to its planned
 pages, paper and fonts (`document.layout`), renders the listing images from the first pages and prints
 the start guides; later compiles reuse all of it from the published ZIPs. A release needs Chrome alone:
@@ -167,7 +193,7 @@ A deck set builds one `.pptx` per deck and language on every compile: a 16:9 sli
 (title, title and content, section, two content, picture, statement) whose placeholders every slide fills,
 the Look's fonts embedded, and speaker notes from `::: notes` on notes pages. Every compile measures each
 slide's text with the fonts and warns where it would not fit (`deck.design`). It ships one ZIP per language
-(`<slug>-<language>.zip`); `--release` adds `PDF/` with the slides, the speaker notes beside every slide on
+(`<slug>-<language>.zip`); `--release --validate` adds `PDF/` with the slides, the speaker notes beside every slide on
 each of the language's papers and, when the deck asks questions, a quiz sheet with its answer key, holds
 every slide's boxes to what they show (`deck.layout`), renders the listing images from the real slides,
 notes and quiz sheet and prints the start guides. LibreOffice, when installed, opens every .pptx as a
@@ -183,7 +209,7 @@ unchanged documents, decks or workbooks does not open them again.
 
 ## Release
 
-`lfm compile --release` adds three stages that need installed tools:
+`lfm compile --release --validate` adds three stages that need installed tools:
 
 1. **Critical CSS** (45 s per browser operation): the first screen is rendered at 390×844, 768×1024 and 1440×900; the rules it
    uses stay in the head and the complete stylesheet loads after. A rule counts by the elements it styles:
@@ -244,7 +270,7 @@ Serialization prevents competing lfm Lighthouse runs; unrelated host load can st
 
 Release checks start Chrome and open local listeners for artifact HTTP and Chrome DevTools.
 Sandboxed jobs must allow listening and connecting on loopback (127.0.0.1); otherwise run
-`compile --release` or `check --release` outside the sandbox. Ordinary static checks need
+`compile --release --validate` or `check --release` outside the sandbox. Ordinary static checks need
 neither Chrome nor local sockets. Use `LFM_CHROME` and `LFM_LIGHTHOUSE` to select installed binaries.
 
 ## Preview
@@ -256,7 +282,7 @@ sources, and injects its reload script into responses, never into `output/`.
 
 `socialImage.src` accepts a local HTML card as well as a PNG or JPEG. Compile bundles the card's relative
 images, fonts and CSS, renders it through Chrome at 1200×630 CSS pixels, and emits a hashed image URL.
-This also runs without `--release`; an unchanged card and its assets reuse the previous render in
+This also runs without `--release --validate`; an unchanged card and its assets reuse the previous render in
 `output/`. Set `LFM_CHROME` if Chrome is not in PATH. A render has a 60-second tab timeout.
 
 Release optimization and audits are cached under the system user cache directory in `lfm/release/`.
@@ -297,3 +323,24 @@ variants while templates, stylesheets or scripts still refer to them. To remove
 committed variants, first replace those references with retained originals, compile
 and review the result, then remove the unused files from Git. The compiler does
 not currently generate replacement width variants or rewrite authored srcsets.
+
+
+## Fast releases and validation
+
+`lfm compile --release` deploys using cached optimization and audit results.
+On a cache miss it keeps the complete CSS and authored image hints and reports
+`release.validate`. Pending Chrome-made deliverables stop publishing with
+`release.pending`; existing stamped files are reused.
+
+`lfm compile --release --validate` (or `lfm compile --validate`) runs browser
+optimization, all audits, and deliverable printing. The optimize and audit stages
+cache the exact artifact and tool identities; subsequent fast releases reuse
+those results to avoid repeating browser work. The deliver stage reuses stamped
+prints in either mode. HTML social cards retain their content cache in all modes.
+
+Every browser and Lighthouse launch takes the box-wide `/tmp/lfm-browser.lock`
+(`LFM_BROWSER_LOCK` overrides it). Waiting is cancellable; nested work in the
+same process shares the lock. Non-Unix systems have no box-wide lock.
+Linux children use `nice -n 10` and `ionice -c 2 -n 7` when available.
+`--browser-jobs N` (`LFM_BROWSER_JOBS`, default 2, minimum 1) bounds browser
+work. Viewports, frames, print jobs and pictures currently run sequentially.

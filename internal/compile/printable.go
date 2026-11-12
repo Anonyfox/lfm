@@ -73,7 +73,7 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 		unchecked := false                // an edition's layout check did not run
 		for _, ed := range r.Editions {
 			e := ed.Edition
-			pdf, err := pr.job(printKey("printable "+e.Key, ed.Doc, r.Assets), func(printer *release.Printer) ([]byte, error) {
+			pdf, err := pr.job(printKey("printable "+e.Key, ed.Doc, r.Assets), r.FileName(e), func(printer *release.Printer) ([]byte, error) {
 				return printer.Print(ed.Doc, r.Assets, e.Size.Digital)
 			})
 			var found []string
@@ -86,12 +86,12 @@ func deliverPrintable(p project.Project, r *printable.Report, page []byte, st *s
 
 			if layoutErr != nil {
 				unchecked = true
-				warn(printable.RuleLayout, fmt.Sprintf("The layout check of the %s edition could not run: %s", e.Label, layoutErr), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+				warn(printable.RuleLayout, fmt.Sprintf("The layout check of the %s edition could not run: %s", e.Label, layoutErr), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release --validate'.")
 			}
 			switch {
 			case err != nil:
 				unchecked = true
-				warn(printable.RuleLayout, fmt.Sprintf("The %s edition could not be printed: %s", e.Label, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+				warn(printable.RuleLayout, fmt.Sprintf("The %s edition could not be printed: %s", e.Label, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release --validate'.")
 			case pdf != nil:
 				printed.PDFs[e.Key] = pdf
 				if n := pdfx.PageCount(pdf); n != len(ed.Pages) {

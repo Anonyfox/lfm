@@ -245,6 +245,13 @@ func runLighthouseOnce(ctx context.Context, target Target, browser, root, tool s
 	stderr.Limit = 4096
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	cmd.WaitDelay = 2 * time.Second
+	unlock, lockErr := AcquireBrowser(ctx)
+	if lockErr != nil {
+		r.Reason = lockErr.Error()
+		return r
+	}
+	defer unlock()
+	prioritizeCommand(cmd)
 	if err := cmd.Run(); err != nil {
 		r.Reason = compact(err.Error()+": "+stderr.String(), 600)
 		if ctx.Err() != nil {

@@ -230,3 +230,7 @@ when they should apply site-wide. Selectors accept CSS selector lists; invalid
 selectors report `build.validation.copyBans[N].selector`. Scoped bans exclude
 metadata and do not run on standalone text/Markdown, which has no DOM. Use an
 unscoped entry for those targets. Shared markers do not bypass bans.
+
+For project builds, `lfm compile --release` reuses cached browser results;
+`lfm compile --validate` runs browser optimization and audits. The standalone
+`lfm check --release` command continues to run browser checks.

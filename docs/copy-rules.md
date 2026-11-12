@@ -4,7 +4,7 @@
 embedded engine as `lfm check listing.txt` and `lfm check post.md`.
 Warnings do not change exit status; errors exit 1. `--json` uses the same
 `validation.diagnostics`, `errors`, `warnings` and `next` fields for every target.
-Text targets run only copy rules, not page or browser checks; `--release` requires HTML.
+Text targets run only copy rules, not page or browser checks; `--release --validate` requires HTML.
 
 Language precedence is `--lang`, HTML `<html lang>` or text front matter
 (`---` on its own line, then `lang: de` or `language: en`, then `---`), then

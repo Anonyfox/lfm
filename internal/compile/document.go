@@ -80,7 +80,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 	for i, e := range r.Editions {
 		doc := r.Guide(e)
 		guideKeys[i] = printKey("document guide "+e.Key, append(append([]byte{}, doc...), fontKey...), nil)
-		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, file: document.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
+		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, output: r.GuideName(e), file: document.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
 	}
 	printKeys := map[string]string{}
 	for _, b := range jobs {
@@ -102,7 +102,7 @@ func deliverDocument(p project.Project, r *document.Report, page []byte, st *sto
 	}
 	prints := make([]printJob, len(built))
 	for i, b := range built {
-		prints[i] = printJob{key: printKeys[b.Key], slot: b.Key, file: b.Doc.File, name: b.Name,
+		prints[i] = printJob{key: printKeys[b.Key], slot: b.Key, output: document.FileName(b.Doc.Title, "pdf"), file: b.Doc.File, name: b.Name,
 			doc: func() []byte { return r.PrintDoc(b) },
 			checks: func(pdf []byte, _ *release.Printer) []finding {
 				return documentFindings(r.Inspect(b, pdf))

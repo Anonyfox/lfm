@@ -22,6 +22,11 @@ func runLighthouse(ctx context.Context, target Target, browser, root string) *Li
 	if err != nil {
 		return &LighthouseResult{Status: "skipped", Missing: true, Reason: err.Error(), Hint: LighthouseSetup, Scope: target.auditScope()}
 	}
+	unlockBox, err := AcquireBrowser(ctx)
+	if err != nil {
+		return &LighthouseResult{Status: "skipped", Reason: err.Error(), Hint: "Retry validation when the browser lock is available.", Scope: target.auditScope()}
+	}
+	defer unlockBox()
 	unlock, err := lighthouseLock(ctx, os.Stderr)
 	if err != nil {
 		return &LighthouseResult{Status: "skipped", Reason: err.Error(), Hint: "Retry when the running audit finishes; all lfm processes sharing the user cache serialize Lighthouse.", Scope: target.auditScope()}

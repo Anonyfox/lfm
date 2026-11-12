@@ -42,7 +42,7 @@ func TestDecksAreBuiltCheckedAndDelivered(t *testing.T) {
 	if testing.Short() {
 		return
 	}
-	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	if err != nil || result.Deck.Pending || result.Deck.Images < 4 || !strings.HasPrefix(result.Deck.Layout, "2 decks print as planned") {
 		t.Fatalf("release: %v %+v %v", err, result.Deck, findings(result, ""))
 	}
@@ -89,7 +89,7 @@ func TestBundleSellsDeckAndDocumentsTogether(t *testing.T) {
 	if _, browserErr := release.BrowserPath(); browserErr != nil || testing.Short() {
 		return
 	}
-	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	if err != nil || result.Bundle.Images < 4 || len(result.Bundle.Channels) == 0 {
 		t.Fatalf("release: %v %+v %v", err, result.Bundle, result.Validation)
 	}

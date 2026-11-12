@@ -133,7 +133,7 @@ Run `lfm compile` after every change and fix every `document.source`, `document.
 
 ## Phase 4: release
 
-`lfm compile --release` prints every document in Chrome, laid out as its .docx: `document.layout` names a
+`lfm compile --release --validate` prints every document in Chrome, laid out as its .docx: `document.layout` names a
 document that runs over its planned pages, lands on another paper, or shows a font the theme does not
 have (a missing character); LibreOffice, when installed, checks the real .docx too, and the report's
 `optional` line names helpers that are not installed and what each would add, for the owner to decide. It ships each print

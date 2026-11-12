@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -57,19 +58,22 @@ deliverables/; its skill, such as 'lfm skills deck', shows how.`,
 
 var compileCommand = command{
 	name:    "compile",
-	args:    "[directory] [--release] [--json]",
+	args:    "[directory] [--release] [--validate] [--browser-jobs N] [--json]",
 	summary: "Check the project and build output/",
 	details: `
 Runs every check and replaces output/ only when no errors remain; warnings
-explain improvements without blocking. --release adds the expensive stages:
-critical CSS measured in headless Chrome, a runtime probe and Lighthouse when
-installed. Missing tools are reported and skipped, never installed.
+explain improvements without blocking. --release is fast and reuses cached browser
+results without launching Chrome. --validate implies --release and adds critical
+CSS measured in Chrome, a runtime probe and Lighthouse. Browser work is serialized
+box-wide and runs at low priority on Linux. --browser-jobs defaults to 2
+(LFM_BROWSER_JOBS), with a minimum of 1. Missing validation tools are reported, never installed.
 
 Every deliverable in deliverables/ (book, printable, spreadsheet, document,
 deck, and a bundle of them) is built too: its files and download page go to
 output/<path>/, and with a listing.md its store packages to distribution/.
-Only --release prints PDFs and listing images; later compiles reuse them
-while nothing changed.
+Only --validate prints PDFs and listing images; later compiles reuse them
+while nothing changed. A fast release stops if a required print is pending.
+HTML social cards render on a content-cache miss in every mode.
 
 Chrome and Lighthouse use LFM_CHROME / LFM_LIGHTHOUSE first, then PATH,
 standard installs and npm global bin (also node_modules/.bin for Lighthouse).
@@ -83,7 +87,9 @@ after an upgrade, run the printed lfm skills install command to update them.
 Exit status: 0 when output/ was written; 1 when errors kept it unchanged or
 there is no project to compile; 2 for a mistake in the command line.`,
 	flags: []flagSpec{
-		{name: "release", usage: "also run browser-backed optimization and audits"},
+		{name: "release", usage: "fast release using cached browser results"},
+		{name: "validate", usage: "browser optimization and audits; implies --release, box-wide serialized, low priority"},
+		{name: "browser-jobs", value: true, usage: "maximum concurrent browser jobs (default 2; LFM_BROWSER_JOBS)"},
 		{name: "json", usage: "print the result as JSON instead of the report"},
 	},
 	run: func(ctx context.Context, env Env, p parsed) error {
@@ -96,7 +102,19 @@ there is no project to compile; 2 for a mistake in the command line.`,
 		if p.has("json") {
 			wait = waiting(env.Stderr, term.For(env.Stderr))
 		}
-		result, err := compile.Compile(ctx, dir, compile.Options{Publish: true, Release: p.has("release"), Waiting: wait})
+		jobs := 2
+		value := os.Getenv("LFM_BROWSER_JOBS")
+		if p.has("browser-jobs") {
+			value = p.flags["browser-jobs"]
+		}
+		if value != "" || p.has("browser-jobs") {
+			var parseErr error
+			jobs, parseErr = strconv.Atoi(value)
+			if parseErr != nil || jobs < 1 {
+				return usageError("--browser-jobs must be an integer of at least 1")
+			}
+		}
+		result, err := compile.Compile(ctx, dir, compile.Options{Publish: true, Release: p.has("release"), Validate: p.has("validate"), BrowserJobs: jobs, Waiting: wait})
 		if result.Root == "" || errors.Is(err, context.Canceled) {
 			// Nothing was compiled: no project there, or Ctrl-C.
 			if p.has("json") && err != nil && !errors.Is(err, context.Canceled) {
@@ -165,7 +183,7 @@ var rulesCommand = command{
 	summary: "List every check, or explain one",
 	details: `
 Every rule runs on every compile; release.* and lighthouse.* findings
-need --release. Projects can change a rule's level in
+need --validate, or cached results from --release. Projects can change a rule's level in
 lfm.json under build.validation.rules, e.g. {"design.mono": "off"}.
 Levels are off, warn and error; required rules always stay errors.`,
 	run: func(_ context.Context, env Env, p parsed) error {

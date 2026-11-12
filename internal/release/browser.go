@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Anonyfox/lfm/internal/scratch"
@@ -306,8 +307,19 @@ return true})()`
 // tab initializes the document target on the browser lifetime, before step contexts.
 // Canceling a successful startup step must not cancel later document jobs.
 func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration, tab bool) (context.Context, func(), error) {
+	jobDone, err := browserJob(ctx)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	unlockBox, err := AcquireBrowser(ctx)
+	if err != nil {
+		jobDone()
+		return nil, func() {}, err
+	}
+	unlock := sync.OnceFunc(func() { unlockBox(); jobDone() })
 	tmp, err := scratch.Dir("chrome")
 	if err != nil {
+		unlock()
 		return nil, func() {}, err
 	}
 	opts = append(opts, chromedp.Env("TMPDIR="+tmp, "TMP="+tmp, "TEMP="+tmp))
@@ -316,7 +328,14 @@ func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit
 	opts = append(opts, chromedp.ModifyCmdFunc(func(cmd *exec.Cmd) { stopProcess = browserCommand(cmd) }))
 	alloc, closeAlloc := chromedp.NewExecAllocator(ctx, opts...)
 	browser, closeBrowser := chromedp.NewContext(alloc)
-	close := func() { closeBrowser(); closeAlloc(); stopProcess(); abort(nil); _ = scratch.Remove(tmp) }
+	close := func() {
+		closeBrowser()
+		closeAlloc()
+		stopProcess()
+		abort(nil)
+		_ = scratch.Remove(tmp)
+		unlock()
+	}
 	if _, err := browserStep(browser, "start Chrome", limit, func(step context.Context) (bool, error) {
 		stop := context.AfterFunc(step, func() { abort(context.Cause(step)) })
 		defer stop()

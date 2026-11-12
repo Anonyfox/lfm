@@ -55,7 +55,7 @@ func TestSpreadsheetIsBuiltCheckedAndDelivered(t *testing.T) {
 	if _, err := release.BrowserPath(); err != nil || testing.Short() {
 		return
 	}
-	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	if err != nil || result.Spreadsheet.Pending || result.Spreadsheet.Images < 4 {
 		t.Fatalf("release: %v %+v", err, result.Spreadsheet)
 	}

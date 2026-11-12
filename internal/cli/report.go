@@ -417,7 +417,7 @@ func renderBook(w io.Writer, s term.Style, b *book.Summary, files []compile.File
 		detail = "preview EPUB → " + b.Preview
 	}
 	if b.Pending {
-		detail += " · the paperback prints with --release"
+		detail += " · the paperback prints with --release --validate"
 	}
 	if b.Layout != "" {
 		detail += " · " + b.Layout
@@ -454,7 +454,7 @@ func renderPrintable(w io.Writer, s term.Style, pr *printable.Summary) {
 	case len(pr.Files) > 0:
 		detail = term.Plural(len(pr.Files), "PDF")
 	case pr.Pending:
-		detail += " · the PDFs print with --release"
+		detail += " · the PDFs print with --release --validate"
 	}
 	if pr.Layout != "" {
 		detail += " · " + pr.Layout
@@ -498,7 +498,7 @@ func renderSpreadsheet(w io.Writer, s term.Style, sp *spreadsheet.Summary) {
 		detail += " · " + sp.Compat
 	}
 	if sp.Pending {
-		detail += " · the start PDFs and images render with --release"
+		detail += " · the start PDFs and images render with --release --validate"
 	}
 	detail += fmt.Sprintf(" · %d of %d Google Sheets linked", sp.Linked, len(sp.Files))
 	if sp.URL != "" {
@@ -529,7 +529,7 @@ func renderDocument(w io.Writer, s term.Style, d *document.Summary) {
 		detail += " · " + d.Layout
 	}
 	if d.Pending {
-		detail += " · the PDFs, guides and images print with --release"
+		detail += " · the PDFs, guides and images print with --release --validate"
 	}
 	if d.Linked > 0 {
 		detail += fmt.Sprintf(" · %d Google Docs linked", d.Linked)
@@ -598,7 +598,7 @@ func renderDeck(w io.Writer, s term.Style, d *deck.Summary) {
 		detail += " · " + d.Layout
 	}
 	if d.Pending {
-		detail += " · the slide and notes PDFs, quiz sheets, guides and images print with --release"
+		detail += " · the slide and notes PDFs, quiz sheets, guides and images print with --release --validate"
 	}
 	if d.Linked > 0 {
 		detail += fmt.Sprintf(" · %d Google Slides linked", d.Linked)

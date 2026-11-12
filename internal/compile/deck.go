@@ -80,7 +80,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 	for i, e := range r.Editions {
 		doc := r.Guide(e)
 		guideKeys[i] = printKey("deck guide "+e.Key, append(append([]byte{}, doc...), fontKey...), nil)
-		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, file: deck.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
+		guidesPlan[i] = printJob{key: guideKeys[i], slot: e.Key, output: r.GuideName(e), file: deck.Dir, name: "start guide " + r.GuideName(e), doc: func() []byte { return doc }}
 	}
 	printKeys := map[string]string{}
 	for _, b := range jobs {
@@ -109,7 +109,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 	var unchecked bool // a slide check did not run
 	for _, b := range built {
 		for _, pp := range b.Prints() {
-			prints = append(prints, printJob{key: printKeys[b.PrintKey(pp)], slot: b.PrintKey(pp), file: b.Deck.File, name: b.Name,
+			prints = append(prints, printJob{key: printKeys[b.PrintKey(pp)], slot: b.PrintKey(pp), output: b.PDFName(pp), file: b.Deck.File, name: b.Name,
 				doc: func() []byte { return r.PrintDoc(b, pp) },
 				checks: func(pdf []byte, printer *release.Printer) []finding {
 					found := deckFindings(r.Inspect(b, pp, pdf))
@@ -121,7 +121,7 @@ func deliverDeck(p project.Project, r *deck.Report, page []byte, st *stock, resu
 					over, err := printer.Overflows(r.PrintDoc(b, pp), fonts, sw, sh)
 					if err != nil {
 						unchecked = true
-						w.add(b.Deck.File, deck.RuleLayout, fmt.Sprintf("%s (%s): the check for slides that cut their text off could not run: %v", b.Deck.Title, b.Edition.Key, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+						w.add(b.Deck.File, deck.RuleLayout, fmt.Sprintf("%s (%s): the check for slides that cut their text off could not run: %v", b.Deck.Title, b.Edition.Key, err), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release --validate'.")
 					}
 					for _, n := range over {
 						found = append(found, finding{b.Deck.File, fmt.Sprintf("%s (%s): slide %s holds more than its box shows; the print cuts it off as PowerPoint would spill it.", b.Deck.Title, b.Edition.Key, n)})

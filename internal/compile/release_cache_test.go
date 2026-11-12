@@ -81,16 +81,20 @@ func TestReleaseCompileReusesAudit(t *testing.T) {
 	}
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	root := fixture(t)
-	first, err := Compile(context.Background(), root, Options{Release: true})
+	first, err := Compile(context.Background(), root, Options{Release: true, Validate: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, first.Validation)
 	}
-	second, err := Compile(context.Background(), root, Options{Release: true})
+	second, err := Compile(context.Background(), root, Options{Release: true, Validate: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, second.Validation)
 	}
 	if second.Release.Audit.Reused == "" {
 		t.Fatal("identical release was audited again")
+	}
+	fast, err := Compile(context.Background(), root, Options{Release: true})
+	if err != nil || !reflect.DeepEqual(first.Artifact, fast.Artifact) {
+		t.Fatalf("fast release changed validated bytes: %v", err)
 	}
 	if !reflect.DeepEqual(first.Artifact, second.Artifact) {
 		t.Fatal("reused optimization changed artifact")

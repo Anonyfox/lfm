@@ -6,6 +6,8 @@ import "strings"
 // Lighthouse owns a versioned audit namespace, so its concrete IDs are dynamic.
 func OperationalRules() []RuleInfo {
 	return []RuleInfo{
+		{ID: "release.validate", Summary: "Browser validation has run for these bytes", Help: "When a fast release has no cached browser results, complete CSS and authored image hints remain; browser audits and deliverable layout and office checks have not run on these bytes. Run lfm compile --release --validate; later releases reuse its results without Chrome."},
+		{ID: "release.pending", Summary: "Every Chrome-made deliverable file is available", Help: "When a fast release needs a print that has not been stamped, publishing stops to keep deliverables complete. Missing PDFs or listing images cannot be shipped. Run lfm compile --release --validate once; later releases reuse the printed files.", Required: true},
 		{ID: "build.stale", Summary: "Built output matches the current source", Help: "With lfm check --project and no target, an in-memory compile differs from output/. A stale baseline can hide recent source changes. Run lfm compile to rebuild the named files and check again."},
 		{
 			ID:       "build.failed",
@@ -30,38 +32,38 @@ func OperationalRules() []RuleInfo {
 		},
 		{
 			ID:      "release.css",
-			Summary: "The --release critical-CSS pass in headless Chrome finished",
-			Help:    "With --release, lfm measures above-the-fold CSS in Chrome so the first paint does not wait for the full stylesheet. When that pass fails, the complete CSS is kept and the page still works, but first render is slower. Check that Chrome starts and the page renders, then compile with --release again.",
+			Summary: "The --release --validate critical-CSS pass in headless Chrome finished",
+			Help:    "With --release --validate, lfm measures above-the-fold CSS in Chrome so the first paint does not wait for the full stylesheet. When that pass fails, the complete CSS is kept and the page still works, but first render is slower. Check that Chrome starts and the page renders, then compile with --release --validate again.",
 		},
 		{
 			ID:      "release.browser",
-			Summary: "A Chrome browser was available for the --release checks",
-			Help:    "--release needs Chrome or Chromium for critical CSS, the runtime probe and Lighthouse; when none is found or navigation fails, the release cannot be verified. Release reports an error when Chrome or loopback sockets are unavailable. Install Chrome/Chromium on PATH or set LFM_CHROME; run outside the sandbox or allow local sockets.",
+			Summary: "A Chrome browser was available for the --release --validate checks",
+			Help:    "--release --validate needs Chrome or Chromium for critical CSS, the runtime probe and Lighthouse; when none is found or navigation fails, the release cannot be verified. Release reports an error when Chrome or loopback sockets are unavailable. Install Chrome/Chromium on PATH or set LFM_CHROME; run outside the sandbox or allow local sockets.",
 		},
 		{
 			ID:      "release.runtime",
 			Summary: "Uncaught exceptions, console errors and failed requests on first page load",
-			Help:    "With --release, lfm loads the exact artifact in Chrome at phone size and records uncaught exceptions, console.error calls and HTTP responses of 400 or above. Each one is something visitors hit on arrival, such as a broken script or a missing generated file. Fix the named exception or asset reference; the probe covers initial navigation only, not later interactions.",
+			Help:    "With --release --validate, lfm loads the exact artifact in Chrome at phone size and records uncaught exceptions, console.error calls and HTTP responses of 400 or above. Each one is something visitors hit on arrival, such as a broken script or a missing generated file. Fix the named exception or asset reference; the probe covers initial navigation only, not later interactions.",
 		},
 		{
 			ID:      "release.layout",
 			Summary: "Every frame is legible and readable on phone and desktop, from the first screen down",
-			Help:    "With --release, lfm scrolls the page in Chrome by half a screen at a time at 390×844 (phone), 1280×680 and 1440×900, settles finite animations, pauses looping ones at their start and saves every frame; the report names the frames that changed since the last run. It warns when the first screen lacks a legible main heading or any link, button or field; when a stretch shows no legible text or image; when the page is wider than the screen; when a pinned layer covers text in every position; when text renders under 9 px; when text misses the WCAG contrast minimum on a flat, certain background; when a number breaks onto another line than its unit; when a web font fails to load or system fonts draw some of its text; loaded again with reduced motion requested, what still loops or moves for a second or more; and, loaded without JavaScript, a missing heading or less than half the words. These defects hide in chosen screenshots and are what visitors scroll through. Fix the named element, then read the changed frames.",
+			Help:    "With --release --validate, lfm scrolls the page in Chrome by half a screen at a time at 390×844 (phone), 1280×680 and 1440×900, settles finite animations, pauses looping ones at their start and saves every frame; the report names the frames that changed since the last run. It warns when the first screen lacks a legible main heading or any link, button or field; when a stretch shows no legible text or image; when the page is wider than the screen; when a pinned layer covers text in every position; when text renders under 9 px; when text misses the WCAG contrast minimum on a flat, certain background; when a number breaks onto another line than its unit; when a web font fails to load or system fonts draw some of its text; loaded again with reduced motion requested, what still loops or moves for a second or more; and, loaded without JavaScript, a missing heading or less than half the words. These defects hide in chosen screenshots and are what visitors scroll through. Fix the named element, then read the changed frames.",
 		},
 		{
 			ID:      "release.lighthouse",
 			Summary: "Installed Lighthouse ran and produced a complete audit",
-			Help:    "With --release, lfm runs an installed Lighthouse against the artifact; this reports an error when a run fails, times out or returns incomplete JSON. A missing executable also reports an error because release requires these measurements. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
+			Help:    "With --release --validate, lfm runs an installed Lighthouse against the artifact; this reports an error when a run fails, times out or returns incomplete JSON. A missing executable also reports an error because release requires these measurements. Install it once with npm install -g lighthouse (or set LFM_LIGHTHOUSE) for performance, accessibility, best-practice and SEO scores, and check that the Node, Lighthouse and Chrome versions are compatible.",
 		},
 		{
 			ID:      "lighthouse.*",
 			Summary: "Findings from the installed Lighthouse audit, one rule per lighthouse.<audit-id>",
-			Help:    "With --release, scored audits below 100%, errors and metrics outside the mobile good thresholds become warnings named lighthouse.<audit-id>, with the audit's own guidance and sample elements. Zero-weight diagnostics and third-party resource rows are informational. Timing failures are remeasured up to three times using per-audit medians within two minutes; the full report retains the last run. These cold mobile measurements approximate first visits; follow the audit's hint and saved full report. Set \"lighthouse.*\" to change every audit's level at once; an exact lighthouse.<audit-id> override takes precedence.",
+			Help:    "With --release --validate, scored audits below 100%, errors and metrics outside the mobile good thresholds become warnings named lighthouse.<audit-id>, with the audit's own guidance and sample elements. Zero-weight diagnostics and third-party resource rows are informational. Timing failures are remeasured up to three times using per-audit medians within two minutes; the full report retains the last run. These cold mobile measurements approximate first visits; follow the audit's hint and saved full report. Set \"lighthouse.*\" to change every audit's level at once; an exact lighthouse.<audit-id> override takes precedence.",
 		},
 		{
 			ID:      "lighthouse.run",
 			Summary: "Lighthouse run warnings and report or browser-profile cleanup problems",
-			Help:    "Lighthouse completed but reported run warnings, or lfm could not save the full JSON report or remove the temporary Chrome profile. Scores may be less trustworthy and the detailed report may be missing. Read the warning, check the audit environment (disk space, temp directory, tool versions) and rerun --release.",
+			Help:    "Lighthouse completed but reported run warnings, or lfm could not save the full JSON report or remove the temporary Chrome profile. Scores may be less trustworthy and the detailed report may be missing. Read the warning, check the audit environment (disk space, temp directory, tool versions) and rerun --release --validate.",
 		},
 	}
 }

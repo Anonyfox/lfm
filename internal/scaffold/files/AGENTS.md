@@ -16,7 +16,7 @@ review or deploy) and the skill that covers it. Follow that line until it says d
 
 - `lfm compile` checks and builds. Fix every error and warning it prints; each one says how.
   `--json` prints the same result, the findings and the next step as JSON.
-- `lfm compile --release` also measures the page in headless Chrome, and with Lighthouse when installed.
+- `lfm compile --release --validate` also measures the page in headless Chrome, and with Lighthouse when installed.
 - `lfm serve --open` previews the page and recompiles on every save.
 - `lfm rules` lists every check; `lfm rules <id>` explains one.
 - `lfm skills` lists the skills; `lfm skills <topic>` prints one; `lfm skills install` installs all.
@@ -48,7 +48,7 @@ Every page goes through three phases, each with its own skill:
 1. **research**: real buyer voices and competitor pages into `research/`, verbatim and dated.
 2. **design**: `concept.md` from the research, the only brief for the page; every decision cites research.
 3. **implementation**: the page from `concept.md`, iterated until it compiles clean and every frame of
-   `lfm compile --release` holds up on phone and desktop.
+   `lfm compile --release --validate` holds up on phone and desktop.
 
 - Never skip a phase: a page built without research and a concept is the typical generated page.
 - A book the page sells is written with the book skill (`lfm skills book`): its own concept, then one

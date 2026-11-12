@@ -99,7 +99,7 @@ var Spec = []Field{
 	{Path: "build.assets.overrides.*", Kind: String, Values: []string{"inline", "file"}, Doc: "How this source path is packed.", Example: `"file"`},
 	{Path: "build.browserData", Kind: List, Doc: "Dot paths copied into <script type=\"application/json\" id=\"product-data\"> for scripts, keeping their nesting.", Example: `["data.offer"]`},
 	{Path: "build.validation", Kind: Object, Doc: "Rule levels and size budgets."},
-	{Path: "build.validation.rules", Kind: Map, Doc: "Per-rule levels; required rules stay errors. `lfm rules` lists them.", Example: `{"design.mono": "off"}`},
+	{Path: "build.validation.rules", Kind: Map, Doc: "Per-rule levels; required rules stay errors. `lfm rules` lists them. Browser audits run with `lfm compile --validate`; fast `--release` reuses cached findings or reports `release.validate`. Missing Chrome-made deliverables stop a fast release with the required `release.pending` error.", Example: `{"design.mono": "off"}`},
 	{Path: "build.validation.rules.*", Kind: String, Values: []string{"off", "warn", "error"}, Doc: "The level of this rule.", Example: `"warn"`},
 	{Path: "build.validation.copyBans", Kind: Objects, Doc: "Project-banned copy, checked by compile and check --project as copy.banned.", Example: `[{"phrase":"hidden gem","severity":"error","hint":"Name the place."}]`},
 	{Path: "build.validation.copyBans.*", Kind: Object, Doc: "One copy ban; set exactly one nonblank phrase or regex."},

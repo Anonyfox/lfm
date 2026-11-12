@@ -48,7 +48,7 @@ func TestDocumentsAreBuiltCheckedAndDelivered(t *testing.T) {
 	if _, err := office.Find(); err != nil || testing.Short() {
 		t.Skip("no LibreOffice")
 	}
-	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true})
+	result, err = Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true})
 	if err != nil || result.Document.Pending || result.Document.Images < 4 || !strings.HasPrefix(result.Document.Layout, "6 files print as planned") {
 		t.Fatalf("release: %v %+v %v", err, result.Document, findings(result, "document."))
 	}
@@ -92,7 +92,7 @@ func TestANewerLfmRebuildsFilesButKeepsItsPrints(t *testing.T) {
 		t.Skip("needs Chrome")
 	}
 	dir := documentProject(t)
-	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil {
+	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true}); err != nil {
 		t.Fatal(err)
 	}
 	zipPath := filepath.Join(dir, "output", docPath, "allotment-society-kit-en-a4.zip")

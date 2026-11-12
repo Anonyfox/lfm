@@ -162,8 +162,8 @@ func (r Report) PrintDoc(b Built, p Print) []byte {
 	return slidesPrint(r.render(b.Deck, b.Edition.Papers[0]))
 }
 
-// pdfName is the file name of one print of a deck in the ZIP.
-func (b Built) pdfName(p Print) string {
+// PDFName is the file name of one print of a deck in the ZIP.
+func (b Built) PDFName(p Print) string {
 	w := wording(b.Edition.Lang)
 	paper := ""
 	if len(b.Edition.Papers) > 1 {
@@ -204,7 +204,7 @@ func (r Report) Zip(e Edition, built []Built, pdfs map[string][]byte, guide []by
 		files[b.Name] = b.Data
 		for _, p := range b.Prints() {
 			if pdf := pdfs[b.PrintKey(p)]; pdf != nil {
-				files[w.PDFFolder+"/"+b.pdfName(p)] = pdf
+				files[w.PDFFolder+"/"+b.PDFName(p)] = pdf
 			}
 		}
 	}

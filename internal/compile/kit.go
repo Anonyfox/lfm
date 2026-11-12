@@ -41,6 +41,7 @@ func (w *warnings) add(file, rule, message, hint string) {
 
 // printJob is one PDF a built file ships.
 type printJob struct {
+	output     string        // pending PDF filename, independent of its lookup slot
 	key, slot  string        // its print key; where its PDF goes
 	file, name string        // the source, and the file the PDF belongs to
 	doc        func() []byte // what Chrome prints
@@ -57,7 +58,7 @@ func printAll(pr *press, jobs []printJob, fonts map[string][]byte, rule string, 
 
 	for _, j := range jobs {
 		fresh := pr.lookup(j.key) == nil
-		pdf, err := pr.job(j.key, func(printer *release.Printer) ([]byte, error) {
+		pdf, err := pr.job(j.key, j.output, func(printer *release.Printer) ([]byte, error) {
 			return printer.Print(j.doc(), fonts, false)
 		})
 		if err == nil && pdf != nil && fresh && j.checks != nil {
@@ -67,7 +68,7 @@ func printAll(pr *press, jobs []printJob, fonts map[string][]byte, rule string, 
 
 		switch {
 		case err != nil:
-			w.add(j.file, rule, "The PDF of "+j.name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release'.")
+			w.add(j.file, rule, "The PDF of "+j.name+" could not be printed: "+err.Error(), "Install Chrome or Chromium, or set LFM_CHROME; then run 'lfm compile --release --validate'.")
 		case pdf != nil:
 			pdfs[j.slot] = pdf
 		}
@@ -115,7 +116,7 @@ func secondOpinions(dir, rule string, apps []opinion, w *warnings) []string {
 
 // libreOffice is the LibreOffice opinion when it is installed.
 func libreOffice(check func(soffice string) ([]finding, error), differ string) opinion {
-	o := opinion{app: "LibreOffice", failHint: "Run 'lfm compile --release' again; reinstall LibreOffice if it keeps failing.", differHint: differ}
+	o := opinion{app: "LibreOffice", failHint: "Run 'lfm compile --release --validate' again; reinstall LibreOffice if it keeps failing.", differHint: differ}
 	if soffice, err := office.Find(); err == nil {
 		o.run = func() ([]finding, error) { return check(soffice) }
 	}
@@ -156,6 +157,9 @@ func listingImages(pr *press, kind, sell string, planned []listingPlan, render f
 		out[i] = deliver.Image{Name: plan.Name, Data: pr.lookup(plan.Key)}
 		if out[i].Data == nil {
 			missing = append(missing, plan)
+			if pr.cacheOnly {
+				pr.pendingFiles = append(pr.pendingFiles, plan.Name)
+			}
 			indices[plan.Name] = i
 		}
 	}

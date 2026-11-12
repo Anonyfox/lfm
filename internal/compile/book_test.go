@@ -54,7 +54,7 @@ func TestBookIsPublishedBehindItsPath(t *testing.T) {
 		t.Fatalf("store packages: %v", err)
 	}
 	if _, browserErr := release.BrowserPath(); browserErr == nil && !testing.Short() {
-		if result, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil || result.Book.Pending {
+		if result, err := Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true}); err != nil || result.Book.Pending {
 			t.Fatalf("release: %v, pending %v", err, result.Book.Pending)
 		}
 		pdf, err := os.ReadFile(filepath.Join(out, "the-weekend-starter.pdf"))

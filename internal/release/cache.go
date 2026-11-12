@@ -61,6 +61,17 @@ func ResolveTools(ctx context.Context, root string) *ToolIdentity {
 		if findErr != nil {
 			return "", findErr
 		}
+		real, _ := filepath.EvalSymlinks(tool)
+		info, statErr := os.Stat(real)
+		probeKey := ""
+		if statErr == nil {
+			sum := sha256.Sum256(fmt.Appendf(nil, "%s:%d:%d", real, info.Size(), info.ModTime().UnixNano()))
+			probeKey = "tool-" + hex.EncodeToString(sum[:])
+			var cached string
+			if !ReadCache(probeKey, &cached).IsZero() && cached != "" {
+				return cached, nil
+			}
+		}
 		var err error
 		for range 2 {
 			bounded, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -69,6 +80,7 @@ func ResolveTools(ctx context.Context, root string) *ToolIdentity {
 			out, runErr := cmd.Output()
 			cancel()
 			if v := strings.TrimSpace(string(out)); runErr == nil && v != "" {
+				_ = WriteCache(probeKey, v)
 				return v, nil
 			}
 			err = fmt.Errorf("%s --version failed or returned no version: %v", tool, runErr)
@@ -167,13 +179,8 @@ func cachedAuditRun(ctx context.Context, target Target, root string, run func(co
 		target.Tools = ResolveTools(ctx, root)
 	}
 	key := CacheKey(ctx, target, root)
-	var entry cachedAudit
-	if date := ReadCache(key, &entry); !date.IsZero() && completeAudit(entry.Result) {
-		FramesPath(root)
-		ReportPath(root)
-		entry.Result.Diagnostics = entry.Diagnostics
-		entry.Result.Reused = date.Format(time.RFC3339)
-		return entry.Result
+	if result := readCachedAudit(key, root); result != nil {
+		return result
 	}
 	result := run(ctx, target, root)
 	if completeAudit(result) {
@@ -197,4 +204,22 @@ func completeAudit(result *AuditResult) bool {
 		return false
 	}
 	return !slices.ContainsFunc(result.Runtime.Layout.Findings, func(f LayoutFinding) bool { return f.Kind == "incomplete" })
+}
+
+// CachedAudit returns only a complete audit for the exact served artifact.
+func CachedAudit(ctx context.Context, target Target, root string) *AuditResult {
+	return readCachedAudit(CacheKey(ctx, target, root), root)
+}
+
+func readCachedAudit(key, root string) *AuditResult {
+	var entry cachedAudit
+	date := ReadCache(key, &entry)
+	if date.IsZero() || !completeAudit(entry.Result) {
+		return nil
+	}
+	FramesPath(root)
+	ReportPath(root)
+	entry.Result.Diagnostics = entry.Diagnostics
+	entry.Result.Reused = date.Format(time.RFC3339)
+	return entry.Result
 }

@@ -161,9 +161,9 @@ Dependency attribution and browser-observed critical-resource tuning remain open
 
 ## Optional release pass
 
-`lfm compile --release` uses installed Chrome/Chromium through native Go
-CDP. `LFM_CHROME` can point to a nonstandard executable. Normal builds do no
-browser work. Missing/broken optional browsers warn and retain ordinary output.
+`lfm compile --release --validate` uses installed Chrome/Chromium through native Go
+CDP. `LFM_CHROME` can point to a nonstandard executable. Fast releases reuse cached browser results and stamped prints; missing prints
+stop publishing. Validation reports unavailable tools as errors.
 Separate release navigation checks enable application JS; installed Lighthouse
 adds real lab scores/actionable findings. See the
 [release/reporting contract](../../docs/compiling.md#release).

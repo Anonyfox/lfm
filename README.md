@@ -68,8 +68,8 @@ With Go 1.26 or newer:
 go install github.com/Anonyfox/lfm/cmd/lfm@latest
 ```
 
-Optional: Chrome or Chromium for `lfm compile --release`, and Lighthouse for its scores. Missing tools
-are reported and skipped, never installed.
+Optional: Chrome or Chromium for `lfm compile --release --validate`, and Lighthouse for its scores. Missing validation tools
+are reported as errors, never installed.
 
 ## Start a page
 
@@ -85,7 +85,7 @@ Then ask your agent for the page. It works in three phases, each with its own sk
 1. **research**: real buyer voices and competitor pages, verbatim and dated, into `research/`.
 2. **design**: `concept.md` from the research: buyer, mechanism, direction, palette, type, imagery,
    motion and copy, every decision cited to a source.
-3. **implementation**: the page from `concept.md`, until `lfm compile --release` is clean and every
+3. **implementation**: the page from `concept.md`, until `lfm compile --release --validate` is clean and every
    saved frame holds up on phone and desktop.
 
 The compiler checks each handover: missing research, an uncited concept or a page that ignores the
@@ -102,7 +102,7 @@ unattended stays on the path. When it says deploy, upload `output/` to the URL i
 | `lfm skills` | The process skills in the order a page needs them |
 | `lfm skills <topic>` | One `SKILL.md`, rendered for the installed version |
 | `lfm skills install` | All skills into the project's `.agents/skills` or `.claude/skills` |
-| `lfm compile [--release] [--json]` | Check and build; the last line is the next step |
+| `lfm compile [--release] [--validate] [--browser-jobs N] [--json]` | Check and build; the last line is the next step |
 | `lfm check <url\|folder\|file> [--release] [--json]` | Check any built page from a URL or disk |
 | `lfm serve --open` | Live preview that recompiles on every save |
 | `lfm rules [id]` | Every check, or what one means and how to fix it |
@@ -144,7 +144,7 @@ from one sentence without lfm, with the agent's file and lfm's full report.
   deliberately; the page is held to the palette, typefaces, imagery and phrases its `concept.md` decided.
 - **Sellable:** a Stripe Payment Link or Checkout offer shows its price, and the page links the legal
   pages a purchase needs.
-- **Seen whole:** `--release` scrolls the page at phone and desktop sizes, saves every frame and reports
+- **Seen whole:** `--release --validate` scrolls the page at phone and desktop sizes, saves every frame and reports
   empty stretches, sideways scrolling, covered or unreadable text, split values and missing glyphs.
 - **Safe to ship:** nothing is written until all checks pass, and a failed compile keeps the last good output.
 
@@ -173,8 +173,8 @@ framework or server runtime; see [compiling](docs/compiling.md) for output detai
 
 ### Do I need Chrome or Lighthouse to use lfm?
 
-They are optional: Chrome or Chromium enables browser checks in `lfm compile --release`, and
-Lighthouse adds its scores. Missing tools are reported and skipped.
+They are optional: Chrome or Chromium enables browser checks in `lfm compile --release --validate`, and
+Lighthouse adds its scores. Browser validation requires both tools; fast releases reuse cached results.
 
 ## Docs
 

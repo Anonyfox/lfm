@@ -26,7 +26,7 @@ func TestReleaseMissingBrowserFailsAndPreservesNormalArtifact(t *testing.T) {
 	}
 	before := read(t, root, "output/index.html")
 	t.Setenv("LFM_CHROME", "/missing/chromium")
-	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true, Validate: true})
 	if err == nil || report.Published || report.Validation.Errors != 1 {
 		t.Fatal(err, report.Validation)
 	}
@@ -66,7 +66,7 @@ func TestReleaseBuildValidatedWithFullCSSFallback(t *testing.T) {
 	write(t, root, "index.html.tmpl", helperHTML(`{{script "assets/scripts/app.js"}}`, `{{style "theme.css"}}`))
 	// Avoid a second CSS graph extracted from the JS fixture.
 	write(t, root, "assets/scripts/app.js", `window.result=42`)
-	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true, Validate: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -150,7 +150,7 @@ func TestReleaseReusesFileModeStylesheetWithEscapedName(t *testing.T) {
 	changeConfig(t, root, func(c map[string]any) {
 		c["build"].(map[string]any)["assets"].(map[string]any)["overrides"] = map[string]any{"theme&sheet.css": "file"}
 	})
-	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true, Validate: true})
 	if err != nil {
 		t.Fatalf("%v %+v", err, report.Validation)
 	}
@@ -191,7 +191,7 @@ func TestReleaseFillsImageLoadingHints(t *testing.T) {
 	})
 	page := strings.Replace(fixtureHTML, "<h1>{{.title}}</h1>", `<h1>{{.title}}</h1><img src="assets/images/hero.png" width="1200" height="800" alt="The hero" style="width:100%;height:auto"><div style="height:3000px"></div><img src="assets/images/far.png" width="1200" height="800" alt="Far below"><img src="assets/images/kept.png" width="1200" height="800" alt="Authored eager" loading="eager">`, 1)
 	write(t, root, "index.html.tmpl", page)
-	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
+	report, err := Compile(context.Background(), root, Options{Publish: true, Release: true, Validate: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestCancelledReleaseStopsItsBrowsers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var cancelled atomic.Int64
 	time.AfterFunc(1500*time.Millisecond, func() { cancelled.Store(time.Now().UnixNano()); cancel() })
-	result, err := Compile(ctx, dir, Options{Publish: true, Release: true})
+	result, err := Compile(ctx, dir, Options{Publish: true, Release: true, Validate: true})
 	if !errors.Is(err, context.Canceled) || result.Published {
 		t.Fatalf("err %v, published %v", err, result.Published)
 	}
@@ -243,7 +243,7 @@ func TestReleaseLeavesNothingRunning(t *testing.T) {
 	}
 	dir := deckProject(t)
 	before := runtime.NumGoroutine()
-	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil {
+	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true}); err != nil {
 		t.Fatal(err)
 	}
 	deadline := time.Now().Add(3 * time.Second)

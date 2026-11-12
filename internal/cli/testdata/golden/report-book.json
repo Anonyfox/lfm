@@ -362,6 +362,7 @@
     "errors": 0,
     "warnings": 26
   },
+  "validated": false,
   "published": true,
   "assets": [
     {

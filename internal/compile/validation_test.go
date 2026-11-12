@@ -190,7 +190,7 @@ func TestReleaseNoticesObeyConfigBeforePublishing(t *testing.T) {
 		changeConfig(t, root, func(c map[string]any) {
 			c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"release.browser": level, "release.lighthouse": "off"}}
 		})
-		r, err := Compile(context.Background(), root, Options{Publish: true, Release: true})
+		r, err := Compile(context.Background(), root, Options{Publish: true, Release: true, Validate: true})
 		if level == "off" {
 			if err != nil {
 				t.Fatal(err)

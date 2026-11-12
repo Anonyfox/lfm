@@ -41,7 +41,7 @@ whole page as a visitor does, frame by frame, on a phone and on a desktop.
     markup, move over only what the concept keeps, delete the rest.
   - **Grow**: [[.ConceptFile]] gained a changelog entry. Change only the sections its entry names, then run
     the full review, because local changes shift the whole page.
-- Say in one line which capabilities you have: image generation, Chrome for `lfm compile --release`, a
+- Say in one line which capabilities you have: image generation, Chrome for `lfm compile --release --validate`, a
   way to view images, Stripe access. The rounds below name a fallback for each.
 - **Done** means: every part of [[.ConceptFile]] is built except those waiting on an `Open:` line, the
   compile is clean apart from `concept.open`, and the review below passed. Something you cannot produce
@@ -179,7 +179,7 @@ they are an `Open:` line for the owner, not URL parameters. No secret keys in th
 
 ## Round 4: review and fix
 
-Run `lfm compile --release`. In headless Chrome it records runtime errors and scrolls the page by half a
+Run `lfm compile --release --validate`. In headless Chrome it records runtime errors and scrolls the page by half a
 screen at [[.Screens]].
 It reports a first screen without heading or control, empty stretches, sideways scrolling, covered, tiny
 or low-contrast text, split values, motion that ignores reduced motion and text missing without
@@ -202,7 +202,7 @@ frames that changed. Then review by looking:
    - *Specificity*: in which section would a competitor's product fit unchanged?
    - *Detail*: the failure modes below, in every frame and state.
 3. **Findings.** At most five, ranked by buyer impact, each with frame, cause and the quality to keep.
-   Fix causes, recompile with `--release`, read the changed frames and their neighbours. Repeat until no
+   Fix causes, recompile with `--release --validate`, read the changed frames and their neighbours. Repeat until no
    finding is above detail level, usually one or two rounds. With a second agent available, let it review
    without your build context: it reads the research, [[.ConceptFile]] and the frames, and nothing else.
 4. **Ceiling.** Pick the weakest frame and the signature moment. For each, make one concrete change that
@@ -216,7 +216,7 @@ review as not done rather than passed.
 Keep your own review state (screenshots, logs, scripts, browser checks) in `qa/` at the project root.
 The project's .gitignore excludes it; research/ holds only the two research files.
 
-The page is done when `lfm compile --release` reports 0 errors and 0 warnings, the review left nothing
+The page is done when `lfm compile --release --validate` reports 0 errors and 0 warnings, the review left nothing
 above detail level, and the report's `Next` line says deploy.
 
 ## Detail failure modes

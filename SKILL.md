@@ -54,7 +54,7 @@ compile again, and repeat until it says deploy:
 1. **research**: real buyer voices and competitor pages, verbatim, into `research/`.
 2. **design**: `concept.md`, every decision cited to the research.
 3. **implementation**: the page from `concept.md`.
-4. **fix** and **review**: 0 errors, 0 warnings, then `lfm compile --release` and every saved frame.
+4. **fix** and **review**: 0 errors, 0 warnings, then `lfm compile --release --validate` and every saved frame.
 5. **deploy**: upload `output/` as is. lfm does not host pages; ask the user where it goes.
 
 `lfm compile --json` gives the same result as one JSON object, with `next.phase` and `next.skill`.

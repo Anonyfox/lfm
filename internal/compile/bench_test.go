@@ -29,7 +29,7 @@ func BenchmarkCompile(b *testing.B) {
 // every print is reused from output/ and distribution/.
 func BenchmarkRecompileReleasedDeck(b *testing.B) {
 	dir := deckProject(b)
-	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true}); err != nil {
+	if _, err := Compile(context.Background(), dir, Options{Publish: true, Release: true, Validate: true}); err != nil {
 		b.Skip("no release:", err)
 	}
 	b.ReportAllocs()

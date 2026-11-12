@@ -16,3 +16,5 @@ func browserCommand(cmd *exec.Cmd) func() {
 		}
 	}
 }
+
+func prioritizeCommand(*exec.Cmd) {}

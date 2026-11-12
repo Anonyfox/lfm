@@ -65,7 +65,7 @@ func TestEmittedCodeContentHashes(t *testing.T) {
 			write(t, root, "index.html.tmpl", helperHTML(script, style))
 			compile := func() Result {
 				t.Helper()
-				r, err := Compile(context.Background(), root, Options{Publish: true, Release: mode == "release"})
+				r, err := Compile(context.Background(), root, Options{Publish: true, Release: mode == "release", Validate: mode == "release"})
 				if err != nil {
 					t.Fatalf("%v %+v", err, r.Validation)
 				}

@@ -104,6 +104,7 @@
     "errors": 0,
     "warnings": 4
   },
+  "validated": false,
   "published": true,
   "assets": [
     {

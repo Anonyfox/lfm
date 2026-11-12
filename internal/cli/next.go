@@ -141,9 +141,9 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 			n.Do = "resolve the deliverable warnings above before publishing distribution/."
 		}
 	case r.Release == nil:
-		n.Phase, n.Do = "review", "run 'lfm compile --release' and look at every frame it saves, at phone and desktop size."
+		n.Phase, n.Do = "review", "run 'lfm compile --release --validate' and look at every frame it saves, at phone and desktop size."
 		if !pageNeeded {
-			n.Do = "run 'lfm compile --release' and review the files in distribution/."
+			n.Do = "run 'lfm compile --release --validate' and review the files in distribution/."
 		}
 		if r.Book != nil && r.Book.Pending {
 			n.Notes = append(n.Notes, "The release also prints the book's paperback; open it and look at every page.")

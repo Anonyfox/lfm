@@ -158,7 +158,7 @@ each edition as HTML at `/<path>/preview/<edition>.html` (for example `a4-color`
 
 ## Phase 3: print and look
 
-`lfm compile --release` prints every edition with Chrome, checks each page against the safe margin and
+`lfm compile --release --validate` prints every edition with Chrome, checks each page against the safe margin and
 the PDF's page count against the rendered pages, and renders the listing images. Later compiles reuse
 the prints while the product is unchanged. Open every PDF and look at every page in every size: clipped
 text, crowded cards, a grid too small to write in, a key that does not match its puzzle. Solve one

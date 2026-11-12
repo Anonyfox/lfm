@@ -54,6 +54,7 @@
     "errors": 0,
     "warnings": 0
   },
+  "validated": false,
   "published": true,
   "assets": [
     {

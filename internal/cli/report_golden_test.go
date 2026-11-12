@@ -88,7 +88,7 @@ func TestReleaseReport(t *testing.T) {
 		t.Skip("no browser")
 	}
 	dir := testproject.Deck(t)
-	code, out, errs := run(t, "compile", dir, "--release")
+	code, out, errs := run(t, "compile", dir, "--release", "--validate")
 	if code != 0 || errs != "" {
 		t.Fatalf("exit %d, stderr %q\n%s", code, errs, out)
 	}

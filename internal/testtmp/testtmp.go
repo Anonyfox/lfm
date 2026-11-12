@@ -28,6 +28,7 @@ func Main(m *testing.M, setup ...func(string) error) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	os.Setenv("LFM_BROWSER_LOCK", filepath.Join(dir, "browser.lock"))
 	os.Setenv("TMPDIR", dir)
 	os.Setenv("XDG_CACHE_HOME", filepath.Join(dir, "cache"))
 	os.Setenv("HOME", dir)

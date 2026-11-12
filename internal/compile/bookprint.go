@@ -12,8 +12,8 @@ import (
 // screen returns the downloadable PDF, printed twice: the first print finds
 // the page each chapter starts on, the second prints those pages in the
 // contents.
-func (pr *press) screen(built book.Built) ([]byte, error) {
-	return pr.cachedJob(printKey("screen", built.Print, built.PrintAssets), true, func(printer *release.Printer) ([]byte, error) {
+func (pr *press) screen(built book.Built, name string) ([]byte, error) {
+	return pr.cachedJob(printKey("screen", built.Print, built.PrintAssets), name, true, func(printer *release.Printer) ([]byte, error) {
 		first, err := printer.Print(built.Print, built.PrintAssets, true)
 		if err != nil {
 			return nil, err
@@ -35,7 +35,7 @@ func (pr *press) screen(built book.Built) ([]byte, error) {
 func (pr *press) paperback(r *book.Report, built book.Built) book.Printed {
 	printed := book.Printed{Wraps: map[string][]byte{}, Spines: map[string]float64{}}
 	base := built.Document(book.PrintOptions{Paper: true, Inside: book.Gutter(0)})
-	interior, err := pr.job(printKey("paper", base, built.PrintAssets), func(printer *release.Printer) ([]byte, error) {
+	interior, err := pr.job(printKey("paper", base, built.PrintAssets), "paperback-interior.pdf", func(printer *release.Printer) ([]byte, error) {
 		inside := book.Gutter(0)
 		for range 3 {
 			measure, err := printer.Print(built.Document(book.PrintOptions{Paper: true, Inside: inside}), built.PrintAssets, true)
@@ -82,7 +82,7 @@ func (pr *press) paperback(r *book.Report, built book.Built) book.Printed {
 		spine := printed.Spines[key]
 		// KDP prints spine text from 79 pages; narrower spines stay blank.
 		doc := built.CoverDocument(spine, pages >= 79)
-		wrap, err := pr.job(printKey("wrap", doc, built.PrintAssets), func(printer *release.Printer) ([]byte, error) {
+		wrap, err := pr.job(printKey("wrap", doc, built.PrintAssets), book.WrapFile(key), func(printer *release.Printer) ([]byte, error) {
 			return printer.Print(doc, built.PrintAssets, false)
 		})
 

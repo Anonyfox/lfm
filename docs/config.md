@@ -62,7 +62,7 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.assets.overrides.*` | inline | file |  | How this source path is packed. Example: `"file"`. |
 | `build.browserData` | list of strings |  | Dot paths copied into <script type="application/json" id="product-data"> for scripts, keeping their nesting. Example: `["data.offer"]`. |
 | `build.validation` | object |  | Rule levels and size budgets. |
-| `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Example: `{"design.mono": "off"}`. |
+| `build.validation.rules` | map |  | Per-rule levels; required rules stay errors. `lfm rules` lists them. Browser audits run with `lfm compile --validate`; fast `--release` reuses cached findings or reports `release.validate`. Missing Chrome-made deliverables stop a fast release with the required `release.pending` error. Example: `{"design.mono": "off"}`. |
 | `build.validation.rules.*` | off | warn | error |  | The level of this rule. Example: `"warn"`. |
 | `build.validation.copyBans` | list of objects |  | Project-banned copy, checked by compile and check --project as copy.banned. Example: `[{"phrase":"hidden gem","severity":"error","hint":"Name the place."}]`. |
 | `build.validation.copyBans.*` | object |  | One copy ban; set exactly one nonblank phrase or regex. |

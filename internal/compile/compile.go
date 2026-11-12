@@ -7,10 +7,10 @@
 //  1. load      read lfm.json and data/
 //  2. prepare   check template bindings and links statically, then render
 //  3. assemble  resolve, bundle and pack every referenced resource
-//  4. optimize  (release) split critical CSS after measuring it in Chrome
+//  4. optimize  (release) reuse optimization; validate measures it in Chrome
 //  5. finalize  serialize and compact the document
 //  6. verify    run every document check on the exact final bytes
-//  7. audit     (release) runtime probe and Lighthouse in a headless browser
+//  7. audit     (release) reuse audits; validate runs runtime and Lighthouse
 //  8. publish   replace output/ in one rename
 //
 // Nothing is written before verify passes; a failed compile keeps the
@@ -55,9 +55,11 @@ import (
 
 // Options select the optional lifecycle stages.
 type Options struct {
-	Release bool   // browser-backed optimize and audit stages
-	Publish bool   // replace output/ on success
-	Waiting func() // called when another compile of the project holds the lock
+	Release     bool   // fast release using cached browser results
+	Validate    bool   // run browser optimization and audits; implies Release
+	BrowserJobs int    // maximum concurrent browser work
+	Publish     bool   // replace output/ on success
+	Waiting     func() // called when another compile of the project holds the lock
 }
 
 // File is one emitted output file.
@@ -84,6 +86,7 @@ type Result struct {
 	Previews    map[string][]byte    `json:"-"`
 	External    []string             `json:"externalAssets,omitempty"`
 	Validation  *check.Report        `json:"validation,omitempty"`
+	Validated   bool                 `json:"validated"`
 	Published   bool                 `json:"published"`
 	Release     *release.Result      `json:"release,omitempty"`
 	Packing     []AssetDecision      `json:"assets,omitempty"`
@@ -173,6 +176,11 @@ type builder struct {
 // Compile runs the lifecycle on the project in dir. Cancelling ctx stops it
 // between stages; a cancelled compile never publishes.
 func Compile(ctx context.Context, dir string, options Options) (result Result, err error) {
+	if options.Validate {
+		options.Release = true
+	}
+	result.Validated = options.Validate
+	ctx = release.WithBrowserJobs(ctx, options.BrowserJobs)
 	defer cache.Prune()
 	p, err := project.Open(dir)
 	if err == nil {
@@ -262,7 +270,13 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 	// 4. optimize
 	if options.Release && result.PageNeeded() {
 		b.tools = release.ResolveTools(ctx, p.Root)
-		if err := b.optimizeWithCache(doc, &result, b.optimize); err != nil {
+		if err := b.optimizeWithCache(doc, &result, func(doc *html.Node, result *Result) error {
+			if !options.Validate {
+				b.validateNotice()
+				return nil
+			}
+			return b.optimize(doc, result)
+		}); err != nil {
 			return result, err
 		}
 	}
@@ -309,10 +323,22 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		return result, &Failure{Errors: result.Errors()}
 	}
 	// One stock for every deliverable: the last publish indexed once, one Chrome.
-	st := newStock(ctx, p, options.Release)
+	st := newStock(ctx, p, options.Validate)
+	st.cacheOnly = options.Release && !options.Validate
 	defer st.close()
-	if !deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result) {
+	delivered := deliverAll(p, page, units, pack, st, c.Build.Validation.Rules, &result)
+	if options.Release && !options.Validate && st.pending {
+		result.revalidate("deliver", []diagnostic.Diagnostic{{Rule: "release.pending", Severity: diagnostic.Error, Message: "Chrome-made deliverable files are pending: " + strings.Join(st.pendingFiles, ", "), Hint: "Run lfm compile --release --validate once; later releases reuse the printed files."}}, c.Build.Validation.Rules)
 		return result, &Failure{Errors: result.Errors()}
+	}
+	if !delivered {
+		return result, &Failure{Errors: result.Errors()}
+	}
+	// Deliverable layout and office checks run only with --validate.
+	if options.Release && !options.Validate && len(units) > 0 {
+		before := len(b.notices)
+		b.validateNotice()
+		result.revalidate("deliver", b.notices[before:], c.Build.Validation.Rules)
 	}
 	if err := b.addPublic(&result); err != nil {
 		return result, err
@@ -323,7 +349,19 @@ func Compile(ctx context.Context, dir string, options Options) (result Result, e
 		if result.Release == nil {
 			result.Release = &release.Result{}
 		}
-		audit := release.Audit(ctx, release.Target{Page: page, Assets: auditAssets, Tools: b.tools, Printer: st.printer}, p.Root)
+		target := release.Target{Page: page, Assets: auditAssets, Tools: b.tools, Printer: st.printer}
+		var audit *release.AuditResult
+		if options.Validate {
+			audit = release.Audit(ctx, target, p.Root)
+		} else {
+			audit = release.CachedAudit(ctx, target, p.Root)
+		}
+		if audit == nil {
+			before := len(b.notices)
+			b.validateNotice()
+			result.revalidate("audit", b.notices[before:], c.Build.Validation.Rules)
+			audit = &release.AuditResult{}
+		}
 		result.Release.Audit = audit
 		if audit.Runtime != nil && audit.Runtime.Status != "ok" {
 			// A failed browser capability is reported once by the audit, even
@@ -736,4 +774,13 @@ func (r Result) PageNeeded() bool {
 		}
 	}
 	return false
+}
+
+func (b *builder) validateNotice() {
+	for _, d := range b.notices {
+		if d.Rule == "release.validate" {
+			return
+		}
+	}
+	b.notice("release.validate", "Critical CSS, image hints, browser audits or deliverable layout checks have not run for these bytes", "Run lfm compile --release --validate; later releases of the same bytes reuse its results without Chrome.")
 }
