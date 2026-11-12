@@ -30,11 +30,20 @@ func TestOptimizationCacheReconstructsFinalArtifact(t *testing.T) {
 	calls := 0
 	run := func(doc *html.Node, result *Result) error {
 		calls++
+		var heading *html.Node
 		htmlx.Walk(doc, func(n *html.Node) {
 			if n.Data == "h1" {
 				htmlx.SetAttr(n, "class", "optimized")
+				heading = n
 			}
 		})
+		// Built nodes keep insertion order; parsing renders a link's rel
+		// before target, so a cache hit must match a fresh run byte for byte.
+		link := htmlx.Element("a", "badge")
+		htmlx.SetAttr(link, "href", "https://example.com/")
+		htmlx.SetAttr(link, "target", "_blank")
+		htmlx.SetAttr(link, "rel", "noopener")
+		heading.Parent.AppendChild(link)
 		result.Release = &release.Result{Applied: true, Stylesheet: "full.css"}
 		return nil
 	}

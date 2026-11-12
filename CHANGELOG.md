@@ -5,6 +5,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 - Fast releases reuse browser results and stamped prints; missing prints stop publishing.
 - Add opt-in validation for browser optimization and audits.
 - Serialize browser work box-wide and lower Linux child priority.
+- A cached optimization now yields the same bytes as the run that cached it (built links no longer change attribute order), so repeated releases reuse audits.
 - Migration: deploy scripts keep `--release`; release gates that relied on browser audits add `--validate`.
 
 ## 0.1.28 (2026-11-11)
