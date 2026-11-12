@@ -93,7 +93,7 @@ func TestPlainReleaseCriticalCSSColdWarmAndValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("LFM_CHROME", loggingTool(t, "if [ \"$1\" = --version ]; then exec "+chrome+" --version; fi\nexit 1"))
+	t.Setenv("LFM_CHROME", loggingTool(t, "if [ \"$1\" = --version ]; then exec '"+chrome+"' --version; fi\nexit 1"))
 	if err := os.WriteFile(log, nil, 0600); err != nil {
 		t.Fatal(err)
 	}
