@@ -64,6 +64,14 @@ func TestConceptFidelity(t *testing.T) {
 	if got := fidelity(t, &three, reused); len(got) != 0 {
 		t.Fatalf("a.png once, b.webp and a drawing are three: %+v", got)
 	}
+	footer := strings.Replace(clean, "</style>", ".fox-footer{background:#000;color:#fff}.fox-footer__heart,.fox-footer .fox-footer__credit a:hover{color:#ff426c}</style>", 1)
+	if got := fidelity(t, facts, footer); len(got) != 0 {
+		t.Fatalf("lfm's built-in footer chrome is not the page palette: %+v", got)
+	}
+	mixed := strings.Replace(clean, "</style>", "h2,.fox-footer{color:#6366f1}</style>", 1)
+	if got := fidelity(t, facts, mixed); len(got) != 1 || !strings.Contains(got[0].Message, "#6366f1") {
+		t.Fatalf("a rule that also styles page content still counts: %+v", got)
+	}
 	if got := fidelity(t, nil, clean); got != nil {
 		t.Fatal("without a concept the rule is silent")
 	}

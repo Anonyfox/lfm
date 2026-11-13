@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.2.2 (2026-11-13)
+
+- Absolute metadata and third-party scripts no longer disable critical CSS; unsafe splitting reports a warning consistently on cold and cached releases.
+- Make the Lighthouse CLI drain test independent of browser startup and lock delays.
+- `concept.fidelity` no longer reports the built-in footer's fixed colors as off-palette.
+
 ## 0.2.1 (2026-11-12)
 
 - `--release` builds the shippable page: critical CSS and prints, using low-priority Chrome on cache misses, never Lighthouse. CSS extraction failures stop publishing.

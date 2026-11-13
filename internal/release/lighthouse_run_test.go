@@ -104,7 +104,8 @@ func TestLighthouseNodeCLICompletion(t *testing.T) {
 			}
 			// A full pipe must drain; completed work must not wait for a stale timer.
 			report := fakeReport[:len(fakeReport)-1] + `,"padding":"` + strings.Repeat("x", 1<<20) + `"}`
-			script := "#!/usr/bin/env node\nsetTimeout(()=>{}, 30000); process.stdout.write(" + strconv.Quote(report) + ");" + tc.tail
+			started := filepath.Join(root, "node-started")
+			script := "#!/usr/bin/env node\nimport {writeFileSync} from 'node:fs'; writeFileSync(" + strconv.Quote(started) + ", String(Date.now())); setTimeout(()=>{}, 30000); process.stdout.write(" + strconv.Quote(report) + ");" + tc.tail
 			if err := os.WriteFile(entry, []byte(script), 0o755); err != nil {
 				t.Fatal(err)
 			}
@@ -115,10 +116,24 @@ func TestLighthouseNodeCLICompletion(t *testing.T) {
 			if err := os.Symlink(entry, tool); err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
 			defer cancel()
 			browser, _ := BrowserPath()
 			r := runLighthouseOnce(ctx, Target{Page: []byte("<!doctype html>")}, browser, root, tool)
+			// Measure only Node execution/drain, excluding browser lock/startup.
+			raw, err := os.ReadFile(started)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ms, err := strconv.ParseInt(string(raw), 10, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The original 5 s budget, applied to what it was meant for: Node
+			// execution and pipe drain (the stale timer would take 30 s).
+			if elapsed := time.Since(time.UnixMilli(ms)); elapsed >= 5*time.Second {
+				t.Fatalf("CLI did not finish within 5s of starting (stale timer?): %s", elapsed)
+			}
 			if (r.Status == "ok") != tc.ok || strings.Contains(r.Reason, "deadline") {
 				t.Fatalf("%+v", r)
 			}

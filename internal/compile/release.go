@@ -18,7 +18,7 @@ type cssExtractionError struct{ error }
 func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 	report := &release.Result{}
 	var sheets []*html.Node
-	var blocked bool
+	var blocked string
 	var scan func(*html.Node)
 	scan = func(node *html.Node) {
 		if node.Type == html.ElementNode {
@@ -26,10 +26,17 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 				return
 			}
 			if node.Data == "meta" && strings.EqualFold(htmlx.Attr(node, "http-equiv"), "content-security-policy") {
-				blocked = true
+				blocked = "Authored CSP can block the inline critical style or deferred stylesheet loader; kept full CSS."
 			}
 			if node.Data == "style" || (node.Data == "link" && stylesheetRel(htmlx.Attr(node, "rel"))) {
 				sheets = append(sheets, node)
+				if node.Data == "link" {
+					ref := htmlx.Attr(node, "href")
+					u, err := url.Parse(ref)
+					if err == nil && (u.IsAbs() || u.Host != "") {
+						blocked = "External stylesheet " + ref + " keeps the complete CSS blocking."
+					}
+				}
 			}
 		}
 		for child := node.FirstChild; child != nil; child = child.NextSibling {
@@ -37,13 +44,26 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 		}
 	}
 	scan(doc)
-	if blocked || len(b.external) > 0 || len(sheets) != 1 {
-		report.Reason = "Critical splitting requires one ordinary local stylesheet, no external resources and no authored CSP; kept full CSS."
+	// Analyze blocks application scripts (regardless of async/defer) and outside
+	// requests. Metadata and scripts do not affect this static extraction; missing
+	// styles/fonts or intrinsic media geometry can invalidate its reference, even
+	// when critical-only and critical+full pixels agree. CSSOM checks cover those.
+	// One source sheet keeps cascade order intact; authored CSP may reject the
+	// replacement inline style or its onload handler even if the preview renders.
+	if blocked != "" || len(sheets) != 1 {
+		report.Reason = blocked
+		if blocked == "" {
+			report.Reason = fmt.Sprintf("Critical splitting requires one stylesheet; found %d; kept full CSS.", len(sheets))
+		}
 		return report, nil
 	}
 	node := sheets[0]
 	if independentlyAddressable(node, "rel", "href", "type") || strings.Contains(htmlx.Attr(node, "rel"), "alternate") {
-		report.Reason = "Stylesheet has independent loading/identity/security semantics; kept full CSS."
+		var attributes []string
+		for _, attribute := range node.Attr {
+			attributes = append(attributes, fmt.Sprintf("%s=%q", attribute.Key, attribute.Val))
+		}
+		report.Reason = "Stylesheet " + strings.Join(attributes, " ") + " has independent loading/identity/security semantics; kept full CSS."
 		return report, nil
 	}
 	full := []byte(htmlx.RawText(node))
@@ -53,10 +73,10 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 		if err != nil {
 			return report, err
 		}
-		name = strings.TrimPrefix(ref.Path, "./")
+		name = strings.TrimPrefix(strings.TrimPrefix(ref.Path, "./"), "/")
 		file, ok := b.files[strings.ToLower(name)]
 		if !ok {
-			report.Reason = "Stylesheet is not a generated local asset; kept full CSS."
+			report.Reason = "Stylesheet " + htmlx.Attr(node, "href") + " is not a generated local asset; kept full CSS."
 			return report, nil
 		}
 		full = file.contents
@@ -72,10 +92,7 @@ func (b *builder) optimizeRelease(doc *html.Node) (*release.Result, error) {
 	if err := html.Render(&preview, doc); err != nil {
 		return report, err
 	}
-	assets := map[string][]byte{}
-	for _, file := range b.files {
-		assets[file.name] = file.contents
-	}
+	assets := b.sidecars()
 	observed, err := release.Analyze(b.ctx, preview.Bytes(), assets)
 	if err != nil {
 		return report, cssExtractionError{fmt.Errorf("release CSS analysis: %w", err)}

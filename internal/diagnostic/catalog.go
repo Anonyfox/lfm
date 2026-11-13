@@ -31,6 +31,11 @@ func OperationalRules() []RuleInfo {
 			Help:    "The compactor found input it could not shrink without risk and kept the serialized HTML byte for byte. The page is still correct and fully checked, only slightly larger. This indicates a compactor limitation, so report the input as an lfm bug.",
 		},
 		{
+			ID:      "release.critical",
+			Summary: "Critical CSS splitting retained the complete blocking stylesheet",
+			Help:    "With --release, unsupported stylesheet semantics, authored CSP, unavailable styling resources or an unstable first screen prevent safe critical splitting. The complete CSS stays blocking so the page can still publish safely. Fix the named cause and retry --release.",
+		},
+		{
 			ID:       "release.css",
 			Summary:  "The --release critical-CSS pass in headless Chrome finished",
 			Help:     "With --release, lfm extracts critical CSS in Chrome when splitting applies. Extraction failure blocks publishing and preserves the previous output. Check Chrome startup and page rendering, then run lfm compile --release again.",

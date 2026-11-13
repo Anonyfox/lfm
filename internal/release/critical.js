@@ -1,6 +1,31 @@
 (() => {
   const source = document.querySelector('[data-lfm-critical-source]');
   if (!source || !source.sheet) return {reason: 'The compiled stylesheet was not readable in Chromium.'};
+  // Outside requests fail in this preview: matching two fallback renderings
+  // cannot prove the first screen with the real font or media geometry.
+  for (const font of document.fonts) {
+    if (font.status === 'error') return {reason: 'Web font ' + font.family + ' failed in the isolated preview; kept full CSS.'};
+  }
+  const outside = value => {
+    const u = new URL(value, document.baseURI);
+    return u.protocol !== 'data:' && u.protocol !== 'blob:' && u.origin !== location.origin;
+  };
+  for (const media of document.querySelectorAll('img,video')) {
+    const ref = media.currentSrc || media.src || media.poster;
+    if (ref && outside(ref) && !(media.hasAttribute('width') && media.hasAttribute('height')))
+      return {reason: 'External media ' + ref + ' has no intrinsic size in the isolated preview; kept full CSS.'};
+  }
+  function unavailableImport(rules) {
+    for (const rule of rules) {
+      if (rule instanceof CSSImportRule) return rule.href;
+      if (rule.cssRules) {
+        const ref = unavailableImport(rule.cssRules);
+        if (ref) return ref;
+      }
+    }
+  }
+  const imported = unavailableImport(source.sheet.cssRules);
+  if (imported) return {reason: 'Stylesheet import ' + imported + ' is unavailable to isolated extraction; kept full CSS.'};
   const elements = [...document.querySelectorAll('body *')];
   if (elements.length > 12000) return {reason: 'DOM exceeds the bounded critical-CSS observation budget; kept full CSS.'};
   const width = innerWidth, height = innerHeight;

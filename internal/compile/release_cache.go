@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/release"
 	"golang.org/x/net/html"
 )
 
 type cachedOptimization struct {
-	Page   []byte
-	Assets map[string][]byte
-	Result *release.Result
+	Page    []byte
+	Assets  map[string][]byte
+	Result  *release.Result
+	Notices []diagnostic.Diagnostic
+	Origins map[string]string
 }
 
 // Cache the optimization inputs, before critical splitting or image hints, so
@@ -35,7 +38,7 @@ func (b *builder) optimizeWithCache(doc *html.Node, result *Result, run func(*ht
 	}
 	key := release.CacheKey(b.ctx, release.Target{Page: input.Bytes(), Assets: assets, Tools: b.tools}, b.root)
 	if key != "" {
-		key += "-optimize"
+		key += "-optimize-v2"
 	}
 	var entry cachedOptimization
 	if date := release.ReadCache(key, &entry); !date.IsZero() && entry.Result != nil && len(entry.Page) > 0 {
@@ -46,12 +49,13 @@ func (b *builder) optimizeWithCache(doc *html.Node, result *Result, run func(*ht
 				index := strings.ToLower(name)
 				old, ok := b.files[index]
 				if !ok {
-					old = emitted{name: name, origin: "release cache"}
+					old = emitted{name: name, origin: entry.Origins[name]}
 				}
 				old.contents = raw
 				b.files[index] = old
 			}
 			result.Release = entry.Result
+			b.notices = append(b.notices, entry.Notices...)
 			return nil
 		}
 	}
@@ -71,14 +75,22 @@ func (b *builder) optimizeWithCache(doc *html.Node, result *Result, run func(*ht
 		return err
 	}
 	replaceDocument(doc, parsed)
-	if result.Release != nil && len(b.notices) == before {
+	for _, notice := range b.notices[before:] {
+		if notice.Severity == diagnostic.Error {
+			return nil // Failed extraction must retry rather than cache a tool failure.
+		}
+	}
+	if result.Release != nil {
 		changed := map[string][]byte{}
+		// Origins drive CSS/JS budget accounting as well as output bytes.
+		origins := map[string]string{}
 		for name, raw := range b.sidecars() {
 			if previous, ok := beforeAssets[name]; !ok || !bytes.Equal(raw, previous) {
 				changed[name] = raw
+				origins[name] = b.files[strings.ToLower(name)].origin
 			}
 		}
-		release.WriteCache(key, cachedOptimization{output.Bytes(), changed, result.Release})
+		release.WriteCache(key, cachedOptimization{output.Bytes(), changed, result.Release, b.notices[before:], origins})
 	}
 	return nil
 }

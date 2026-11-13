@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -392,7 +393,7 @@ func Handler(page []byte, assets map[string][]byte) http.Handler {
 			return
 		}
 		name := strings.TrimPrefix(r.URL.Path, "/")
-		if name == filepath.Base(name) && !strings.ContainsAny(name, `/\`) {
+		if name != "" && name != "." && path.Clean(name) == name && !path.IsAbs(name) && !strings.HasPrefix(name, "../") && !strings.Contains(name, "\\") {
 			if body, ok := assets[name]; ok {
 				w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(name)))
 				_, _ = w.Write(body)

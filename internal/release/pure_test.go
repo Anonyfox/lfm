@@ -245,8 +245,8 @@ func TestSamePixelsToleratesRasterNoiseOnly(t *testing.T) {
 
 func TestHandlerTypesAssets(t *testing.T) {
 	t.Parallel()
-	h := Handler([]byte("<p>page"), map[string][]byte{"font.woff2": {1}, "style.css": []byte("p{}")})
-	for path, want := range map[string]string{"/": "text/html; charset=utf-8", "/index.html": "text/html; charset=utf-8", "/style.css": "text/css; charset=utf-8", "/font.woff2": "font/woff2"} {
+	h := Handler([]byte("<p>page"), map[string][]byte{"font.woff2": {1}, "style.css": []byte("p{}"), "_fonts/font.woff2": {1}})
+	for path, want := range map[string]string{"/": "text/html; charset=utf-8", "/index.html": "text/html; charset=utf-8", "/style.css": "text/css; charset=utf-8", "/font.woff2": "font/woff2", "/_fonts/font.woff2": "font/woff2"} {
 		w := httpGet(h, path)
 		if w.Code != 200 || w.Header().Get("Content-Type") != want || w.Header().Get("Cache-Control") != "no-store" {
 			t.Errorf("%s: %d %q", path, w.Code, w.Header().Get("Content-Type"))

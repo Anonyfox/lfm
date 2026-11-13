@@ -533,6 +533,9 @@ func (b *builder) optimize(doc *html.Node, result *Result) error {
 		b.notices = append(b.notices, diagnostic.Diagnostic{Rule: "release.css", Severity: diagnostic.Error, Message: "Critical CSS extraction failed: " + err.Error(), Hint: "Check Chrome startup (LFM_CHROME) and page rendering, then run lfm compile --release again."})
 		return nil
 	}
+	if !r.Applied && r.Reason != "" && !strings.HasPrefix(r.Reason, "Stylesheet is below 8 KiB") && !strings.HasPrefix(r.Reason, "Critical CSS does not remove at least") {
+		b.notice("release.critical", r.Reason, "Use one ordinary generated local stylesheet, local fonts and sized media, and review authored CSP or the named rendering limitation; retry --release.")
+	}
 	b.imageHints(doc, result.Release)
 	return nil
 }

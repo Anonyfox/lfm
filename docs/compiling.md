@@ -214,7 +214,8 @@ unchanged documents, decks or workbooks does not open them again.
    or move an element away (a closed menu, a skip link) where that element would otherwise appear. Every
    measurement waits for fonts and first-screen images, lays the page out afresh and repeats until two
    readings agree; the first screen with the critical rules alone, and with both, must match the full page in
-   every computed style, box and pixel at every size, or the complete stylesheet stays blocking. The split is
+   every computed style, box and pixel at every size, or the complete stylesheet stays blocking.
+   Unsupported stylesheet semantics (including multiple or external sheets/imports), authored CSP, failed web fonts, unsized external media and unverifiable rendering keep the full CSS and report a `release.critical` warning. The split is
    applied only when it removes at least 2 KiB and 20% of render-blocking CSS.
 2. **Runtime probe and layout audit** (90 s): the page runs with its scripts in a fresh Chrome profile;
    exceptions and missing files are reported. Then the page is scrolled by half a screen at a time at 390×844,

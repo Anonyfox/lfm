@@ -122,7 +122,9 @@ func conceptFidelityRule(d *Document) []Diagnostic {
 					u.count++
 				}
 			}
-			if len(facts.Colors) == 0 || !colorProps.MatchString(dcl.prop) {
+			// lfm's built-in footer is compiler-owned chrome with fixed colors
+			// (#000 ground, #ff426c heart); it is not the page's palette.
+			if len(facts.Colors) == 0 || !colorProps.MatchString(dcl.prop) || builtinFooterSelector(selector) {
 				continue
 			}
 			for _, c := range color.Parse(dcl.value) {
@@ -410,4 +412,15 @@ func inflectedPhrases(phrase string) []string {
 		phrases = append(phrases, strings.Join(parts, " "))
 	}
 	return phrases
+}
+
+// builtinFooterSelector reports whether every selector in a rule's list
+// targets lfm's built-in footer (.fox-footer and its __elements).
+func builtinFooterSelector(selector string) bool {
+	for _, part := range strings.Split(selector, ",") {
+		if !strings.Contains(part, ".fox-footer") {
+			return false
+		}
+	}
+	return strings.TrimSpace(selector) != ""
 }

@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/release"
 	"github.com/Anonyfox/lfm/internal/testproject"
+	"golang.org/x/net/html"
 )
 
 func criticalFixture(t *testing.T) string {
@@ -195,4 +197,152 @@ func TestReleaseCriticalCSSFailurePreservesOutput(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReleaseExternalCriticalColdWarm(t *testing.T) {
+	releaseBrowser(t)
+	for _, tc := range []struct {
+		name, head, body string
+		blocked          bool
+	}{
+		{"MICE", `<meta property=og:image content=https://example.com/card.png>`, `<script defer src=https://static.cloudflareinsights.com/beacon.min.js data-cf-beacon='{"token":"x"}'></script>`, false},
+		{"Cosmolytic", `<link rel=apple-touch-icon href=https://sterne.cosmolytic.com/apple-touch-icon.png>`, "", false},
+		{"stylesheet", `<link rel=stylesheet href=https://example.com/x.css>`, "", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := criticalFixture(t)
+			changeConfig(t, root, func(c map[string]any) {
+				c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"links.literal": "off", "links.declared": "off"}}
+			})
+			write(t, root, "index.html.tmpl", helperHTML(tc.body, `{{style "theme.css"}}`+tc.head))
+			t.Setenv("XDG_CACHE_HOME", t.TempDir())
+			log := filepath.Join(t.TempDir(), "calls")
+			t.Setenv("LFM_TEST_TOOL_LOG", log)
+			cold, err := Compile(context.Background(), root, Options{Release: true, Publish: true})
+			if err != nil || !cold.Published {
+				t.Fatalf("%v %+v", err, cold.Validation)
+			}
+			if cold.Release.Applied == tc.blocked {
+				t.Fatalf("unexpected split: %+v", cold.Release)
+			}
+			warnings := 0
+			for _, d := range cold.Validation.Diagnostics {
+				if d.Rule == "release.critical" {
+					warnings++
+					if !tc.blocked || d.Severity != "warn" || !strings.Contains(d.Message, "https://example.com/x.css") {
+						t.Fatal(d)
+					}
+				}
+			}
+			if tc.blocked && warnings != 1 {
+				t.Fatalf("missing warning: %+v", cold.Validation)
+			}
+			page := read(t, root, "output/index.html")
+			if !tc.blocked {
+				full := read(t, root, "output/"+cold.Release.Stylesheet)
+				critical, deferred := false, false
+				for _, n := range parsePage(t, page) {
+					if n.Data == "style" && len(htmlx.RawText(n)) > 0 && len(htmlx.RawText(n)) < len(full) {
+						critical = true
+					}
+					if n.Data == "link" && htmlx.Attr(n, "media") == "print" {
+						deferred = true
+					}
+				}
+				if !critical || !deferred {
+					t.Fatal("missing critical style or deferred full sheet")
+				}
+			} else if strings.Contains(page, `media="print"`) || !strings.Contains(page, ".unseen-899") {
+				t.Fatal("full CSS not retained")
+			}
+			chrome, _ := release.BrowserPath()
+			t.Setenv("LFM_CHROME", loggingTool(t, "if [ \"$1\" = --version ]; then exec '"+chrome+"' --version; fi\nexit 1"))
+			if err := os.WriteFile(log, nil, 0600); err != nil {
+				t.Fatal(err)
+			}
+			warm, err := Compile(context.Background(), root, Options{Release: true, Publish: true})
+			if err != nil || !warm.Published {
+				t.Fatalf("%v %+v", err, warm)
+			}
+			if page != read(t, root, "output/index.html") || !reflect.DeepEqual(cold.Validation.Diagnostics, warm.Validation.Diagnostics) {
+				t.Fatalf("cold/warm page equal: %v\ncold: %+v\nwarm: %+v", page == read(t, root, "output/index.html"), cold.Validation.Diagnostics, warm.Validation.Diagnostics)
+			}
+			raw, err := os.ReadFile(log)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
+				if line != "" && line != "--version" {
+					t.Fatalf("warm Chrome launched: %s", raw)
+				}
+			}
+		})
+	}
+}
+
+func TestReleaseCriticalUnavailableResources(t *testing.T) {
+	releaseBrowser(t)
+	for _, tc := range []struct{ name, css, head, body, cause string }{
+		{name: "import", css: `@import "https://example.com/x.css";`, cause: "https://example.com/x.css"},
+		{name: "font", css: `@font-face{font-family:Remote;src:url(https://example.com/font.woff2)}body{font-family:Remote}`, cause: "Remote"},
+		{name: "unsized image", body: `<img src=https://example.com/image.png alt=Example>`, cause: "https://example.com/image.png"},
+		{name: "root-relative emitted image", body: `<img src=/_images/a.svg alt=Example>`},
+		{name: "sized image", body: `<img src=https://example.com/image.png width=100 height=100 alt=Example>`},
+		{name: "CSP", head: `<meta http-equiv=Content-Security-Policy content="style-src 'self'">`, cause: "CSP"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := criticalFixture(t)
+			changeConfig(t, root, func(c map[string]any) {
+				c["build"].(map[string]any)["validation"] = map[string]any{"rules": map[string]any{"links.literal": "off", "links.declared": "off"}}
+			})
+			write(t, root, "public/_images/a.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="red"/></svg>`)
+			write(t, root, "theme.css", tc.css+read(t, root, "theme.css"))
+			write(t, root, "index.html.tmpl", helperHTML(tc.body, `{{style "theme.css"}}`+tc.head))
+			r, err := Compile(context.Background(), root, Options{Release: true, Publish: true})
+			if err != nil || !r.Published {
+				t.Fatalf("%v %+v", err, r.Validation)
+			}
+			if tc.cause == "" {
+				if !r.Release.Applied {
+					t.Fatalf("legitimate media blocked: %+v", r.Release)
+				}
+				return
+			}
+			found := false
+			for _, d := range r.Validation.Diagnostics {
+				if d.Rule == "release.critical" && strings.Contains(d.Message, tc.cause) {
+					found = true
+				}
+			}
+			if r.Release.Applied || !found {
+				t.Fatalf("missing cause %s: %+v", tc.cause, r.Release)
+			}
+		})
+	}
+}
+
+// Keep eligibility scanning bounded below the browser extraction threshold.
+func FuzzCriticalEligibility(f *testing.F) {
+	for _, seed := range []string{
+		`<style>body{color:red}</style><script src=https://example.com/x.js></script>`,
+		`<link rel=stylesheet href=https://example.com/x.css>`,
+		`<meta http-equiv=Content-Security-Policy content="style-src 'none'"><style></style>`,
+		`<template><link rel=stylesheet href=https://example.com/x.css></template>`,
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, page string) {
+		if len(page) > 4096 {
+			return
+		}
+		doc, err := html.Parse(strings.NewReader(page))
+		if err != nil {
+			return
+		}
+		b := &builder{ctx: context.Background()}
+		result, _ := b.optimizeRelease(doc)
+		if result != nil && result.Applied {
+			t.Fatal("small stylesheet was split")
+		}
+	})
 }
