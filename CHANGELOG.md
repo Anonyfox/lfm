@@ -1,5 +1,10 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.2.4 (2026-11-13)
+
+- Critical CSS verification is deterministic with `font-display:optional` fonts and responsive images: the preview serves assets cacheable, warms every viewport before the reference, measures each state on a fresh page with fonts selected again, and captures pixels once two frames agree. Pages such as Agentpreneur home-de no longer lose the split to a sub-pixel text difference.
+- `perf.budgets` no longer charges the CSS of lfm's built-in footer to the page's `cssKiB`; the warning names those bytes separately. Only rules that style nothing outside the built-in footer are excluded, and only when the page has it.
+
 ## 0.2.3 (2026-11-13)
 
 - Critical CSS keeps rules whose `var()` shorthand the browser serializes as empty longhands (for example `background:` with `var()` plus later `background-size`), instead of failing verification and shipping the full CSS.

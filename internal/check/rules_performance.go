@@ -4,9 +4,14 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/tdewolff/parse/v2"
+	"github.com/tdewolff/parse/v2/css"
+	"golang.org/x/net/html"
 )
 
 // HTMLLimit is the page size the HTML check allows. Decimal bytes deliberately
@@ -222,6 +227,11 @@ func budgetsRule(d *Document) []Diagnostic {
 	// Allow image-led pages and short loops; keep the initial paint small on mobile.
 	kib := func(n int) string { return fmt.Sprintf("%.1f KiB", float64(n)/1024) }
 	plain := func(n int) string { return fmt.Sprint(n) }
+	// lfm's own footer CSS is reported, not charged to the page's budget.
+	footer, footerNote := builtinFooterCSSBytes(d), ""
+	if footer > 0 {
+		footerNote = fmt.Sprintf(" without lfm's built-in footer (%s, not counted)", kib(footer))
+	}
 	var issues []Diagnostic
 	for _, budget := range []struct {
 		name, field  string
@@ -230,7 +240,7 @@ func budgetsRule(d *Document) []Diagnostic {
 		show         func(int) string
 		hint         string
 	}{
-		{"CSS (inline + files)", "cssKiB", d.Stats.CSSBytes + d.Stats.ExternalCSSBytes - d.Options.CriticalCSSBytes, or(b.CSSKiB, 20), 1024, kib, "Remove unused styles and dependencies; file packing changes scheduling, not total CSS bytes."},
+		{"CSS (inline + files)" + footerNote, "cssKiB", d.Stats.CSSBytes + d.Stats.ExternalCSSBytes - d.Options.CriticalCSSBytes - footer, or(b.CSSKiB, 20), 1024, kib, "Remove unused styles and dependencies; file packing changes scheduling, not total CSS bytes."},
 		{"JavaScript (inline + files)", "jsKiB", d.Stats.JSBytes + d.Stats.ExternalJSBytes, or(b.JSKiB, 50), 1024, kib, "Inspect dependencies and startup work; moving code to a file does not remove its CPU cost."},
 		{"Image files", "imageKiB", media, or(b.ImageKiB, 3000), 1024, kib, "Compress images; only known referenced file sizes count."},
 		{"Video files", "videoKiB", video, or(b.VideoKiB, 8000), 1024, kib, "Shorten and re-encode video loops."},
@@ -244,4 +254,109 @@ func budgetsRule(d *Document) []Diagnostic {
 		}
 	}
 	return issues
+}
+
+// builtinFooterCSSBytes is the emitted CSS that styles only lfm's built-in
+// footer. The compiler injects it, so it does not count against the page's
+// authored cssKiB budget. It is measured on the final bytes, only when the
+// page carries the built-in footer, and never from the release's critical copy
+// (that copy is already subtracted whole).
+func builtinFooterCSSBytes(d *Document) int {
+	present := false
+	for _, n := range d.Elements {
+		if n.Data == "footer" && Attr(n, "class") == "fox-footer" {
+			present = true
+			break
+		}
+	}
+	if !present {
+		return 0
+	}
+	total := 0
+	seen := map[string]bool{}
+	for _, n := range d.Elements {
+		switch {
+		case n.Data == "style" && !(d.Options.CriticalCSSBytes > 0 && criticalCopyNode(n)):
+			total += footerRuleBytes([]byte(Text(n)))
+		case n.Data == "link" && strings.EqualFold(Attr(n, "rel"), "stylesheet"):
+			href := Attr(n, "href")
+			if raw, ok := d.Options.Stylesheets[href]; ok && !seen[href] {
+				seen[href] = true
+				total += footerRuleBytes(raw)
+			}
+		}
+	}
+	return total
+}
+
+// criticalCopyNode reports a release's inline critical copy: a <style>
+// directly followed by the deferred print-media link to the full sheet.
+func criticalCopyNode(n *html.Node) bool {
+	next := n.NextSibling
+	for next != nil && next.Type != html.ElementNode {
+		next = next.NextSibling
+	}
+	return next != nil && next.Data == "link" && Attr(next, "media") == "print" && Attr(next, "onload") != ""
+}
+
+// footerRuleBytes sums the bytes of style rules whose every selector targets
+// .fox-footer; at-rule wrappers and mixed rules stay counted.
+func footerRuleBytes(raw []byte) int {
+	in := parse.NewInputBytes(bytes.Clone(raw))
+	defer in.Restore()
+	p := css.NewParser(in, false)
+	var selector strings.Builder
+	start, depth, open, total := -1, 0, -1, 0
+	for {
+		offset := in.Offset()
+		kind, _, _ := p.Next()
+		switch kind {
+		case css.ErrorGrammar:
+			return total
+		case css.QualifiedRuleGrammar:
+			if start < 0 {
+				start = offset
+			}
+			selector.WriteString(tokensText(p.Values()))
+			selector.WriteString(",")
+		case css.BeginAtRuleGrammar:
+			depth++
+			start = -1
+			selector.Reset()
+		case css.BeginRulesetGrammar:
+			if start < 0 {
+				start = offset
+			}
+			selector.WriteString(tokensText(p.Values()))
+			depth++
+			if footerOnlySelector(selector.String()) {
+				open = depth
+			} else {
+				start = -1
+			}
+			selector.Reset()
+		case css.EndRulesetGrammar, css.EndAtRuleGrammar:
+			if open == depth && start >= 0 {
+				total += in.Offset() - start
+				open = -1
+			}
+			start = -1
+			depth--
+		}
+	}
+}
+
+var footerSubject = regexp.MustCompile(`^\.fox-footer(__[a-z-]+)?([\s.:\[>]|$)`)
+
+// footerOnlySelector accepts a selector list whose every part starts at lfm's
+// footer and cannot reach outside it (no sibling combinators).
+func footerOnlySelector(selector string) bool {
+	parts := strings.Split(selector, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if !footerSubject.MatchString(part) || strings.ContainsAny(part, "~+") {
+			return false
+		}
+	}
+	return len(parts) > 0
 }

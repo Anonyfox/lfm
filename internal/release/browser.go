@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -136,6 +137,17 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	var reference observation
 	var fingerprints []string
 	var screenshots [][]byte
+	// Warm the preview at every viewport first. Chrome uses a
+	// font-display:optional face, and keeps a srcset candidate, by what it
+	// already holds: the reference must not be the only cold load.
+	for _, viewport := range viewports {
+		if err := load(browser, server.URL, viewport); err != nil {
+			return result, err
+		}
+		if err := settle(browser, viewport); err != nil {
+			return result, fmt.Errorf("warm release preview at %dx%d: %w", viewport.Width, viewport.Height, err)
+		}
+	}
 	for _, viewport := range viewports {
 		if err := load(browser, server.URL, viewport); err != nil {
 			return result, err
@@ -187,18 +199,18 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 func verify(browser context.Context, url, critical string, fingerprints []string, screenshots [][]byte, script string) (bool, error) {
 	encoded, _ := json.Marshal(critical)
 	for i, viewport := range viewports {
-		if err := load(browser, url, viewport); err != nil {
-			return false, err
-		}
-		// Insert critical rules immediately before their complete original sheet.
-		if _, err := browserAction(browser, "insert critical CSS", chromedp.Evaluate[bool](`(()=>{const original=document.querySelector('[data-lfm-critical-source]');const style=document.createElement('style');style.textContent=`+string(encoded)+`;original.before(style);return true})()`)); err != nil {
-			return false, err
-		}
+		// Each state is measured on its own fresh page, as the reference was:
+		// toggling a sheet on a laid-out page can keep sub-pixel inline
+		// positions from the earlier layout, which a visitor never sees.
 		for _, criticalOnly := range []bool{false, true} {
-			if criticalOnly {
-				if _, err := browserAction(browser, "disable full CSS", chromedp.Evaluate[bool](`(()=>{document.querySelector('[data-lfm-critical-source]').sheet.disabled=true;return true})()`)); err != nil {
-					return false, err
-				}
+			if err := load(browser, url, viewport); err != nil {
+				return false, err
+			}
+			// Insert critical rules immediately before their complete original
+			// sheet; the critical-only state disables that sheet before any
+			// measurement.
+			if _, err := browserAction(browser, "insert critical CSS", chromedp.Evaluate[bool](`(()=>{const original=document.querySelector('[data-lfm-critical-source]');const style=document.createElement('style');style.textContent=`+string(encoded)+`;original.before(style);original.sheet.disabled=`+strconv.FormatBool(criticalOnly)+`;return true})()`)); err != nil {
+				return false, err
 			}
 			observed, shot, err := observe(browser, viewport, script)
 			if err != nil {
@@ -263,13 +275,40 @@ func observe(ctx context.Context, viewport Viewport, script string) (observation
 			return observed, nil, err
 		}
 		if observed.Fingerprint == last {
-			shot, err := browserAction(ctx, "capture release preview pixels", chromedp.CaptureScreenshot())
-			return observed, shot, err
+			shot, err := stablePixels(ctx)
+			if err != nil || shot == nil {
+				return observation{Reason: unsettled}, nil, err
+			}
+			return observed, shot, nil
 		}
 		last = observed.Fingerprint
 	}
 	return observation{Reason: unsettled}, nil, nil
 }
+
+// stablePixels returns the first screen once two captures a frame apart are
+// identical. Chrome first paints a freshly decoded image with a fast filter
+// and repaints it sharper shortly after; a capture in between would differ
+// from the same page a moment later.
+func stablePixels(ctx context.Context) ([]byte, error) {
+	var last []byte
+	for range 8 {
+		shot, err := browserAction(ctx, "capture release preview pixels", chromedp.CaptureScreenshot())
+		if err != nil {
+			return nil, err
+		}
+		if last != nil && bytes.Equal(shot, last) {
+			return shot, nil
+		}
+		last = shot
+		if _, err := browserAction(ctx, "wait for release preview repaint", chromedp.Evaluate[bool](settleRepaintScript, chromedp.EvalAwaitPromise)); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
+const settleRepaintScript = `new Promise(r=>setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))),100))`
 
 // settle waits for the fonts and the first screen's images, freezes motion
 // and lays the page out afresh: right after a load or a resize, Chrome can
@@ -289,9 +328,18 @@ func settle(ctx context.Context, viewport Viewport) error {
 	if err := waitForFonts(ctx); err != nil {
 		return err
 	}
+	if _, err := browserAction(ctx, "rebuild release preview layout", chromedp.Evaluate[bool](rebuildLayoutScript)); err != nil {
+		return err
+	}
 	_, err := browserAction(ctx, "wait for release preview animation frames", chromedp.Evaluate[bool](settleFramesScript, chromedp.EvalAwaitPromise))
 	return err
 }
+
+// rebuildLayoutScript makes Chrome select fonts again (a font set change) and
+// rebuild the layout tree. Text shaped while a face from a just-inserted sheet
+// was still loading can otherwise keep sub-pixel widths from that moment,
+// which no fresh page shows.
+const rebuildLayoutScript = `(()=>{const f=new FontFace('lfm-settle','local(lfm-settle)');document.fonts.add(f);document.fonts.delete(f);const r=document.documentElement,had=r.hasAttribute('style'),old=r.style.display;r.style.display='none';void r.offsetHeight;r.style.display=old;if(!had)r.removeAttribute('style');void r.offsetHeight;return true})()`
 
 func waitForFonts(ctx context.Context) error {
 	_, err := browserAction(ctx, "wait for release preview fonts", chromedp.Evaluate[bool](settleFontsScript, chromedp.EvalAwaitPromise))
@@ -405,6 +453,11 @@ func Handler(page []byte, assets map[string][]byte) http.Handler {
 		name := strings.TrimPrefix(r.URL.Path, "/")
 		if name != "" && name != "." && path.Clean(name) == name && !path.IsAbs(name) && !strings.HasPrefix(name, "../") && !strings.Contains(name, "\\") {
 			if body, ok := assets[name]; ok {
+				// Assets are cacheable within this preview, as on a real site:
+				// a font-display:optional face or srcset image refetched on every
+				// load would arrive after the first layout in one load and before
+				// it in the next.
+				w.Header().Set("Cache-Control", "private, max-age=3600")
 				w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(name)))
 				_, _ = w.Write(body)
 				return

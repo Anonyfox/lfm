@@ -9,6 +9,7 @@ import (
 	"image/png"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -337,5 +338,56 @@ func TestInstalledBrowserIgnoresHiddenLazyImages(t *testing.T) {
 	}
 	if result.Reason != "" || !strings.Contains(result.CSS, "h1") {
 		t.Fatalf("%+v", result)
+	}
+}
+
+// Preview assets are cacheable and the page is not: a font-display:optional
+// face or srcset image refetched on every load arrives before the first
+// layout in one load and after it in the next (Agentpreneur home-de).
+func TestPreviewAssetsAreCacheable(t *testing.T) {
+	h := Handler([]byte("<!doctype html>"), map[string][]byte{"f-1.woff2": []byte("x")})
+	for path, want := range map[string]string{"/": "no-store", "/f-1.woff2": "private, max-age=3600"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if got := rec.Header().Get("Cache-Control"); got != want {
+			t.Fatalf("%s: Cache-Control %q, want %q", path, got, want)
+		}
+	}
+}
+
+// Optional web fonts (with synthetic bold, letter-spacing and a <br>) must
+// verify on every run: the reference and each check see the same faces.
+func TestInstalledBrowserVerifiesOptionalFonts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	sans, err := os.ReadFile("../../testdata/lfm-cash/assets/fonts/atkinson-hyperlegible-next.woff2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mono, err := os.ReadFile("../../testdata/lfm-cash/assets/fonts/martian-mono.woff2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var below strings.Builder
+	for i := range 60 {
+		fmt.Fprintf(&below, ".below-%d{padding:%dpx;border:1px solid rgb(%d,0,0);margin:%dpx 0}", i, i, i, i)
+	}
+	css := `@font-face{font-family:Sans;src:url(./sans-1.woff2) format("woff2");font-weight:400;font-display:optional}@font-face{font-family:"Mono Display";src:url(./mono-1.woff2) format("woff2");font-weight:600;font-display:optional}` +
+		`body{margin:0;font:17px/1.6 Sans,sans-serif}h1{font:600 clamp(58px,7.5vw,112px)/1.03 "Mono Display",monospace;letter-spacing:-.025em;text-wrap:balance}.brand{font-family:"Mono Display";font-size:23px;letter-spacing:.04em}.button{font-weight:700;letter-spacing:.02em}` + below.String()
+	body := `<body><a class="brand" href="#">LAB <span>HAMBURG</span></a><h1>Kleine digitale Produkte.<br>Fertig für dich.</h1><p><a class="button" href="#">Kostenlos starten <span>→</span></a></p><div style="height:2400px"></div>`
+	page := `<!doctype html><html><head><link rel=stylesheet href=./bundle-1.css data-lfm-critical-source></head>` + body + `<p class="below-1">Below</p></body></html>`
+	assets := map[string][]byte{"bundle-1.css": []byte(css), "sans-1.woff2": sans, "mono-1.woff2": mono}
+	for run := range 3 {
+		result, err := Analyze(context.Background(), []byte(page), assets)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result.Reason != "" || result.CSS == "" || strings.Contains(result.CSS, ".below-30") {
+			t.Fatalf("run %d: %+v", run, result.Reason)
+		}
 	}
 }

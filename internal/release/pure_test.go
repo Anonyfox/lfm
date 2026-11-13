@@ -248,8 +248,13 @@ func TestHandlerTypesAssets(t *testing.T) {
 	h := Handler([]byte("<p>page"), map[string][]byte{"font.woff2": {1}, "style.css": []byte("p{}"), "_fonts/font.woff2": {1}})
 	for path, want := range map[string]string{"/": "text/html; charset=utf-8", "/index.html": "text/html; charset=utf-8", "/style.css": "text/css; charset=utf-8", "/font.woff2": "font/woff2", "/_fonts/font.woff2": "font/woff2"} {
 		w := httpGet(h, path)
-		if w.Code != 200 || w.Header().Get("Content-Type") != want || w.Header().Get("Cache-Control") != "no-store" {
-			t.Errorf("%s: %d %q", path, w.Code, w.Header().Get("Content-Type"))
+		// The page is never cached; assets are, as on a real site.
+		cache := "private, max-age=3600"
+		if strings.HasPrefix(want, "text/html") {
+			cache = "no-store"
+		}
+		if w.Code != 200 || w.Header().Get("Content-Type") != want || w.Header().Get("Cache-Control") != cache {
+			t.Errorf("%s: %d %q %q", path, w.Code, w.Header().Get("Content-Type"), w.Header().Get("Cache-Control"))
 		}
 	}
 }
