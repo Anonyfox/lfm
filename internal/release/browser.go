@@ -127,6 +127,10 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	})); err != nil {
 		return result, err
 	}
+	script, err := observationScript(assets)
+	if err != nil {
+		return result, err
+	}
 	selected := map[string]bool{}
 	static := map[string]bool{}
 	var reference observation
@@ -136,7 +140,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 		if err := load(browser, server.URL, viewport); err != nil {
 			return result, err
 		}
-		observed, shot, err := observe(browser, viewport)
+		observed, shot, err := observe(browser, viewport, script)
 		if err != nil {
 			return result, fmt.Errorf("observe critical CSS at %dx%d: %w", viewport.Width, viewport.Height, err)
 		}
@@ -162,7 +166,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 			return result, fmt.Errorf("critical CSS minification: %s", api.FormatMessages(minified.Errors, api.FormatMessagesOptions{Kind: api.ErrorMessage}))
 		}
 		critical = string(minified.Code)
-		matched, err := verify(browser, server.URL, critical, fingerprints, screenshots)
+		matched, err := verify(browser, server.URL, critical, fingerprints, screenshots, script)
 		if err != nil {
 			return result, err
 		}
@@ -180,7 +184,7 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	return result, nil
 }
 
-func verify(browser context.Context, url, critical string, fingerprints []string, screenshots [][]byte) (bool, error) {
+func verify(browser context.Context, url, critical string, fingerprints []string, screenshots [][]byte, script string) (bool, error) {
 	encoded, _ := json.Marshal(critical)
 	for i, viewport := range viewports {
 		if err := load(browser, url, viewport); err != nil {
@@ -196,7 +200,7 @@ func verify(browser context.Context, url, critical string, fingerprints []string
 					return false, err
 				}
 			}
-			observed, shot, err := observe(browser, viewport)
+			observed, shot, err := observe(browser, viewport, script)
 			if err != nil {
 				return false, fmt.Errorf("verify critical CSS at %dx%d (critical only: %t): %w", viewport.Width, viewport.Height, criticalOnly, err)
 			}
@@ -248,13 +252,13 @@ const unsettled = "The first screen keeps changing after it loads; kept the comp
 // observe measures the first screen the same way for the reference and
 // every check: settled, and twice alike, so a difference it reports is one
 // a visitor would see. It returns the screen's pixels with it.
-func observe(ctx context.Context, viewport Viewport) (observation, []byte, error) {
+func observe(ctx context.Context, viewport Viewport, script string) (observation, []byte, error) {
 	var last string
 	for range 6 {
 		if err := settle(ctx, viewport); err != nil {
 			return observation{}, nil, fmt.Errorf("settle release preview: %w", err)
 		}
-		observed, err := browserAction(ctx, "measure release preview styles and layout", chromedp.Evaluate[observation](criticalJS))
+		observed, err := browserAction(ctx, "measure release preview styles and layout", chromedp.Evaluate[observation](script))
 		if err != nil || observed.Reason != "" {
 			return observed, nil, err
 		}
@@ -296,11 +300,17 @@ func waitForFonts(ctx context.Context) error {
 
 const settleFontsScript = `document.fonts.ready.then(()=>true)`
 const settleFramesScript = `new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))))`
+
+// A lazy image without a box (display:none ancestor) never starts loading,
+// so decode() would wait forever; only boxed images near the screen count.
+// One inside a closed <details> or a clipped box has a box but is never
+// intersected either, so pending images load eagerly before decode().
 const settleImagesScript = `(async()=>{
 let freeze=document.querySelector('[data-lfm-freeze]');
 if(!freeze){freeze=document.createElement('style');freeze.setAttribute('data-lfm-freeze','');freeze.textContent='*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';document.head.append(freeze)}
-const near=i=>{const r=i.getBoundingClientRect();return r.top<=innerHeight&&r.left<=innerWidth&&r.bottom>=0&&r.right>=0};
+const near=i=>{const r=i.getBoundingClientRect();return r.width>0&&r.height>0&&r.top<=innerHeight&&r.left<=innerWidth&&r.bottom>=0&&r.right>=0};
 const pending=[...document.images].filter(i=>!i.complete&&(i.loading!=='lazy'||near(i)));
+for(const i of pending)if(i.loading==='lazy')i.loading='eager';
 await Promise.all(pending.map(i=>i.decode().catch(()=>{})));
 return true})()`
 
@@ -447,4 +457,23 @@ func samePixels(a, b []byte) bool {
 		}
 	}
 	return true
+}
+
+// observationScript hands the page's stylesheet sources to criticalJS. The
+// CSSOM serializes longhands of a shorthand that uses var() as empty values
+// (background:var(--x) ... then background-size:...), so such a rule's
+// cssText cannot be copied; criticalJS recovers its authored text instead.
+// The preview CSP forbids fetching it, hence the injection.
+func observationScript(assets map[string][]byte) (string, error) {
+	sources := map[string]string{}
+	for name, body := range assets {
+		if strings.EqualFold(path.Ext(name), ".css") {
+			sources[name] = string(body)
+		}
+	}
+	encoded, err := json.Marshal(sources)
+	if err != nil {
+		return "", err
+	}
+	return "window.__lfmCSSSources=" + string(encoded) + ";" + criticalJS, nil
 }

@@ -79,6 +79,74 @@
     }
     catch { return {critical:true, document:true}; }
   }
+  // Longhands of a shorthand that uses var() serialize as empty values when
+  // later longhands override part of it, so cssText would drop declarations.
+  // Recover the authored rule: the source rule whose own parse serializes to
+  // exactly the same cssText. Verification below still checks the result.
+  let authoredRules;
+  function sourceRules(text, out) {
+    let i = 0;
+    const n = text.length;
+    const skip = () => {
+      const c = text[i];
+      if (c === '"' || c === "'") { for (i++; i < n && text[i] !== c; i++) if (text[i] === '\\') i++; i++; return true; }
+      if (c === '/' && text[i + 1] === '*') { const end = text.indexOf('*/', i + 2); i = end < 0 ? n : end + 2; return true; }
+      return false;
+    };
+    const block = start => {
+      let depth = 0;
+      while (i < n) {
+        if (skip()) continue;
+        const c = text[i++];
+        if (c === '{') depth++;
+        else if (c === '}' && --depth === 0) return text.slice(start, i);
+      }
+      return text.slice(start);
+    };
+    while (i < n) {
+      while (i < n && /[\s;]/.test(text[i])) i++;
+      if (i >= n) break;
+      const start = i;
+      let open = -1;
+      while (i < n) {
+        if (skip()) continue;
+        if (text[i] === ';' && text[start] === '@') { i++; break; }
+        if (text[i] === '{') { open = i; break; }
+        if (text[i] === '}') { i++; break; }
+        i++;
+      }
+      if (open < 0) continue;
+      const prelude = text.slice(start, open).trim();
+      const whole = block(start);
+      if (prelude.startsWith('@')) {
+        if (/^@(media|supports|layer|container|scope|document)\b/i.test(prelude)) sourceRules(whole.slice(open - start + 1, -1), out);
+      } else out.push(whole);
+    }
+    return out;
+  }
+  function authored(rule) {
+    const text = rule.cssText;
+    const style = rule.style;
+    let lossy = false;
+    for (let i = 0; i < style.length; i++) if (style.getPropertyValue(style[i]) === '') { lossy = true; break; }
+    if (!lossy) return text;
+    if (!authoredRules) {
+      authoredRules = new Map();
+      const sources = window.__lfmCSSSources || {};
+      const own = source.tagName === 'STYLE' ? [source.textContent] : [];
+      const href = source.tagName === 'LINK' ? decodeURIComponent(new URL(source.href).pathname.replace(/^\//, '')) : '';
+      if (href && sources[href] !== undefined) own.push(sources[href]);
+      const scratch = new CSSStyleSheet();
+      for (const css of own) for (const candidate of sourceRules(css, [])) {
+        try {
+          scratch.replaceSync(candidate);
+          const parsed = scratch.cssRules[0];
+          if (scratch.cssRules.length === 1 && parsed instanceof CSSStyleRule && !authoredRules.has(parsed.cssText)) authoredRules.set(parsed.cssText, candidate);
+        } catch {}
+      }
+    }
+    return authoredRules.get(text) ?? text;
+  }
   function walk(rules, path) {
     return [...rules].map((rule, index) => {
       const key = path + '.' + index;
@@ -88,7 +156,7 @@
       // Keep layer/scope/container rules and all global definitions intact.
       // This preserves layer ordering, custom properties, fonts and keyframes.
       const keep = rule instanceof CSSStyleRule ? important(rule) : {critical:true, document:true};
-      return {key, text: rule.cssText, ...keep};
+      return {key, text: rule instanceof CSSStyleRule ? authored(rule) : rule.cssText, ...keep};
     });
   }
   // A box that runs past the screen's edge has used sizes and positions set

@@ -386,3 +386,25 @@ func TestTwitterSharingDefaults(t *testing.T) {
 		})
 	}
 }
+
+// Added X defaults sit with the authored sharing tags, ahead of bulky head
+// content such as an inlined critical stylesheet (sharing.discovery).
+func TestTwitterSharingDefaultsStayWithAuthoredTags(t *testing.T) {
+	doc, err := html.Parse(strings.NewReader(`<head><meta property="og:title" content="T"><meta property="og:description" content="D"><style>` + strings.Repeat("a{color:red}", 4000) + `</style><link rel=stylesheet href=a.css></head>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if added := (&builder{}).socialHandles(doc); len(added) != 2 {
+		t.Fatal(added)
+	}
+	var order []string
+	htmlx.Walk(doc, func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Parent != nil && n.Parent.Data == "head" {
+			order = append(order, n.Data+":"+htmlx.Attr(n, "property")+htmlx.Attr(n, "name"))
+		}
+	})
+	want := []string{"meta:og:title", "meta:og:description", "meta:twitter:title", "meta:twitter:description", "style:", "link:"}
+	if !reflect.DeepEqual(order, want) {
+		t.Fatalf("got %v, want %v", order, want)
+	}
+}

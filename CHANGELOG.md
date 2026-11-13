@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## 0.2.3 (2026-11-13)
+
+- Critical CSS keeps rules whose `var()` shorthand the browser serializes as empty longhands (for example `background:` with `var()` plus later `background-size`), instead of failing verification and shipping the full CSS.
+- Critical CSS extraction no longer hangs on lazy images that never intersect (hidden ancestor, closed `<details>`, clipped box).
+- Added X sharing defaults are placed next to the authored sharing tags, ahead of the inlined critical CSS, so they stay within the crawler prefix (`sharing.discovery`).
+
 ## 0.2.2 (2026-11-13)
 
 - Absolute metadata and third-party scripts no longer disable critical CSS; unsafe splitting reports a warning consistently on cold and cached releases.

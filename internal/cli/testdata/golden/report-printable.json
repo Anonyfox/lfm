@@ -11,7 +11,7 @@
     {
       "name": "index.html",
       "bytes": 1371,
-      "sha256": "367830c70b9031702b0e33ed47df4ffe47064b6cc09614a9c0edbee0c83727f1"
+      "sha256": "14226339da4e0ad85b18440f9ad53df5bea527ad3337729d1e44a7563dd03e20"
     },
     {
       "name": "p7m2x9q4w8e3r6t5y1u0/index.html",
@@ -60,7 +60,7 @@
   ],
   "cost": {
     "htmlBytes": 1371,
-    "htmlGzipLevel1Bytes": 621,
+    "htmlGzipLevel1Bytes": 619,
     "sidecarBytes": 727,
     "totalRawBytes": 2098,
     "totalCSSBytes": 98,

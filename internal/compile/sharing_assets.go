@@ -165,7 +165,7 @@ func (b *builder) socialImageSizes(doc *html.Node) {
 
 // socialHandles fills X sharing defaults and attribution without replacing authored tags.
 func (b *builder) socialHandles(doc *html.Node) []string {
-	var head *html.Node
+	var head, last *html.Node
 	values := map[string]string{}
 	htmlx.Walk(doc, func(n *html.Node) {
 		if n.Namespace != "" || htmlx.Dormant(n) {
@@ -178,6 +178,9 @@ func (b *builder) socialHandles(doc *html.Node) []string {
 			for _, attr := range []string{"name", "property"} {
 				key := strings.ToLower(strings.TrimSpace(htmlx.Attr(n, attr)))
 				values[key] = htmlx.Attr(n, "content")
+				if (strings.HasPrefix(key, "og:") || strings.HasPrefix(key, "twitter:")) && n.Parent == head {
+					last = n
+				}
 			}
 		}
 	})
@@ -202,7 +205,14 @@ func (b *builder) socialHandles(doc *html.Node) []string {
 		meta := htmlx.Element("meta", "")
 		htmlx.SetAttr(meta, "name", key)
 		htmlx.SetAttr(meta, "content", item.value)
-		head.AppendChild(meta)
+		// Next to the authored sharing tags, not after head's bulky inline
+		// CSS: crawlers read a bounded prefix (sharing.discovery).
+		if last != nil {
+			head.InsertBefore(meta, last.NextSibling)
+			last = meta
+		} else {
+			head.AppendChild(meta)
+		}
 		added = append(added, key)
 	}
 	return added

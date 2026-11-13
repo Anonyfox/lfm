@@ -284,3 +284,58 @@ func TestExpiredInterceptionKeepsProtocolFailures(t *testing.T) {
 		}
 	}
 }
+
+// A var() inside a shorthand that later longhands partly override serializes
+// as empty longhands in the CSSOM (MICE's .vis-step:before). The critical
+// copy must carry the authored rule, both inline and from a linked sheet.
+func TestInstalledBrowserKeepsVarShorthandRules(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	css := `:root{--g:rgb(200,30,30)}body{margin:0}.step:before{content:"";display:block;width:40px;height:60px;background:radial-gradient(circle at 50% calc(100% - 7px),var(--g) 0 6px,transparent 7.5px),linear-gradient(var(--g) 50%,transparent 0) 50% 0 / 2px 10px repeat-y;background-repeat:no-repeat,repeat-y;background-size:14px 14px,2px 10px;background-position:50% 100%,50% 0}.below{padding:50px}`
+	body := `<body><p class="step">Visible</p><div style="height:2400px"></div><p class="below">Below</p></body></html>`
+	for name, tc := range map[string]struct {
+		page   string
+		assets map[string][]byte
+	}{
+		"inline": {`<!doctype html><html><head><style data-lfm-critical-source>` + css + `</style></head>` + body, nil},
+		"linked": {`<!doctype html><html><head><link rel=stylesheet href=./bundle-1.css data-lfm-critical-source></head>` + body, map[string][]byte{"bundle-1.css": []byte(css)}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			result, err := Analyze(context.Background(), []byte(tc.page), tc.assets)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Reason != "" || !strings.Contains(result.CSS, "radial-gradient") || strings.Contains(result.CSS, "background-image:;") || strings.Contains(result.CSS, ".below") {
+				t.Fatalf("%+v", result)
+			}
+		})
+	}
+}
+
+// A lazy image under a display:none ancestor or in a closed <details> never
+// loads by itself; settling must not hang on it (Cosmolytic hub-de's moon).
+func TestInstalledBrowserIgnoresHiddenLazyImages(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	png := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\xdac\xfc\xcf\xc0\x00\x00\x03\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82")
+	page := []byte(`<!doctype html><html><head><style data-lfm-critical-source>body{margin:0}.off{display:none}h1{color:rgb(1,2,3)}</style></head><body><h1>Visible</h1><div class="off"><img src="moon.png" loading="lazy" width="80" height="80" alt=""></div><details><summary>More</summary><img src="moon.png?2" loading="lazy" width="80" height="80" alt=""></details></body></html>`)
+	ctx, cancel := context.WithTimeout(context.Background(), browserTestTimeout)
+	defer cancel()
+	result, err := Analyze(ctx, page, map[string][]byte{"moon.png": png})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Reason != "" || !strings.Contains(result.CSS, "h1") {
+		t.Fatalf("%+v", result)
+	}
+}
