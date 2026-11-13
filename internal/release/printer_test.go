@@ -3,6 +3,7 @@ package release
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image"
 	"image/color"
 	_ "image/jpeg"
@@ -81,7 +82,7 @@ func TestPrinter(t *testing.T) {
 				}
 				got, err := p.Print(doc, assets, outline)
 				if err != nil || !bytes.Equal(dates.ReplaceAll(got, nil), dates.ReplaceAll(want, nil)) {
-					t.Fatalf("shared print with outline %v differs: %v", outline, err)
+					t.Fatalf("shared print with outline %v differs: %v\n%s", outline, err, pdfDifference(dates.ReplaceAll(want, nil), dates.ReplaceAll(got, nil)))
 				}
 			}
 			wantLayout, err := standalone.PageLayout(doc, assets, 400, 300, 24)
@@ -363,3 +364,17 @@ func TestBookLayoutTallImage(t *testing.T) {
 }
 
 func newTestTallImage() image.Image { return image.NewRGBA(image.Rect(0, 0, 100, 175)) }
+
+// pdfDifference names where two PDFs first part, so a mismatch on a CI
+// runner can be diagnosed from the log alone.
+func pdfDifference(want, got []byte) string {
+	i := 0
+	for i < len(want) && i < len(got) && want[i] == got[i] {
+		i++
+	}
+	window := func(b []byte) string {
+		from, to := max(0, i-160), min(len(b), i+160)
+		return strconv.Quote(string(b[from:to]))
+	}
+	return fmt.Sprintf("lengths %d (standalone) vs %d (shared); first difference at byte %d\nstandalone: %s\nshared:     %s", len(want), len(got), i, window(want), window(got))
+}
