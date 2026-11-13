@@ -81,8 +81,9 @@ func TestPrinter(t *testing.T) {
 					t.Fatal(err)
 				}
 				got, err := p.Print(doc, assets, outline)
-				if err != nil || !bytes.Equal(dates.ReplaceAll(got, nil), dates.ReplaceAll(want, nil)) {
-					t.Fatalf("shared print with outline %v differs: %v\n%s", outline, err, pdfDifference(dates.ReplaceAll(want, nil), dates.ReplaceAll(got, nil)))
+				want, got = structIDs(dates.ReplaceAll(want, nil)), structIDs(dates.ReplaceAll(got, nil))
+				if err != nil || !bytes.Equal(got, want) {
+					t.Fatalf("shared print with outline %v differs: %v\n%s", outline, err, pdfDifference(want, got))
 				}
 			}
 			wantLayout, err := standalone.PageLayout(doc, assets, 400, 300, 24)
@@ -377,4 +378,20 @@ func pdfDifference(want, got []byte) string {
 		return strconv.Quote(string(b[from:to]))
 	}
 	return fmt.Sprintf("lengths %d (standalone) vs %d (shared); first difference at byte %d\nstandalone: %s\nshared:     %s", len(want), len(got), i, window(want), window(got))
+}
+
+// structIDs renumbers tagged-PDF structure IDs, "/ID (node00000014)", in
+// order of first use. Chrome takes them from renderer-wide DOM node counters,
+// so a tab that rendered other jobs first numbers the same tree differently
+// (seen on macOS). The structure and every reference must still match.
+func structIDs(pdf []byte) []byte {
+	seen := map[string]int{}
+	return regexp.MustCompile(`/ID \(node[0-9]+\)`).ReplaceAllFunc(pdf, func(id []byte) []byte {
+		n, ok := seen[string(id)]
+		if !ok {
+			n = len(seen)
+			seen[string(id)] = n
+		}
+		return fmt.Appendf(nil, "/ID (node%08d)", n)
+	})
 }
