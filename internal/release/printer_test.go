@@ -380,18 +380,18 @@ func pdfDifference(want, got []byte) string {
 	return fmt.Sprintf("lengths %d (standalone) vs %d (shared); first difference at byte %d\nstandalone: %s\nshared:     %s", len(want), len(got), i, window(want), window(got))
 }
 
-// structIDs renumbers tagged-PDF structure IDs, "/ID (node00000014)", in
-// order of first use. Chrome takes them from renderer-wide DOM node counters,
+// structIDs renumbers tagged-PDF structure IDs, "(node00000014)" in /ID and
+// in references such as table /Headers, in order of first use. Chrome takes them from renderer-wide DOM node counters,
 // so a tab that rendered other jobs first numbers the same tree differently
 // (seen on macOS). The structure and every reference must still match.
 func structIDs(pdf []byte) []byte {
 	seen := map[string]int{}
-	return regexp.MustCompile(`/ID \(node[0-9]+\)`).ReplaceAllFunc(pdf, func(id []byte) []byte {
+	return regexp.MustCompile(`\(node[0-9]+\)`).ReplaceAllFunc(pdf, func(id []byte) []byte {
 		n, ok := seen[string(id)]
 		if !ok {
 			n = len(seen)
 			seen[string(id)] = n
 		}
-		return fmt.Appendf(nil, "/ID (node%08d)", n)
+		return fmt.Appendf(nil, "(node%08d)", n)
 	})
 }
