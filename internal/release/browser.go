@@ -26,6 +26,7 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/fetch"
 	"github.com/chromedp/cdproto/network"
+	cdppage "github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/evanw/esbuild/pkg/api"
 )
@@ -128,6 +129,15 @@ func Analyze(ctx context.Context, page []byte, assets map[string][]byte) (Result
 	})); err != nil {
 		return result, err
 	}
+	// Install before navigation, so even a play() call before settle cannot
+	// choose a different video frame. Application scripts remain blocked by CSP.
+	if _, err := browserAction(browser, "freeze release preview media", chromedp.Func(func(step context.Context, target *chromedp.Target) error {
+		_, err := cdp.Call(step, target, cdppage.AddScriptToEvaluateOnNewDocument, cdppage.AddScriptToEvaluateOnNewDocumentParams{Source: freezeMediaScript})
+		return err
+	})); err != nil {
+		return result, err
+	}
+
 	script, err := observationScript(assets)
 	if err != nil {
 		return result, err
@@ -320,7 +330,9 @@ func settle(ctx context.Context, viewport Viewport) error {
 	if _, err := browserAction(ctx, "decode release preview images", chromedp.Evaluate[bool](settleImagesScript, chromedp.EvalAwaitPromise)); err != nil {
 		return err
 	}
-	for _, w := range []int64{viewport.Width + 1, viewport.Width} {
+	// Refresh from below: widening can start a larger srcset request that
+	// survives the resize back and changes later loads' cached candidates.
+	for _, w := range []int64{viewport.Width - 1, viewport.Width} {
 		if _, err := browserAction(ctx, "refresh release preview layout", chromedp.EmulateViewport(w, viewport.Height)); err != nil {
 			return err
 		}
@@ -331,7 +343,13 @@ func settle(ctx context.Context, viewport Viewport) error {
 	if _, err := browserAction(ctx, "rebuild release preview layout", chromedp.Evaluate[bool](rebuildLayoutScript)); err != nil {
 		return err
 	}
-	_, err := browserAction(ctx, "wait for release preview animation frames", chromedp.Evaluate[bool](settleFramesScript, chromedp.EvalAwaitPromise))
+	if _, err := browserAction(ctx, "wait for release preview animation frames", chromedp.Evaluate[bool](settleFramesScript, chromedp.EvalAwaitPromise)); err != nil {
+		return err
+	}
+	// Responsive image selection runs at rendering time. Decode again after
+	// the resize and rendering frames, including already-complete images whose
+	// cached candidate may change. Warming must finish the final candidate too.
+	_, err := browserAction(ctx, "decode resized release preview images", chromedp.Evaluate[bool](settleImagesScript, chromedp.EvalAwaitPromise))
 	return err
 }
 
@@ -349,6 +367,13 @@ func waitForFonts(ctx context.Context) error {
 const settleFontsScript = `document.fonts.ready.then(()=>true)`
 const settleFramesScript = `new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))))`
 
+// Keep play() promise-compatible without starting playback. Native autoplay
+// is stopped too; load() restores the poster if a frame had already appeared.
+const freezeMediaScript = `(()=>{
+HTMLMediaElement.prototype.play=function(){return Promise.resolve()};
+document.addEventListener('play',e=>{if(e.target instanceof HTMLMediaElement){e.target.autoplay=false;e.target.pause();e.target.load()}},true);
+})()`
+
 // A lazy image without a box (display:none ancestor) never starts loading,
 // so decode() would wait forever; only boxed images near the screen count.
 // One inside a closed <details> or a clipped box has a box but is never
@@ -357,9 +382,19 @@ const settleImagesScript = `(async()=>{
 let freeze=document.querySelector('[data-lfm-freeze]');
 if(!freeze){freeze=document.createElement('style');freeze.setAttribute('data-lfm-freeze','');freeze.textContent='*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}';document.head.append(freeze)}
 const near=i=>{const r=i.getBoundingClientRect();return r.width>0&&r.height>0&&r.top<=innerHeight&&r.left<=innerWidth&&r.bottom>=0&&r.right>=0};
-const pending=[...document.images].filter(i=>!i.complete&&(i.loading!=='lazy'||near(i)));
+const posters=[];
+for(const m of document.querySelectorAll('video,audio')){
+ m.autoplay=false;
+ const played=!m.paused||m.currentTime!==0;
+ m.pause();
+ if(played)m.load();
+ if(m instanceof HTMLVideoElement&&m.poster&&near(m)){
+  const i=new Image();i.src=m.poster;posters.push(i);
+ }
+}
+const pending=[...document.images].filter(i=>i.loading!=='lazy'||near(i));
 for(const i of pending)if(i.loading==='lazy')i.loading='eager';
-await Promise.all(pending.map(i=>i.decode().catch(()=>{})));
+await Promise.all([...pending,...posters].map(i=>i.decode().catch(()=>{})));
 return true})()`
 
 // openBrowser bounds startup while leaving the browser lifetime with ctx.

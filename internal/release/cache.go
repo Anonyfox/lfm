@@ -100,7 +100,7 @@ func ResolveTools(ctx context.Context, root string) *ToolIdentity {
 func artifactKey(target Target, build, chrome, lighthouse string) string {
 	h := sha256.New()
 	// Bump when audit settings or the cached representation changes.
-	for _, part := range []string{"release-cache-1", build, chrome, lighthouse, target.URL, string(target.Page)} {
+	for _, part := range []string{"release-cache-2", build, chrome, lighthouse, target.URL, string(target.Page)} {
 		fmt.Fprintf(h, "%d:", len(part))
 		h.Write([]byte(part))
 	}

@@ -1,5 +1,11 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+### Fixed
+
+- Critical CSS verification finishes responsive image decoding after resizing, waits for visible video posters and freezes media playback, so repeated releases agree on the first screen. Previously cached verdicts are refreshed.
+
 ## 0.2.5 (2026-11-17)
 
 - New `build.validation.copyRequires` (rule `copy.required`): require a phrase, regex or raw HTML snippet on every page with an exact, minimum or maximum count, optionally only before `</body>` or `</head>`. Example: the Cloudflare Web Analytics beacon exactly once before `</body>`. Runs in compile and `check --project`; error entries block compile.

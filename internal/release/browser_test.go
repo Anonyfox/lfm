@@ -167,6 +167,105 @@ func TestInstalledBrowserVerdictIsTheSameEveryTime(t *testing.T) {
 	}
 }
 
+// These exact bytes were recorded with 0.2.5: freezing media must not change
+// the critical stylesheet of media-free pages.
+func TestInstalledBrowserMediaFreeCSSUnchanged(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	for _, tc := range []struct{ name, css, want string }{
+		{"plain", `body{margin:0}h1{color:rgb(10,20,30)}.below{padding:3rem}`, "body{margin:0px}h1{color:rgb(10,20,30)}\n"},
+		{"auto margins", `body{margin:0}.wrap{width:min(100% - 2rem,60rem);margin-inline:auto}h1{font-size:clamp(20px,4vw,60px)}.below{padding:3rem}`, "body{margin:0px}.wrap{width:min(100% - 2rem,60rem);margin-inline:auto}h1{font-size:clamp(20px,4vw,60px)}\n"},
+		{"responsive", `body{margin:0}h1{background:linear-gradient(90deg,red,blue)}@media(min-width:1000px){h1{color:green}}.below{padding:3rem}`, "body{margin:0px}h1{background:linear-gradient(90deg,red,blue)}@media(min-width:1000px){h1{color:green}}\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			page := []byte(`<!doctype html><html><head><style data-lfm-critical-source>` + tc.css + `</style></head><body><div class="wrap"><h1>Visible</h1></div><div style="height:2400px"></div><p class="below">Below</p></body></html>`)
+			result, err := Analyze(context.Background(), page, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Reason != "" || result.CSS != tc.want {
+				t.Fatalf("reason=%q CSS=%q; want %q", result.Reason, result.CSS, tc.want)
+			}
+		})
+	}
+}
+
+// Posters are separate from document.images; a scripted media hero must settle
+// to the same static first screen on every fresh reference and verification load.
+func TestInstalledBrowserMediaVerdictIsTheSameEveryTime(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	if _, err := BrowserPath(); err != nil {
+		t.Skip(err)
+	}
+	page := []byte(`<!doctype html><html><head><meta name="viewport" content="width=device-width"><style data-lfm-critical-source>body{margin:0}video{display:block;width:100%;height:30vh;object-fit:cover}img{display:block;width:50vw;height:100px}h1{color:rgb(10,20,30)}.below{padding:3rem}</style></head><body><h1>Media hero</h1><img src="medium.png" srcset="small.png 480w,medium.png 720w,large.png 960w" sizes="50vw" width="720" height="400" alt=""><video muted autoplay loop playsinline preload="none" poster="poster.png"><source src="clip.mp4" type="video/mp4"></video><audio autoplay loop src="clip.mp4"></audio><script type="module">const v=document.querySelector('video');v.load();v.play().catch(()=>{});</script><div style="height:2400px"></div><p class="below">Below</p></body></html>`)
+	assets := map[string][]byte{"poster.png": tile(7), "clip.mp4": []byte("undecodable test media"), "small.png": tile(1), "medium.png": tile(2), "large.png": tile(3)}
+	var first string
+	for run := range 4 {
+		result, err := Analyze(context.Background(), page, assets)
+		if err != nil {
+			t.Fatalf("run %d: %v", run, err)
+		}
+		if result.Reason != "" || result.CSS == "" {
+			t.Fatalf("run %d: %+v", run, result)
+		}
+		if run == 0 {
+			first = result.CSS
+		} else if result.CSS != first {
+			t.Fatalf("run %d chose other rules: %s; want %s", run, result.CSS, first)
+		}
+	}
+}
+
+// DevTools runs this script despite the preview CSP, exercising play() and
+// poster decoding directly rather than relying on blocked application scripts.
+func TestInstalledBrowserSettlesMediaAndCompleteImages(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("browser integration")
+	}
+	path, err := BrowserPath()
+	if err != nil {
+		t.Skip(err)
+	}
+	browser, closeBrowser, err := profileBrowser(context.Background(), BrowserOptions(path), browserStepTimeout, "critical")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeBrowser()
+	setup := `(()=>{
+ document.body.innerHTML='<video autoplay muted style="width:160px;height:90px" poster="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%229%22/%3E"></video><audio autoplay></audio><video style="display:none" poster="hidden.png"></video><img>';
+ window.nativePlays=0;HTMLMediaElement.prototype.play=function(){nativePlays++;return Promise.resolve()};
+ window.posterDecodes=0;const OriginalImage=Image;
+ window.Image=class extends OriginalImage{decode(){posterDecodes++;return super.decode()}};
+ const i=document.querySelector('img');Object.defineProperty(i,'complete',{value:true});
+ window.imageDecoded=false;i.decode=async()=>{imageDecoded=true};
+ return true})()`
+	if _, err := browserAction(browser, "set up media", chromedp.Evaluate[bool](setup)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := browserAction(browser, "freeze media", chromedp.Evaluate[bool](freezeMediaScript+`;true`)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := browserAction(browser, "play media", chromedp.Evaluate[bool](`Promise.all([...document.querySelectorAll('video,audio')].map(m=>m.play())).then(()=>true)`, chromedp.EvalAwaitPromise)); err != nil {
+		t.Fatal(err)
+	}
+	if err := settle(browser, Viewport{390, 844}); err != nil {
+		t.Fatal(err)
+	}
+	ok, err := browserAction(browser, "check settled media", chromedp.Evaluate[bool](`nativePlays===0&&imageDecoded&&posterDecodes>=1&&[...document.querySelectorAll('video,audio')].every(m=>m.paused&&!m.autoplay)`))
+	if err != nil || !ok {
+		t.Fatalf("settled media: %t, %v", ok, err)
+	}
+}
+
 func TestBrowserStepReportsStallsAndCancellationCause(t *testing.T) {
 	t.Parallel()
 	_, err := browserStep(context.Background(), "stalled command", time.Millisecond, func(ctx context.Context) (bool, error) {
