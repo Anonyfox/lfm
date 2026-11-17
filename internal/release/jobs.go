@@ -1,6 +1,11 @@
 package release
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"os"
+	"time"
+)
 
 type jobsKey struct{}
 
@@ -21,7 +26,22 @@ func browserJob(ctx context.Context) (func(), error) {
 	select {
 	case jobs <- struct{}{}:
 		return func() { <-jobs }, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	default:
+	}
+	start := time.Now()
+	tick := time.NewTicker(jobWaitNotice)
+	defer tick.Stop()
+	for {
+		select {
+		case jobs <- struct{}{}:
+			return func() { <-jobs }, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-tick.C:
+			fmt.Fprintf(os.Stderr, "lfm: still waiting for a browser job slot (%d of %d busy, %s)\n", len(jobs), cap(jobs), time.Since(start).Round(time.Second))
+		}
 	}
 }
+
+// jobWaitNotice is how often a launch waiting for a job slot says so.
+var jobWaitNotice = 30 * time.Second

@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -69,7 +70,7 @@ func linksDeclaredRule(d *Document) []Diagnostic {
 		if urlcheck.BuiltinFooterURL(ref.Value) || len(d.Options.Registry.Match(ref.Value)) > 0 {
 			continue
 		}
-		issues = append(issues, d.linkAt(ref, Error, "Rendered "+ref.Attribute+" destination has no named config URL.", urlcheck.URLHint(ref.Attribute)+" Declare the complete URL, including deliberate query/fragment variants."))
+		issues = append(issues, d.linkAt(ref, Error, fmt.Sprintf("Rendered %s destination %q has no named config URL.", ref.Attribute, ref.Value), urlcheck.URLHint(ref.Attribute)+" Declare the complete URL, including deliberate query/fragment variants."))
 	}
 	return issues
 }

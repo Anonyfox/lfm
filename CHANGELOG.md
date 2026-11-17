@@ -1,5 +1,10 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- `--release` says on stderr when it starts Chrome for each phase (e.g. "critical CSS: starting Chrome (profile …)") and every 30 s while it waits for a browser job slot, so a stalled run shows where it stopped. A reused Chrome profile has stale `Singleton*` entries removed (under its lock) before launch, and a failed launch names the phase, the profile and the fix.
+- `links.declared` errors include the offending URL, including URLs inside JSON-LD scripts.
+
 ## 0.2.4 (2026-11-13)
 
 - Critical CSS verification is deterministic with `font-display:optional` fonts and responsive images: the preview serves assets cacheable, warms every viewport before the reference, measures each state on a fresh page with fonts selected again, and captures pixels once two frames agree. Pages such as Agentpreneur home-de no longer lose the split to a sub-pixel text difference.

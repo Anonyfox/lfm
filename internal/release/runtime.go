@@ -187,5 +187,10 @@ func startAuditBrowser(ctx context.Context, path, proxy, profile string) (contex
 	if profile == "" {
 		return profileBrowser(ctx, opts, browserStepTimeout, "audit")
 	}
-	return openBrowser(ctx, opts, limit, false)
+	browserProgress("lighthouse", profile)
+	browser, closeBrowser, err := openBrowser(ctx, opts, limit, false)
+	if err != nil {
+		return nil, closeBrowser, browserStartError("lighthouse", profile, err)
+	}
+	return browser, closeBrowser, nil
 }

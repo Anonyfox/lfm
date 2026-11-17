@@ -365,15 +365,18 @@ return true})()`
 // openBrowser bounds startup while leaving the browser lifetime with ctx.
 // tab initializes the document target on the browser lifetime, before step contexts.
 // Canceling a successful startup step must not cancel later document jobs.
+// Waiting for a job slot or the box-wide lock is not bounded: under load
+// other launches legitimately hold them for minutes. Both waits say so on
+// stderr instead, so a stalled run shows where it stopped.
 func openBrowser(ctx context.Context, opts []chromedp.ExecAllocatorOption, limit time.Duration, tab bool) (context.Context, func(), error) {
 	jobDone, err := browserJob(ctx)
 	if err != nil {
-		return nil, func() {}, err
+		return nil, func() {}, fmt.Errorf("wait for browser job slot: %w", err)
 	}
 	unlockBox, err := AcquireBrowser(ctx)
 	if err != nil {
 		jobDone()
-		return nil, func() {}, err
+		return nil, func() {}, fmt.Errorf("wait for box-wide browser lock: %w", err)
 	}
 	unlock := sync.OnceFunc(func() { unlockBox(); jobDone() })
 	tmp, err := scratch.Dir("chrome")

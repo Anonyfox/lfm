@@ -92,3 +92,27 @@ func TestPublicURLUsesBrowserSyntax(t *testing.T) {
 		t.Fatal("Unicode IRI rejected")
 	}
 }
+
+func TestDeclaredScriptURLMessage(t *testing.T) {
+	const destination = "https://example.org/author#method"
+	for _, key := range []string{"@id", "sameAs"} {
+		for _, declared := range []bool{false, true} {
+			var declarations []urlcheck.Declaration
+			if declared {
+				declarations = append(declarations, urlcheck.Declaration{Path: "urls.author", Value: destination})
+			}
+			doc, err := Parse([]byte(`<script type="application/ld+json">{"`+key+`":"`+destination+`"}</script>`), Options{Registry: urlcheck.NewRegistry("https://example.org/", declarations)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			report := Run(doc, []Rule{testRule("links.declared", linksDeclaredRule)}, nil)
+			if declared {
+				if report.Errors != 0 {
+					t.Fatal(report)
+				}
+			} else if report.Errors != 1 || report.Diagnostics[0].Rule != "links.declared" || !strings.Contains(report.Diagnostics[0].Message, destination) {
+				t.Fatal(report)
+			}
+		}
+	}
+}
