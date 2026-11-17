@@ -231,6 +231,55 @@ selectors report `build.validation.copyBans[N].selector`. Scoped bans exclude
 metadata and do not run on standalone text/Markdown, which has no DOM. Use an
 unscoped entry for those targets. Shared markers do not bypass bans.
 
+### Required copy and HTML
+
+Project requirements live in `build.validation.copyRequires`:
+
+```json
+{
+  "build": {
+    "validation": {
+      "copyRequires": [
+        {
+          "snippet": "https://static.cloudflareinsights.com/beacon.min.js",
+          "scope": "html",
+          "before": "</body>",
+          "exactly": 1,
+          "severity": "error",
+          "hint": "Add the Cloudflare Web Analytics beacon once before the closing body tag."
+        },
+        {"phrase": "Privacy policy", "min": 1, "severity": "warning"}
+      ]
+    }
+  }
+}
+```
+
+Set exactly one nonblank `phrase`, `regex` or `snippet`, and a required
+`severity` (`error` or `warning`). Set `exactly`, or `min` (default 1)
+and optional `max`; counts must be nonnegative and max must be at least min.
+The optional `hint` supplies a concrete fix.
+
+The default `scope: "copy"` uses the same scope, normalization, phrase
+boundaries and regex behavior as copyBans, including title and description
+metadata. An optional `selector` limits copy to matching elements and their
+visible descendants and excludes metadata. Counts sum occurrences across the
+page's copy blocks; phrases never span blocks.
+
+`scope: "html"` scans the raw rendered page, including head and scripts.
+Phrases and snippets are case-sensitive literal substrings; regexes are
+case-sensitive Go expressions. `snippet` requires HTML scope. Optional
+`before: "</body>"` or `before: "</head>"` counts only occurrences entirely
+before the first such closing tag (tag matching is case-insensitive).
+If that tag is absent, the whole page is counted. HTML scope cannot use a
+selector. Matches are nonoverlapping.
+
+Compile and `lfm check --project <dir>` report `copy.required` per page, with
+the entry, expected and actual counts, and hint in human and JSON output.
+Errors block publishing; warnings are advisory. The
+`build.validation.rules` override for `copy.required` applies to all entries.
+Requirements apply to HTML pages, not standalone text/Markdown or deliverables.
+
 For project builds, `lfm compile --release` reuses cached browser results;
 `lfm compile --release` builds critical CSS and prints; `--validate` adds browser audits and layout checks. The standalone
 `lfm check --release` command continues to run browser checks.

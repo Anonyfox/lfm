@@ -71,6 +71,19 @@ Generated from `internal/project/spec.go` by `go test ./internal/project` with `
 | `build.validation.copyBans.*.selector` | string |  | Optional CSS selector limiting this ban to matching HTML elements and their descendants. Omitted applies everywhere; scoped bans skip metadata and standalone text/Markdown. Example: `".travel-cta"`. |
 | `build.validation.copyBans.*.severity` | error | warning | required | Error blocks compile; warning is advisory (reported as warn). |
 | `build.validation.copyBans.*.hint` | string |  | Optional concrete fix; omitted uses a request to replace the wording with a fact. Example: `"Name the place."`. |
+| `build.validation.copyRequires` | list of objects |  | Project-required copy or raw HTML occurrence counts, checked per page as copy.required. Example: `[{"snippet":"static.cloudflareinsights.com/beacon.min.js","scope":"html","before":"</body>","exactly":1,"severity":"error"}]`. |
+| `build.validation.copyRequires.*` | object |  | One occurrence requirement; set exactly one phrase, regex or snippet. Example: `{}`. |
+| `build.validation.copyRequires.*.phrase` | string |  | Literal phrase; copy scope uses copyBans normalization and Unicode boundaries, HTML scope is case-sensitive. Example: `"Privacy policy"`. |
+| `build.validation.copyRequires.*.regex` | string |  | Go regular expression; copy scope uses copyBans normalization and case-insensitive matching, HTML scope is case-sensitive. Example: `"privacy\|Privacy"`. |
+| `build.validation.copyRequires.*.snippet` | string |  | Case-sensitive literal raw HTML substring; requires html scope. Example: `"static.cloudflareinsights.com/beacon.min.js"`. |
+| `build.validation.copyRequires.*.scope` | string |  | Scope: copy (default, same scope as copyBans) or html (raw rendered HTML including head and scripts). Example: `"html"`. |
+| `build.validation.copyRequires.*.before` | string |  | HTML scope only: count occurrences before the first closing tag, </body> or </head>; absent tag means the entire page. Example: `"</body>"`. |
+| `build.validation.copyRequires.*.exactly` | integer |  | Exact nonnegative occurrence count; cannot combine with min or max. Example: `1`. |
+| `build.validation.copyRequires.*.min` | integer |  | Minimum nonnegative occurrence count; defaults to 1 unless exactly is set. Example: `1`. |
+| `build.validation.copyRequires.*.max` | integer |  | Optional nonnegative maximum occurrence count, at least min. Example: `2`. |
+| `build.validation.copyRequires.*.selector` | string |  | Optional CSS selector for copy scope only; matching elements and descendants, excluding metadata. Example: `".footer"`. |
+| `build.validation.copyRequires.*.severity` | error | warning | required | Required error or warning; error blocks compile, warning reports as warn. Example: `"error"`. |
+| `build.validation.copyRequires.*.hint` | string |  | Optional concrete fix; omitted requests satisfying the occurrence count. Example: `"Add the analytics beacon before the closing body tag."`. |
 | `build.validation.copyAllow` | list of objects |  | Copy exceptions with a required reason. Example: `[{"rule":"copy.superlative","phrase":"Traumhaft Hotel","reason":"Registered name"}]`. |
 | `build.validation.copyAllow.*` | object |  | One justified copy exception. |
 | `build.validation.copyAllow.*.rule` | string | required | An exact copy rule ID. Example: `"copy.superlative"`. |

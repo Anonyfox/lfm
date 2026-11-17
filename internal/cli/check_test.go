@@ -794,3 +794,85 @@ func TestFolderCopyPageCount(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckFolderProjectRequires(t *testing.T) {
+	for _, tc := range []struct {
+		name, text, severity, override string
+		want                           int
+	}{
+		{"clean", "Required notice.", "error", "", 0},
+		{"nested error", "Concrete facts.", "error", "", 1},
+		{"nested warning", "Concrete facts.", "warning", "", 1},
+		{"override warning", "Concrete facts.", "error", "warn", 1},
+		{"override off", "Concrete facts.", "error", "off", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			projectDir, built := t.TempDir(), t.TempDir()
+			if _, err := scaffold.Create(projectDir); err != nil {
+				t.Fatal(err)
+			}
+			configPath := filepath.Join(projectDir, "lfm.json")
+			raw, err := os.ReadFile(configPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var config map[string]any
+			if err := json.Unmarshal(raw, &config); err != nil {
+				t.Fatal(err)
+			}
+			config["build"] = map[string]any{"validation": map[string]any{"copyRequires": []any{map[string]any{"phrase": "Required notice", "severity": tc.severity}}}}
+			if tc.override != "" {
+				config["build"].(map[string]any)["validation"].(map[string]any)["rules"] = map[string]any{"copy.required": tc.override}
+			}
+			raw, err = json.Marshal(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(configPath, raw, 0600); err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range []string{"index.html", "nested/other.html"} {
+				path := filepath.Join(built, name)
+				if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+					t.Fatal(err)
+				}
+				page := checkHTML
+				text := "Required notice."
+				if name != "index.html" {
+					text = tc.text
+				}
+				page = strings.Replace(page, "</main>", "<p>"+text+"</p></main>", 1)
+				if err := os.WriteFile(path, []byte(page), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, out, errs := run(t, "check", built, "--project", projectDir, "--json")
+			if tc.name == "nested error" {
+				_, human, stderr := run(t, "check", built, "--project", projectDir)
+				if !strings.Contains(human, "copy.required") || !strings.Contains(human, "actual 0") || !strings.Contains(human, "expected at least 1") {
+					t.Fatalf("human report: %s %s", human, stderr)
+				}
+			}
+			var result checkResult
+			if err := json.Unmarshal([]byte(out), &result); err != nil {
+				t.Fatal(err, out, errs)
+			}
+			var requirements []check.Diagnostic
+			for _, d := range result.Validation.Diagnostics {
+				if d.Rule == "copy.required" {
+					requirements = append(requirements, d)
+				}
+			}
+			if len(requirements) != tc.want {
+				t.Fatal(out)
+			}
+			expectedSeverity := strings.ReplaceAll(tc.severity, "warning", "warn")
+			if tc.override != "" {
+				expectedSeverity = tc.override
+			}
+			if tc.want > 0 && (requirements[0].Location.File != "nested/other.html" || string(requirements[0].Severity) != expectedSeverity) {
+				t.Fatal(requirements)
+			}
+		})
+	}
+}

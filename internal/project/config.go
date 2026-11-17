@@ -151,10 +151,11 @@ type Build struct {
 }
 
 type Validation struct {
-	CopyBans  []slop.Ban                     `json:"copyBans"`
-	CopyAllow []slop.Allow                   `json:"copyAllow"`
-	Rules     map[string]diagnostic.Severity `json:"rules"`
-	Budgets   Budgets                        `json:"budgets"`
+	CopyRequires []slop.Require                 `json:"copyRequires"`
+	CopyBans     []slop.Ban                     `json:"copyBans"`
+	CopyAllow    []slop.Allow                   `json:"copyAllow"`
+	Rules        map[string]diagnostic.Severity `json:"rules"`
+	Budgets      Budgets                        `json:"budgets"`
 }
 
 // Budgets are a page's advisory sizes, which perf.budgets warns past; a
@@ -322,6 +323,11 @@ func (l *Loaded) validate(p Project, rules RuleCheck, add func(file, path string
 				key = "reason"
 			}
 			add(ConfigFile, fmt.Sprintf("build.validation.copyAllow[%d].%s", i, key), err)
+		}
+	}
+	for i, r := range c.Build.Validation.CopyRequires {
+		if key, err := r.Validate(); err != nil {
+			add(ConfigFile, fmt.Sprintf("build.validation.copyRequires[%d].%s", i, key), err)
 		}
 	}
 	for i, b := range c.Build.Validation.CopyBans {

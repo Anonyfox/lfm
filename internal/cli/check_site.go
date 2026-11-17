@@ -30,11 +30,10 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 	pages := []*check.Document{first}
 	var bans []check.Diagnostic
 	var banRules []check.Rule
-	if len(first.Options.CopyBans) > 0 {
+	if len(first.Options.CopyBans)+len(first.Options.CopyRequires) > 0 {
 		for _, rule := range check.DefaultRules() {
-			if rule.ID == "copy.banned" {
+			if rule.ID == "copy.banned" || rule.ID == "copy.required" {
 				banRules = append(banRules, rule)
-				break
 			}
 		}
 	}
@@ -73,8 +72,14 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		if err != nil {
 			return err
 		}
-		if len(options.CopyBans) > 0 {
-			bans = append(bans, check.Run(d, banRules, nil).Diagnostics...)
+		if len(options.CopyBans)+len(options.CopyRequires) > 0 {
+			for _, rule := range banRules {
+				var overrides map[string]check.Severity
+				if rule.ID == "copy.required" {
+					overrides = options.Rules
+				}
+				bans = append(bans, check.Run(d, []check.Rule{rule}, overrides).Diagnostics...)
+			}
 		}
 		pages = append(pages, d)
 		return nil

@@ -34,6 +34,7 @@ type Rule struct {
 // Options is also usable by small rule tests; no workbench/filesystem is needed.
 type Options struct {
 	Language        string
+	CopyRequires    []slop.Require
 	CopyBans        []slop.Ban
 	CopyAllow       []slop.Allow
 	ServedURL       string // Final fetched URL; enables loopback preview URL judgments.

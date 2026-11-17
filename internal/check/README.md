@@ -138,6 +138,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `design.sections` | Warnings: four or more stock sections (how it works, testimonials, pricing, FAQ, logo strip, feature grid, stat strip). Three is weak. |
 | `design.kit` | Warnings: four or more custom properties with exact shadcn/ui default theme values (slate/zinc HSL, v4 oklch neutrals); two or three are weak. |
 | `design.defaults` | (A page without any imagery is one weak signal.) Warning: four or more distinct generator-default signals including at least one reported finding, or five weak ones; lists both groups and counts justified elements. Weak signals never warn alone. |
+| `copy.required` | Errors or warnings when per-page copy or raw HTML counts violate `build.validation.copyRequires`; satisfy the entry count using its hint. |
 | `copy.banned` | Errors or warnings per entry: project phrases or regexes in `build.validation.copyBans`; replace the wording using the entry's hint. |
 | `copy.triplets` | Warnings: every X, Y and Z / und ending when the checked site exceeds ten times its HTML page count; header/footer/nav and data-lfm-shared subtrees excluded. |
 | `copy.cross-page` | Warnings: normalized sentences/headings of nine or more words shared by two or more pages, with all locations; header/footer/nav and data-lfm-shared subtrees excluded. |

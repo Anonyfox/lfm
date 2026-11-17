@@ -12,6 +12,7 @@ import (
 
 func slopRules() []Rule {
 	out := []Rule{{RuleInfo: diagnostic.RuleInfo{ID: "copy.banned", Summary: "Project-banned copy", Help: "Reports an error or warns when copy matches build.validation.copyBans. Project policy keeps domain clichés out of sales copy. Replace the matched wording using the entry's hint, or update copyBans in lfm.json."}, Check: slopRule("copy.banned")}}
+	out = append(out, Rule{RuleInfo: diagnostic.RuleInfo{ID: "copy.required", Summary: "Project-required copy or HTML", Help: "Reports an error or warns when a page does not meet build.validation.copyRequires occurrence counts. Required copy and integrations must survive rendering. Add or remove occurrences to meet the entry count, using its hint, or update copyRequires in lfm.json."}, Check: slopRule("copy.required")})
 	for _, r := range slop.Rules() {
 		if r.ID == "copy.tells" {
 			continue
@@ -110,6 +111,45 @@ func analyzeSlop(d *Document) map[string][]Diagnostic {
 		for _, hit := range slop.MatchBans(blocks, []slop.Ban{ban}) {
 			out["copy.banned"] = append(out["copy.banned"], d.At(targets[hit.Block].node, Severity(hit.Severity), fmt.Sprintf("Project-banned copy: %q.", hit.Text), hit.Hint))
 		}
+	}
+	for _, req := range d.Options.CopyRequires {
+		if _, err := req.Validate(); err != nil {
+			continue
+		}
+		blocks := texts
+		if req.Selector != "" {
+			sel, _ := cascadia.ParseGroup(req.Selector)
+			blocks = nil
+			for _, n := range d.Elements {
+				if n.Data == "body" {
+					for _, segment := range scopedSegments(n, false, false, false, sel) {
+						blocks = append(blocks, segment.text)
+					}
+					break
+				}
+			}
+		}
+		count := req.Count(blocks, string(d.Raw))
+		expected, ok := req.Expectation(count)
+		if ok {
+			continue
+		}
+		kind, entry := "phrase", req.Phrase
+		if req.Regex != "" {
+			kind, entry = "regex", req.Regex
+		}
+		if req.Snippet != "" {
+			kind, entry = "snippet", req.Snippet
+		}
+		hint := req.Hint
+		if hint == "" {
+			hint = "Add or remove occurrences to satisfy this entry in build.validation.copyRequires."
+		}
+		level := Error
+		if req.Severity == "warning" {
+			level = Warning
+		}
+		out["copy.required"] = append(out["copy.required"], d.At(d.Root, level, fmt.Sprintf("Project-required %s %q: expected %s occurrences; actual %d.", kind, entry, expected, count), hint))
 	}
 	return out
 }

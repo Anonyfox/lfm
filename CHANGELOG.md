@@ -2,6 +2,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## 0.2.5 (2026-11-17)
 
+- New `build.validation.copyRequires` (rule `copy.required`): require a phrase, regex or raw HTML snippet on every page with an exact, minimum or maximum count, optionally only before `</body>` or `</head>`. Example: the Cloudflare Web Analytics beacon exactly once before `</body>`. Runs in compile and `check --project`; error entries block compile.
 - `--release` says on stderr when it starts Chrome for each phase (e.g. "critical CSS: starting Chrome (profile …)") and every 30 s while it waits for a browser job slot, so a stalled run shows where it stopped. A reused Chrome profile has stale `Singleton*` entries removed (under its lock) before launch, and a failed launch names the phase, the profile and the fix.
 - `links.declared` errors include the offending URL, including URLs inside JSON-LD scripts.
 
