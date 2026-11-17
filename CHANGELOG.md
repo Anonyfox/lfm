@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.2.6 (2026-11-17)
 
 ### Fixed
 
