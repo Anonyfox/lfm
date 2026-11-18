@@ -73,7 +73,18 @@ func (r *Registry) Check() []diagnostic.Diagnostic {
 
 		key := result.URL.Href(false)
 		if first, ok := seen[key]; ok {
-			issues = append(issues, diagnostic.Diagnostic{Rule: "links.registry", Severity: diagnostic.Warning, Location: d.Location, Path: d.Path, Related: []diagnostic.Location{first.Location}, Message: fmt.Sprintf("URL duplicates the destination already named %s.", first.Path), Hint: "Reuse one named URL at each placement; keep aliases only if they intentionally need independent future changes."})
+			hint := "Reuse one named URL at each placement; keep aliases only if they intentionally need independent future changes."
+			// Built-in fields sort before urls.*, so an alias of the page URL or
+			// social image should use the template field directly.
+			if strings.HasPrefix(d.Path, "urls") {
+				switch first.Path {
+				case "socialImage.src":
+					hint = "Remove this urls entry and write {{.socialImage.src}} in the template wherever this URL appears (og:image, twitter:image, visible copy)."
+				case "url":
+					hint = "Remove this urls entry and write {{.url}} in the template wherever the page's own URL appears, e.g. a citation line."
+				}
+			}
+			issues = append(issues, diagnostic.Diagnostic{Rule: "links.registry", Severity: diagnostic.Warning, Location: d.Location, Path: d.Path, Related: []diagnostic.Location{first.Location}, Message: fmt.Sprintf("URL duplicates the destination already named %s.", first.Path), Hint: hint})
 		} else {
 			seen[key] = d
 		}

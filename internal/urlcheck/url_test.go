@@ -156,3 +156,27 @@ func FuzzRenderedURLMatching(f *testing.F) {
 		}
 	})
 }
+
+func TestRegistryDuplicateHint(t *testing.T) {
+	const destination = "https://example.org/resource"
+	for _, tc := range []struct {
+		first, duplicate, wantHint string
+	}{
+		{"socialImage.src", "urls.x", "Remove this urls entry and write {{.socialImage.src}} in the template wherever this URL appears (og:image, twitter:image, visible copy)."},
+		{"url", "urls.x", "Remove this urls entry and write {{.url}} in the template wherever the page's own URL appears, e.g. a citation line."},
+		{"urls.a", "urls.b", "Reuse one named URL at each placement; keep aliases only if they intentionally need independent future changes."},
+	} {
+		t.Run(tc.first, func(t *testing.T) {
+			issues := NewRegistry(destination, []Declaration{
+				{Path: tc.duplicate, Value: destination},
+				{Path: tc.first, Value: destination},
+			}).Check()
+			if len(issues) != 1 || issues[0].Rule != "links.registry" || issues[0].Path != tc.duplicate {
+				t.Fatalf("expected one duplicate warning on %s, got %+v", tc.duplicate, issues)
+			}
+			if got := issues[0].Hint; got != tc.wantHint {
+				t.Errorf("hint = %q, want %q", got, tc.wantHint)
+			}
+		})
+	}
+}

@@ -2,6 +2,8 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
+- `links.registry` names the template field to use when a named URL duplicates the page URL or social image.
+
 - FAQ parity checks tolerate Unicode typography and short inline code or link inserts in visible answers.
 
 - Page checks now warn when FAQ markup differs from visible content, Organization identities or references disagree, or large X cards differ from the Open Graph preview. Folder checks also compare Organization identities across pages and sitemap modification dates with page metadata.
