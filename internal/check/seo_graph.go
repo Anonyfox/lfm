@@ -65,10 +65,14 @@ func (g *pageGraph) resolve(raw any) map[string]any {
 	return obj
 }
 
-func faqText(n *html.Node, b *strings.Builder, styles *styleModel) {
+func faqText(n *html.Node, b *strings.Builder, styles *styleModel, trimInline bool) {
 	if n.Type == html.TextNode {
 		if styles == nil || n.Parent == nil || !groundHidden(styles, n.Parent) {
-			b.WriteString(n.Data)
+			text := n.Data
+			if trimInline {
+				text = strings.TrimSpace(text)
+			}
+			b.WriteString(text)
 		}
 		return
 	}
@@ -86,11 +90,30 @@ func faqText(n *html.Node, b *strings.Builder, styles *styleModel) {
 		b.WriteByte(' ')
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		faqText(c, b, styles)
+		faqText(c, b, styles, trimInline)
 	}
 	if boundary {
 		b.WriteByte(' ')
 	}
+}
+
+func faqAnswerMatches(visible []string, answer string) bool {
+	tree, err := html.Parse(strings.NewReader(answer))
+	if err != nil {
+		return faqMatch(visible, faqTokens(answer), faqAnswerExtras)
+	}
+	var b strings.Builder
+	faqText(tree, &b, nil, false)
+	if faqMatch(visible, faqTokens(b.String()), faqAnswerExtras) {
+		return true
+	}
+	// Inline markup may abut its surrounding word in the rendered copy.
+	if !strings.Contains(answer, "<") {
+		return false
+	}
+	b.Reset()
+	faqText(tree, &b, nil, true)
+	return faqMatch(visible, faqTokens(b.String()), 0)
 }
 
 func faqRule(d *Document) []Diagnostic {
@@ -99,7 +122,7 @@ func faqRule(d *Document) []Diagnostic {
 		return nil
 	}
 	var issues []Diagnostic
-	var visible, compact string
+	var visible []string
 	ready := false
 	for _, n := range g.nodes {
 		if !schemaType(n.value, "FAQPage") {
@@ -108,10 +131,9 @@ func faqRule(d *Document) []Diagnostic {
 		if !ready {
 			var b strings.Builder
 			for _, body := range d.activeNodes("body") {
-				faqText(body, &b, d.styles())
+				faqText(body, &b, d.styles(), false)
 			}
-			visible = strings.Join(strings.Fields(b.String()), " ")
-			compact = strings.ReplaceAll(visible, " ", "")
+			visible = faqTokens(b.String())
 			ready = true
 		}
 		for _, item := range schemaValues(n.value, "mainEntity") {
@@ -120,17 +142,11 @@ func faqRule(d *Document) []Diagnostic {
 				continue
 			}
 			name := strings.Join(strings.Fields(schemaText(q, "name")), " ")
-			if name == "" || !strings.Contains(visible, name) {
+			if !faqMatch(visible, faqTokens(name), 0) {
 				issues = append(issues, d.At(n.script, Warning, fmt.Sprintf("FAQ question %q is missing from the visible text.", name), "Show the same question on the page and in FAQPage mainEntity."))
 			}
 			for _, a := range schemaValues(q, "acceptedAnswer") {
-				answer := schemaText(g.resolve(a), "text")
-				if tree, err := html.Parse(strings.NewReader(answer)); err == nil {
-					var b strings.Builder
-					faqText(tree, &b, nil)
-					answer = strings.Join(strings.Fields(b.String()), "")
-				}
-				if answer == "" || !strings.Contains(compact, answer) {
+				if !faqAnswerMatches(visible, schemaText(g.resolve(a), "text")) {
 					issues = append(issues, d.At(n.script, Warning, fmt.Sprintf("The accepted answer for FAQ question %q is missing from the visible text.", name), "Render the same answer text on the page and in acceptedAnswer.text."))
 				}
 			}

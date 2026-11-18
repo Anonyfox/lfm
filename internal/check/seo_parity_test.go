@@ -154,3 +154,69 @@ func FuzzSitemapDates(f *testing.F) {
 		}
 	})
 }
+
+func TestFAQVisibleTokens(t *testing.T) {
+	const q = "Which release?"
+	for _, tc := range []struct{ name, question, answer, body, warning string }{
+		{"stable notes", q, "See VS Code 1.145 release notes.", "<h2>Which release?</h2><p>See <a>VS Code 1.145 release notes</a></p><h2>02 Next</h2>", ""},
+		{"release history", q, "Patch releases can arrive between minor releases. Official release history.", "Which release?<p>Patch releases can arrive between minor releases. <a>Official release history</a></p><h2>03 Next</h2>", ""},
+		{"rollback settings", q, "Extension updates have a separate setting. Previous versions and update settings.", "Which release?<p>Extension updates have a separate setting.</p><pre><code>{ &quot;update.mode&quot;: &quot;none&quot; }</code></pre><p><a>Previous versions and update settings</a> · <a>1.143.0 release notes</a></p>", ""},
+		{"insiders link", q, "Keep a separate Stable installation for daily work. Insiders builds and installation.", "Which release?<p>Keep a separate Stable installation for daily work. <a>Insiders builds and installation</a></p>", ""},
+		{"German quotes", "Ista zeigt die Aufteilung nur informativ – was heißt das?", "Sie ist informativ.", "<h2>Ista zeigt die Aufteilung nur „informativ“ – was heißt das?</h2><p>Sie ist informativ.</p>", ""},
+		{"fold and compatibility", "Straße ４?", "Café daily.", "<h2>STRASSE 🚲 4</h2><p>Cafe\u0301 daily</p>", ""},
+		{"missing question", q, "Choose stable.", "<h2>Which is the release?</h2><p>Choose stable.</p>", "FAQ question"},
+		{"changed number", q, "Update every 7 days.", "Which release?<p>Update every 17 days.</p>", "The accepted answer"},
+		{"changed fact", q, "Choose stable.", "Which release?<p>Choose unstable.</p>", "The accepted answer"},
+		{"truncated", q, "Download the package. Install the update.", "Which release?<p>Download the package.</p>", "The accepted answer"},
+		{"swapped", q, "Download the package. Install the update.", "Which release?<p>Install the update. Download the package.</p>", "The accepted answer"},
+		{"at bound", q, "Start here.", "Which release?<p>Start " + strings.Repeat("extra ", 12) + "here.</p>", ""},
+		{"over bound", q, "Start here.", "Which release?<p>Start " + strings.Repeat("extra ", 13) + "here.</p>", "The accepted answer"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			head := parityGraph(fmt.Sprintf(`{"@type":"FAQPage","mainEntity":{"@type":"Question","name":%q,"acceptedAnswer":{"@type":"Answer","text":%q}}}`, tc.question, tc.answer))
+			issues := runOn(t, faqRule, head, tc.body, Options{})
+			if tc.warning == "" && len(issues) == 0 {
+				return
+			}
+			if tc.warning == "" || len(issues) != 1 || issues[0].Severity != Warning || !strings.HasPrefix(issues[0].Message, tc.warning) {
+				t.Fatal(issues)
+			}
+		})
+	}
+}
+
+func FuzzFAQMatch(f *testing.F) {
+	f.Add("a b a c", "a c", uint8(0))
+	f.Add(strings.Repeat("word ", 80)+"extra end", strings.Repeat("word ", 70)+"end", uint8(1))
+	f.Fuzz(func(t *testing.T, pageText, query string, budget uint8) {
+		page, want := faqTokens(pageText), faqTokens(query)
+		if len(page) > 512 || len(want) > 256 {
+			return
+		}
+		extras := int(budget) % 13
+		expected := false
+		for i := range page {
+			matched := 0
+			for _, token := range page[i:min(len(page), i+len(want)+extras)] {
+				if matched < len(want) && token == want[matched] {
+					matched++
+				}
+			}
+			if len(want) > 0 && matched == len(want) {
+				expected = true
+				break
+			}
+		}
+		if faqMatch(page, want, extras) != expected {
+			t.Fatalf("page %q, query %q, extra budget %d: want %v", page, want, extras, expected)
+		}
+	})
+}
+
+func BenchmarkFAQRepetitivePage(b *testing.B) {
+	page := strings.Fields(strings.Repeat("word ", 8192))
+	want := strings.Fields(strings.Repeat("word ", 1024) + "end")
+	for b.Loop() {
+		faqMatch(page, want, faqAnswerExtras)
+	}
+}
