@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.2.8 (2026-11-18)
 
 - Folder checks match sitemap modification dates by canonical URL when that canonical uniquely identifies one page, so a page staged as `index.html` can use the full site sitemap. If several pages share a canonical, the entry is matched by file path.
 
