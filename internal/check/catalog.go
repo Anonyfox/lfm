@@ -61,6 +61,10 @@ func baseRules() []Rule {
 			jsonRule),
 
 		// jsonld
+		rule("jsonld.faq", "Visible FAQ questions and answers match their structured data",
+			"Warns when a FAQPage question or accepted answer is absent from visible page text. Search engines expect the marked-up FAQ to be available to readers. Render the same questions and answers in both places.", faqRule),
+		rule("jsonld.identity", "Organization identities agree and structured data references resolve",
+			"Warns for conflicting Organization identities, unresolved author, publisher, seller or provider references, and unnamed inline Organization publishers. Conflicting descriptions can misidentify the entity behind a page. Define referenced nodes locally and keep identity fields consistent across the site.", identityRule),
 		rule("jsonld.block", "Structured data comes only from the one compiler-generated JSON-LD block",
 			"Errors when the template contains handwritten application/ld+json scripts or more than one JSON-LD block. Scattered blocks drift from config and contradict each other in search results. Declare structured data under jsonld in lfm.json, using @graph or a top-level array for multiple entities, and delete the handwritten scripts.",
 			jsonldBlockRule, "lfm convention: one compiler-generated block"),
@@ -92,6 +96,8 @@ func baseRules() []Rule {
 		rule("commerce.legal", "A page that sells links the owner's privacy policy, and an Impressum in German",
 			"Warns when a page with declared offers or a Stripe checkout link has no visible link to a privacy policy (privacy, Datenschutz…), and, on a German page, none to an Impressum. Selling without them is unlawful in the EU and Germany and makes a careful buyer stop. Link the owner's pages, typically in the footer; legal text comes from the owner, never from the page's author.",
 			legalRule),
+		rule("seo.lastmod", "Sitemap modification dates agree with page structured data",
+			"Warns in folder checks when sitemap lastmod and a WebPage or Article modification date disagree or use invalid dates. Search engines use these dates to interpret updates. Publish the same ISO 8601 calendar date in both places.", func(*Document) []Diagnostic { return nil }),
 		rule("seo.metadata", "One title, description, language and exact HTTPS canonical in head",
 			"Errors for duplicate or out-of-head titles and a missing, duplicate, misplaced, non-HTTPS, query or fragment-bearing canonical, or one that differs from lfm.json url; warnings for a missing title, description or html lang, a duplicate or misplaced description and an unrecognized language tag. Search engines use these to decide which URL to index and what to show in results. Render <title>, the description meta and <link rel=\"canonical\" href=\"{{.url}}\"> once in head, and set html lang from the configured language."+previewPolicy,
 			metadataRule),
@@ -115,6 +121,8 @@ func baseRules() []Rule {
 		rule("sharing.discovery", "Platform share metadata is well-formed, in early head and uses public media URLs",
 			"Errors for empty or repeated scalar platform fields, non-public audio, video, stream or oEmbed URLs and nonpositive media dimensions; warnings for declarations outside head or with the wrong attribute, metadata after the first 32 KiB, incomplete Slack label/data pairs, unknown or legacy X card types and frame-ancestors in a meta CSP. Preview crawlers read only the initial head and often a bounded prefix, so misplaced tags produce plain links. Put platform tags early in head, ahead of bulky inline CSS, and use named public URLs.",
 			sharingDiscoveryRule),
+		rule("sharing.card", "Large X cards use the primary Open Graph image at the recommended size",
+			"Warns when an Open Graph image has a different X image, lacks a large card declaration or differs from the recommended 1200x630 pixels. Inconsistent metadata can produce different previews across platforms. Use the same image and summary_large_image card, or declare a dedicated player or app card.", sharingCardRule),
 		rule("sharing.media", "Social images declare alt text and dimensions that match the emitted files",
 			"Warns when an og:image lacks og:image:alt, og:image:width or og:image:height, when twitter:image has no twitter:image:alt, or when declared dimensions differ from the emitted image. Platforms use dimensions to lay out the card before fetching and alt text for people who cannot see it. Add the actual pixel size and a useful description after each og:image; an intentionally empty alt is allowed.",
 			sharingMediaRule),

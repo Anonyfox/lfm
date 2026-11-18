@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/check"
 )
 
-// Folder targets include every HTML page for aggregate copy checks. OpenRoot
+// Folder targets include every HTML page for aggregate copy and SEO checks. OpenRoot
 // keeps reads confined just like the target reader; symlink directories are not
 // traversed. URL and explicit file targets remain single-page checks.
 func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error) {
@@ -28,12 +29,15 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 	}
 	defer root.Close()
 	pages := []*check.Document{first}
-	var bans []check.Diagnostic
-	var banRules []check.Rule
-	if len(first.Options.CopyBans)+len(first.Options.CopyRequires) > 0 {
-		for _, rule := range check.DefaultRules() {
-			if rule.ID == "copy.banned" || rule.ID == "copy.required" {
-				banRules = append(banRules, rule)
+	var pageIssues []check.Diagnostic
+	var pageRules []check.Rule
+	for _, rule := range check.DefaultRules() {
+		switch rule.ID {
+		case "jsonld.faq", "jsonld.identity", "sharing.card":
+			pageRules = append(pageRules, rule)
+		case "copy.banned", "copy.required":
+			if len(first.Options.CopyBans)+len(first.Options.CopyRequires) > 0 {
+				pageRules = append(pageRules, rule)
 			}
 		}
 	}
@@ -68,24 +72,90 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		}
 		options := first.Options
 		options.File = filepath.ToSlash(name)
+		if base, e := url.Parse(options.URL); e == nil {
+			options.URL = base.ResolveReference(&url.URL{Path: name}).String()
+		}
+		options.Assets = nil
+		options.Registry = nil // Page-relative references use this page's identity.
 		d, err := check.Parse(raw, options)
 		if err != nil {
 			return err
 		}
-		if len(options.CopyBans)+len(options.CopyRequires) > 0 {
-			for _, rule := range banRules {
-				var overrides map[string]check.Severity
-				if rule.ID == "copy.required" {
-					overrides = options.Rules
+		for _, n := range d.Elements {
+			if n.Data == "link" && strings.EqualFold(check.Attr(n, "rel"), "canonical") {
+				if u, e := url.Parse(check.Attr(n, "href")); e == nil && u.IsAbs() {
+					d.Options.URL = u.String()
+					break
 				}
-				bans = append(bans, check.Run(d, []check.Rule{rule}, overrides).Diagnostics...)
 			}
 		}
+		loadShareImage(root, d, first.Options.URL)
+		pageIssues = append(pageIssues, check.Run(d, pageRules, options.Rules).Diagnostics...)
 		pages = append(pages, d)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return append(bans, check.SiteCopy(pages)...), nil
+	issues := append(pageIssues, check.SiteCopy(pages)...)
+	issues = append(issues, check.SiteIdentity(pages)...)
+	if info, e := root.Stat("sitemap.xml"); e == nil && info.Mode().IsRegular() {
+		f, e := root.Open("sitemap.xml")
+		if e != nil {
+			return issues, nil
+		}
+		defer f.Close()
+		issues = append(issues, check.SitemapDates(pages, io.LimitReader(f, 50<<20))...)
+	}
+	return issues, nil
+}
+
+// Load only the local primary image header for a secondary folder page.
+func loadShareImage(root *os.Root, d *check.Document, rootURL string) {
+	raw := d.PrimaryShareImage()
+	if raw == "" {
+		return
+	}
+	ref, err := url.Parse(raw)
+	if err != nil {
+		return
+	}
+	base, err := url.Parse(d.Options.URL)
+	if err != nil {
+		return
+	}
+	origin, err := url.Parse(rootURL)
+	if err != nil {
+		return
+	}
+	// Without a public root identity, relative paths still identify files beside
+	// the checked page. An absolute external image has no proven local mapping.
+	if origin.Host == "" {
+		if ref.IsAbs() || ref.Host != "" {
+			return
+		}
+		base = &url.URL{Path: "/" + d.Options.File}
+	}
+	dest := base.ResolveReference(ref)
+	directory := origin.ResolveReference(&url.URL{Path: "."})
+	if dest.Host != origin.Host || dest.Scheme != origin.Scheme || !strings.HasPrefix(dest.Path, directory.Path) {
+		return
+	}
+	file := strings.TrimPrefix(dest.Path, directory.Path)
+	if !fs.ValidPath(file) {
+		return
+	}
+	info, err := root.Stat(file)
+	if err != nil || !info.Mode().IsRegular() {
+		return
+	}
+	f, err := root.Open(file)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, 512<<10))
+	if err == nil {
+		d.InspectPrimaryShareImage(data)
+	}
 }

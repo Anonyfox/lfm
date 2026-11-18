@@ -1,5 +1,9 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Page checks now warn when FAQ markup differs from visible content, Organization identities or references disagree, or large X cards differ from the Open Graph preview. Folder checks also compare Organization identities across pages and sitemap modification dates with page metadata.
+
 ## 0.2.6 (2026-11-17)
 
 ### Fixed

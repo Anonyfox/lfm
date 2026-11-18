@@ -75,6 +75,8 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `html.ids` | Errors: duplicate/empty/whitespace IDs in the active document |
 | `html.references` | Errors: missing static ID references; unresolved fragment navigation warns |
 | `html.json` | Errors: invalid JSON, JSON-LD, import maps or speculation-rules JSON |
+| `jsonld.faq` | Visible FAQ questions and answers match their structured data |
+| `jsonld.identity` | Organization identities agree and structured data references resolve |
 | `jsonld.block` | Errors: handwritten/extra JSON-LD blocks in projects; one optional generated block |
 | `jsonld.structure` | Errors: invalid JSON-LD expansion/keyword shapes, bounded input limits or processor failure |
 | `jsonld.context` | Warnings: expansion coverage skipped for an unbundled remote context; no network requests |
@@ -84,11 +86,13 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `commerce.structured-data` | Errors: negative Offer price, exact identifiable same-currency config mismatch, non-public/non-HTTPS potential BuyAction target. Warnings: incomplete/ambiguous price facts, alternate currency, absent/different action target. Offline expanded aliases and same-graph ID references are supported; ambiguous identities/context/precision are not guessed. |
 | `commerce.secrets` | Errors: recognizable Stripe sk_/rk_/whsec_ secret shapes in config, final HTML or emitted text sidecars, with redacted values. Public pk_ keys/object IDs are allowed; this is not a general credential/PII scanner. |
 | `commerce.legal` | Warnings: a page with declared offers or a Stripe checkout link but no visible privacy-policy link; on `lang="de…"` pages also no Impressum link. |
+| `seo.lastmod` | Sitemap modification dates agree with page structured data |
 | `seo.metadata` | Errors: duplicate/out-of-head HTML titles; missing/duplicate/out-of-head canonical, non-public/non-HTTPS canonical, any query/fragment, or spelling different from configured url. Missing title/description/lang, duplicate/misplaced description and unrecognized BCP 47 language warn. SVG titles and inert templates are excluded. |
 | `seo.indexability` | Warnings: explicit noindex/none and page-wide nofollow, including Googlebot News; restrictions in body still count. |
 | `seo.snippets` | Warnings: nosnippet and nonnegative max-snippet limits for recognized robots names; -1/unknown/malformed directives remain untouched. Repeated limits report the most restrictive value per tag. |
 | `seo.social` | Errors: invalid/non-absolute/data/local/private preview-identity or image URLs. Warnings: missing OG core fields, misplaced/wrong-attribute/empty metadata, repeated scalar fields and page identity mismatch. Public-state query variants, OG image arrays/scoped properties and different listing wording/images are allowed. |
 | `sharing.discovery` | Errors: repeated/empty known scalar platform fields, invalid public audio/video/stream/oEmbed URLs or nonpositive media dimensions. Warnings: misplaced/wrong-attribute declarations, metadata after 32 KiB, incomplete Slack label/data pairs, unrecognized/legacy X card types and ineffective meta CSP frame-ancestors. Arrays and optional unused platforms remain allowed. |
+| `sharing.card` | Large X cards use the primary Open Graph image at the recommended size |
 | `sharing.media` | Warnings: missing per-image OG alt/dimensions, missing twitter:image:alt or dimension hints disagreeing with inspected sidecars. Image arrays and deliberately empty alternatives remain allowed; remote media is not fetched. |
 | `sharing.x-player` | Errors for a declared player missing HTTPS player/poster or positive integer dimensions; warnings for missing title/description fallback or a player target without card=player. Query/anchor launch state is preserved; host framing/client behavior is not certified. |
 | `sharing.discord` | Errors: duplicate/misplaced/ill-typed declarations; unrelated linked-JSON host; malformed/duplicate-key JSON, >3,000 encoded bytes, wrong root/nesting/known parent shapes, unsupported types/button keys/styles, missing names/URLs, >40 components or >10 total gallery items. Linked emitted JSON is inspected; remote JSON and absent native return button warn. |

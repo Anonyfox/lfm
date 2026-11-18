@@ -876,3 +876,73 @@ func TestCheckFolderProjectRequires(t *testing.T) {
 		})
 	}
 }
+
+func TestFolderSEOParity(t *testing.T) {
+	for _, tc := range []struct {
+		name, second           string
+		sitemap                bool
+		wantIdentity, wantDate int
+	}{
+		{"consistent without sitemap", "Oak", false, 0, 0}, {"drift without sitemap", "Elm", false, 1, 0}, {"nested date mismatch", "Oak", true, 0, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			page := func(name string) []byte {
+				return fmt.Appendf(nil, `<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"School","@id":"https://example.org/#school","name":%q},{"@type":"AboutPage","dateModified":"2026-10-01"}]}</script>`, name)
+			}
+			if err := os.Mkdir(filepath.Join(dir, "about"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "about", "index.html"), page(tc.second), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if tc.sitemap {
+				if err := os.WriteFile(filepath.Join(dir, "sitemap.xml"), []byte(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://example.org/about/</loc><lastmod>2026-10-02</lastmod></url></urlset>`), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			first, err := check.Parse(page("Oak"), check.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			issues, err := folderCopy(dir, first)
+			if err != nil {
+				t.Fatal(err)
+			}
+			counts := map[string]int{}
+			for _, i := range issues {
+				counts[i.Rule]++
+				if i.Location.File != "about/index.html" || i.Severity != check.Warning {
+					t.Fatal(i)
+				}
+				if i.Rule == "jsonld.identity" && (len(i.Related) != 1 || i.Related[0].File != "index.html" || !strings.Contains(i.Message, "about/index.html")) {
+					t.Fatal(i)
+				}
+			}
+			if counts["jsonld.identity"] != tc.wantIdentity || counts["seo.lastmod"] != tc.wantDate || len(issues) != tc.wantIdentity+tc.wantDate {
+				t.Fatal(issues)
+			}
+		})
+	}
+}
+
+func TestFolderShareImageParity(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "about"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "about", "index.html"), []byte(`<meta property="og:image" content="../poster.svg"><meta name="twitter:card" content="summary_large_image">`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "poster.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"></svg>`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	first, err := check.Parse(nil, check.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	issues, err := folderCopy(dir, first)
+	if err != nil || len(issues) != 1 || issues[0].Rule != "sharing.card" {
+		t.Fatal(issues, err)
+	}
+}

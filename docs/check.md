@@ -283,3 +283,10 @@ Requirements apply to HTML pages, not standalone text/Markdown or deliverables.
 For project builds, `lfm compile --release` reuses cached browser results;
 `lfm compile --release` builds critical CSS and prints; `--validate` adds browser audits and layout checks. The standalone
 `lfm check --release` command continues to run browser checks.
+
+## Search and share parity warnings
+
+- `jsonld.faq` — Warns when a FAQPage question or accepted answer is absent from visible page text. Search engines expect the marked-up FAQ to be available to readers. Render the same questions and answers in both places.
+- `jsonld.identity` — Warns for conflicting Organization identities, unresolved author, publisher, seller or provider references, and unnamed inline Organization publishers. Conflicting descriptions can misidentify the entity behind a page. Define referenced nodes locally and keep identity fields consistent across the site.
+- `sharing.card` — Warns when an Open Graph image has a different X image, lacks a large card declaration or differs from the recommended 1200x630 pixels. Inconsistent metadata can produce different previews across platforms. Use the same image and summary_large_image card, or declare a dedicated player or app card.
+- `seo.lastmod` — Warns in folder checks when sitemap lastmod and a WebPage or Article modification date disagree or use invalid dates. Search engines use these dates to interpret updates. Publish the same ISO 8601 calendar date in both places.

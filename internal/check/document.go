@@ -34,6 +34,9 @@ type Document struct {
 	jsonldAnalyzed bool
 	jsonldFindings []Diagnostic
 	jsonldExpanded []ldBlock
+	graph          *pageGraph
+	imagesScanned  bool
+	socialImages   []*socialImage
 	commerceDone   bool
 	commerceIssues []Diagnostic
 	fontAnalyzed   bool
