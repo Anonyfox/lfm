@@ -159,6 +159,28 @@ func describeOrganization(id string, n schemaNode) organization {
 	return org
 }
 
+// conflicts reports a field both nodes state with different values. JSON-LD
+// merges nodes that share an @id, so a field only one of them states adds to
+// the entity instead of contradicting it.
+func (o organization) conflicts(other organization, n int) bool {
+	for i := range n {
+		if o.fields[i] != "" && other.fields[i] != "" && o.fields[i] != other.fields[i] {
+			return true
+		}
+	}
+	return false
+}
+
+// merge fills the fields o leaves empty from other.
+func (o organization) merge(other organization) organization {
+	for i := range o.fields {
+		if o.fields[i] == "" {
+			o.fields[i] = other.fields[i]
+		}
+	}
+	return o
+}
+
 func identityRule(d *Document) []Diagnostic {
 	g := d.seoGraph()
 	if g == nil {
@@ -167,11 +189,15 @@ func identityRule(d *Document) []Diagnostic {
 	var issues []Diagnostic
 	seen := map[string]organization{}
 	for _, org := range g.organizations {
-		if first, ok := seen[org.id]; ok && first.fields != org.fields {
-			issues = append(issues, d.At(org.node.script, Warning, fmt.Sprintf("Organization %q has conflicting identity fields on this page.", org.id), "Use the same name, url, logo and sameAs for this @id."))
-		} else {
+		first, ok := seen[org.id]
+		if !ok {
 			seen[org.id] = org
+			continue
 		}
+		if first.conflicts(org, len(org.fields)) {
+			issues = append(issues, d.At(org.node.script, Warning, fmt.Sprintf("Organization %q has conflicting identity fields on this page.", org.id), "Use the same name, url, logo and sameAs for this @id."))
+		}
+		seen[org.id] = first.merge(org)
 	}
 	for _, n := range g.nodes {
 		for _, key := range []string{"publisher", "seller", "provider", "author"} {

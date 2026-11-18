@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/url"
 	"path"
-	"slices"
 	"strings"
 	"time"
 )
@@ -38,7 +37,8 @@ func SiteIdentity(pages []*Document) []Diagnostic {
 				first[key] = occurrence{org, d}
 				continue
 			}
-			if old.page == d || slices.Equal(old.org.fields[:3], org.fields[:3]) {
+			if old.page == d || !old.org.conflicts(org, 3) {
+				first[key] = occurrence{old.org.merge(org), old.page}
 				continue
 			}
 			issue := d.At(org.node.script, Warning, fmt.Sprintf("Organization %q differs between %s and %s.", org.id, old.page.Options.File, d.Options.File), "Use consistent name, url and logo values across pages for this @id.")

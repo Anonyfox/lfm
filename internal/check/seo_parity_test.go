@@ -44,6 +44,8 @@ func TestIdentityParity(t *testing.T) {
 		{"reordered", org + "," + strings.Replace(org, `"https://a.com","https://b.com"`, `"https://b.com","https://a.com"`, 1), 0},
 		{"conflict", org + "," + strings.Replace(org, "Oak", "Elm", 1), 1},
 		{"sameAs conflict", org + "," + strings.Replace(org, "a.com", "c.com", 1), 1},
+		{"partial node merges", org + `,{"@id":"#org","@type":"ProfessionalService","name":"Oak","description":"Shop"}`, 0},
+		{"partial node conflicts", org + `,{"@id":"#org","@type":"ProfessionalService","name":"Elm"}`, 1},
 		{"resolved", `{"@type":"WebPage","publisher":{"@id":"#org"}},` + org, 0},
 		{"unresolved", `{"@type":"Article","author":{"@id":"#x"},"seller":{"@id":"#y"},"provider":{"@id":"#z"},"publisher":{"@id":"#p"}}`, 4},
 		{"unnamed", `{"@type":"Article","publisher":{"@type":"School"}}`, 1},
