@@ -245,3 +245,25 @@ func TestLastmodCanonicalSource(t *testing.T) {
 		})
 	}
 }
+
+func TestLastmodSharedCanonical(t *testing.T) {
+	const sitemap = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://example.com/hub/</loc><lastmod>2026-11-18</lastmod></url></urlset>`
+	page := func(file, canonical, day string) *Document {
+		t.Helper()
+		doc, err := Parse([]byte(fmt.Sprintf(`<link rel="canonical" href="https://example.com%s">%s`, canonical, parityGraph(fmt.Sprintf(`{"@type":"WebPage","dateModified":%q}`, day)))), Options{File: file})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return doc
+	}
+	hub, child := page("hub/index.html", "/hub/", "2026-11-18"), page("hub/aachen/index.html", "/hub/", "2026-10-27")
+	if got := SitemapDates([]*Document{hub, child}, strings.NewReader(sitemap)); len(got) != 0 {
+		t.Fatalf("shared canonical compared the child: %v", got)
+	}
+	hubBad := page("hub/index.html", "/hub/", "2026-10-01")
+	got := SitemapDates([]*Document{hubBad, child}, strings.NewReader(sitemap))
+	if len(got) != 1 || got[0].Location.File != "hub/index.html" {
+		t.Fatalf("hub mismatch should warn only on the hub file: %v", got)
+	}
+}

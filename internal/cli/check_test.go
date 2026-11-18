@@ -961,6 +961,7 @@ func TestFolderLastmodCanonical(t *testing.T) {
 		{"unlisted canonical", "/missing/", "02", "", ""},
 		{"site-wide", "/", "01", "02", ""},
 		{"site-wide nested mismatch", "/", "01", "01", "cargo/index.html"},
+		{"shared canonical children", "/", "01", "27", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -977,7 +978,11 @@ func TestFolderLastmodCanonical(t *testing.T) {
 				if err := os.Mkdir(filepath.Join(dir, "cargo"), 0700); err != nil {
 					t.Fatal(err)
 				}
-				writePage("cargo/index.html", "/cargo/", tc.nestedDay)
+				canonical := "/cargo/"
+				if tc.name == "shared canonical children" {
+					canonical = "/"
+				}
+				writePage("cargo/index.html", canonical, tc.nestedDay)
 			}
 			if err := os.WriteFile(filepath.Join(dir, "sitemap.xml"), []byte(sitemap), 0600); err != nil {
 				t.Fatal(err)

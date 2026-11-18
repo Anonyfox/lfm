@@ -93,7 +93,27 @@ func sitemapKey(u url.URL) string {
 	return u.String()
 }
 
+func sitemapPath(u url.URL) string {
+	file := strings.TrimPrefix(u.Path, "/")
+	if file == "" || strings.HasSuffix(file, "/") {
+		file += "index.html"
+	}
+	return file
+}
+
+func lookupSitemapPage(byFile map[string]*Document, u url.URL) *Document {
+	file := sitemapPath(u)
+	if d := byFile[file]; d != nil {
+		return d
+	}
+	return byFile[path.Join(file, "index.html")]
+}
+
 // SitemapDates reads only direct protocol url entries and compares local calendar dates.
+// A sitemap loc is compared to the one page that uniquely has that canonical URL, so a
+// page staged as index.html still matches its own entry. If several pages share a
+// canonical, or a page has none, the entry is matched by file path, so children that
+// canonicalize to a parent hub are not compared to the hub's lastmod.
 func SitemapDates(pages []*Document, input io.Reader) []Diagnostic {
 	byFile := map[string]*Document{}
 	byCanonical := map[string][]*Document{}
@@ -134,19 +154,22 @@ func SitemapDates(pages []*Document, input io.Reader) []Diagnostic {
 			if err != nil || strings.TrimSpace(entry.Loc) == "" {
 				continue
 			}
-			for _, d := range byCanonical[sitemapKey(*u)] {
-				issues = append(issues, pageDates(d, entry.Lastmod)...)
-			}
-			file := strings.TrimPrefix(u.Path, "/")
-			if file == "" || strings.HasSuffix(file, "/") {
-				file += "index.html"
-			}
-			d := byFile[file]
-			if d == nil {
-				d = byFile[path.Join(file, "index.html")]
-			}
-			if d != nil {
-				issues = append(issues, pageDates(d, entry.Lastmod)...)
+			matched := byCanonical[sitemapKey(*u)]
+			switch len(matched) {
+			case 1:
+				issues = append(issues, pageDates(matched[0], entry.Lastmod)...)
+			case 0:
+				if d := lookupSitemapPage(byFile, *u); d != nil {
+					issues = append(issues, pageDates(d, entry.Lastmod)...)
+				}
+			default:
+				subset := map[string]*Document{}
+				for _, d := range matched {
+					subset[d.Options.File] = d
+				}
+				if d := lookupSitemapPage(subset, *u); d != nil {
+					issues = append(issues, pageDates(d, entry.Lastmod)...)
+				}
 			}
 		case xml.EndElement:
 			depth--

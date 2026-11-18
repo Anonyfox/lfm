@@ -2,7 +2,7 @@ Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/rel
 
 ## Unreleased
 
-- Folder checks match sitemap modification dates by canonical URL, so a page staged as `index.html` can use the full site sitemap.
+- Folder checks match sitemap modification dates by canonical URL when that canonical uniquely identifies one page, so a page staged as `index.html` can use the full site sitemap. If several pages share a canonical, the entry is matched by file path.
 
 - Compile reports outdated skills once per lfm version and shared skills folder. `lfm check --project` and `lfm skills` always report outdated copies.
 
