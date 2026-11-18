@@ -1,4 +1,4 @@
-package target_test
+package pageread_test
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/compile"
-	"github.com/Anonyfox/lfm/internal/target"
+	"github.com/Anonyfox/lfm/internal/pageread"
 )
 
 const benchmarkHTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Test</title><link rel="canonical" href="https://example.org/"></head><body><main><h1>Test page</h1></main></body></html>`
@@ -50,7 +50,7 @@ func BenchmarkCheckFolder(b *testing.B) {
 			b.ReportAllocs()
 			b.ResetTimer()
 			for b.Loop() {
-				r, err := target.Read(context.Background(), dir, "bench")
+				r, err := pageread.Read(context.Background(), dir, "bench")
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -72,7 +72,7 @@ func BenchmarkCheckSite(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		r, err := target.Read(context.Background(), output, "bench")
+		r, err := pageread.Read(context.Background(), output, "bench")
 		if err != nil {
 			b.Fatal(err)
 		}

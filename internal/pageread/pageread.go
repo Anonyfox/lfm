@@ -1,5 +1,5 @@
-// Package target reads a built page and its embedded resources for page checks.
-package target
+// Package pageread reads a built page and its embedded resources for page checks.
+package pageread
 
 import (
 	"context"

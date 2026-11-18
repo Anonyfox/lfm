@@ -18,8 +18,8 @@ import (
 	"github.com/Anonyfox/lfm/internal/check"
 	"github.com/Anonyfox/lfm/internal/compile"
 	"github.com/Anonyfox/lfm/internal/diagnostic"
+	"github.com/Anonyfox/lfm/internal/pageread"
 	"github.com/Anonyfox/lfm/internal/release"
-	"github.com/Anonyfox/lfm/internal/target"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -34,7 +34,7 @@ type checkRelease struct {
 type checkResult struct {
 	Target  string `json:"target"`
 	Project string `json:"project,omitempty"`
-	target.Result
+	pageread.Result
 	Validation check.Report  `json:"validation"`
 	Release    *checkRelease `json:"release,omitempty"`
 	Skipped    []skippedRule `json:"skipped"`
@@ -115,7 +115,7 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 	if textTarget && p.has("release") {
 		return usageError("--release requires an HTML page")
 	}
-	var input target.Result
+	var input pageread.Result
 	var err error
 	if textTarget {
 		f, openErr := os.Open(p.args[0])
@@ -132,13 +132,13 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 		}
 		input.Options = check.Options{File: p.args[0], Language: p.flags["lang"]}
 	} else {
-		input, err = target.Read(ctx, p.args[0], env.Build.Version)
+		input, err = pageread.Read(ctx, p.args[0], env.Build.Version)
 	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return err
 		}
-		if errors.Is(err, target.ErrUsage) {
+		if errors.Is(err, pageread.ErrUsage) {
 			return usageError("%s", err)
 		}
 	}
