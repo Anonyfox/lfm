@@ -185,6 +185,16 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 	if r == nil {
 		return
 	}
+	printReuse := func(stage, when string) {
+		if when == "" {
+			return
+		}
+		if t, err := time.Parse(time.RFC3339, when); err == nil {
+			when = t.Local().Format("2006-01-02 15:04")
+		}
+		fmt.Fprintf(w, "  %s %s reused from %s because the build did not change\n", term.Pad("release", 12), stage, when)
+	}
+	printReuse("optimization", r.OptimizationReused)
 	if r.Applied {
 		fmt.Fprintf(w, "  %s critical CSS %s of %s blocks rendering; the rest loads after\n", term.Pad("release", 12), term.Bytes(r.CriticalBytes), term.Bytes(r.OriginalBytes))
 	} else if r.Reason != "" {
@@ -207,13 +217,7 @@ func renderRelease(w io.Writer, s term.Style, r *release.Result) {
 	if r.Audit == nil {
 		return
 	}
-	if r.Audit.Reused != "" {
-		when := r.Audit.Reused
-		if t, err := time.Parse(time.RFC3339, when); err == nil {
-			when = t.Local().Format("2006-01-02 15:04")
-		}
-		fmt.Fprintf(w, "  %s audit reused from %s because the build did not change\n", term.Pad("release", 12), when)
-	}
+	printReuse("audit", r.Audit.Reused)
 	if d := r.Audit.Delivery; d.TextBytes > 0 {
 		line := fmt.Sprintf("measured as hosts send it, text compressed: %s instead of %s", term.Bytes(d.CompressedBytes), term.Bytes(d.TextBytes))
 		if d.UncompressedMS >= 100 {

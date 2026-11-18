@@ -61,10 +61,48 @@ func calendarDate(raw string) string {
 	return ""
 }
 
+func sitemapCanonical(d *Document) *url.URL {
+	base, _ := url.Parse(strings.TrimSpace(d.Options.URL))
+	for _, n := range d.activeNodes("link[rel]") {
+		if n.Namespace != "" || !inHead(n) || !containsWord(Attr(n, "rel"), "canonical") {
+			continue
+		}
+		href := strings.TrimSpace(Attr(n, "href"))
+		if ref, err := url.Parse(href); err == nil && href != "" {
+			if base != nil {
+				ref = base.ResolveReference(ref)
+			}
+			if ref.IsAbs() && ref.Host != "" {
+				return ref
+			}
+		}
+	}
+	if base != nil && base.IsAbs() && base.Host != "" {
+		return base
+	}
+	return nil
+}
+
+func sitemapKey(u url.URL) string {
+	u.Host = strings.ToLower(u.Host)
+	// Keep escaped slashes inside path segments distinct from delimiters.
+	if strings.HasSuffix(u.EscapedPath(), "/") {
+		u.Path = strings.TrimSuffix(u.Path, "/")
+		u.RawPath = strings.TrimSuffix(u.RawPath, "/")
+	}
+	return u.String()
+}
+
 // SitemapDates reads only direct protocol url entries and compares local calendar dates.
 func SitemapDates(pages []*Document, input io.Reader) []Diagnostic {
 	byFile := map[string]*Document{}
+	byCanonical := map[string][]*Document{}
 	for _, d := range pages {
+		if u := sitemapCanonical(d); u != nil {
+			key := sitemapKey(*u)
+			byCanonical[key] = append(byCanonical[key], d)
+			continue
+		}
 		byFile[d.Options.File] = d
 	}
 	dec := xml.NewDecoder(input)
@@ -95,6 +133,9 @@ func SitemapDates(pages []*Document, input io.Reader) []Diagnostic {
 			u, err := url.Parse(strings.TrimSpace(entry.Loc))
 			if err != nil || strings.TrimSpace(entry.Loc) == "" {
 				continue
+			}
+			for _, d := range byCanonical[sitemapKey(*u)] {
+				issues = append(issues, pageDates(d, entry.Lastmod)...)
 			}
 			file := strings.TrimPrefix(u.Path, "/")
 			if file == "" || strings.HasSuffix(file, "/") {

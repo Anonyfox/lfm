@@ -96,6 +96,11 @@ sitemap and the robots `Sitemap` line; crawling stays allowed so crawlers can re
 Neither generated file names private download paths. Put an authored `robots.txt` or `sitemap.xml`
 in `public/` to override generation of that file, including for noindex or subfolder deployments.
 
+If a parent site maintains a site-wide sitemap, include the page's canonical URL there.
+You can leave the one-URL sitemap alongside the page or exclude `output/sitemap.xml` when publishing.
+An authored override still ships at that path. Keep the page indexable, and have the host’s root
+`robots.txt` point to the site-wide sitemap.
+
 `lfm compile --json` includes every deployed file in `files`, including emitted CSS and deliverable
 folders. Each entry has its output-relative `name`, `bytes` and lowercase hex `sha256` of the exact
 output bytes. This deployment manifest stays in the report; no manifest file is published.

@@ -81,16 +81,20 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		if err != nil {
 			return err
 		}
+		var canonical string
 		for _, n := range d.Elements {
 			if n.Data == "link" && strings.EqualFold(check.Attr(n, "rel"), "canonical") {
 				if u, e := url.Parse(check.Attr(n, "href")); e == nil && u.IsAbs() {
-					d.Options.URL = u.String()
+					canonical = u.String()
+					d.Options.URL = canonical
 					break
 				}
 			}
 		}
 		loadShareImage(root, d, first.Options.URL)
 		pageIssues = append(pageIssues, check.Run(d, pageRules, options.Rules).Diagnostics...)
+		// The file-derived URL above is a base for relative resources only.
+		d.Options.URL = canonical
 		pages = append(pages, d)
 		return nil
 	})

@@ -316,8 +316,8 @@ func TestNextStepOrder(t *testing.T) {
 		t.Errorf("deploy with book: %+v", n)
 	}
 	old := []skills.Copy{{Name: "lfm-design", Path: "/p/.agents/skills/lfm-design/SKILL.md", Version: "0.1", State: skills.Outdated}}
-	if n := nextStep(compile.Result{Root: "/p"}, nil, old); len(n.Notes) != 1 || !strings.Contains(n.Notes[0], "lfm skills in .agents/skills are outdated; 'lfm skills install /p' updates them.") {
-		t.Fatalf("%+v", n)
+	if notes := outdatedNotes("/p", old, nil); len(notes) != 1 || !strings.Contains(notes[0], "lfm skills in .agents/skills are outdated; 'lfm skills install /p' updates them.") {
+		t.Fatalf("%+v", notes)
 	}
 }
 
@@ -414,5 +414,43 @@ func TestCompileNeverRefreshesSkills(t *testing.T) {
 	after, _ := os.ReadFile(file)
 	if code != 0 || string(after) == string(before) {
 		t.Fatal("explicit install did not update", stderr)
+	}
+}
+
+func TestCompileOutdatedSkillNotice(t *testing.T) {
+	cache := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", cache)
+	previous := skillNoticeCacheDir
+	skillNoticeCacheDir = func() (string, error) { return cache, nil }
+	t.Cleanup(func() { skillNoticeCacheDir = previous })
+	root := t.TempDir()
+	a, b := filepath.Join(root, "a"), filepath.Join(root, "b")
+	for _, dir := range []string{a, b} {
+		if code, _, msg := run(t, "init", dir); code != 0 {
+			t.Fatal(msg)
+		}
+	}
+	if _, err := skills.Install(filepath.Join(root, skills.AgentsDir), skills.NewData("0.2.6"), false); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(b)
+	for _, tc := range []struct {
+		version string
+		args    []string
+		want    int
+	}{
+		{"0.2.7", []string{"compile", a}, 1},
+		{"0.2.7", []string{"compile", a}, 0},
+		{"0.2.7", []string{"compile", b}, 0},
+		{"0.2.7", []string{"check", "--project", b}, 1},
+		{"0.2.7", []string{"skills"}, 1},
+		{"0.2.8", []string{"compile", b}, 1},
+	} {
+		var out, errs bytes.Buffer
+		env := Env{Build: Build{Version: tc.version}, Stdout: &out, Stderr: &errs, Getenv: os.Getenv}
+		code := Run(t.Context(), env, tc.args)
+		if code != 0 || strings.Count(out.String(), "lfm skills in ../.agents/skills are outdated") != tc.want {
+			t.Fatalf("%s %v: exit %d\n%s%s", tc.version, tc.args, code, &out, &errs)
+		}
 	}
 }

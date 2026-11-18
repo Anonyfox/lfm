@@ -3,6 +3,7 @@ package compile
 import (
 	"bytes"
 	"strings"
+	"time"
 
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/release"
@@ -55,6 +56,7 @@ func (b *builder) optimizeWithCache(doc *html.Node, result *Result, run func(*ht
 				b.files[index] = old
 			}
 			result.Release = entry.Result
+			result.Release.OptimizationReused = date.Format(time.RFC3339)
 			b.notices = append(b.notices, entry.Notices...)
 			return nil
 		}

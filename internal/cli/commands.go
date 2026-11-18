@@ -130,6 +130,15 @@ there is no project to compile; 2 for a mistake in the command line.`,
 		data := skills.NewData(env.Build.Version)
 		installed := skills.Find(result.Root, data)
 		next := nextStep(result, err, installed)
+		// JSON always carries the notice; human compile prints it once per
+		// version and folder. Stamp either way so a later human run stays quiet.
+		shown := outdatedNotes(result.Root, installed, func(folder string) bool {
+			return firstSkillNotice(folder, data.Version)
+		})
+		if p.has("json") {
+			shown = outdatedNotes(result.Root, installed, nil)
+		}
+		next.Notes = append(shown, next.Notes...)
 		if p.has("json") {
 			if jerr := printJSON(env.Stdout, result, next, installed); jerr != nil {
 				return jerr

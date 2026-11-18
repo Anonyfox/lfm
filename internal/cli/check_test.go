@@ -901,7 +901,7 @@ func TestFolderSEOParity(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			first, err := check.Parse(page("Oak"), check.Options{})
+			first, err := check.Parse(page("Oak"), check.Options{URL: "https://example.org/"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -944,5 +944,61 @@ func TestFolderShareImageParity(t *testing.T) {
 	issues, err := folderCopy(dir, first)
 	if err != nil || len(issues) != 1 || issues[0].Rule != "sharing.card" {
 		t.Fatal(issues, err)
+	}
+}
+
+func TestFolderLastmodCanonical(t *testing.T) {
+	const sitemap = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://example.com/</loc><lastmod>2026-10-01</lastmod></url>
+	<url><loc>https://example.com/cargo</loc><lastmod>2026-10-02</lastmod></url>
+	</urlset>`
+	for _, tc := range []struct {
+		name, canonical, day, nestedDay, wantFile string
+	}{
+		{"staged cargo", "/cargo/", "02", "", ""},
+		{"staged cargo mismatch", "/cargo/", "01", "", "index.html"},
+		{"staged homepage mismatch", "/", "02", "", "index.html"},
+		{"unlisted canonical", "/missing/", "02", "", ""},
+		{"site-wide", "/", "01", "02", ""},
+		{"site-wide nested mismatch", "/", "01", "01", "cargo/index.html"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writePage := func(file, canonical, day string) {
+				t.Helper()
+				page := fmt.Sprintf(`<head><link rel="canonical" href="https://example.com%s">
+				<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","dateModified":"2026-10-%s"}</script></head>`, canonical, day)
+				if err := os.WriteFile(filepath.Join(dir, file), []byte(page), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			writePage("index.html", tc.canonical, tc.day)
+			if tc.nestedDay != "" {
+				if err := os.Mkdir(filepath.Join(dir, "cargo"), 0700); err != nil {
+					t.Fatal(err)
+				}
+				writePage("cargo/index.html", "/cargo/", tc.nestedDay)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "sitemap.xml"), []byte(sitemap), 0600); err != nil {
+				t.Fatal(err)
+			}
+			_, out, errs := run(t, "check", dir, "--json")
+			var result checkResult
+			if err := json.Unmarshal([]byte(out), &result); err != nil || result.Validation.Diagnostics == nil {
+				t.Fatal(err, out, errs)
+			}
+			var files []string
+			for _, d := range result.Validation.Diagnostics {
+				if d.Rule == "seo.lastmod" {
+					if d.Severity != check.Warning {
+						t.Fatal(d)
+					}
+					files = append(files, d.Location.File)
+				}
+			}
+			if strings.Join(files, ",") != tc.wantFile {
+				t.Fatalf("lastmod warnings on %v, want %q", files, tc.wantFile)
+			}
+		})
 	}
 }

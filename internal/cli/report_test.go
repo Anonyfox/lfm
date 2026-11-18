@@ -190,3 +190,11 @@ func TestReleaseReportShowsMeasurementCountAndInformationalAudits(t *testing.T) 
 		}
 	}
 }
+
+func TestReleaseReportsOptimizationReuseWithoutAudit(t *testing.T) {
+	var out bytes.Buffer
+	renderRelease(&out, term.For(&out), &release.Result{OptimizationReused: "2026-11-18T10:00:00Z"})
+	if !strings.Contains(out.String(), "optimization reused from ") || !strings.Contains(out.String(), "because the build did not change") {
+		t.Fatal(out.String())
+	}
+}

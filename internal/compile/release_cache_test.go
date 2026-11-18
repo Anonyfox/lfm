@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Anonyfox/lfm/internal/buildid"
 	"github.com/Anonyfox/lfm/internal/htmlx"
 	"github.com/Anonyfox/lfm/internal/project"
 	"github.com/Anonyfox/lfm/internal/release"
@@ -48,7 +49,12 @@ func TestOptimizationCacheReconstructsFinalArtifact(t *testing.T) {
 		return nil
 	}
 	var pages [][]byte
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
+		if i == 2 {
+			writer := buildid.Writer
+			buildid.Writer = func() string { return writer() + " upgraded" }
+			t.Cleanup(func() { buildid.Writer = writer })
+		}
 		b := &builder{ctx: context.Background(), root: root, project: p, files: map[string]emitted{"photo.png": {name: "photo.png", contents: []byte("unchanged bytes")}}}
 		doc, _ := html.Parse(bytes.NewBufferString("<!doctype html><h1>Page</h1>"))
 		var result Result
@@ -61,13 +67,16 @@ func TestOptimizationCacheReconstructsFinalArtifact(t *testing.T) {
 		if !result.Release.Applied || string(b.files["full.css"].contents) != "full CSS" || string(b.files["photo.png"].contents) != "unchanged bytes" {
 			t.Fatal("cache lost artifact state", result.Release, b.files)
 		}
+		if reused := result.Release.OptimizationReused != ""; reused != (i == 1) {
+			t.Fatalf("run %d: optimization reused = %v", i, reused)
+		}
 		var page bytes.Buffer
 		if err := html.Render(&page, doc); err != nil {
 			t.Fatal(err)
 		}
 		pages = append(pages, page.Bytes())
 	}
-	if calls != 1 || !bytes.Equal(pages[0], pages[1]) {
+	if calls != 2 || !bytes.Equal(pages[0], pages[1]) {
 		t.Fatal("optimization not reused", calls)
 	}
 	write(t, root, "public/extra.txt", "new public bytes")
@@ -76,7 +85,7 @@ func TestOptimizationCacheReconstructsFinalArtifact(t *testing.T) {
 	if err := b.optimizeWithCache(doc, &Result{}, run); err != nil {
 		t.Fatal(err)
 	}
-	if calls != 2 {
+	if calls != 3 {
 		t.Fatal("public asset change reused optimization")
 	}
 }

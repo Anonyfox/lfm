@@ -42,17 +42,18 @@ type Viewport struct {
 var viewports = [...]Viewport{{390, 844}, {768, 1024}, {1440, 900}}
 
 type Result struct {
-	Applied       bool         `json:"applied"`
-	Reason        string       `json:"reason,omitempty"`
-	OriginalBytes int          `json:"originalCSSBytes"`
-	CriticalBytes int          `json:"criticalCSSBytes"`
-	Stylesheet    string       `json:"stylesheet,omitempty"`
-	Selection     string       `json:"selection,omitempty"`
-	Viewports     []Viewport   `json:"viewports,omitempty"`
-	CSS           string       `json:"-"`
-	Audit         *AuditResult `json:"audit,omitempty"`
-	LazyImages    int          `json:"lazyImages,omitempty"`    // images the compiler set to load lazily
-	PriorityImage string       `json:"priorityImage,omitempty"` // image the compiler set to fetch first
+	OptimizationReused string       `json:"optimizationReused,omitempty"`
+	Applied            bool         `json:"applied"`
+	Reason             string       `json:"reason,omitempty"`
+	OriginalBytes      int          `json:"originalCSSBytes"`
+	CriticalBytes      int          `json:"criticalCSSBytes"`
+	Stylesheet         string       `json:"stylesheet,omitempty"`
+	Selection          string       `json:"selection,omitempty"`
+	Viewports          []Viewport   `json:"viewports,omitempty"`
+	CSS                string       `json:"-"`
+	Audit              *AuditResult `json:"audit,omitempty"`
+	LazyImages         int          `json:"lazyImages,omitempty"`    // images the compiler set to load lazily
+	PriorityImage      string       `json:"priorityImage,omitempty"` // image the compiler set to fetch first
 }
 
 type rule struct {

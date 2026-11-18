@@ -1,10 +1,12 @@
 package cli
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -32,20 +34,10 @@ type next struct {
 // concept are the wrong work; then the release review, then deploying.
 func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 	have := map[string]bool{}
-	var notes []string
-	seen := map[string]bool{}
 	for _, c := range installed {
 		have[c.Name] = true
-		if c.State == skills.Outdated {
-			folder := filepath.Dir(filepath.Dir(c.Path))
-			if !seen[folder] {
-				seen[folder] = true
-				base := filepath.Dir(filepath.Dir(folder))
-				notes = append(notes, fmt.Sprintf("lfm skills in %s are outdated; 'lfm skills install %s' updates them.", shortPath(r.Root, c.Path), quote(filepath.ToSlash(base))))
-			}
-		}
 	}
-	n := next{Notes: notes}
+	var n next
 	bookTopic := "book"
 	if r.Book != nil && r.Book.Kind == "fiction" {
 		bookTopic = "fiction"
@@ -192,6 +184,54 @@ func nextStep(r compile.Result, err error, installed []skills.Copy) next {
 		}
 	}
 	return n
+}
+
+// outdatedNotes emits one install command per folder. Compile claims a
+// version-specific stamp first. Project checks always include every notice.
+func outdatedNotes(root string, installed []skills.Copy, show func(string) bool) []string {
+	var notes []string
+	seen := map[string]bool{}
+	for _, c := range installed {
+		if c.State != skills.Outdated {
+			continue
+		}
+		folder := filepath.Dir(filepath.Dir(c.Path))
+		if seen[folder] {
+			continue
+		}
+		seen[folder] = true
+		if show != nil && !show(folder) {
+			continue
+		}
+		base := filepath.Dir(filepath.Dir(folder))
+		notes = append(notes, fmt.Sprintf("lfm skills in %s are outdated; 'lfm skills install %s' updates them.", shortPath(root, c.Path), quote(filepath.ToSlash(base))))
+	}
+	return notes
+}
+
+var skillNoticeCacheDir = os.UserCacheDir
+
+func firstSkillNotice(folder, version string) bool {
+	dir, err := skillNoticeCacheDir()
+	if err != nil {
+		return true
+	}
+	real, err := filepath.EvalSymlinks(folder)
+	if err != nil {
+		return true
+	}
+	// Keep acknowledgments outside the two-day build-artifact pruning cycle.
+	dir = filepath.Join(dir, "lfm-skill-notices")
+	if os.MkdirAll(dir, 0o700) != nil {
+		return true
+	}
+	key := sha256.Sum256([]byte(real + "\x00" + version))
+	stamp, err := os.OpenFile(filepath.Join(dir, fmt.Sprintf("%x", key)), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return !errors.Is(err, os.ErrExist)
+	}
+	_ = stamp.Close()
+	return true
 }
 
 func shortPath(root, path string) string {

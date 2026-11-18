@@ -82,6 +82,11 @@ func listSkills(w io.Writer, data skills.Data) error {
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "'lfm skills <topic>' prints one; 'lfm skills install' puts all of them where your agent loads them.")
+	if root, err := os.Getwd(); err == nil {
+		for _, note := range outdatedNotes(root, skills.Find(root, data), nil) {
+			fmt.Fprintln(w, s.Dim(note))
+		}
+	}
 	return nil
 }
 

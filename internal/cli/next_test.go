@@ -73,11 +73,13 @@ func TestDeployAsksForTheCompressionTheReleaseMeasured(t *testing.T) {
 
 func TestOutdatedNotesGroupByFolder(t *testing.T) {
 	changes := []skills.Copy{
+		{Name: "lfm-design", Path: "/other/.agents/skills/lfm-design/SKILL.md", State: skills.Modified},
+		{Name: "lfm-book", Path: "/other/.agents/skills/lfm-book/SKILL.md", State: skills.Foreign},
 		{Name: "lfm-design", Path: "/s/.agents/skills/lfm-design/SKILL.md", State: skills.Outdated},
 		{Name: "lfm-research", Path: "/s/.agents/skills/lfm-research/SKILL.md", State: skills.Outdated},
 		{Name: "lfm-design", Path: "/home/.claude/skills/lfm-design/SKILL.md", State: skills.Outdated},
 	}
-	got := nextStep(compile.Result{Root: "/s/pages/home"}, nil, changes).Notes
+	got := outdatedNotes("/s/pages/home", changes, nil)
 	want := []string{"lfm skills in ../../.agents/skills are outdated; 'lfm skills install /s' updates them.", "lfm skills in ../../../home/.claude/skills are outdated; 'lfm skills install /home' updates them."}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("%q", got)

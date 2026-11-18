@@ -20,6 +20,7 @@ import (
 	"github.com/Anonyfox/lfm/internal/diagnostic"
 	"github.com/Anonyfox/lfm/internal/pageread"
 	"github.com/Anonyfox/lfm/internal/release"
+	"github.com/Anonyfox/lfm/internal/skills"
 	"github.com/Anonyfox/lfm/internal/term"
 )
 
@@ -234,6 +235,10 @@ func runCheck(ctx context.Context, env Env, p parsed) (resultErr error) {
 	r.Warnings = summary.Warnings
 	r.DurationMS = time.Since(start).Milliseconds()
 	r.Next = next{Phase: "done", Do: "no findings remain.", Notes: []string{"'lfm rules <id>' explains a rule"}}
+	if projectDir != "" {
+		installed := skills.Find(projectDir, skills.NewData(env.Build.Version))
+		r.Next.Notes = append(r.Next.Notes, outdatedNotes(projectDir, installed, nil)...)
+	}
 	if r.Errors > 0 {
 		r.Next.Phase = "fix"
 		r.Next.Do = "fix the errors above and check again."

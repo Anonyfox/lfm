@@ -220,3 +220,28 @@ func BenchmarkFAQRepetitivePage(b *testing.B) {
 		faqMatch(page, want, faqAnswerExtras)
 	}
 }
+
+func TestLastmodCanonicalSource(t *testing.T) {
+	const sitemap = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://example.com/</loc><lastmod>2025-02-01</lastmod></url>
+	<url><loc>https://example.com/cargo/</loc><lastmod>2025-02-02</lastmod></url>
+	<url><loc>https://other.example/cargo/</loc><lastmod>2025-02-03</lastmod></url></urlset>`
+	for _, tc := range []struct {
+		name, head, optionURL string
+		want                  int
+	}{
+		{"head overrides folder URL", `<link rel=canonical href="https://example.com/cargo">`, "https://example.com/", 0},
+		{"absolute option", "", "https://example.com/cargo", 0},
+		{"absolute option mismatch", "", "https://other.example/cargo", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc, err := Parse([]byte(tc.head+parityGraph(`{"@type":"Article","dateModified":"2025-02-02"}`)), Options{URL: tc.optionURL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := SitemapDates([]*Document{doc}, strings.NewReader(sitemap)); len(got) != tc.want {
+				t.Fatalf("got %v, want %d warnings", got, tc.want)
+			}
+		})
+	}
+}

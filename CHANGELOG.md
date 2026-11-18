@@ -1,5 +1,13 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Folder checks match sitemap modification dates by canonical URL, so a page staged as `index.html` can use the full site sitemap.
+
+- Compile reports outdated skills once per lfm version and shared skills folder. `lfm check --project` and `lfm skills` always report outdated copies.
+
+- Release reports now show when the build reused its cached page optimization, including on plain `--release` runs.
+
 ## 0.2.7 (2026-11-18)
 
 - `links.registry` names the template field to use when a named URL duplicates the page URL or social image.
