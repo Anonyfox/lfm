@@ -1,6 +1,6 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
-## Unreleased
+## 0.2.7 (2026-11-18)
 
 - `links.registry` names the template field to use when a named URL duplicates the page URL or social image.
 
