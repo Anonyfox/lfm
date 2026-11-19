@@ -35,9 +35,14 @@ SportsActivityLocation SportsClub SportsOrganization SportsTeam StadiumOrArena S
 TattooParlor TelevisionStation TennisComplex TheaterGroup TireShop
 TouristInformationCenter ToyStore TravelAgency VacationRental VeterinaryCare
 WholesaleStore Winery WorkersUnion`)
-var webPageTypes = schemaTypes(`AboutPage CheckoutPage CollectionPage ContactPage FAQPage ImageGallery ItemPage
+
+const pageTypeNames = `AboutPage CheckoutPage CollectionPage ContactPage FAQPage ImageGallery ItemPage
 MediaGallery MedicalWebPage ProfilePage QAPage RealEstateListing SearchResultsPage
-VideoGallery WebPage Article BlogPosting`)
+VideoGallery WebPage`
+
+var relatedOrganizationProperties = schemaTypes("parentOrganization subOrganization memberOf member affiliation funder sponsor brand manufacturer department")
+var linkedPageProperties = schemaTypes("hasPart itemListElement")
+var webPageTypes = schemaTypes(pageTypeNames + " Article BlogPosting")
 
 func schemaTypes(names string) map[string]bool {
 	types := map[string]bool{}

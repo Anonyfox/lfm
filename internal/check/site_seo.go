@@ -4,10 +4,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"iter"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 // SiteIdentity compares Organization descriptions in folder traversal order.
@@ -53,12 +57,19 @@ func SiteIdentity(pages []*Document) []Diagnostic {
 const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 func calendarDate(raw string) string {
-	for _, layout := range []string{time.DateOnly, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04Z07:00", "2006-01-02T15:04", "2006-01-02T15:04:05-0700", "2006-01-02T15:04-0700"} {
-		if _, err := time.Parse(layout, raw); err == nil {
-			return raw[:10]
-		}
+	if _, ok := parseCalendarDate(raw); ok {
+		return raw[:10]
 	}
 	return ""
+}
+
+func parseCalendarDate(raw string) (time.Time, bool) {
+	for _, layout := range []string{time.DateOnly, time.RFC3339, "2006-01-02T15:04:05", "2006-01-02T15:04Z07:00", "2006-01-02T15:04", "2006-01-02T15:04:05-0700", "2006-01-02T15:04-0700"} {
+		if t, err := time.Parse(layout, raw); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }
 
 func sitemapCanonical(d *Document) *url.URL {
@@ -125,57 +136,73 @@ func SitemapDates(pages []*Document, input io.Reader) []Diagnostic {
 		}
 		byFile[d.Options.File] = d
 	}
-	dec := xml.NewDecoder(input)
-	depth := 0
 	var issues []Diagnostic
-	for {
-		token, err := dec.Token()
-		if err != nil {
-			break
-		}
-		switch el := token.(type) {
-		case xml.StartElement:
-			depth++
-			if depth == 1 && el.Name != (xml.Name{Space: sitemapNamespace, Local: "urlset"}) {
-				return nil
+	for entry := range sitemapEntries(input) {
+		u, lastmod := entry.url, entry.Lastmod
+		matched := byCanonical[sitemapKey(*u)]
+		switch len(matched) {
+		case 1:
+			issues = append(issues, pageDates(matched[0], lastmod)...)
+		case 0:
+			if d := lookupSitemapPage(byFile, *u); d != nil {
+				issues = append(issues, pageDates(d, lastmod)...)
 			}
-			if depth != 2 || el.Name != (xml.Name{Space: sitemapNamespace, Local: "url"}) {
-				continue
+		default:
+			subset := map[string]*Document{}
+			for _, d := range matched {
+				subset[d.Options.File] = d
 			}
-			var entry struct {
-				Loc     string  `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 loc"`
-				Lastmod *string `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 lastmod"`
+			if d := lookupSitemapPage(subset, *u); d != nil {
+				issues = append(issues, pageDates(d, lastmod)...)
 			}
-			if dec.DecodeElement(&entry, &el) != nil {
-				return issues
-			}
-			depth--
-			u, err := url.Parse(strings.TrimSpace(entry.Loc))
-			if err != nil || strings.TrimSpace(entry.Loc) == "" {
-				continue
-			}
-			matched := byCanonical[sitemapKey(*u)]
-			switch len(matched) {
-			case 1:
-				issues = append(issues, pageDates(matched[0], entry.Lastmod)...)
-			case 0:
-				if d := lookupSitemapPage(byFile, *u); d != nil {
-					issues = append(issues, pageDates(d, entry.Lastmod)...)
-				}
-			default:
-				subset := map[string]*Document{}
-				for _, d := range matched {
-					subset[d.Options.File] = d
-				}
-				if d := lookupSitemapPage(subset, *u); d != nil {
-					issues = append(issues, pageDates(d, entry.Lastmod)...)
-				}
-			}
-		case xml.EndElement:
-			depth--
 		}
 	}
 	return issues
+}
+
+type sitemapEntry struct {
+	Loc     string  `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 loc"`
+	Lastmod *string `xml:"http://www.sitemaps.org/schemas/sitemap/0.9 lastmod"`
+	url     *url.URL
+}
+
+func sitemapEntries(input io.Reader) iter.Seq[sitemapEntry] {
+	return func(yield func(sitemapEntry) bool) {
+		dec := xml.NewDecoder(input)
+		depth := 0
+
+		for {
+			token, err := dec.Token()
+			if err != nil {
+				break
+			}
+			switch el := token.(type) {
+			case xml.StartElement:
+				depth++
+				if depth == 1 && el.Name != (xml.Name{Space: sitemapNamespace, Local: "urlset"}) {
+					return
+				}
+				if depth != 2 || el.Name != (xml.Name{Space: sitemapNamespace, Local: "url"}) {
+					continue
+				}
+				var entry sitemapEntry
+				if dec.DecodeElement(&entry, &el) != nil {
+					return
+				}
+				depth--
+				u, err := url.Parse(strings.TrimSpace(entry.Loc))
+				if err != nil || strings.TrimSpace(entry.Loc) == "" {
+					continue
+				}
+				entry.url = u
+				if !yield(entry) {
+					return
+				}
+			case xml.EndElement:
+				depth--
+			}
+		}
+	}
 }
 
 func pageDates(d *Document, sitemapDate *string) []Diagnostic {
@@ -211,6 +238,136 @@ func pageDates(d *Document, sitemapDate *string) []Diagnostic {
 			issue := d.At(n.script, Warning, msg, "Use the same modification date in sitemap.xml and the page's JSON-LD.")
 			issue.Rule = "seo.lastmod"
 			issues = append(issues, issue)
+		}
+	}
+	return issues
+}
+
+func headCanonical(d *Document) (*html.Node, *url.URL) {
+	for _, n := range d.activeNodes("link[rel]") {
+		if n.Namespace == "" && inHead(n) && containsWord(Attr(n, "rel"), "canonical") {
+			u, err := url.Parse(strings.TrimSpace(Attr(n, "href")))
+			if err == nil && u.Host != "" && u.IsAbs() {
+				return n, u
+			}
+			return n, nil
+		}
+	}
+	return d.activeNodes("html")[0], nil
+}
+
+func errorPage(file string) bool {
+	name := path.Base(file)
+	if name == "index.html" {
+		name = path.Base(path.Dir(file)) + ".html"
+	}
+	stem := strings.TrimSuffix(name, ".html")
+	code, err := strconv.Atoi(stem)
+	return stem == "error" || (len(stem) == 3 && err == nil && code >= 400 && code <= 599)
+}
+
+// Preserve the original scheme, escaping, path, query and fragment spelling.
+func sitemapLocKey(raw string) string {
+	raw = strings.TrimSpace(raw)
+	start := strings.Index(raw, "://")
+	if start < 0 {
+		return raw
+	}
+	start += 3
+	end := strings.IndexAny(raw[start:], "/?#")
+	if end < 0 {
+		end = len(raw) - start
+	}
+	end += start
+	if at := strings.LastIndexByte(raw[start:end], '@'); at >= 0 {
+		start += at + 1
+	}
+	return raw[:start] + strings.ToLower(raw[start:end]) + raw[end:]
+}
+
+// SitemapCoverage checks canonical membership and indexing directives against a folder sitemap.
+func SitemapCoverage(pages []*Document, input io.Reader) []Diagnostic {
+	byFile := map[string]*Document{}
+	for _, d := range pages {
+		byFile[d.Options.File] = d
+	}
+	counts := map[string]int{}
+	origins := map[string]bool{}
+	mapped := map[*Document][]string{}
+	for entry := range sitemapEntries(input) {
+		u := entry.url
+		if !u.IsAbs() || u.Host == "" {
+			continue
+		}
+		u.Host = strings.ToLower(u.Host)
+		key := sitemapLocKey(entry.Loc)
+		origins[u.Scheme+"://"+u.Host] = true
+		counts[key]++
+		if counts[key] == 1 {
+			if d := lookupSitemapPage(byFile, *u); d != nil {
+				mapped[d] = append(mapped[d], key)
+			}
+		}
+	}
+	var issues []Diagnostic
+	duplicates := map[string]bool{}
+	for _, d := range pages {
+		if errorPage(d.Options.File) {
+			continue
+		}
+		node, u := headCanonical(d)
+		addFinding := func(msg, hint string) {
+			i := d.At(node, Warning, msg, hint)
+			i.Rule = "seo.sitemap"
+			issues = append(issues, i)
+		}
+		canonical := ""
+		if u != nil {
+			u.Host = strings.ToLower(u.Host)
+			if !origins[u.Scheme+"://"+u.Host] {
+				continue
+			}
+			canonical = sitemapLocKey(Attr(node, "href"))
+		}
+		// A single staged index can represent a nested canonical in a full-site sitemap.
+		locs := mapped[d]
+		if len(pages) == 1 && d.Options.File == "index.html" && u != nil && counts[canonical] > 0 && lookupSitemapPage(byFile, *u) == nil {
+			locs = nil
+		}
+		declared := canonical
+		if node.Data == "link" && u == nil {
+			declared = strings.TrimSpace(Attr(node, "href"))
+		}
+		listed := false
+		for _, loc := range locs {
+			listed = true
+			if declared != "" && declared != loc {
+				addFinding("canonical "+declared+" differs from sitemap loc "+loc, "Use the page's exact canonical URL in sitemap.xml.")
+			}
+		}
+		for _, loc := range append(locs, canonical) {
+			if counts[loc] > 1 && !duplicates[loc] {
+				duplicates[loc] = true
+				addFinding("Duplicate sitemap loc "+loc, "Remove the repeated loc entry from sitemap.xml.")
+			}
+		}
+		noindex := false
+		for _, n := range d.activeNodes("meta") {
+			if skip, _ := RobotsDirectives(n); skip {
+				noindex = true
+				break
+			}
+		}
+		var owner *Document
+		if u != nil {
+			owner = lookupSitemapPage(byFile, *u)
+		}
+		other := owner != nil && owner != d
+		if noindex && (listed || counts[canonical] > 0 && !other) {
+			addFinding("A noindex page is listed in the sitemap.", "Remove its loc from sitemap.xml or allow indexing.")
+		}
+		if !noindex && u != nil && counts[canonical] == 0 && !other {
+			addFinding("Canonical "+canonical+" is not listed in the sitemap.", "Add the canonical URL to sitemap.xml.")
 		}
 	}
 	return issues

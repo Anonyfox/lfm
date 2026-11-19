@@ -1,5 +1,10 @@
 Notable changes per release. Older releases: https://github.com/Anonyfox/lfm/releases.
 
+## Unreleased
+
+- Page checks flag duplicate JSON-LD identities, copied organization descriptions, date errors and inconsistent WebPage metadata when those entities are present. Folder checks compare Organization and WebSite identities across pages.
+- Folder checks warn about missing, duplicate or mismatched sitemap entries and listed noindex pages.
+
 ## 0.2.8 (2026-11-18)
 
 - Folder checks match sitemap modification dates by canonical URL when that canonical uniquely identifies one page, so a page staged as `index.html` can use the full site sitemap. If several pages share a canonical, the entry is matched by file path.

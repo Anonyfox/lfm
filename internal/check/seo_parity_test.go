@@ -147,7 +147,9 @@ func FuzzSitemapDates(f *testing.F) {
 		if len(body) > 8192 {
 			t.Skip()
 		}
-		for _, i := range SitemapDates([]*Document{d}, strings.NewReader(body)) {
+		issues := SitemapDates([]*Document{d}, strings.NewReader(body))
+		issues = append(issues, SitemapCoverage([]*Document{d}, strings.NewReader(body))...)
+		for _, i := range issues {
 			if i.Severity != Warning {
 				t.Fatal(i)
 			}
@@ -265,5 +267,72 @@ func TestLastmodSharedCanonical(t *testing.T) {
 	got := SitemapDates([]*Document{hubBad, child}, strings.NewReader(sitemap))
 	if len(got) != 1 || got[0].Location.File != "hub/index.html" {
 		t.Fatalf("hub mismatch should warn only on the hub file: %v", got)
+	}
+}
+
+func TestSitemapCoverage(t *testing.T) {
+	const base = "https://example.org"
+	for _, tc := range []struct {
+		name, file, canonical, meta, locs, msg string
+		count                                  int
+	}{
+		{"relative canonical", "a/index.html", "/a/", "", base + "/a/", "differs from sitemap loc", 1},
+		{"scheme case", "a/index.html", "HTTPS://example.org/a/", "", base + "/a/", "differs from sitemap loc", 2},
+		{"host case", "a/index.html", base + "/a/", "", "https://EXAMPLE.org/a/", "", 0},
+		{"slash", "a/index.html", base + "/a/", "", base + "/a", "differs from sitemap loc", 2},
+		{"missing", "a/index.html", base + "/a/", "", base + "/b/", "not listed", 1},
+		{"duplicate", "a/index.html", base + "/a/", "", base + "/a/ " + base + "/a/ " + base + "/a/", "Duplicate", 1},
+		{"noindex by path", "a/index.html", "", "<meta name=googlebot content=none>", base + "/a/", "noindex", 1},
+		{"noindex by canonical", "index.html", base + "/a/", "<meta name=robots content=noindex>", base + "/a/", "noindex", 1},
+		{"error", "404.html", base + "/404.html", "", "https://example.org/b/", "", 0},
+		{"server error", "500/index.html", base + "/500/", "", base + "/b/", "", 0},
+		{"foreign", "a/index.html", "https://staging.example/a/", "", base + "/a/", "", 0},
+		{"no canonical", "a/index.html", "", "", base + "/b/", "", 0},
+		{"staged nested page", "index.html", base + "/a/", "", base + "/ " + base + "/a/", "", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			head := tc.meta
+			if tc.canonical != "" {
+				head += `<link rel=canonical href="` + tc.canonical + `">`
+			}
+			d, err := Parse([]byte(head), Options{File: tc.file, URL: base + "/"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var entries string
+			for loc := range strings.FieldsSeq(tc.locs) {
+				entries += "<url><loc>" + loc + "</loc></url>"
+			}
+			for _, root := range []string{"urlset", "sitemapindex"} {
+				issues := SitemapCoverage([]*Document{d}, strings.NewReader("<"+root+" xmlns='"+sitemapNamespace+"'>"+entries+"</"+root+">"))
+				want := tc.count
+				if root == "sitemapindex" {
+					want = 0
+				}
+				if len(issues) != want {
+					t.Fatal(issues)
+				}
+				if want > 0 && (!strings.Contains(issues[0].Message, tc.msg) || issues[0].Location.File != tc.file || issues[0].Severity != Warning) {
+					t.Fatal(issues)
+				}
+			}
+		})
+	}
+}
+
+func TestSitemapAlternateCanonical(t *testing.T) {
+	const hub = "https://example.org/hub/"
+	var pages []*Document
+	for _, file := range []string{"child/index.html", "hub/index.html"} {
+		d, err := Parse([]byte(`<link rel=canonical href="`+hub+`">`), Options{File: file})
+		if err != nil {
+			t.Fatal(err)
+		}
+		pages = append(pages, d)
+	}
+	xml := `<urlset xmlns="` + sitemapNamespace + `"><url><loc>https://example.org/</loc></url></urlset>`
+	issues := SitemapCoverage(pages, strings.NewReader(xml))
+	if len(issues) != 1 || issues[0].Location.File != "hub/index.html" {
+		t.Fatal(issues)
 	}
 }

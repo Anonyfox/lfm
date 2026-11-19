@@ -888,7 +888,7 @@ func TestFolderSEOParity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
 			page := func(name string) []byte {
-				return fmt.Appendf(nil, `<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"School","@id":"https://example.org/#school","name":%q},{"@type":"AboutPage","dateModified":"2026-10-01"}]}</script>`, name)
+				return fmt.Appendf(nil, `<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"School","@id":"https://example.org/#school","name":%q},{"@type":"WebSite","@id":"https://example.org/#site"},{"@type":"AboutPage","isPartOf":{"@id":"https://example.org/#site"},"dateModified":"2026-10-01"}]}</script>`, name)
 			}
 			if err := os.Mkdir(filepath.Join(dir, "about"), 0700); err != nil {
 				t.Fatal(err)
@@ -1005,5 +1005,47 @@ func TestFolderLastmodCanonical(t *testing.T) {
 				t.Fatalf("lastmod warnings on %v, want %q", files, tc.wantFile)
 			}
 		})
+	}
+}
+
+func TestFolderGraphAndSitemap(t *testing.T) {
+	dir := t.TempDir()
+	page := func(canonical, org, site string) []byte {
+		return fmt.Appendf(nil, `<html lang=en><head><link rel=canonical href="%s"><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@id":%q,"@type":"Organization"},{"@type":"WebSite","@id":%q},{"@type":"WebPage","@id":"#page","isPartOf":{"@id":%q},"inLanguage":"en","dateModified":"2026-10-10"},{"@type":"Article","publisher":{"@id":%q}}]}</script></head></html>`, canonical, org, site, site, org)
+	}
+	const origin = "https://example.org/"
+	first, err := check.Parse(page(origin, "#org", "#site"), check.Options{URL: origin})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range []string{"a.html", "b.html"} {
+		if err := os.WriteFile(filepath.Join(dir, file), page(origin+file, "#org", "#site"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, sitemap := range []bool{false, true} {
+		if sitemap {
+			if err := os.WriteFile(filepath.Join(dir, "sitemap.xml"), []byte(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://example.org/</loc></url></urlset>`), 0600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		issues, err := folderCopy(dir, first)
+		if err != nil {
+			t.Fatal(err)
+		}
+		counts := map[string]int{}
+		for _, i := range issues {
+			counts[i.Rule]++
+			if i.Severity != check.Warning || i.Rule == "jsonld.graph" && i.Location.File != "a.html" {
+				t.Fatal(i)
+			}
+		}
+		want := 0
+		if sitemap {
+			want = 2
+		}
+		if counts["jsonld.graph"] != 2 || counts["seo.sitemap"] != want || len(issues) != 2+want {
+			t.Fatal(issues)
+		}
 	}
 }

@@ -10,9 +10,17 @@ import (
 	"golang.org/x/net/html"
 )
 
+type nodeContext struct {
+	publisher           bool
+	relatedOrganization bool
+	standalone          bool
+	linkedPage          bool
+}
+
 type schemaNode struct {
 	value  map[string]any
 	script *html.Node
+	nodeContext
 }
 type pageGraph struct {
 	nodes         []schemaNode
@@ -26,12 +34,12 @@ func (d *Document) seoGraph() *pageGraph {
 		return d.graph
 	}
 	g := &pageGraph{ids: map[string]map[string]any{}}
-	var visit func(any, *html.Node)
-	visit = func(raw any, script *html.Node) {
+	var visit func(any, *html.Node, nodeContext)
+	visit = func(raw any, script *html.Node, ctx nodeContext) {
 		switch v := raw.(type) {
 		case []any:
 			for _, child := range v {
-				visit(child, script)
+				visit(child, script, ctx)
 			}
 		case map[string]any:
 			if _, literal := v["@value"]; literal {
@@ -40,18 +48,23 @@ func (d *Document) seoGraph() *pageGraph {
 			if id, _ := v["@id"].(string); id != "" && len(v) > 1 {
 				g.ids[id] = v
 			}
-			node := schemaNode{v, script}
+			node := schemaNode{v, script, ctx}
 			g.nodes = append(g.nodes, node)
 			if id, _ := v["@id"].(string); id != "" && hasSchemaType(v, organizationTypes) {
 				g.organizations = append(g.organizations, describeOrganization(id, node))
 			}
 			for _, key := range slices.Sorted(maps.Keys(v)) {
-				visit(v[key], script)
+				visit(v[key], script, nodeContext{
+					publisher:           key == "https://schema.org/publisher" || key == "http://schema.org/publisher",
+					relatedOrganization: ctx.relatedOrganization || relatedOrganizationProperties[key],
+					standalone:          ctx.standalone && key == "@graph",
+					linkedPage:          ctx.linkedPage || linkedPageProperties[key],
+				})
 			}
 		}
 	}
 	for _, block := range d.jsonldExpanded {
-		visit(block.data, block.node)
+		visit(block.data, block.node, nodeContext{standalone: true})
 	}
 	d.graph = g
 	return g

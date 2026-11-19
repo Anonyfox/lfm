@@ -76,6 +76,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `html.references` | Errors: missing static ID references; unresolved fragment navigation warns |
 | `html.json` | Errors: invalid JSON, JSON-LD, import maps or speculation-rules JSON |
 | `jsonld.faq` | Visible FAQ questions and answers match their structured data |
+| `jsonld.graph` | Page and publisher identities, references and dates agree |
 | `jsonld.identity` | Organization identities agree and structured data references resolve |
 | `jsonld.block` | Errors: handwritten/extra JSON-LD blocks in projects; one optional generated block |
 | `jsonld.structure` | Errors: invalid JSON-LD expansion/keyword shapes, bounded input limits or processor failure |
@@ -86,6 +87,7 @@ nodes, err := doc.Query(`main > section:nth-child(2) img:not([alt])`)
 | `commerce.structured-data` | Errors: negative Offer price, exact identifiable same-currency config mismatch, non-public/non-HTTPS potential BuyAction target. Warnings: incomplete/ambiguous price facts, alternate currency, absent/different action target. Offline expanded aliases and same-graph ID references are supported; ambiguous identities/context/precision are not guessed. |
 | `commerce.secrets` | Errors: recognizable Stripe sk_/rk_/whsec_ secret shapes in config, final HTML or emitted text sidecars, with redacted values. Public pk_ keys/object IDs are allowed; this is not a general credential/PII scanner. |
 | `commerce.legal` | Warnings: a page with declared offers or a Stripe checkout link but no visible privacy-policy link; on `lang="de…"` pages also no Impressum link. |
+| `seo.sitemap` | Sitemap entries match indexable canonical pages |
 | `seo.lastmod` | Sitemap modification dates agree with page structured data |
 | `seo.metadata` | Errors: duplicate/out-of-head HTML titles; missing/duplicate/out-of-head canonical, non-public/non-HTTPS canonical, any query/fragment, or spelling different from configured url. Missing title/description/lang, duplicate/misplaced description and unrecognized BCP 47 language warn. SVG titles and inert templates are excluded. |
 | `seo.indexability` | Warnings: explicit noindex/none and page-wide nofollow, including Googlebot News; restrictions in body still count. |

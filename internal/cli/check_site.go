@@ -33,7 +33,7 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 	var pageRules []check.Rule
 	for _, rule := range check.DefaultRules() {
 		switch rule.ID {
-		case "jsonld.faq", "jsonld.identity", "sharing.card":
+		case "jsonld.graph", "jsonld.faq", "jsonld.identity", "sharing.card":
 			pageRules = append(pageRules, rule)
 		case "copy.banned", "copy.required":
 			if len(first.Options.CopyBans)+len(first.Options.CopyRequires) > 0 {
@@ -103,6 +103,7 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 	}
 	issues := append(pageIssues, check.SiteCopy(pages)...)
 	issues = append(issues, check.SiteIdentity(pages)...)
+	issues = append(issues, check.SiteGraph(pages)...)
 	if info, e := root.Stat("sitemap.xml"); e == nil && info.Mode().IsRegular() {
 		f, e := root.Open("sitemap.xml")
 		if e != nil {
@@ -110,6 +111,10 @@ func folderCopy(target string, first *check.Document) ([]check.Diagnostic, error
 		}
 		defer f.Close()
 		issues = append(issues, check.SitemapDates(pages, io.LimitReader(f, 50<<20))...)
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
+		issues = append(issues, check.SitemapCoverage(pages, io.LimitReader(f, 50<<20))...)
 	}
 	return issues, nil
 }

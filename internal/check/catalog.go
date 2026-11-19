@@ -63,6 +63,8 @@ func baseRules() []Rule {
 		// jsonld
 		rule("jsonld.faq", "Visible FAQ questions and answers match their structured data",
 			"Warns when a FAQPage question or accepted answer is absent from visible page text. Search engines expect the marked-up FAQ to be available to readers. Render the same questions and answers in both places.", faqRule),
+		rule("jsonld.graph", "Page and publisher identities, references and dates agree",
+			"Warns on duplicate publisher Organizations, WebSites or explicit WebPages, inline publisher, seller, provider or brand-owner copies, and invalid or reversed dates. Conflicting descriptions obscure entity identity. Reuse entity @ids, match WebPage @id and inLanguage to the canonical and HTML language when present, and link isPartOf to an identified WebSite. Folder checks compare Organization and WebSite @ids across pages.", graphRule),
 		rule("jsonld.identity", "Organization identities agree and structured data references resolve",
 			"Warns for conflicting Organization identities, unresolved author, publisher, seller or provider references, and unnamed inline Organization publishers. Conflicting descriptions can misidentify the entity behind a page. Define referenced nodes locally and keep identity fields consistent across the site.", identityRule),
 		rule("jsonld.block", "Structured data comes only from the one compiler-generated JSON-LD block",
@@ -96,6 +98,8 @@ func baseRules() []Rule {
 		rule("commerce.legal", "A page that sells links the owner's privacy policy, and an Impressum in German",
 			"Warns when a page with declared offers or a Stripe checkout link has no visible link to a privacy policy (privacy, Datenschutz…), and, on a German page, none to an Impressum. Selling without them is unlawful in the EU and Germany and makes a careful buyer stop. Link the owner's pages, typically in the footer; legal text comes from the owner, never from the page's author.",
 			legalRule),
+		rule("seo.sitemap", "Sitemap entries match indexable canonical pages",
+			"Warns when sitemap entries disagree with canonical links, repeat a URL, omit an indexable canonical page or include a noindex page. Conflicting indexing signals can hide the intended URL in search. List each indexable canonical URL exactly once.", func(*Document) []Diagnostic { return nil }),
 		rule("seo.lastmod", "Sitemap modification dates agree with page structured data",
 			"Warns in folder checks when sitemap lastmod and a WebPage or Article modification date disagree or use invalid dates. The check matches the sitemap URL to a page's canonical when exactly one checked page has that canonical, otherwise by folder-relative file path, so a staged index.html is compared to its own entry and child pages that canonicalize to a parent hub are not compared to the hub's lastmod. Trailing slashes are equivalent. Search engines use these dates to interpret updates. Publish the same ISO 8601 calendar date in both places.", func(*Document) []Diagnostic { return nil }),
 		rule("seo.metadata", "One title, description, language and exact HTTPS canonical in head",
